@@ -32,11 +32,11 @@ class StageASI:
         self.stage_cfg = stage_cfg
         self.tigerbox = tigerbox
         self.tiger_joystick_mapping = self.tigerbox.get_joystick_axis_mapping()
-        self.axes = stage_cfg['hardware_axis']  # list of strings for this Pose's moveable axes in tiger frame.
-        self.instrument_axes = stage_cfg['instrument_axis']
+        self.axes = stage_cfg['instrument_axis']  # list of strings for this Pose's moveable axes in tiger frame.
+        self.hardware_axis = stage_cfg['hardware_axis']
         # axis_map: dictionary representing the mapping from sample pose to tigerbox axis.
         # i.e: `axis_map[<sample_frame_axis>] = <tiger_frame_axis>`.
-        self.axis_map = {self.instrument_axes: self.axes}
+        axis_map = {self.axes: self.hardware_axis}
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         # We assume a bijective axis mapping (one-to-one and onto).
         self.sample_to_tiger_axis_map = {}
@@ -51,6 +51,9 @@ class StageASI:
                        f"{self.sample_to_tiger_axis_map}")
         self.log.debug(f"New tiger to sample axis mapping: "
                        f"{self.tiger_to_sample_axis_map}")
+        print(self.sample_to_tiger_axis_map)
+        print(self.tiger_to_sample_axis_map)
+        print(self.axes)
 
     def _sanitize_axis_map(self, axis_map: dict):
         """save an input axis mapping to apply to move commands.
@@ -149,14 +152,15 @@ class StageASI:
         return self._tiger_to_sample(tiger_position)
 
     @property
-    def travel_limits(self, *axes: str):
+    def travel_limits(self):
         """ Get the travel limits for the specified axes.
 
         :return: a dict of 2-value lists, where the first element is the lower
             travel limit and the second element is the upper travel limit.
         """
         limits = {}
-        for ax in axes:
+        for ax in self.axes:
+            print(ax)
             # Get lower/upper limit in tigerbox frame.
             tiger_ax = self._sample_to_tiger_axis_list(ax)[0]
             tiger_limit_a = self.tigerbox.get_lower_travel_limit(tiger_ax)
@@ -178,7 +182,7 @@ class StageASI:
         """Set the axis backlash compensation to a set value (0 to disable)."""
         machine_axes = self._sample_to_tiger(axes)
         for ax in machine_axes:
-            self.stage_cfg[ax]['backlash mm'] = machine_axes[ax]
+            self.stage_cfg['backlash_mm'] = machine_axes[ax]
         self.tigerbox.set_axis_backlash(**machine_axes)
 
     @property
@@ -192,7 +196,7 @@ class StageASI:
         """Set the tiger axis speed."""
         machine_axes = self._sample_to_tiger(axes)
         for ax in machine_axes:
-            self.stage_cfg[ax]['speed mm s'] = machine_axes[ax]
+            self.stage_cfg['speed_mm_s'] = machine_axes[ax]
         self.tigerbox.set_speed(**machine_axes)
 
     @property
@@ -206,7 +210,7 @@ class StageASI:
         """Set the tiger axis acceleration."""
         machine_axes = self._sample_to_tiger(axes)
         for ax in machine_axes:
-            self.stage_cfg[ax]['acceleration ms'] = machine_axes[ax]
+            self.stage_cfg['acceleration_ms'] = machine_axes[ax]
         self.tigerbox.set_acceleration(**machine_axes)
 
     @property
@@ -226,12 +230,12 @@ class StageASI:
 
         valid = list(TTL_MODES.keys())
         for ax in axes:
-        if axes[ax] not in valid:
-            raise ValueError("ttl must be one of %r." % valid)
+            if axes[ax] not in valid:
+                raise ValueError("ttl must be one of %r." % valid)
 
         machine_axes = self._sample_to_tiger(axes)
         for ax in machine_axes:
-            self.stage_cfg[ax]['ttl mode'] = machine_axes[ax]
+            self.stage_cfg['ttl_mode'] = machine_axes[ax]
             # Grab the card address for this axis
             card_address = tigerbox.axis_to_card[ax]
             self.tigerbox.set_ttl_pin_modes(in0_mode = TTL_MODES[machine_axes[ax]], card_address = card_address)
@@ -253,12 +257,12 @@ class StageASI:
         """Set the tiger joystick axis."""
         valid = list(JOYSTICK_MAPPING.keys())
         for ax in axes:
-        if axes[ax] not in valid:
-            raise ValueError("joystick mapping must be one of %r." % valid)
+            if axes[ax] not in valid:
+                raise ValueError("joystick mapping must be one of %r." % valid)
 
         machine_axes = self._sample_to_tiger(axes)
         for ax in machine_axes:
-            self.stage_cfg[ax]['joystick mapping'] = machine_axes[ax]
+            self.stage_cfg['joystick_mapping'] = machine_axes[ax]
             self.tigerbox.bind_axis_to_joystick_input({ax: JOYSTICK_MAPPING[machine_axes[ax]]})
 
     @property
@@ -272,12 +276,12 @@ class StageASI:
         """Set the tiger joystick axis polarity."""
         valid = list(JOYSTICK_POLARITY.keys())
         for ax in axes:
-        if axes[ax] not in valid:
-            raise ValueError("joystick polarity must be one of %r." % valid)
+            if axes[ax] not in valid:
+                raise ValueError("joystick polarity must be one of %r." % valid)
 
         machine_axes = self._sample_to_tiger(axes)
         for ax in machine_axes:
-            self.stage_cfg[ax]['joystick polarity'] = machine_axes[ax]
+            self.stage_cfg['joystick_polarity'] = machine_axes[ax]
             self.tigerbox.set_joystick_axis_polarity({ax: JOYSTICK_POLARITY[machine_axes[ax]]})
 
     def lock_external_user_input(self):

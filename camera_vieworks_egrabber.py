@@ -21,7 +21,7 @@ PIXEL_TYPES = {
     "Mono12": "Mono12",
     "Mono14": "Mono14",
     "Mono16": "Mono16"
-    }
+}
 
 LINE_INTERVALS_US = {
     "Mono8":  15.00,
@@ -29,32 +29,32 @@ LINE_INTERVALS_US = {
     "Mono12": 15.00,
     "Mono14": 20.21,
     "Mono16": 45.44
-    }
+}
 
 BIT_PACKING_MODES = {
     "Msb":  "Msb",
     "Lsb":  "Lsb",
     "None": "None"
-    }
+}
 
 TRIGGER_MODES = {
     "On":  "On",
     "Off": "Off",
-    }
+}
 
 TRIGGER_SOURCES = {
     "Internal": "None",
     "External": "Line0",
-    }
+}
 
 TRIGGER_POLARITY = {
     "Rising":  "RisingEdge",
     "Falling": "FallingEdge",
-    }
+}
 
 class CameraVieworkseGrabber:
 
-    def __init__(self, camera_cfg):
+    def __init__(self, cfg):
         """Connect to hardware.
         
         :param camera_cfg: cfg for camera.
@@ -62,17 +62,28 @@ class CameraVieworkseGrabber:
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         # TODO: how to handle multiple cameras?
         # We should pass in directly a "camera cfg, i.e. cfg["camera0"] or cfg["camera1"]"
-        self.camera_cfg = camera_cfg
-        self.camera_id = camera_cfg['ID']
+        self.cfg = cfg
+        self.camera_cfg = self.cfg.cfg['camera']
+        self.camera_id = self.camera_cfg['identifier']
         # instantiate egentl
         self.gentl = EGenTL()
         # instantiate egrabber
         # TODO: make this tied to an id in the passed camera config
         self.grabber = EGrabber(self.gentl)
 
+        self.exposure_time_ms = self.camera_cfg['timing']['exposure_time_ms']
+        self.roi = (self.camera_cfg['region of interest']['width_px'],
+                    self.camera_cfg['region of interest']['height_px'])
+        self.pixel_type = self.camera_cfg['image format']['bit_depth']
+        self.bit_packing_mode = self.camera_cfg['image format']['bit_packing_mode']
+        self.trigger = (self.camera_cfg['trigger']['mode'],
+                        self.camera_cfg['trigger']['source'],
+                        self.camera_cfg['trigger']['polarity'])
+
     @property
     def exposure_time_ms(self):
-        return self.grabber.remote.get("ExposureTime")
+        # us to ms conversion
+        return self.grabber.remote.get("ExposureTime")/1000
 
     @exposure_time_ms.setter
     def exposure_time_ms(self, exposure_time_ms: float):
@@ -87,18 +98,21 @@ class CameraVieworkseGrabber:
         # Note: round ms to nearest us
         self.grabber.remote.set("ExposureTime", round(exposure_time_ms * 1e3, 1))
         self.camera_cfg['timing']['exposure_time_ms'] = exposure_time_ms
-
+        self.cfg.cfg['camera'] = self.camera_cfg
+        self.cfg.save('test2.yaml')
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
 
     @property
     def roi(self):
-        return {'width_px': self.grabber.remote.get("WidthX"),
-                'height_px': self.grabber.remote.get("WidthY"),
+        return {'width_px': self.grabber.remote.get("Width"),
+                'height_px': self.grabber.remote.get("Height"),
                 'width_offset_px': self.grabber.remote.get("OffsetX"),
                 'height_offest_px': self.grabber.remote.get("OffsetY")}
 
     @roi.setter
-    def roi(self, height_px: int, width_px: int):
+    def roi(self, value: tuple):
+
+        width_px, height_px = value
 
         sensor_height_px = MAX_HEIGHT_PX
         sensor_width_px = MAX_WIDTH_PX
@@ -109,9 +123,9 @@ class CameraVieworkseGrabber:
             self.log.error(f"Height must be >{MIN_HEIGHT_PX} px, \
                              <{MAX_HEIGHT_PX} px, \
                              and a multiple of {DIVISIBLE_HEIGHT_PX} px!")
-            raise ValueError((f"Height must be >{MIN_HEIGHT_PX} px, \
+            raise ValueError(f"Height must be >{MIN_HEIGHT_PX} px, \
                              <{MAX_HEIGHT_PX} px, \
-                             and a multiple of {DIVISIBLE_HEIGHT_PX} px!"))
+                             and a multiple of {DIVISIBLE_HEIGHT_PX} px!")
 
         if width_px < MIN_WIDTH_PX or \
            (width_px % DIVISIBLE_WIDTH_PX) != 0 or \
@@ -125,22 +139,23 @@ class CameraVieworkseGrabber:
 
         self.grabber.remote.set("OffsetX", 0)
         self.grabber.remote.set("Width", width_px)
-        centered_width_offset_px = round((sensor_width_px/2 - width_px/2))
-        self.grabber.remote.set("OffsetX", centered_offset_x_px)
-        
+        # width offset must be a multiple of the divisible width in px
+        centered_width_offset_px = round((sensor_width_px/2 - width_px/2)/DIVISIBLE_WIDTH_PX)*DIVISIBLE_WIDTH_PX  
+        self.grabber.remote.set("OffsetX", centered_width_offset_px)    
         self.grabber.remote.set("OffsetY", 0)
         self.grabber.remote.set("Height", height_px)
         height_px = self.grabber.remote.get("Height")
-        centered_height_offset_px = round((sensor_height_px/2 - height_px/2))
-
+        # Height offset must be a multiple of the divisible height in px
+        centered_height_offset_px = round((sensor_height_px/2 - height_px/2)/DIVISIBLE_HEIGHT_PX)*DIVISIBLE_HEIGHT_PX  
         self.grabber.remote.set("OffsetY", centered_height_offset_px)
         self.camera_cfg['region of interest']['width_px'] = width_px
         self.camera_cfg['region of interest']['height_px'] = height_px
         self.camera_cfg['region of interest']['width_offset_px'] = centered_width_offset_px
         self.camera_cfg['region of interest']['height_offset_px'] = centered_height_offset_px
-
+        self.cfg.cfg['camera'] = self.camera_cfg
+        self.cfg.save('test2.yaml')
         self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
-        self.log.info(f"roi offset set to: {centered_offset_x_px} x {centered_offset_y_px} [width x height]")
+        self.log.info(f"roi offset set to: {centered_width_offset_px} x {centered_height_offset_px} [width x height]")
 
     @property
     def pixel_type(self):
@@ -159,7 +174,8 @@ class CameraVieworkseGrabber:
         self.camera_cfg['timing']['line_interval_us'] = LINE_INTERVALS_US[pixel_type_bits]
         self.grabber.remote.set("PixelFormat", PIXEL_TYPES[pixel_type_bits])
         self.camera_cfg['image format']['bit_depth'] = pixel_type_bits
-
+        self.cfg.cfg['camera'] = self.camera_cfg
+        self.cfg.save('test2.yaml')
         self.log.info(f"pixel type set_to: {pixel_type_bits}")
 
     @property
@@ -177,7 +193,8 @@ class CameraVieworkseGrabber:
 
         self.grabber.stream.set("UnpackingMode", BIT_PACKING_MODES[bit_packing])
         self.camera_cfg['image format']['bit_packing_mode'] = bit_packing
-
+        self.cfg.cfg['camera'] = self.camera_cfg
+        self.cfg.save('test2.yaml')
         self.log.info(f"bit packing mode set to: {bit_packing}")
 
     @property
@@ -192,7 +209,6 @@ class CameraVieworkseGrabber:
     @property
     def readout_mode(self):
         self.log.warning(f"readout mode cannot be set for the VP-151MX camera!")
-        return self.camera_cfg['readout']['mode'] = None
 
     @readout_mode.setter
     def readout_mode(self):
@@ -200,12 +216,11 @@ class CameraVieworkseGrabber:
         pass
 
     @property
-    def get_readout_direction(self):
+    def readout_direction(self):
         self.log.warning(f"readout direction cannot be set for the VP-151MX camera!")
-        return self.camera_cfg['readout']['direction'] = None
 
     @readout_direction.setter
-    def set_readout_direction(self):
+    def readout_direction(self):
         self.log.warning(f"readout direction cannot be set for the VP-151MX camera!")
         pass
 
@@ -219,7 +234,9 @@ class CameraVieworkseGrabber:
                 "polarity": next(key for key, value in TRIGGER_POLARITY.items() if value == polarity)}
 
     @trigger.setter
-    def trigger(self, mode: str, source: str, polarity: str):
+    def trigger(self, value: tuple):
+
+        mode, source, polarity = value
 
         valid_mode = list(TRIGGER_MODES.keys())
         if mode not in valid_mode:
@@ -235,18 +252,19 @@ class CameraVieworkseGrabber:
         if self.grabber.remote.get("TriggerMode") != mode:  # set camera to external trigger mode
             self.grabber.remote.set("TriggerMode", TRIGGER_MODES[mode])
         self.grabber.remote.set("TriggerSource", TRIGGER_SOURCES[source])
-        self.grabber.remote.set("TriggerSource", TRIGGER_POLARITY[polarity])
+        self.grabber.remote.set("TriggerActivation", TRIGGER_POLARITY[polarity])
 
         self.camera_cfg['trigger']['mode'] = mode
         self.camera_cfg['trigger']['source'] = source
         self.camera_cfg['trigger']['polarity'] = polarity
-
+        self.cfg.cfg['camera'] = self.camera_cfg
+        self.cfg.save('test2.yaml')
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
 
     @property
     def binning(self): 
         self.log.warning(f"binning is not available on the VP-151MX")
-        return self.camera_cfg['image']['binning']
+        pass
 
     @binning.setter
     def binning(self, binning: int): 
@@ -264,16 +282,14 @@ class CameraVieworkseGrabber:
     @property
     def mainboard_temperature_c(self):
         """get the mainboard temperature in degrees C."""
-        mainboard_temperature_c = self.grabber.remote.set("DeviceTemperatureSelector", "Mainboard")
-        self.attributes.mainboard_temperature_c = mainboard_temperature_c
-        return mainboard_temperature_c
+        self.grabber.remote.set("DeviceTemperatureSelector", "Mainboard")
+        return self.grabber.remote.get("DeviceTemperature")
 
     @property
     def sensor_temperature_c(self):
         """get the sensor temperature in degrees C."""
-        sensor_temperature_c = self.grabber.remote.set("DeviceTemperatureSelector", "Sensor")
-        self.attributes.sensor_temperature_c = sensor_temperature_c
-        return sensor_temperature_c
+        self.grabber.remote.set("DeviceTemperatureSelector", "Sensor")
+        return self.grabber.remote.get("DeviceTemperature")
 
     def prepare(self, buffer_size_frames: int):
         # realloc buffers appears to be allocating ram on the pc side, not camera side.
@@ -283,8 +299,8 @@ class CameraVieworkseGrabber:
                              and <{MAX_BUFFER_SIZE} frames")
             raise ValueError(f"buffer size must be >{MIN_BUFFER_SIZE} frames \
                              and <{MAX_BUFFER_SIZE} frames")
-        self.grabber.realloc_buffers(self.camera_cfg.egrabber_frame_buffer)  # allocate RAM buffer N frames
-        self.log.info(f"buffer set to: {frame_count} frames")
+        self.grabber.realloc_buffers(buffer_size_frames)  # allocate RAM buffer N frames
+        self.log.info(f"buffer set to: {buffer_size_frames} frames")
 
     def start(self, frame_count: int, live: bool = False):
         if live:
@@ -300,7 +316,7 @@ class CameraVieworkseGrabber:
         # Note: creating the buffer and then "pushing" it at the end has the
         # 	effect of moving the internal camera frame buffer from the output
         # 	pool back to the input pool, so it can be reused.
-        timeout_ms = int(1000)
+        timeout_ms = 1000
         with Buffer(self.grabber, timeout=timeout_ms) as buffer:
             ptr = buffer.get_info(BUFFER_INFO_BASE, INFO_DATATYPE_PTR)  # grab pointer to new frame
             # grab frame data

@@ -1,0 +1,10 @@
+stage:
+  port: COM3
+  hardware_axis: X
+  instrument_axis: Z
+  speed_mm_s: 1.0
+  acceleration_ms: 100.0
+  backlash_mm: 0
+  ttl_mode: On
+  joystick_polarity: default
+  joystick_mapping: joystick x
