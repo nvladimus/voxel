@@ -5,17 +5,41 @@ class Laser(ABC):
 
     @abstractmethod
     @property
-    def setpoint(self):
+    def current_setpoint(self):
         pass
 
     @abstractmethod
     @property
-    def max_setpoint(self):
+    def power_setpoint(self):
         pass
 
     @abstractmethod
     @property
-    def modulation_mode(self):
+    def max_power(self):
+        pass
+
+    @abstractmethod
+    @property
+    def max_current(self):
+        pass
+    @abstractmethod
+    @property
+    def digital_modulation(self):
+        pass
+
+    @abstractmethod
+    @property
+    def analog_modulation(self):
+        pass
+
+    @abstractmethod
+    @property
+    def temperature(self):
+        pass
+
+    @abstractmethod
+    @property
+    def external_control_mode(self):
         pass
 
     @abstractmethod
@@ -23,7 +47,7 @@ class Laser(ABC):
         pass
 
     @abstractmethod
-    def disable_cdrh(self):
+    def cdrh(self):
         pass
 
     @abstractmethod
