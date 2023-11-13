@@ -1,5 +1,5 @@
 from oxxius_laser import FaultCodeField, OxxiusState,Query, Cmd, L6CCCombiner, BoolVal, LBX
-from exa-spim-refactor.Lasers.laser_base import Laser
+from laser_base import Laser
 import logging
 
 class LaserLBXOxxius(Laser, LBX):
