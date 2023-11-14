@@ -1,6 +1,6 @@
 from pathlib import Path
 from spim_core.spim_core.config_base import Config
-from camera_vieworks_egrabber import CameraVieworkseGrabber
+from Cameras.vieworks_egrabber.camera_vieworks_egrabber import CameraVieworkseGrabber
 
 
 this_dir = Path(__file__).parent.resolve() # directory of this test file.
