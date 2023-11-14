@@ -17,6 +17,18 @@ class LaserLCXOxxius(LCX, Laser):
         # inherit from laser base class
 
     @property
+    def power_setpoint_mw(self):
+        return self.power_setpoint
+
+    @power_setpoint_mw.setter
+    def power_setpoint_mw(self, value: float or int):
+        self.power_setpoint = value
+
+    @property
+    def max_power_mw(self):
+        return self.max_power
+
+    @property
     def digital_modulation(self):
         raise AttributeError
 

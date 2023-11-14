@@ -5,12 +5,12 @@ class Laser(ABC):
 
     @property
     @abstractmethod
-    def power_setpoint(self):
+    def power_setpoint_mw(self):
         pass
 
     @property
     @abstractmethod
-    def max_power(self):
+    def max_power_mw(self):
         pass
 
     @property

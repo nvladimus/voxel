@@ -18,6 +18,9 @@ channel_specs:
       enable_voltage : 5.0
       kwds:
         prefix : "L6"
+        coefficients:
+          1 : 3.218
+          0 : -57.515
       setup:
         cdrh: "OFF"
         constant_current: "ON"
