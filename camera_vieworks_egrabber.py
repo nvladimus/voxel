@@ -54,31 +54,41 @@ TRIGGER_POLARITY = {
 
 class CameraVieworkseGrabber:
 
-    def __init__(self, cfg):
+    def __init__(self, camera_id):
         """Connect to hardware.
         
         :param camera_cfg: cfg for camera.
         """
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        # TODO: how to handle multiple cameras?
-        # We should pass in directly a "camera cfg, i.e. cfg["camera0"] or cfg["camera1"]"
-        self.cfg = cfg
-        self.camera_cfg = self.cfg.cfg['camera']
-        self.camera_id = self.camera_cfg['identifier']
-        # instantiate egentl
-        self.gentl = EGenTL()
-        # instantiate egrabber
-        # TODO: make this tied to an id in the passed camera config
-        self.grabber = EGrabber(self.gentl)
-
-        self.exposure_time_ms = self.camera_cfg['timing']['exposure_time_ms']
-        self.roi = (self.camera_cfg['region of interest']['width_px'],
-                    self.camera_cfg['region of interest']['height_px'])
-        self.pixel_type = self.camera_cfg['image format']['bit_depth']
-        self.bit_packing_mode = self.camera_cfg['image format']['bit_packing_mode']
-        self.trigger = (self.camera_cfg['trigger']['mode'],
-                        self.camera_cfg['trigger']['source'],
-                        self.camera_cfg['trigger']['polarity'])
+        gentl = EGenTL()
+        discovery = EGrabberDiscovery(gentl)
+        discovery.discover()
+        # list all possible grabbers
+        egrabber_list = {'grabbers': []}
+        interface_count = discovery.interface_count()
+        for interfaceIndex in range(interface_count):
+            device_count = discovery.device_count(interfaceIndex)
+            for deviceIndex in range(device_count):
+                stream_count = discovery.stream_count(interfaceIndex,deviceIndex)
+                for streamIndex in range(stream_count):
+                    info = {'interface': interfaceIndex,
+                            'device': deviceIndex,
+                            'stream': streamIndex
+                           }
+                    egrabber_list['grabbers'].append(info)
+        del discovery
+        # indentify by serial number and return correct grabber
+        for grabber in egrabber_list['grabbers']:
+            try:  
+                grabber = EGrabber(gentl, grabber['interface'], grabber['device'], grabber['stream'], remote_required=True)
+                if grabber.remote.get('DeviceSerialNumber') == camera_id:
+                    self.log.info(f"grabber found for S/N: {camera_id}")
+                    self.grabber = grabber
+                    break
+            except:
+                self.log.error(f"no grabber found for S/N: {camera_id}")
+                raise ValueError(f"no grabber found for S/N: {camera_id}")
+        del grabber
 
     @property
     def exposure_time_ms(self):
@@ -97,9 +107,6 @@ class CameraVieworkseGrabber:
 
         # Note: round ms to nearest us
         self.grabber.remote.set("ExposureTime", round(exposure_time_ms * 1e3, 1))
-        self.camera_cfg['timing']['exposure_time_ms'] = exposure_time_ms
-        self.cfg.cfg['camera'] = self.camera_cfg
-        self.cfg.save('test2.yaml')
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
 
     @property
@@ -148,18 +155,12 @@ class CameraVieworkseGrabber:
         # Height offset must be a multiple of the divisible height in px
         centered_height_offset_px = round((sensor_height_px/2 - height_px/2)/DIVISIBLE_HEIGHT_PX)*DIVISIBLE_HEIGHT_PX  
         self.grabber.remote.set("OffsetY", centered_height_offset_px)
-        self.camera_cfg['region of interest']['width_px'] = width_px
-        self.camera_cfg['region of interest']['height_px'] = height_px
-        self.camera_cfg['region of interest']['width_offset_px'] = centered_width_offset_px
-        self.camera_cfg['region of interest']['height_offset_px'] = centered_height_offset_px
-        self.cfg.cfg['camera'] = self.camera_cfg
-        self.cfg.save('test2.yaml')
         self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
         self.log.info(f"roi offset set to: {centered_width_offset_px} x {centered_height_offset_px} [width x height]")
 
     @property
     def pixel_type(self):
-        pixel_type = self.grabber.remote.set("PixelFormat")
+        pixel_type = self.grabber.remote.get("PixelFormat")
         # invert the dictionary and find the abstracted key to output
         return next(key for key, value in PIXEL_TYPES.items() if value == pixel_type)
 
@@ -171,11 +172,7 @@ class CameraVieworkseGrabber:
             raise ValueError("pixel_type_bits must be one of %r." % valid)
         
         # Note: for the Vieworks VP-151MX camera, the pixel type also controls line interval
-        self.camera_cfg['timing']['line_interval_us'] = LINE_INTERVALS_US[pixel_type_bits]
         self.grabber.remote.set("PixelFormat", PIXEL_TYPES[pixel_type_bits])
-        self.camera_cfg['image format']['bit_depth'] = pixel_type_bits
-        self.cfg.cfg['camera'] = self.camera_cfg
-        self.cfg.save('test2.yaml')
         self.log.info(f"pixel type set_to: {pixel_type_bits}")
 
     @property
@@ -192,14 +189,12 @@ class CameraVieworkseGrabber:
             raise ValueError("bit_packing_mode must be one of %r." % valid)
 
         self.grabber.stream.set("UnpackingMode", BIT_PACKING_MODES[bit_packing])
-        self.camera_cfg['image format']['bit_packing_mode'] = bit_packing
-        self.cfg.cfg['camera'] = self.camera_cfg
-        self.cfg.save('test2.yaml')
         self.log.info(f"bit packing mode set to: {bit_packing}")
 
     @property
     def line_interval_us(self):
-        return self.camera_cfg['timing']['line_interval_us']
+        pixel_type = self.pixel_type
+        return LINE_INTERVALS_US[pixel_type]
 
     @line_interval_us.setter
     def line_interval_us(self):
@@ -253,12 +248,6 @@ class CameraVieworkseGrabber:
             self.grabber.remote.set("TriggerMode", TRIGGER_MODES[mode])
         self.grabber.remote.set("TriggerSource", TRIGGER_SOURCES[source])
         self.grabber.remote.set("TriggerActivation", TRIGGER_POLARITY[polarity])
-
-        self.camera_cfg['trigger']['mode'] = mode
-        self.camera_cfg['trigger']['source'] = source
-        self.camera_cfg['trigger']['polarity'] = polarity
-        self.cfg.cfg['camera'] = self.camera_cfg
-        self.cfg.save('test2.yaml')
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
 
     @property
@@ -276,8 +265,8 @@ class CameraVieworkseGrabber:
         return MAX_WIDTH_PX
 
     @property
-    def get_sensor_height_px(self):
-        return MIN_WIDTH_PX
+    def sensor_height_px(self):
+        return MAX_HEIGHT_PX
 
     @property
     def mainboard_temperature_c(self):
@@ -291,7 +280,7 @@ class CameraVieworkseGrabber:
         self.grabber.remote.set("DeviceTemperatureSelector", "Sensor")
         return self.grabber.remote.get("DeviceTemperature")
 
-    def prepare(self, buffer_size_frames: int):
+    def prepare(self, buffer_size_frames: int = 8):
         # realloc buffers appears to be allocating ram on the pc side, not camera side.
         if buffer_size_frames < MIN_BUFFER_SIZE or \
            buffer_size_frames > MAX_BUFFER_SIZE:
@@ -314,17 +303,19 @@ class CameraVieworkseGrabber:
     def grab_frame(self):
         """Retrieve a frame as a 2D numpy array with shape (rows, cols)."""
         # Note: creating the buffer and then "pushing" it at the end has the
-        # 	effect of moving the internal camera frame buffer from the output
-        # 	pool back to the input pool, so it can be reused.
+        #   effect of moving the internal camera frame buffer from the output
+        #   pool back to the input pool, so it can be reused.
+        column_count = self.grabber.remote.get("Width")
+        row_count = self.grabber.remote.get("Height")
         timeout_ms = 1000
         with Buffer(self.grabber, timeout=timeout_ms) as buffer:
             ptr = buffer.get_info(BUFFER_INFO_BASE, INFO_DATATYPE_PTR)  # grab pointer to new frame
             # grab frame data
-            data = ct.cast(ptr, ct.POINTER(ct.c_ubyte * self.camera_cfg.sensor_column_count * self.camera_cfg.sensor_row_count * 2)).contents
+            data = ct.cast(ptr, ct.POINTER(ct.c_ubyte * column_count * row_count * 2)).contents
             # cast data to numpy array of correct size/datatype:
-            image = numpy.frombuffer(data, count=int(self.camera_cfg.sensor_column_count * self.camera_cfg.sensor_row_count),
-                                     dtype=numpy.uint16).reshape((self.camera_cfg.sensor_row_count,
-                                                                  self.camera_cfg.sensor_column_count))
+            image = numpy.frombuffer(data, count=int(column_count * row_count),
+                                     dtype=numpy.uint16).reshape((row_count,
+                                                                  column_count))
             return image
 
     def get_camera_acquisition_state(self):

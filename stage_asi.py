@@ -193,11 +193,13 @@ class StageASI:
 
     @speed.setter
     def speed(self, **axes: float):
+        axes = {x: round(v, MM_SCALE) for x, v in axes.items()}
+        print(axes)
         """Set the tiger axis speed."""
-        machine_axes = self._sample_to_tiger(axes)
-        for ax in machine_axes:
-            self.stage_cfg['speed_mm_s'] = machine_axes[ax]
-        self.tigerbox.set_speed(**machine_axes)
+        print(speed)
+        machine_axes = self._sample_to_tiger(self.axes)
+        print(machine_axes)
+        self.tigerbox.set_speed({machine_axes: speed})
 
     @property
     def acceleration(self):
@@ -206,23 +208,26 @@ class StageASI:
         return self._tiger_to_sample(tiger_speed)
 
     @acceleration.setter
-    def acceleration(self, **axes: float):
+    def acceleration(self, acceleration: float):
         """Set the tiger axis acceleration."""
-        machine_axes = self._sample_to_tiger(axes)
-        for ax in machine_axes:
-            self.stage_cfg['acceleration_ms'] = machine_axes[ax]
-        self.tigerbox.set_acceleration(**machine_axes)
+        machine_axes = self._sample_to_tiger(self.axes)
+        print(machine_axes)
+        self.tigerbox.set_acceleration(self.axes, acceleration)
 
     @property
     def ttl(self):
         """Get the tiger axis ttl."""
-        tiger_ttl = self.tigerbox.get_joystick_axis_mapping(*self.axes)
-        sample_axes = self._tiger_to_sample(tiger_joystick)
-        converted_axes = sample_axes
-        for ax in sample_axes:
-            ttl_mode = sample_axes[ax]
-            converted_axes[ax] = next(key for key, value in TTL_MODES.items() if value == sample_axes[ax])
-        return converted_axes
+        print(self.axes)
+        card_address = self.tigerbox.axis_to_card[self.axes][0]
+        print(card_address)
+        tiger_ttl = self.tigerbox.get_ttl_output_state()
+        print(tiger_ttl)
+        # sample_axes = self._tiger_to_sample(tiger_ttl)
+        # converted_axes = sample_axes
+        # for ax in sample_axes:
+        #     ttl_mode = sample_axes[ax]
+        #     converted_axes[ax] = next(key for key, value in TTL_MODES.items() if value == sample_axes[ax])
+        # return converted_axes
 
     @ttl.setter
     def ttl(self, **axes: int):
