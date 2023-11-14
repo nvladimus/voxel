@@ -1,7 +1,7 @@
 stage:
   port: COM3
-  hardware_axis: X
-  instrument_axis: Z
+  hardware_axis: x
+  instrument_axis: z
   speed_mm_s: 1.0
   acceleration_ms: 100.0
   backlash_mm: 0
