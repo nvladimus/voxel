@@ -10,8 +10,6 @@ def load_device(driver, module, kwds):
         if str(v).split('.')[0] in dir(sys.modules[driver]):
             arg_class = getattr(sys.modules[driver], v.split('.')[0])
             kwds[k] = getattr(arg_class, '.'.join(v.split('.')[1:]))
-        else:
-            kwds[k] = eval(v) if '.' in str(v) else v
     return device_class(**kwds)
 
 def setup_device(device, driver, setup):
@@ -29,7 +27,7 @@ def setup_device(device, driver, setup):
         setattr(device, property, value)
 
 this_dir = Path(__file__).parent.resolve() # directory of this test file.
-config_path = this_dir / Path("test_laser.yaml")
+config_path = this_dir / Path("test_oxxius_laser.yaml")
 cfg = YAML().load(stream=config_path)
 lasers = {}
 combiners = {}
@@ -46,7 +44,7 @@ for name, specs in cfg['channel_specs'].items():
         for nm in specs.keys():
             if nm.isdigit() and specs[nm]['type'] == 'laser':
                 kwds = dict(specs[nm]['kwds'])
-                kwds['port'] = combiners[name].ser # Add combiner port to kwds
+                kwds['combiner'] = combiners[name]# Add combiner to kwds
                 lasers[name +'.'+ nm] = load_device(specs[nm]['driver'], specs[nm]['module'], kwds)
                 setup_device(lasers[name +'.'+ nm], specs[nm]['driver'], specs[nm]['setup'])
 
