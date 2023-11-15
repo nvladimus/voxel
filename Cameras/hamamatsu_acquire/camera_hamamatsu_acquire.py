@@ -1,7 +1,6 @@
 import logging
-import acquire
-from acquire import DeviceKind, SampleType
-from acquire.acquire import Trigger
+from acquire import DeviceKind, Trigger, SampleType, Trigger, SignalIOKind, TriggerEdge, Direction, Runtime, \
+    AvailableData
 
 # constants for Hamamatsu C15440-20UP camera
 
@@ -15,8 +14,8 @@ MAX_HEIGHT_PX = 2034
 DIVISIBLE_HEIGHT_PX = 1
 MIN_EXPOSURE_TIME_MS = 0.001
 MAX_EXPOSURE_TIME_MS = 6e4
-# MIN_LINE_RATE = ?
-# MAX_LINE_RATE = ?
+MIN_LINE_INTERVALS_US = 0
+MAX_LINE_INTERVALS_US = 100   #TODO: I don't know what these values are
 
 
 PIXEL_TYPES = {
@@ -53,30 +52,25 @@ TRIGGER_POLARITY = {
 
 class CameraHamamatsuAcquire:
 
-    def __init__(self, camera_cfg, runtime: acquire.Runtime()):
+    def __init__(self, camera_id):
         """Connect to hardware.
 
         :param camera_cfg: cfg for camera.
         :param runtime: ACQUIRE runtime. must be passed into camera and filewriting class.
         """
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        
 
-
-
-        # TODO: how to handle multiple cameras?
-        # We should pass in directly a "camera cfg, i.e. cfg["camera0"] or cfg["camera1"]"
-        self.camera_cfg = camera_cfg
-        self.camera_id = camera_cfg['ID']
-        # instantiate acquire runtime
-        self.runtime = runtime
-        # instantiate acquire device manager
-        self.dm = self.runtime.device_manager()
-        # instantiate acquire runtime configuration
+        self.runtime = Runtime()
+        dm = self.runtime.device_manager()
         self.p = self.runtime.get_configuration()
-        # TODO: make this tied to an id in the passed camera config
-        self.p.video[0].camera.identifier = dm.select_one_of(DeviceKind.Camera, "VIEWORKS.*")
-        self.p = self.runtime.set_configuration(self.p)
+        self.device = None
+        for d in dm.devices():
+            if (d.kind == DeviceKind.Camera) and (camera_id in d.name):
+                self.device = d.name
+                break
+        if self.device == None:
+            self.log.error(f"Cannot find camera with the name {camera_id}")
+            raise
 
     @property
     def exposure_time_ms(self):
@@ -96,9 +90,6 @@ class CameraHamamatsuAcquire:
         # Note: round ms to nearest us
         self.p.video[0].camera.settings.exposure_time_us = round(exposure_time_ms * 1e3, 1)
         self.p = self.runtime.set_configuration(self.p)
-        self.camera_cfg['timing']['exposure_time_ms'] = exposure_time_ms
-
-        self.log.info(f"exposure time set to: {exposure_time_ms} ms")
 
     @property
     def roi(self):
@@ -108,8 +99,9 @@ class CameraHamamatsuAcquire:
                 'height_offest_px': self.p.video[0].camera.settings.offset[1]}
 
     @roi.setter
-    def roi(self, height_px: int, width_px: int):
+    def roi(self, value : (int, int)):
 
+        (height_px, width_px) = value
         sensor_height_px = MAX_HEIGHT_PX
         sensor_width_px = MAX_WIDTH_PX
 
@@ -133,27 +125,16 @@ class CameraHamamatsuAcquire:
                              <{MAX_WIDTH_PX}, \
                             and a multiple of {DIVISIBLE_WIDTH_PX} px!")
 
-        self.p.video[0].camera.settings.offset[0] = 0
+
+        # Set shape first so with offset it won't exceed chip size
+        self.p.video[0].camera.settings.shape = (width_px, height_px)
         self.p = self.runtime.set_configuration(self.p)
-        self.p.video[0].camera.settings.shape[0] = width_px
+
+        # Set new offset
         centered_width_offset_px = round((sensor_width_px / 2 - width_px / 2))
-        self.p.video[0].camera.settings.offset[0] = centered_width_offset_px
-        self.p = self.runtime.set_configuration(self.p)
-
-        self.p.video[0].camera.settings.offset[1] = 0
-        self.p = self.runtime.set_configuration(self.p)
-        self.p.video[0].camera.settings.shape[1] = height_px
         centered_height_offset_px = round((sensor_height_px / 2 - height_px / 2))
-        self.p.video[0].camera.settings.offset[1] = centered_height_offset_px
+        self.p.video[0].camera.settings.offset = (centered_width_offset_px, centered_height_offset_px)
         self.p = self.runtime.set_configuration(self.p)
-
-        self.camera_cfg['region of interest']['width_px'] = width_px
-        self.camera_cfg['region of interest']['height_px'] = height_px
-        self.camera_cfg['region of interest']['width_offset_px'] = centered_width_offset_px
-        self.camera_cfg['region of interest']['height_offset_px'] = centered_height_offset_px
-
-        self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
-        self.log.info(f"roi offset set to: {centered_offset_x_px} x {centered_offset_y_px} [width x height]")
 
     @property
     def pixel_type(self):
@@ -167,13 +148,8 @@ class CameraHamamatsuAcquire:
         valid = list(PIXEL_TYPES.keys())
         if pixel_type_bits not in valid:
             raise ValueError("pixel_type_bits must be one of %r." % valid)
-
-        # Note: for the Vieworks VP-151MX camera, the pixel type also controls line interval
         self.p.video[0].camera.settings.pixel_type = PIXEL_TYPES[pixel_type_bits]
         self.p = self.runtime.set_configuration(self.p)
-        self.camera_cfg['timing']['line_interval_us'] = LINE_INTERVALS_US[pixel_type_bits]
-
-        self.camera_cfg['image format']['bit_depth'] = pixel_type_bits
 
         self.log.info(f"pixel type set_to: {pixel_type_bits}")
 
@@ -188,33 +164,42 @@ class CameraHamamatsuAcquire:
 
     @property
     def line_interval_us(self):
-        return self.camera_cfg['timing']['line_interval_us']
+        """Get line interval of the camera"""
+        return self.p.video[0].camera.settings.line_interval_us
 
     @line_interval_us.setter
-    def line_interval_us(self):
-        self.log.warning(f"line interval is controlled by pixel type for the VP-151MX camera!")
-        pass
+    def line_interval_us(self, time:float):
+        """Set line interval of the camera"""
+        if MIN_LINE_INTERVALS_US>time>MAX_LINE_INTERVALS_US:
+            reason = f"exceeds maximum line interval time {MAX_LINE_INTERVALS_US}us" if time > MAX_LINE_INTERVALS_US\
+                else f"is below minimum line interval time {MIN_LINE_INTERVALS_US}us"
+            self.log.error(f"Cannot set camera to {time}ul because it {reason}")
+            return
+        self.p.video[0].camera.settings.line_interval_us = time
+        self.p = self.runtime.set_configuration(self.p)
 
     @property
     def readout_mode(self):
-        self.log.warning(f"readout mode cannot be set for the VP-151MX camera!")
-        return self.camera_cfg['readout']['mode'] = None
+        self.log.warning(f"readout mode cannot be set for the acquire Hamamatsu driver.")
 
     @readout_mode.setter
-    def readout_mode(self):
-        self.log.warning(f"readout mode cannot be set for the VP-151MX camera!")
+    def readout_mode(self, mode):
+        self.log.warning(f"readout mode cannot be set for the acquire Hamamatsu driver.")
         pass
 
     @property
-    def get_readout_direction(self):
-        self.log.warning(f"readout direction cannot be set for the VP-151MX camera!")
-        return self.camera_cfg['readout']['direction'] = None
+    def readout_direction(self):
+        return self.p.video[0].camera.settings.readout_direction
 
     @readout_direction.setter
-    def set_readout_direction(self):
-        self.log.warning(f"readout direction cannot be set for the VP-151MX camera!")
-        pass
-
+    def readout_direction(self, direction:str):
+        if direction.upper() != 'FOWARD' or direction.upper() != 'BACKWARD':
+            self.log.warning(f'{direction} does not correlate to readout_direction. '
+                             f'Set to FOWARD or BACKWARD')
+            return
+        scan_direction = Direction.Forward if direction == 'FORWARD' else Direction.Backward
+        self.p.video[0].camera.settings.readout_direction = scan_direction
+        self.p = self.runtime.set_configuration(self.p)
     @property
     def trigger(self):
         if self.p.video[0].camera.settings.input_triggers.frame_start.enable == True:
@@ -229,17 +214,15 @@ class CameraHamamatsuAcquire:
                 "polarity": self.p.video[0].camera.settings.input_triggers.frame_start.edge}
 
     @trigger.setter
-    def trigger(self, mode: str, source: str, polarity: str):
-
-        valid_mode = list(TRIGGER_MODES.keys())
-        if mode not in valid_mode:
-            raise ValueError("mode must be one of %r." % valid)
-        valid_source = list(TRIGGER_SOURCES.keys())
-        if source not in valid_source:
-            raise ValueError("source must be one of %r." % valid)
-        valid_polarity = list(TRIGGER_POLARITY.keys())
-        if polarity not in valid_polarity:
-            raise ValueError("polarity must be one of %r." % valid)
+    def trigger(self, value: (str, str, str)):
+        """Should be set to a tuple with values for mode: str, source: str, polarity: str"""
+        (mode, source, polarity) = value
+        if mode not in TRIGGER_MODES.keys():
+            raise ValueError("mode must be one of %r." % TRIGGER_MODES.keys())
+        if source not in TRIGGER_SOURCES.keys():
+            raise ValueError("source must be one of %r." % TRIGGER_SOURCES.keys())
+        if polarity not in TRIGGER_POLARITY.keys():
+            raise ValueError("polarity must be one of %r." % TRIGGER_POLARITY.keys())
 
         # Note: Setting TriggerMode if it's already correct will throw an error
         if mode == "On":
@@ -249,28 +232,24 @@ class CameraHamamatsuAcquire:
             self.p.video[0].camera.settings.input_triggers.frame_start = Trigger(
                 enable=False, line=0, edge=polarity)
 
-        self.camera_cfg['trigger']['mode'] = mode
-        self.camera_cfg['trigger']['source'] = source
-        self.camera_cfg['trigger']['polarity'] = polarity
-
+        self.p = self.runtime.set_configuration(self.p)
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
 
     @property
     def binning(self):
-        self.log.warning(f"binning is not available on the VP-151MX")
-        return self.camera_cfg['image']['binning']
+        return self.p.video[0].camera.settings.binning
 
     @binning.setter
     def binning(self, binning: int):
-        self.log.warning(f"binning is not available on the VP-151MX")
-        pass
+        #TODO: precheck value before setting
+        self.p.video[0].camera.settings.binning = binning
 
     @property
     def sensor_width_px(self):
         return MAX_WIDTH_PX
 
     @property
-    def get_sensor_height_px(self):
+    def sensor_height_px(self):
         return MIN_WIDTH_PX
 
     @property
@@ -285,36 +264,33 @@ class CameraHamamatsuAcquire:
         self.log.warning(f"get sensor temperature not implemented in ACQUIRE!")
         return None
 
-    def prepare(self, buffer_size_frames: int):
-        # enforce that runtime is updated
-        self.log.warning(f"buffer size not used in ACQUIRE!")
-        self.p = runtime.set_configuration(self.p)
+    def prepare(self, buffer_size_frames: int = 0):
+        self.p = self.runtime.set_configuration(self.p)
 
     def start(self, frame_count: int, live: bool = False):
         if live:
-            # TODO: check if this is correct for continous streaming?
-            self.p.video[0].max_frame_count = 0
+            self.p.video[0].max_frame_count = 10000000
             self.runtime.start()
         else:
             self.p.video[0].max_frame_count = frame_count
             self.runtime.start()
 
     def stop(self):
-        # TODO: is there anything else to do here?
-        self.runtime.stop()
+        # TODO: Should clarify what we mean here.
+        #  aqcuire.stop means stop when max_frame_count is reached. abort means abort any task
         self.runtime.abort()
 
     def grab_frame(self):
         """Retrieve a frame as a 2D numpy array with shape (rows, cols)."""
         if a := self.runtime.get_available_data(0):
-            packet = a.get_frame_count()
-            f = next(a.frames())
-            latest_frame = f.data().squeeze().copy()
+            return next(self.runtime.get_available_data(0).frames()).data().squeeze().copy()
 
-            f = None  # <-- fails to get the last frames if this is held?
-            a = None  # <-- fails to get the last frames if this is held?
+        else:
+            self.log.info('No frame in buffer')
 
-            return latest_frame
+    def grab_frame_count(self):
+        """Grab frame count off camera. Returns none if no frames taken"""
+        return self.runtime.get_available_data(0).get_frame_count()
 
     def get_camera_acquisition_state(self):
         self.log.warning(f"camera acquisition state not implemented in ACQUIRE!")
