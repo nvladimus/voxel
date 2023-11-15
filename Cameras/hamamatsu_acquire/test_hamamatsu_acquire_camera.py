@@ -21,7 +21,7 @@ print(f'sensor height is: {camera.sensor_height_px}')
 print(f'sensor width is: {camera.sensor_width_px}')
 camera.exposure_time_ms	= 10
 print(f'exposure time is: {camera.exposure_time_ms}')
-camera.trigger = ['Off', 'External', 'Rising']
+camera.trigger = ['Off', 'Internal', 'Rising']
 print(f'trigger is: {camera.trigger}')
 camera.roi = (int(2304/2), int(2304/2))
 print(f'roi is: {camera.roi}')
@@ -29,6 +29,6 @@ camera.prepare()
 camera.start(10)
 for frame in range(10):
 	print(camera.get_camera_acquisition_state())
-	camera.grab_frame()
+	latest_frame = camera.grab_frame()
 camera.stop()
 camera.log_metadata()

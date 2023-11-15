@@ -7,10 +7,10 @@ from acquire import DeviceKind, Trigger, SampleType, Trigger, SignalIOKind, Trig
 # MIN_BUFFER_SIZE = 1
 # MAX_BUFFER_SIZE = 8
 MIN_WIDTH_PX = 0
-MAX_WIDTH_PX = 2034
+MAX_WIDTH_PX = 2304
 DIVISIBLE_WIDTH_PX = 1
 MIN_HEIGHT_PX = 0
-MAX_HEIGHT_PX = 2034
+MAX_HEIGHT_PX = 2304
 DIVISIBLE_HEIGHT_PX = 1
 MIN_EXPOSURE_TIME_MS = 0.001
 MAX_EXPOSURE_TIME_MS = 6e4
@@ -24,14 +24,6 @@ PIXEL_TYPES = {
     "Mono12": SampleType.U12,
     "Mono14": SampleType.U14,
     "Mono16": SampleType.U16
-}
-
-LINE_INTERVALS_US = {
-    "Mono8": 15.00,
-    "Mono10": 15.00,
-    "Mono12": 15.00,
-    "Mono14": 20.21,
-    "Mono16": 45.44
 }
 
 TRIGGER_MODES = {
@@ -72,6 +64,11 @@ class CameraHamamatsuAcquire:
             self.log.error(f"Cannot find camera with the name {camera_id}")
             raise
 
+        # runtime can't start until device and storage is identified
+        self.p.video[0].camera.identifier = dm.select(DeviceKind.Camera, self.device)
+        # self.p.video[0].storage.identifier = dm.select(DeviceKind.Storage, "Trash")
+        self.runtime.set_configuration(self.p)
+
     @property
     def exposure_time_ms(self):
         # Note: convert from ms to us units
@@ -89,7 +86,7 @@ class CameraHamamatsuAcquire:
 
         # Note: round ms to nearest us
         self.p.video[0].camera.settings.exposure_time_us = round(exposure_time_ms * 1e3, 1)
-        self.p = self.runtime.set_configuration(self.p)
+        self.runtime.set_configuration(self.p)
 
     @property
     def roi(self):
@@ -101,10 +98,9 @@ class CameraHamamatsuAcquire:
     @roi.setter
     def roi(self, value : (int, int)):
 
-        (height_px, width_px) = value
+        (width_px, height_px) = value
         sensor_height_px = MAX_HEIGHT_PX
         sensor_width_px = MAX_WIDTH_PX
-
         if height_px < MIN_WIDTH_PX or \
                 (height_px % DIVISIBLE_HEIGHT_PX) != 0 or \
                 height_px > MAX_HEIGHT_PX:
@@ -125,16 +121,15 @@ class CameraHamamatsuAcquire:
                              <{MAX_WIDTH_PX}, \
                             and a multiple of {DIVISIBLE_WIDTH_PX} px!")
 
-
         # Set shape first so with offset it won't exceed chip size
         self.p.video[0].camera.settings.shape = (width_px, height_px)
-        self.p = self.runtime.set_configuration(self.p)
+        self.runtime.set_configuration(self.p)
 
         # Set new offset
-        centered_width_offset_px = round((sensor_width_px / 2 - width_px / 2))
-        centered_height_offset_px = round((sensor_height_px / 2 - height_px / 2))
+        centered_width_offset_px = int((sensor_width_px - self.p.video[0].camera.settings.shape[0]) / 2)
+        centered_height_offset_px = int((sensor_height_px - self.p.video[0].camera.settings.shape[1]) / 2)
         self.p.video[0].camera.settings.offset = (centered_width_offset_px, centered_height_offset_px)
-        self.p = self.runtime.set_configuration(self.p)
+        self.runtime.set_configuration(self.p)
 
     @property
     def pixel_type(self):
@@ -149,7 +144,7 @@ class CameraHamamatsuAcquire:
         if pixel_type_bits not in valid:
             raise ValueError("pixel_type_bits must be one of %r." % valid)
         self.p.video[0].camera.settings.pixel_type = PIXEL_TYPES[pixel_type_bits]
-        self.p = self.runtime.set_configuration(self.p)
+        self.runtime.set_configuration(self.p)
 
         self.log.info(f"pixel type set_to: {pixel_type_bits}")
 
@@ -176,7 +171,7 @@ class CameraHamamatsuAcquire:
             self.log.error(f"Cannot set camera to {time}ul because it {reason}")
             return
         self.p.video[0].camera.settings.line_interval_us = time
-        self.p = self.runtime.set_configuration(self.p)
+        self.runtime.set_configuration(self.p)
 
     @property
     def readout_mode(self):
@@ -199,7 +194,7 @@ class CameraHamamatsuAcquire:
             return
         scan_direction = Direction.Forward if direction == 'FORWARD' else Direction.Backward
         self.p.video[0].camera.settings.readout_direction = scan_direction
-        self.p = self.runtime.set_configuration(self.p)
+        self.runtime.set_configuration(self.p)
     @property
     def trigger(self):
         if self.p.video[0].camera.settings.input_triggers.frame_start.enable == True:
@@ -232,7 +227,7 @@ class CameraHamamatsuAcquire:
             self.p.video[0].camera.settings.input_triggers.frame_start = Trigger(
                 enable=False, line=0, edge=polarity)
 
-        self.p = self.runtime.set_configuration(self.p)
+        self.runtime.set_configuration(self.p)
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
 
     @property
@@ -243,6 +238,7 @@ class CameraHamamatsuAcquire:
     def binning(self, binning: int):
         #TODO: precheck value before setting
         self.p.video[0].camera.settings.binning = binning
+        self.runtime.set_configuration(self.p)
 
     @property
     def sensor_width_px(self):
@@ -250,7 +246,7 @@ class CameraHamamatsuAcquire:
 
     @property
     def sensor_height_px(self):
-        return MIN_WIDTH_PX
+        return MAX_HEIGHT_PX
 
     @property
     def mainboard_temperature_c(self):
@@ -265,14 +261,14 @@ class CameraHamamatsuAcquire:
         return None
 
     def prepare(self, buffer_size_frames: int = 0):
-        self.p = self.runtime.set_configuration(self.p)
+        self.runtime.set_configuration(self.p)
 
     def start(self, frame_count: int, live: bool = False):
         if live:
             self.p.video[0].max_frame_count = 10000000
             self.runtime.start()
         else:
-            self.p.video[0].max_frame_count = frame_count
+            self.runtime.set_configuration(self.p)
             self.runtime.start()
 
     def stop(self):
