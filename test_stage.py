@@ -8,6 +8,12 @@ config_path = this_dir / Path("test_stage.yaml")
 config = Config(str(config_path))
 tigerbox = TigerController(config.cfg['stage']['port'])
 stage = StageASI(tigerbox, config.cfg['stage']['hardware_axis'], config.cfg['stage']['instrument_axis'])
+stage.setup_stage_scan(fast_axis_start_position = 0,
+                               slow_axis_start_position = 0,
+                               slow_axis_stop_position = 0,
+                               frame_count = 100, frame_interval_um = 1,
+                               strip_count = 1, pattern = 'raster',
+                               retrace_speed_percent = 50)
 # print(stage.acceleration_ms)
 # stage.acceleration_ms = 100.01
 # print(stage.acceleration_ms)

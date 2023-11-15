@@ -1,6 +1,6 @@
 import logging
 from tigerasi.tiger_controller import TigerController, STEPS_PER_UM
-from tigerasi.device_codes import TTLIn0Mode, JoystickInput, JoystickPolarity
+from tigerasi.device_codes import *
 
 # constants for Tiger ASI hardware
 
@@ -16,9 +16,15 @@ JOYSTICK_POLARITY = {
     "default": JoystickPolarity.DEFAULT,
 }
 
-TTL_MODES = {
-    "on": TTLIn0Mode.REPEAT_LAST_REL_MOVE,
+MODES = {
+    "step shoot": TTLIn0Mode.REPEAT_LAST_REL_MOVE,
     "off": TTLIn0Mode.OFF,
+    "stage scan": ScanMode.ENCODER_SYNC
+}
+
+SCAN_PATTERN = {
+    "raster": ScanPattern.RASTER,
+    "serpentine": ScanPattern.SERPENTINE,
 }
 
 class StageASI:
@@ -34,8 +40,6 @@ class StageASI:
         self.tigerbox = tigerbox
         self.hardware_axis = hardware_axis.upper()
         self.instrument_axis = instrument_axis.upper()
-        print(hardware_axis)
-        print(instrument_axis)
         # axis_map: dictionary representing the mapping from sample pose to tigerbox axis.
         # i.e: `axis_map[<sample_frame_axis>] = <tiger_frame_axis>`.
         axis_map = {self.instrument_axis: self.hardware_axis}
@@ -139,6 +143,57 @@ class StageASI:
             while self.is_moving():
                 sleep(0.001)
 
+    def setup_stage_scan(self, fast_axis_start_position: float,
+                               slow_axis_start_position: float,
+                               slow_axis_stop_position: float,
+                               frame_count: int, frame_interval_um: float,
+                               strip_count: int, pattern: str,
+                               retrace_speed_percent: int):
+        """Setup a stage scan orchestrated by the device hardware.
+
+        This function sets up the outputting of <tile_count> output pulses
+        spaced out by every <tile_interval_um> encoder counts.
+
+        :param fast_axis: the axis to move along to take tile images.
+        :param slow_axis: the axis to move across to take tile stacks.
+        :param fast_axis_start_position:
+        :param slow_axis_start_position:
+        :param slow_axis_stop_position:
+        :param frame_count: number of TTL pulses to fire.
+        :param frame_interval_um: distance to travel between firing TTL pulses.
+        :param strip_count: number of stacks to collect along the slow axis.
+        """
+        # TODO: if position is unspecified, we should set is as
+        #  "current position" from hardware.
+        # Get the axis id in machine coordinate frame.
+        valid_pattern = list(SCAN_PATTERN.keys())
+        if pattern not in valid_pattern:
+            raise ValueError("pattern must be one of %r." % valid_pattern)
+        assert retrace_speed_percent <= 100 and retrace_speed_percent > 0
+        fast_axis = self.hardware_axis
+        axis_to_card = self.tigerbox.axis_to_card
+        fast_card = axis_to_card[fast_axis][0]
+        fast_position = axis_to_card[fast_axis][1]
+        slow_axis = next(key for key, value in axis_to_card.items() if value[0] == fast_card and value[1] != fast_position)
+        # Stop any existing scan. Apply machine coordinate frame scan params.
+        self.log.debug(f"fast axis start: {fast_axis_start_position},"
+                       f"slow axis start: {slow_axis_start_position}")
+        self.tigerbox.setup_scan(fast_axis, slow_axis,
+                                 pattern=SCAN_PATTERN[pattern],)
+        self.tigerbox.scanr(scan_start_mm=fast_axis_start_position,
+                            pulse_interval_um=frame_interval_um,
+                            num_pixels=frame_count,
+                            retrace_speed_percent=retrace_speed_percent)
+        self.tigerbox.scanv(scan_start_mm=slow_axis_start_position,
+                            scan_stop_mm=slow_axis_stop_position,
+                            strip_count=strip_count)
+
+    def start_stage_scan(self):
+        """initiate a finite tile scan that has already been setup with
+        :meth:`setup_finite_tile_scan`."""
+        # Kick off raster-style (default) scan.
+        self.tigerbox.start_scan()
+
     @property
     def position(self):
         tiger_position = self.tigerbox.get_position(self.hardware_axis)
@@ -194,24 +249,24 @@ class StageASI:
         self.tigerbox.set_acceleration(**{self.hardware_axis: acceleration})
 
     @property
-    def ttl(self):
+    def mode(self):
         """Get the tiger axis ttl."""
         card_address = self.tigerbox.axis_to_card[self.hardware_axis][0]
         ttl_reply = self.tigerbox.get_ttl_pin_modes(card_address) # note this does not return ENUM values
-        ttl_mode = int(ttl_reply[str.find(ttl_reply, 'X')+2:str.find(ttl_reply, 'Y')-1]) # strip the X= response
-        converted_axes = next(key for key, enum in TTL_MODES.items() if enum.value == ttl_mode)
+        mode = int(ttl_reply[str.find(ttl_reply, 'X')+2:str.find(ttl_reply, 'Y')-1]) # strip the X= response
+        converted_axes = next(key for key, enum in MODES.items() if enum.value == mode)
         return {self.instrument_axis: converted_axes}
 
-    @ttl.setter
-    def ttl(self, mode: int):
+    @mode.setter
+    def mode(self, mode: int):
         """Set the tiger axis ttl."""
 
-        valid = list(TTL_MODES.keys())
+        valid = list(MODES.keys())
         if mode not in valid:
-            raise ValueError("ttl must be one of %r." % valid)
+            raise ValueError("mode must be one of %r." % valid)
 
         card_address = self.tigerbox.axis_to_card[self.hardware_axis][0]
-        self.tigerbox.set_ttl_pin_modes(in0_mode = TTL_MODES[mode], card_address = card_address)
+        self.tigerbox.set_ttl_pin_modes(in0_mode = MODES[mode], card_address = card_address)
                 
     @property
     def joystick_mapping(self):

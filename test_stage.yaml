@@ -5,6 +5,6 @@ stage:
   speed_mm_s: 1.0
   acceleration_ms: 100.0
   backlash_mm: 0
-  ttl_mode: On
+  mode: step shoot
   joystick_polarity: default
   joystick_mapping: joystick x
