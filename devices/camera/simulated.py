@@ -4,55 +4,7 @@ from egrabber import *
 
 # constants for VP-151MX camera
 
-MIN_BUFFER_SIZE = 1
-MAX_BUFFER_SIZE = 8
-MIN_WIDTH_PX = 64    
-MAX_WIDTH_PX = 14192
-DIVISIBLE_WIDTH_PX = 16
-MIN_HEIGHT_PX = 2
-MAX_HEIGHT_PX = 10640
-DIVISIBLE_HEIGHT_PX = 1
-MIN_EXPOSURE_TIME_MS = 0.001
-MAX_EXPOSURE_TIME_MS = 6e4
-
-PIXEL_TYPES = {
-    "Mono8":  "Mono8",
-    "Mono10": "Mono10",
-    "Mono12": "Mono12",
-    "Mono14": "Mono14",
-    "Mono16": "Mono16"
-}
-
-LINE_INTERVALS_US = {
-    "Mono8":  15.00,
-    "Mono10": 15.00,
-    "Mono12": 15.00,
-    "Mono14": 20.21,
-    "Mono16": 45.44
-}
-
-BIT_PACKING_MODES = {
-    "Msb":  "Msb",
-    "Lsb":  "Lsb",
-    "None": "None"
-}
-
-TRIGGER_MODES = {
-    "On":  "On",
-    "Off": "Off",
-}
-
-TRIGGER_SOURCES = {
-    "Internal": "None",
-    "External": "Line0",
-}
-
-TRIGGER_POLARITY = {
-    "Rising":  "RisingEdge",
-    "Falling": "FallingEdge",
-}
-
-class CameraVieworkseGrabber:
+class Camera:
 
     def __init__(self, camera_id):
         """Connect to hardware.
@@ -60,54 +12,14 @@ class CameraVieworkseGrabber:
         :param camera_cfg: cfg for camera.
         """
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        gentl = EGenTL()
-        discovery = EGrabberDiscovery(gentl)
-        discovery.discover()
-        # list all possible grabbers
-        egrabber_list = {'grabbers': []}
-        interface_count = discovery.interface_count()
-        for interfaceIndex in range(interface_count):
-            device_count = discovery.device_count(interfaceIndex)
-            for deviceIndex in range(device_count):
-                stream_count = discovery.stream_count(interfaceIndex,deviceIndex)
-                for streamIndex in range(stream_count):
-                    info = {'interface': interfaceIndex,
-                            'device': deviceIndex,
-                            'stream': streamIndex
-                           }
-                    egrabber_list['grabbers'].append(info)
-        del discovery
-        # indentify by serial number and return correct grabber
-        for grabber in egrabber_list['grabbers']:
-            try:  
-                grabber = EGrabber(gentl, grabber['interface'], grabber['device'], grabber['stream'], remote_required=True)
-                if grabber.remote.get('DeviceSerialNumber') == camera_id:
-                    self.log.info(f"grabber found for S/N: {camera_id}")
-                    self.grabber = grabber
-                    break
-            except:
-                self.log.error(f"no grabber found for S/N: {camera_id}")
-                raise ValueError(f"no grabber found for S/N: {camera_id}")
-        del grabber
 
     @property
     def exposure_time_ms(self):
-        # us to ms conversion
-        return self.grabber.remote.get("ExposureTime")/1000
+        pass
 
     @exposure_time_ms.setter
     def exposure_time_ms(self, exposure_time_ms: float):
-
-        if exposure_time_ms < MIN_EXPOSURE_TIME_MS or \
-           exposure_time_ms > MAX_EXPOSURE_TIME_MS:
-            self.log.error(f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
-                             and <{MAX_EXPOSURE_TIME_MS} ms")
-            raise ValueError(f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
-                             and <{MAX_EXPOSURE_TIME_MS} ms")
-
-        # Note: round ms to nearest us
-        self.grabber.remote.set("ExposureTime", round(exposure_time_ms * 1e3, 1))
-        self.log.info(f"exposure time set to: {exposure_time_ms} ms")
+        pass
 
     @property
     def roi(self):

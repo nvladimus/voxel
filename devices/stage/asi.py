@@ -27,7 +27,7 @@ SCAN_PATTERN = {
     "serpentine": ScanPattern.SERPENTINE,
 }
 
-class StageASI:
+class Stage:
 
     def __init__(self, tigerbox: TigerController, hardware_axis: str, instrument_axis: str):
         """Connect to hardware.

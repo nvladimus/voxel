@@ -48,7 +48,8 @@ TRIGGER_POLARITY = {
     "Falling": "Falling",
     }
 
-class CameraVieworksAcquire:
+
+class Camera:
 
     def __init__(self, camera_cfg, runtime: acquire.Runtime()):
         """Connect to hardware.

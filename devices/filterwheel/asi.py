@@ -6,7 +6,7 @@ from tigerasi.tiger_controller import TigerController
 
 SWITCH_TIME_S = 0.1 # estimated timing
 
-class FilterWheelASI:
+class FilterWheel:
 
     """Filter Wheel Abstraction from an ASI Tiger Controller."""
 
