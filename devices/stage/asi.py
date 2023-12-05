@@ -19,7 +19,7 @@ JOYSTICK_POLARITY = {
 MODES = {
     "step shoot": TTLIn0Mode.REPEAT_LAST_REL_MOVE,
     "off": TTLIn0Mode.OFF,
-    "stage scan": ScanMode.ENCODER_SYNC
+    "stage scan": TTLIn0Mode.ENCODER_SYNC
 }
 
 SCAN_PATTERN = {
@@ -39,7 +39,7 @@ class Stage:
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.tigerbox = tigerbox
         self.hardware_axis = hardware_axis.upper()
-        self.instrument_axis = instrument_axis.upper()
+        self.instrument_axis = instrument_axis.lower()
         # axis_map: dictionary representing the mapping from sample pose to tigerbox axis.
         # i.e: `axis_map[<sample_frame_axis>] = <tiger_frame_axis>`.
         axis_map = {self.instrument_axis: self.hardware_axis}
@@ -55,8 +55,6 @@ class Stage:
         self.log.debug(f"New hardware to instrument axis mapping: "
                        f"{self.tiger_to_sample_axis_map}")
         self.tiger_joystick_mapping = self.tigerbox.get_joystick_axis_mapping()
-        print(self.tiger_to_sample_axis_map)
-        print(self.sample_to_tiger_axis_map)
 
     def _sanitize_axis_map(self, axis_map: dict):
         """save an input axis mapping to apply to move commands.
@@ -186,7 +184,7 @@ class Stage:
                             retrace_speed_percent=retrace_speed_percent)
         self.tigerbox.scanv(scan_start_mm=slow_axis_start_position,
                             scan_stop_mm=slow_axis_stop_position,
-                            strip_count=strip_count)
+                            line_count=strip_count)
 
     def start_stage_scan(self):
         """initiate a finite tile scan that has already been setup with

@@ -1,5 +1,6 @@
 import logging
 import numpy
+from base import BaseCamera
 from egrabber import *
 
 # constants for VP-151MX camera
@@ -53,7 +54,7 @@ TRIGGER_POLARITY = {
 }
 
 
-class Camera:
+class Camera(BaseCamera):
 
     def __init__(self, camera_id):
         """Connect to hardware.
@@ -251,15 +252,15 @@ class Camera:
         self.grabber.remote.set("TriggerActivation", TRIGGER_POLARITY[polarity])
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
 
-    @property
-    def binning(self): 
-        self.log.warning(f"binning is not available on the VP-151MX")
-        pass
+    # @property
+    # def binning(self): 
+    #     self.log.warning(f"binning is not available on the VP-151MX")
+    #     pass
 
-    @binning.setter
-    def binning(self, binning: int): 
-        self.log.warning(f"binning is not available on the VP-151MX")
-        pass
+    # @binning.setter
+    # def binning(self, binning: int): 
+    #     self.log.warning(f"binning is not available on the VP-151MX")
+    #     pass
 
     @property
     def sensor_width_px(self):

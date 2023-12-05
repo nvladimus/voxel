@@ -10,19 +10,22 @@ class FilterWheel:
 
     """Filter Wheel Abstraction from an ASI Tiger Controller."""
 
-    def __init__(self, tigerbox: TigerController):
+    def __init__(self, tigerbox: TigerController, wheel_id):
         """Connect to hardware.
       
         :param filterwheel_cfg: cfg for filterwheel
         :param tigerbox: TigerController instance.
         """
-        self.tigerbox = tigerbox
-        self.tiger_axis = 0
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self.tigerbox = tigerbox
+        self.tiger_axis = wheel_id
+        # force homing of the wheel
+        self.set_index(0)
+        self.index = 0
 
     def get_index(self):
         """return all axes positions as a dict keyed by axis."""
-        return self.tigerbox.get_position(str(self.tiger_axis))
+        return self.index
 
     def set_index(self, index: int, wait=True):
         """Set the filterwheel index."""
@@ -31,5 +34,6 @@ class FilterWheel:
         # Note: the filter wheel has slightly different reply line termination.
         self.tigerbox.send(f"FW {self.tiger_axis}\r\n", read_until=f"\n\r{self.tiger_axis}>")
         self.tigerbox.send(cmd_str, read_until=f"\n\r{self.tiger_axis}>")
+        self.index = index
         # TODO: add "busy" check because tigerbox.is_moving() doesn't apply to filter wheels.
         time.sleep(SWITCH_TIME_S)
