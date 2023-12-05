@@ -1,5 +1,5 @@
 devices:
-  stages:s
+  stages:
     stage0:
       driver: asi
       port: COM3
