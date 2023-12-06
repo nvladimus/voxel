@@ -252,15 +252,15 @@ class Camera(BaseCamera):
         self.grabber.remote.set("TriggerActivation", TRIGGER_POLARITY[polarity])
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
 
-    # @property
-    # def binning(self): 
-    #     self.log.warning(f"binning is not available on the VP-151MX")
-    #     pass
+    @property
+    def binning(self): 
+        self.log.warning(f"binning is not available on the VP-151MX")
+        pass
 
-    # @binning.setter
-    # def binning(self, binning: int): 
-    #     self.log.warning(f"binning is not available on the VP-151MX")
-    #     pass
+    @binning.setter
+    def binning(self, binning: int): 
+        self.log.warning(f"binning is not available on the VP-151MX")
+        pass
 
     @property
     def sensor_width_px(self):

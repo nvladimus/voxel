@@ -1,4 +1,5 @@
 import logging
+from base import BaseStage
 from tigerasi.tiger_controller import TigerController, STEPS_PER_UM
 from tigerasi.device_codes import *
 
@@ -27,7 +28,7 @@ SCAN_PATTERN = {
     "serpentine": ScanPattern.SERPENTINE,
 }
 
-class Stage:
+class Stage(BaseStage):
 
     def __init__(self, tigerbox: TigerController, hardware_axis: str, instrument_axis: str):
         """Connect to hardware.

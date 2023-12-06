@@ -1,7 +1,7 @@
 devices:
   cameras:
     camera0:
-      driver: vieworks_egrabber
+      driver: simulated
       id: MB151BAY001
       region of interest:
         width_px: 14192
@@ -9,10 +9,5 @@ devices:
       timing:
         exposure_time_ms: 10.0
       image format:
-        bit_depth: Mono12
-        bit_packing_mode: Msb
-      trigger:
-        mode: On
-        source: External
-        polarity: Rising
+        bit_depth: Mono16
       
