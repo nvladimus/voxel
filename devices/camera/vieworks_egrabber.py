@@ -198,29 +198,6 @@ class Camera(BaseCamera):
         pixel_type = self.pixel_type
         return LINE_INTERVALS_US[pixel_type]
 
-    @line_interval_us.setter
-    def line_interval_us(self):
-        self.log.warning(f"line interval is controlled by pixel type for the VP-151MX camera!")
-        pass
-
-    @property
-    def readout_mode(self):
-        self.log.warning(f"readout mode cannot be set for the VP-151MX camera!")
-
-    @readout_mode.setter
-    def readout_mode(self):
-        self.log.warning(f"readout mode cannot be set for the VP-151MX camera!")
-        pass
-
-    @property
-    def readout_direction(self):
-        self.log.warning(f"readout direction cannot be set for the VP-151MX camera!")
-
-    @readout_direction.setter
-    def readout_direction(self):
-        self.log.warning(f"readout direction cannot be set for the VP-151MX camera!")
-        pass
-
     @property
     def trigger(self):
         mode = self.grabber.remote.get("TriggerMode")

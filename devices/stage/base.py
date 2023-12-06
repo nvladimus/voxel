@@ -2,15 +2,20 @@ import inspect
 
 class BaseStage:
 
-    def move_relative(self):
+    def move_relative(self, position: float, wait: bool = True):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    def move_absolute(self):
+    def move_absolute(self, position: float, wait: bool = True):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    def setup_stage_scan(self):
+    def setup_stage_scan(self, fast_axis_start_position: float,
+                               slow_axis_start_position: float,
+                               slow_axis_stop_position: float,
+                               frame_count: int, frame_interval_um: float,
+                               strip_count: int, pattern: str,
+                               retrace_speed_percent: int):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -34,7 +39,7 @@ class BaseStage:
         pass
 
     @backlash.setter
-    def backlash(self):
+    def backlash(self, backlash: float):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -54,7 +59,7 @@ class BaseStage:
         pass
 
     @acceleration.setter
-    def acceleration(self):
+    def acceleration(self, acceleration: float):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -74,7 +79,7 @@ class BaseStage:
         pass
 
     @joystick_mapping.setter
-    def joystick_mapping(self):
+    def joystick_mapping(self, mapping: str):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -84,7 +89,7 @@ class BaseStage:
         pass
 
     @joystick_polarity.setter
-    def joystick_polarity(self):
+    def joystick_polarity(self, polarity: str):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 

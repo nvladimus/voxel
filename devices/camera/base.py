@@ -8,7 +8,7 @@ class BaseCamera:
         pass
 
     @exposure_time_ms.setter
-    def exposure_time_ms(self):
+    def exposure_time_ms(self, exposure_time_ms: float):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -18,7 +18,7 @@ class BaseCamera:
         pass
 
     @roi.setter
-    def roi(self):
+    def roi(self, value: tuple):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -28,7 +28,7 @@ class BaseCamera:
         pass
 
     @pixel_type.setter
-    def pixel_type(self):
+    def pixel_type(self, pixel_type_bits: str):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -38,7 +38,7 @@ class BaseCamera:
         pass
 
     @bit_packing_mode.setter
-    def bit_packing_mode(self):
+    def bit_packing_mode(self, bit_packing: str):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -48,7 +48,7 @@ class BaseCamera:
         pass
 
     @line_interval_us.setter
-    def line_interval_us(self):
+    def line_interval_us(self, line_interval_us: float):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -58,7 +58,7 @@ class BaseCamera:
         pass
 
     @readout_mode.setter
-    def readout_mode(self):
+    def readout_mode(self, readout_mode: str):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -68,7 +68,7 @@ class BaseCamera:
         pass
 
     @readout_direction.setter
-    def readout_direction(self):
+    def readout_direction(self, readout_direction: str):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -78,7 +78,7 @@ class BaseCamera:
         pass
 
     @trigger.setter
-    def trigger(self):
+    def trigger(self, value: tuple):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -116,7 +116,7 @@ class BaseCamera:
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    def start(self):
+    def start(self, frame_count: int, live: bool = False):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 

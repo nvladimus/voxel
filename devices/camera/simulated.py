@@ -29,17 +29,17 @@ class Camera(BaseCamera):
     def __init__(self, camera_id):
 
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self.pixel_type = None
-        self.line_interval_us = None
-        self.exposure_time_ms = None
-        self.width_px = None
-        self.height_px = None
-        self.width_offset_px = None
-        self.height_offset_px = None
+        self.simulated_pixel_type = None
+        self.simulated_line_interval_us = None
+        self.simulated_exposure_time_ms = None
+        self.simulated_width_px = None
+        self.simulated_height_px = None
+        self.simulated_width_offset_px = None
+        self.simulated_height_offset_px = None
 
     @property
     def exposure_time_ms(self):
-        return self.exposure_time_ms
+        return self.simulated_exposure_time_ms
 
     @exposure_time_ms.setter
     def exposure_time_ms(self, exposure_time_ms: float):
@@ -52,15 +52,15 @@ class Camera(BaseCamera):
                              and <{MAX_EXPOSURE_TIME_MS} ms")
 
         # Note: round ms to nearest us
-        self.exposure_time_ms = exposure_time_ms
+        self.simulated_exposure_time_ms = exposure_time_ms
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
 
     @property
     def roi(self):
-        return {'width_px': self.width_px,
-                'height_px': self.height_px,
-                'width_offset_px': self.width_offset_px,
-                'height_offest_px': self.height_offset_px}
+        return {'width_px': self.simulated_width_px,
+                'height_px': self.simulated_height_px,
+                'width_offset_px': self.simulated_width_offset_px,
+                'height_offest_px': self.simulated_height_offset_px}
 
     @roi.setter
     def roi(self, value: tuple):
@@ -95,26 +95,31 @@ class Camera(BaseCamera):
         # Height offset must be a multiple of the divisible height in px
         centered_height_offset_px = round((sensor_height_px/2 - height_px/2)/DIVISIBLE_HEIGHT_PX)*DIVISIBLE_HEIGHT_PX
 
-        self.width_px = width_px
-        self.height_px = height_px
-        self.width_offset_px = centered_width_offset_px
-        self.height_offset_px = centered_height_offset_px
+        self.simulated_width_px = width_px
+        self.simulated_height_px = height_px
+        self.simulated_width_offset_px = centered_width_offset_px
+        self.simulated_height_offset_px = centered_height_offset_px
 
     @property
     def pixel_type(self):
-        pixel_type = self.pixel_type
+        pixel_type = self.simulated_pixel_type
         # invert the dictionary and find the abstracted key to output
         return next(key for key, value in PIXEL_TYPES.items() if value == pixel_type)
 
     @pixel_type.setter
     def pixel_type(self, pixel_type_bits: str):
-
         valid = list(PIXEL_TYPES.keys())
         if pixel_type_bits not in valid:
             raise ValueError("pixel_type_bits must be one of %r." % valid)
         
-        self.pixel_type = PIXEL_TYPES[pixel_type_bits]
+        self.simulated_pixel_type = PIXEL_TYPES[pixel_type_bits]
         self.log.info(f"pixel type set_to: {pixel_type_bits}")
+
+    @property
+    def line_interval_us(self):
+        pixel_type = self.simulated_pixel_type
+        self.simulated_line_interval_us = LINE_INTERVALS_US[self.pixel_type]
+        return self.simulated_line_interval_us
 
     @property
     def sensor_width_px(self):
@@ -137,9 +142,11 @@ class Camera(BaseCamera):
         pass
 
     def grab_frame(self):
-        column_count = self.width_px
-        row_count = self.height_px
-        frame_time_s = (row_count*self.line_interval_us/1000+self.exposure_time_ms)/1000
-        image = numpy.random.randint(low=0, high=1000, size=(row_count, column_count), dtype=self.pixel_type)
-        time.sleep(frame_time_s)
+        start_time = time.time()
+        column_count = self.simulated_width_px
+        row_count = self.simulated_height_px
+        frame_time_s = (row_count*self.simulated_line_interval_us/1000+self.simulated_exposure_time_ms)/1000
+        image = numpy.random.randint(low=0, high=1, size=(row_count, column_count), dtype=self.simulated_pixel_type)
+        while (time.time() - start_time) < frame_time_s:
+            time.sleep(0.01)
         return image
