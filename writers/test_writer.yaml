@@ -1,16 +1,7 @@
-camera:
-  id: MB151BAY001
-  region of interest:
-    width_px: 14192
-    height_px: 10640
-  timing:
-    exposure_time_ms: 10.0
-    line_interval_us: 15.0
-  image format:
-    bit_depth: Mono12
-    bit_packing_mode: Msb
-  trigger:
-    mode: On
-    source: External
-    polarity: Rising
+writer:
+  driver: imaris_writer
+  compression: LZ4Shuffle
+  data_type: uint16
+  path: C:\Users\svc_aind_imaging\Documents\GitHub\exa-spim-refactor\writers
+  hex_color: "#00ff92"
       
