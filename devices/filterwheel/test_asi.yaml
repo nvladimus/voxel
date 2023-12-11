@@ -1,6 +1,6 @@
 devices:
-  filterwheel:
-    -
+  filter wheels:
+    - name: filter wheel
       driver: asi
       port: COM3
       id: 0

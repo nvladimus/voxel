@@ -1,0 +1,85 @@
+instrument:
+    devices:
+      cameras:
+        - name: VP-151MX
+          driver: vieworks_egrabber
+          id: MB151BAY001
+          region of interest:
+            width_px: 14192
+            height_px: 10640
+          timing:
+            exposure_time_ms: 10.0
+          image format:
+            bit_depth: mono12
+            bit_packing_mode: msb
+          trigger:
+            mode: on
+            source: external
+            polarity: rising
+      writers:
+        - name: data writer
+          driver: imaris_writer
+          compression: LZ4Shuffle
+          data_type: uint16
+          path: C:\Users\svc_aind_imaging\Documents\GitHub\exa-spim-refactor\writers
+          hex_color: "#00ff92"
+      stages:
+        tiling:
+          - name: y stage
+            driver: asi
+            port: COM3
+            hardware_axis: y
+            instrument_axis: y
+            speed_mm_s: 1.0
+            acceleration_ms: 100.0
+            backlash_mm: 0
+            mode: off
+            joystick_polarity: default
+            joystick_mapping: joystick y
+          - name: x stage
+            driver: asi
+            port: COM3
+            hardware_axis: z
+            instrument_axis: x
+            speed_mm_s: 1.0
+            acceleration_ms: 100.0
+            backlash_mm: 0
+            mode: off
+            joystick_polarity: default
+            joystick_mapping: joystick x
+          - name: theta stage
+            driver: asi
+            port: COM3
+            hardware_axis: t
+            instrument_axis: t
+            speed_mm_s: 1.0
+            acceleration_ms: 100.0
+            backlash_mm: 0
+            mode: off
+            joystick_polarity: default
+            joystick_mapping: wheel f
+        scanning:
+          - name: z stage
+            driver: asi
+            port: COM3
+            hardware_axis: x
+            instrument_axis: z
+            speed_mm_s: 1.0
+            acceleration_ms: 100.0
+            backlash_mm: 0
+            mode: step shoot
+            joystick_polarity: default
+            joystick_mapping: wheel z
+      filter wheels:
+        - name: filter wheel
+          driver: asi
+          port: COM3
+          id: 0
+          filters:
+            BP405: 0
+            BP488: 1
+            BP561: 2
+            LP638: 3
+            MB405/488/561/638: 4
+            Empty1: 5
+            Empty2: 6

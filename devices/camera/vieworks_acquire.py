@@ -18,34 +18,34 @@ MIN_EXPOSURE_TIME_MS = 0.001
 MAX_EXPOSURE_TIME_MS = 6e4
 
 PIXEL_TYPES = {
-    "Mono8":  SampleType.U8,
-    "Mono10": SampleType.U10,
-    "Mono12": SampleType.U12,
-    "Mono14": SampleType.U14,
-    "Mono16": SampleType.U16
+    "mono8":  SampleType.U8,
+    "mono10": SampleType.U10,
+    "mono12": SampleType.U12,
+    "mono14": SampleType.U14,
+    "mono16": SampleType.U16
     }
 
 LINE_INTERVALS_US = {
-    "Mono8":  15.00,
-    "Mono10": 15.00,
-    "Mono12": 15.00,
-    "Mono14": 20.21,
-    "Mono16": 45.44
+    "mono8":  15.00,
+    "mono10": 15.00,
+    "mono12": 15.00,
+    "mono14": 20.21,
+    "mono16": 45.44
     }
 
 TRIGGER_MODES = {
-    "On":  True,
-    "Off": False,
+    "on":  True,
+    "off": False,
     }
 
 TRIGGER_SOURCES = {
-    "Internal":  None,
-    "External": 0,
+    "internal":  None,
+    "external": 0,
     }
 
 TRIGGER_POLARITY = {
-    "Rising":  "Rising",
-    "Falling": "Falling",
+    "rising":  "Rising",
+    "falling": "Falling",
     }
 
 

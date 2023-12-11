@@ -1,12 +1,13 @@
 import logging
 import time
 from tigerasi.tiger_controller import TigerController
+from .base import BaseFilterWheel
 
 # constants for the ASI filter wheel
 
 SWITCH_TIME_S = 0.1 # estimated timing
 
-class FilterWheel:
+class FilterWheel(BaseFilterWheel):
 
     """Filter Wheel Abstraction from an ASI Tiger Controller."""
 
@@ -26,7 +27,6 @@ class FilterWheel:
         self.index = 0
 
     def get_index(self):
-        """return all axes positions as a dict keyed by axis."""
         return next(key for key, value in self.filter_list.items() if value == self.index)
 
     def set_index(self, filter_name: str, wait=True):

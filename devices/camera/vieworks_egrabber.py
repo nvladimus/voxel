@@ -1,6 +1,6 @@
 import logging
 import numpy
-from base import BaseCamera
+from .base import BaseCamera
 from egrabber import *
 
 # constants for VP-151MX camera
@@ -17,40 +17,40 @@ MIN_EXPOSURE_TIME_MS = 0.001
 MAX_EXPOSURE_TIME_MS = 6e4
 
 PIXEL_TYPES = {
-    "Mono8":  "Mono8",
-    "Mono10": "Mono10",
-    "Mono12": "Mono12",
-    "Mono14": "Mono14",
-    "Mono16": "Mono16"
+    "mono8":  "Mono8",
+    "mono10": "Mono10",
+    "mono12": "Mono12",
+    "mono14": "Mono14",
+    "mono16": "Mono16"
 }
 
 LINE_INTERVALS_US = {
-    "Mono8":  15.00,
-    "Mono10": 15.00,
-    "Mono12": 15.00,
-    "Mono14": 20.21,
-    "Mono16": 45.44
+    "mono8":  15.00,
+    "mono10": 15.00,
+    "mono12": 15.00,
+    "mono14": 20.21,
+    "mono16": 45.44
 }
 
 BIT_PACKING_MODES = {
-    "Msb":  "Msb",
-    "Lsb":  "Lsb",
-    "None": "None"
+    "msb":  "Msb",
+    "lsb":  "Lsb",
+    "none": "None"
 }
 
 TRIGGER_MODES = {
-    "On":  "On",
-    "Off": "Off",
+    "on":  "On",
+    "off": "Off",
 }
 
 TRIGGER_SOURCES = {
-    "Internal": "None",
-    "External": "Line0",
+    "internal": "None",
+    "external": "Line0",
 }
 
 TRIGGER_POLARITY = {
-    "Rising":  "RisingEdge",
-    "Falling": "FallingEdge",
+    "rising":  "RisingEdge",
+    "falling": "FallingEdge",
 }
 
 

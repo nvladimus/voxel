@@ -1,7 +1,7 @@
 import logging
 import numpy
 import time
-from base import BaseCamera
+from .base import BaseCamera
 
 # constants for VP-151MX camera
 
@@ -15,13 +15,13 @@ MIN_EXPOSURE_TIME_MS = 0.001
 MAX_EXPOSURE_TIME_MS = 6e4
 
 PIXEL_TYPES = {
-    "Mono8":  "uint8",
-    "Mono16": "uint16"
+    "mono8":  "uint8",
+    "mono16": "uint16"
 }
 
 LINE_INTERVALS_US = {
-    "Mono8":  15.00,
-    "Mono16": 45.44
+    "mono8":  15.00,
+    "mono16": 45.44
 }
 
 class Camera(BaseCamera):

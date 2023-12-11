@@ -1,6 +1,6 @@
 import logging
 import time
-from base import BaseStage
+from .base import BaseStage
 
 class Stage(BaseStage):
 

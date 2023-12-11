@@ -1,19 +1,30 @@
 from pathlib import Path
 from spim_core.config_base import Config
-from tigerasi.tiger_controller import TigerController
-from asi import FilterWheel
 
 this_dir = Path(__file__).parent.resolve() # directory of this test file.
 config_path = this_dir / Path("test_asi.yaml")
 config = Config(str(config_path))
-port = config.cfg['devices']['filterwheel'][0]['port']
-filter_wheel_id = config.cfg['devices']['filterwheel'][0]['id']
-filter_list = config.cfg['devices']['filterwheel'][0]['filters']
 
-tigerbox = TigerController(port)
-wheel = FilterWheel(tigerbox, filter_wheel_id, filter_list)
+# ugly constructor and init for config values...
 
-wheel.set_index('BP405')
-print(wheel.get_index())
-wheel.set_index('BP488')
-print(wheel.get_index())
+# loop over all filterwheels in config
+filter_wheels=list()
+
+for filter_wheel in config.cfg['devices']['filter wheels']:
+	# grab config values for creating object
+	driver = filter_wheel['driver']
+	port = filter_wheel['port']
+	filter_wheel_id = filter_wheel['id']
+	filter_list = filter_wheel['filters']
+	# create stage object, check if exists already
+	if 'tigerbox' in locals() or 'tigerbox' in globals():
+		exec(f"filter_wheels.append({driver}.FilterWheel(tigerbox, filter_wheel_id, filter_list))")
+	else:
+		tigerbox = TigerController(port)
+		exec(f"import {driver}")
+		exec(f"filter_wheels.append({driver}.FilterWheel(tigerbox, filter_wheel_id, filter_list))")
+
+filter_wheels[-1].set_index('BP405')
+print(filter_wheels[-1].get_index())
+filter_wheels[-1].set_index('BP488')
+print(filter_wheels[-1].get_index())

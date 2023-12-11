@@ -1,6 +1,6 @@
 devices:
   cameras:
-    camera0:
+    - name: VP-151MX
       driver: vieworks_egrabber
       id: MB151BAY001
       region of interest:
@@ -9,10 +9,10 @@ devices:
       timing:
         exposure_time_ms: 10.0
       image format:
-        bit_depth: Mono12
-        bit_packing_mode: Msb
+        bit_depth: mono12
+        bit_packing_mode: msb
       trigger:
-        mode: On
-        source: External
-        polarity: Rising
+        mode: on
+        source: external
+        polarity: rising
       
