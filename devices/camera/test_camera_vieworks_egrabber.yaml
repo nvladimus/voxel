@@ -7,12 +7,12 @@ devices:
         width_px: 14192
         height_px: 10640
       timing:
-        exposure_time_ms: 10.0
+        exposure_time_ms: 5.0
       image format:
-        bit_depth: mono12
+        bit_depth: mono8
         bit_packing_mode: msb
       trigger:
-        mode: on
+        mode: off
         source: external
         polarity: rising
       

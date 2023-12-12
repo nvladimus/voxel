@@ -1,64 +1,101 @@
-import numpy as np
-import tifffile
 import array
+import logging
+import numpy as np
+import os
+import tifffile
 from multiprocessing import Process, Value, Event, Array
 from multiprocessing.shared_memory import SharedMemory
 from pathlib import Path
 
+class Processor(Process):
 
-class MIPProcessor(Process):
-    """Class for assembling 3 MIP images from raw images off the camera."""
+    def __init__(self):
 
-    def __init__(self, x_tile_num: int, y_tile_num: int, vol_z_voxels: int,
-                 img_size_x_pixels: int, img_size_y_pixels: int,
-                 img_pixel_dtype: np.dtype, shm_name: str, file_dest: Path,
-                 wavelength: int):
-        """Init.
-        :param x_tile_num: current tile number in x dimension
-        :param y_tile_num: current tile number in y dimension
-        :param vol_z_voxels: size of the whole dataset z dimension in voxels
-        :param img_size_x_pixels: size of a single image x dimension in pixels
-        :param img_size_y_pixels:  size of a single image y dimension in pixels
-        :param img_pixel_dtype: image pixel data type
-        :param shm_name: name of shared memory that we will interpret as a
-            numpy array where the latest image is being written.
-        :param file_dest: destination of the 3 MIP files.
-        :param wavelength: wavelength of laser used to acquire images
-        """
         super().__init__()
-        self.more_images = Event()
+        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.new_image = Event()
         self.new_image.clear()
-        self.more_images.clear()
-        self.x_tile_num = x_tile_num
-        self.y_tile_num = y_tile_num
-        self.shm_shape = (img_size_x_pixels, img_size_y_pixels)
-        self.dtype = img_pixel_dtype
+
+    @property
+    def column_count(self):
+        return self.cols
+
+    @column_count.setter
+    def column_count(self, column_count: int):
+        self.cols = column_count
+
+    @property
+    def row_count(self):
+        return self.rows
+
+    @row_count.setter
+    def row_count(self, row_count: int):
+        self.rows = row_count
+
+    @property
+    def frame_count(self):
+        return self.img_count
+
+    @frame_count.setter
+    def frame_count(self, frame_count: int):
+        self.img_count = frame_count
+
+    @property
+    def dtype(self):
+        return self.data_type
+
+    @dtype.setter
+    def dtype(self, dtype: np.unsignedinteger):
+        self.data_type = dtype
+
+    @property
+    def path(self):
+        return self.dest_path
+
+    @path.setter
+    def path(self, path: Path):
+        if os.path.isdir(path):
+                self.dest_path = path
+        else:
+            raise ValueError("%r is not a valid path." % path)
+
+    @property
+    def filename(self):
+        return self.stack_name
+
+    @filename.setter
+    def filename(self, filename: str):
+        self.stack_name = filename \
+            if filename.endswith(".tiff") else f"{filename}.tiff"
+
+    def prepare(self, shm_name):
+        self.shm_shape = (self.rows, self.cols)
         # Create XY, YZ, ZX placeholder images.
-        self.mip_xy = np.zeros((img_size_x_pixels, img_size_y_pixels), dtype=self.dtype)  # dtype?
-        self.mip_xz = np.zeros((vol_z_voxels, img_size_x_pixels), dtype=self.dtype)
-        self.mip_yz = np.zeros((img_size_y_pixels, vol_z_voxels), dtype=self.dtype)
+        self.mip_xy = np.zeros((self.rows, self.cols), dtype=self.dtype)
+        self.mip_xz = np.zeros((self.frame_count, self.rows), dtype=self.dtype)
+        self.mip_yz = np.zeros((self.cols, self.frame_count), dtype=self.dtype)
 
         # Create attributes to open shared memory in run function
         self.shm = SharedMemory(shm_name, create=False)
         self.latest_img = np.ndarray(self.shm_shape, self.dtype, buffer=self.shm.buf)
 
-        self.file_dest = file_dest
-        self.wavelength = wavelength
-
     def run(self):
         frame_index = 0
         # Build mips. Assume frames increment sequentially in z.
-
-        while self.more_images.is_set():
+        while frame_index < self.frame_count:
             if self.new_image.is_set():
-                self.latest_img = np.ndarray(self.shm_shape, self.dtype, buffer=self.shm.buf)
+                self.latest_img = np.ndarray(self.shm_shape, self.data_type, buffer=self.shm.buf)
+                print(np.max(self.latest_img[:]))
                 self.mip_xy = np.maximum(self.mip_xy, self.latest_img).astype(np.uint16)
                 self.mip_yz[:, frame_index] = np.max(self.latest_img, axis=0)
                 self.mip_xz[frame_index, :] = np.max(self.latest_img, axis=1)
                 frame_index += 1
                 self.new_image.clear()
 
-        tifffile.imwrite(self.file_dest/Path(f"mip_xy_tile_x_{self.x_tile_num:04}_y_{self.y_tile_num:04}_z_0000_ch_{self.wavelength}.tiff"), self.mip_xy)
-        tifffile.imwrite(self.file_dest / Path(f"mip_yz_tile_x_{self.x_tile_num:04}_y_{self.y_tile_num:04}_z_0000_ch_{self.wavelength}.tiff"), self.mip_yz)
-        tifffile.imwrite(self.file_dest / Path(f"mip_xz_tile_x_{self.x_tile_num:04}_y_{self.y_tile_num:04}_z_0000_ch_{self.wavelength}.tiff"), self.mip_xz)
+        tifffile.imwrite(self.path / Path(f"mip_xy_{self.filename}.tiff"), self.mip_xy)
+        tifffile.imwrite(self.path / Path(f"mip_yz_{self.filename}.tiff"), self.mip_yz)
+        tifffile.imwrite(self.path / Path(f"mip_xz_{self.filename}.tiff"), self.mip_xz)
+
+    def wait_to_finish(self):
+        print(f"{self.filename}: waiting to finish.")
+        self.join()

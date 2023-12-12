@@ -295,7 +295,7 @@ class Camera(BaseCamera):
             image = numpy.frombuffer(data, count=int(column_count * row_count),
                                      dtype=numpy.uint16).reshape((row_count,
                                                                   column_count))
-            return image
+        return image
 
     def get_camera_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""

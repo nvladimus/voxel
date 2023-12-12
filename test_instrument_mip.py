@@ -4,6 +4,7 @@ import threading
 import time
 from pathlib import Path
 from spim_core.config_base import Config
+from multiprocessing.shared_memory import SharedMemory
 
 if __name__ == '__main__':
 
@@ -115,12 +116,18 @@ if __name__ == '__main__':
 		exec(f"from writers.data_structures.shared_double_buffer import SharedDoubleBuffer")
 	exec(f"data_writer = {driver}.Writer()")
 
+	# import processes
+	processes = list()
+	exec(f"import processes.max_projection as max_projection")
+	processes.append(max_projection.Processor())
+
 	instrument = dict()
 	instrument['cameras'] = cameras
 	instrument['tiling_stages'] = tiling_stages
 	instrument['scanning_stage'] = scanning_stage
 	instrument['filter_wheels'] = filter_wheels
 	instrument['data_writer'] = data_writer
+	instrument['processes'] = processes
 
 	# run imaris test
 	chunk_size = 64
@@ -142,6 +149,13 @@ if __name__ == '__main__':
 	instrument['data_writer'].channel = '488'
 	instrument['data_writer'].color = writer_cfg[0]['hex_color']
 
+	instrument['processes'][0].row_count = camera_cfg[0]['region_of_interest']['height_px']
+	instrument['processes'][0].column_count = camera_cfg[0]['region_of_interest']['width_px']
+	instrument['processes'][0].frame_count = frames
+	instrument['processes'][0].dtype = 'uint16'
+	instrument['processes'][0].filename = 'test.tiff'
+	instrument['processes'][0].path = writer_cfg[0]['path']
+
 	chunk_lock = threading.Lock()
 
 	mem_shape = (chunk_size,
@@ -151,6 +165,15 @@ if __name__ == '__main__':
 	img_buffer = SharedDoubleBuffer(mem_shape,
 	                                dtype=writer_cfg[0]['data_type'])
 
+	img_shape = (instrument['processes'][0].row_count,
+				 instrument['processes'][0].column_count)
+
+	img_bytes = numpy.prod(img_shape)*numpy.dtype(instrument['processes'][0].dtype).itemsize
+
+	mip_buffer = SharedMemory(create=True, size=int(img_bytes))
+	mip_image = numpy.ndarray(img_shape, dtype=instrument['processes'][0].dtype,
+                                                   buffer=mip_buffer.buf)
+
 	frame_index = 0
 	chunk_count = math.ceil(frames / chunk_size)
 	remainder = frames % chunk_size
@@ -159,9 +182,11 @@ if __name__ == '__main__':
 
 	# set up writer and camera
 	instrument['data_writer'].prepare()
+	instrument['processes'][0].prepare(mip_buffer.name)
 	instrument['cameras'][0].prepare()
 	instrument['data_writer'].start()
 	instrument['cameras'][0].start(frames)
+	instrument['processes'][0].start()
 
 	# Images arrive serialized in repeating channel order.
 	for stack_index in range(frames):
@@ -171,8 +196,14 @@ if __name__ == '__main__':
 	        chunks_filled = math.floor(stack_index / chunk_size)
 	        remaining_chunks = chunk_count - chunks_filled
 	    # Grab camera frame
-	    img_buffer.write_buf[chunk_index] = \
-	    	instrument['cameras'][0].grab_frame()
+	    current_frame = instrument['cameras'][0].grab_frame()
+
+	    img_buffer.write_buf[chunk_index] = current_frame
+	    while instrument['processes'][0].new_image.is_set():
+	    	time.sleep(0.001)
+	    mip_image[:,:] = current_frame
+	    instrument['processes'][0].new_image.set()
+	    
 	    print(instrument['cameras'][0].get_camera_acquisition_state())
 
 	    frame_index += 1
@@ -197,5 +228,7 @@ if __name__ == '__main__':
 
 	instrument['data_writer'].wait_to_finish()
 	instrument['data_writer'].close()
+	instrument['processes'][0].wait_to_finish()
+	instrument['processes'][0].close()
 	instrument['cameras'][0].stop()
 	instrument['cameras'][0].log_metadata()

@@ -18,8 +18,18 @@ for camera in config.cfg['devices']['cameras']:
 	exec(f"import {driver}")
 	exec(f"cameras.append({driver}.Camera('{camera_id}'))")
 	# init values from config
-	camera.roi = (camera['region of interest']['width_px'], camera['region of interest']['height_px'])
-	camera.exposure_time_ms = camera['timing']['exposure_time_ms']
-	camera.pixel_type = camera['image format']['bit_depth']
-	camera.bit_packing_mode = camera['image format']['bit_packing_mode']
-	camera.trigger = (camera['trigger']['mode'], camera['trigger']['source'], camera['trigger']['polarity'])
+	cameras[-1].roi = (camera['region of interest']['width_px'], camera['region of interest']['height_px'])
+	cameras[-1].exposure_time_ms = camera['timing']['exposure_time_ms']
+	cameras[-1].pixel_type = camera['image format']['bit_depth']
+	cameras[-1].bit_packing_mode = camera['image format']['bit_packing_mode']
+	cameras[-1].trigger = (camera['trigger']['mode'], camera['trigger']['source'], camera['trigger']['polarity'])
+
+frames = 10
+cameras[-1].prepare()
+cameras[-1].start(frames)
+
+for i in range(frames):
+	cameras[-1].grab_frame()
+	print(cameras[-1].get_camera_acquisition_state())
+
+cameras[-1].stop()

@@ -88,6 +88,14 @@ class Writer(Process):
         self.first_img_centroid_y_um = y_pos
 
     @property
+    def z_pos(self):
+        return self.first_img_centroid_z_um
+
+    @z_pos.setter
+    def z_pos(self, z_pos: float):
+        self.first_img_centroid_z_um = z_pos
+
+    @property
     def frame_count(self):
         return self.img_count
 
@@ -132,13 +140,10 @@ class Writer(Process):
 
     @property
     def dtype(self):
-        return next(key for key, value in DATA_TYPES.items() if value == self.data_type)
+        return self.data_type
 
     @dtype.setter
-    def dtype(self, dtype: str):
-        valid = list(DATA_TYPES.keys())
-        if dtype not in valid:
-            raise ValueError("data type must be one of %r." % valid)
+    def dtype(self, dtype: np.unsignedinteger):
         self.data_type = dtype
 
     @property
@@ -193,7 +198,7 @@ class Writer(Process):
             self._shm_name[i] = c
         self._shm_name[len(name)] = '\x00'  # Null terminate the string.
 
-    def buffer(self):
+    def prepare(self):
         # Specs for reconstructing the shared memory object.
         self._shm_name = Array(c_wchar, 32)  # hidden and exposed via property.
         # This is almost always going to be: (chunk_size, rows, columns).
@@ -224,10 +229,10 @@ class Writer(Process):
         # (xf, yf, zf) position (in [um]) of the end of the last voxel.
         x0 = self.first_img_centroid_x_um - (self.pixel_x_size_um * 0.5 * self.cols)
         y0 = self.first_img_centroid_y_um - (self.pixel_y_size_um * 0.5 * self.rows)
-        z0 = 0
+        z0 = self.first_img_centroid_z_um
         xf = self.first_img_centroid_x_um + (self.pixel_x_size_um * 0.5 * self.cols)
         yf = self.first_img_centroid_y_um + (self.pixel_y_size_um * 0.5 * self.rows)
-        zf = z0 + self.img_count * self.pixel_z_size_um
+        zf = self.first_img_centroid_z_um + self.img_count * self.pixel_z_size_um
         self.image_extents = pw.ImageExtents(-x0, -y0, -z0, -xf, -yf, -zf)
         # c = channel, t = time. These fields are unused for now.
         # Note: ImarisWriter performs MUCH faster when the dimension sequence

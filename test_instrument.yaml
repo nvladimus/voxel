@@ -4,22 +4,22 @@ instrument:
         - name: VP-151MX
           driver: vieworks_egrabber
           id: MB151BAY001
-          region of interest:
+          region_of_interest:
             width_px: 14192
             height_px: 10640
           timing:
-            exposure_time_ms: 10.0
-          image format:
+            exposure_time_ms: 200.0
+          image_format:
             bit_depth: mono12
             bit_packing_mode: msb
           trigger:
-            mode: on
+            mode: off
             source: external
             polarity: rising
       writers:
         - name: data writer
-          driver: imaris_writer
-          compression: LZ4Shuffle
+          driver: imaris
+          compression: lz4shuffle
           data_type: uint16
           path: C:\Users\svc_aind_imaging\Documents\GitHub\exa-spim-refactor\writers
           hex_color: "#00ff92"
@@ -70,7 +70,7 @@ instrument:
             mode: step shoot
             joystick_polarity: default
             joystick_mapping: wheel z
-      filter wheels:
+      filter_wheels:
         - name: filter wheel
           driver: asi
           port: COM3

@@ -1,5 +1,6 @@
 from pathlib import Path
 from spim_core.config_base import Config
+from tigerasi.tiger_controller import TigerController
 
 this_dir = Path(__file__).parent.resolve() # directory of this test file.
 config_path = this_dir / Path("test_asi.yaml")
