@@ -1,6 +1,6 @@
 from pathlib import Path
 from ruamel.yaml import YAML
-from Cameras.hamamatsu_acquire.camera_hamamatsu_acquire import CameraHamamatsuAcquire
+from camera.hamamatsu_acquire.camera_hamamatsu_acquire import CameraHamamatsuAcquire
 
 
 this_dir = Path(__file__).parent.resolve() # directory of this test file.

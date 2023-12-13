@@ -1,6 +1,7 @@
 import logging
 from acquire import DeviceKind, Trigger, SampleType, Trigger, SignalIOKind, TriggerEdge, Direction, Runtime, \
     AvailableData
+from exa-spim-refactor.devices.camera.base import BaseCamera
 
 # constants for Hamamatsu C15440-20UP camera
 
@@ -42,7 +43,7 @@ TRIGGER_POLARITY = {
 }
 
 
-class CameraHamamatsuAcquire:
+class CameraHamamatsuAcquire(BaseCamera):
 
     def __init__(self, camera_id):
         """Connect to hardware.

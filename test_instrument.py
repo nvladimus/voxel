@@ -4,6 +4,37 @@ import threading
 import time
 from pathlib import Path
 from spim_core.config_base import Config
+import sys
+def get_dict_attr(class_def, attr):
+    # for obj in [obj] + obj.__class__.mro():
+    for obj in [class_def] + class_def.__class__.mro():
+        if attr in obj.__dict__:
+            return obj.__dict__[attr]
+    raise AttributeError
+def load_device(driver, module, kwds):
+    """Load in device based on config. Expecting driver, module, and kwds input"""
+    __import__(driver)
+    device_class = getattr(sys.modules[driver], module)
+    for k, v in kwds.items():
+        if str(v).split('.')[0] in dir(sys.modules[driver]):
+            arg_class = getattr(sys.modules[driver], v.split('.')[0])
+            kwds[k] = getattr(arg_class, '.'.join(v.split('.')[1:]))
+    return device_class(**kwds)
+
+def setup_device(device, driver, setup):
+    """Setup device based on config
+    :param device: device to be setup
+    :param setup: dictionary of attributes, values to set according to config"""
+
+    for property, value in setup.items():
+        if str(value).split('.')[0] in dir(sys.modules[driver]):
+            arg_class = getattr(sys.modules[driver], value.split('.')[0])
+            value = getattr(arg_class, '.'.join(value.split('.')[1:]))
+        else:
+            value = eval(value) if '.' in str(value) else value
+
+        setattr(device, property, value)
+
 
 if __name__ == '__main__':
 
@@ -15,7 +46,7 @@ if __name__ == '__main__':
 	scanning_stage_cfg = config.cfg['instrument']['devices']['stages']['scanning']
 	filter_wheel_cfg = config.cfg['instrument']['devices']['filter_wheels']
 	writer_cfg = config.cfg['instrument']['devices']['writers']
-
+	laser_cfg = config.cfg['instrument']['devices']['lasers']
 	# ugly constructor and init for config values...
 
 	# loop over all cameras in config
@@ -115,12 +146,33 @@ if __name__ == '__main__':
 		exec(f"from writers.data_structures.shared_double_buffer import SharedDoubleBuffer")
 	exec(f"data_writer = {driver}.Writer()")
 
+	lasers = {}
+	combiners = {}
+	for name, specs in laser_cfg.items():
+		if 'type' in specs.keys() and specs['type'] == 'laser':
+			# If type is laser, create laser class and use kw specified
+			lasers[name] = load_device(specs['driver'], specs['module'], specs['kwds'])
+			setup_device(lasers[name], specs['driver'], specs['setup'])
+		elif 'type' in specs.keys() and specs['type'] == 'combiner':
+			# If type is combiner, set up combiner then set up all lasers inside combiner
+			combiners[name] = load_device(specs['driver'], specs['module'], specs['kwds'])
+			setup_device(combiners[name], specs['driver'], specs['setup'])
+			for nm in specs.keys():
+				if nm.isdigit() and specs[nm]['type'] == 'laser':
+					kwds = dict(specs[nm]['kwds'])
+					kwds['combiner'] = combiners[name]  # Add combiner to kwds
+					lasers[name + '.' + nm] = load_device(specs[nm]['driver'], specs[nm]['module'], kwds)
+					setup_device(lasers[name + '.' + nm], specs[nm]['driver'], specs[nm]['setup'])
+
+
 	instrument = dict()
 	instrument['cameras'] = cameras
 	instrument['tiling_stages'] = tiling_stages
 	instrument['scanning_stage'] = scanning_stage
 	instrument['filter_wheels'] = filter_wheels
 	instrument['data_writer'] = data_writer
+	instrument['lasers'] = lasers
+	instrument['combiners'] = combiners
 
 	# run imaris test
 	chunk_size = 64
