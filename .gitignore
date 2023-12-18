@@ -4,9 +4,9 @@ __pycache__/
 *$py.class
 
 # Generated files
-.pdf
-.ims
-.tiff
+*.pdf
+*.ims
+*.tiff
 
 # C extensions
 *.so
