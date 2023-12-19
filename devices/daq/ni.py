@@ -48,15 +48,15 @@ RETRIGGERABLE_MODE = {
 
 class DAQ:
 
-    def __init__(self, dev_name: str):
+    def __init__(self, dev: str):
 
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.devs = list()
         for device in nidaqmx.system.System.local().devices:
             self.devs.append(device.name)
-        if dev_name not in self.devs:
+        if dev not in self.devs:
             raise ValueError("dev name must be one of %r." % self.devs)        
-        self.dev_name = dev_name
+        self.dev_name = dev
         self.dev = nidaqmx.system.device.Device(self.dev_name)
         self.ao_physical_chans = self.dev.ao_physical_chans.channel_names
         self.ao_physical_chans = [channel.replace(f'{self.dev_name}/', "") for channel in self.ao_physical_chans]

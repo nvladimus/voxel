@@ -1,7 +1,7 @@
 import logging
 import numpy
 import time
-from .base import BaseCamera
+import base
 
 # constants for VP-151MX camera
 
@@ -24,7 +24,7 @@ LINE_INTERVALS_US = {
     "mono16": 45.44
 }
 
-class Camera(BaseCamera):
+class Camera(base.BaseCamera):
 
     def __init__(self, camera_id):
 
@@ -63,9 +63,10 @@ class Camera(BaseCamera):
                 'height_offest_px': self.simulated_height_offset_px}
 
     @roi.setter
-    def roi(self, value: tuple):
+    def roi(self, roi: dict):
 
-        width_px, height_px = value
+        width_px = roi['width_px']
+        height_px = roi['height_px']
 
         sensor_height_px = MAX_HEIGHT_PX
         sensor_width_px = MAX_WIDTH_PX

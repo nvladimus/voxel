@@ -11,7 +11,7 @@ class FilterWheel(BaseFilterWheel):
 
     """Filter Wheel Abstraction from an ASI Tiger Controller."""
 
-    def __init__(self, tigerbox: TigerController, wheel_id, filter_list: dict):
+    def __init__(self, tigerbox: TigerController, id, filters: dict):
         """Connect to hardware.
       
         :param filterwheel_cfg: cfg for filterwheel
@@ -19,19 +19,19 @@ class FilterWheel(BaseFilterWheel):
         """
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.tigerbox = tigerbox
-        self.tiger_axis = wheel_id
-        self.filter_list = filter_list
+        self.tiger_axis = id
+        self.filters = filters
         # force homing of the wheel
-        self.set_index(next(key for key, value in self.filter_list.items() if value == 0))
+        self.set_index(next(key for key, value in self.filters.items() if value == 0))
         # ASI wheel has no get_index() function so store this internally
         self.index = 0
 
     def get_index(self):
-        return next(key for key, value in self.filter_list.items() if value == self.index)
+        return next(key for key, value in self.filters.items() if value == self.index)
 
     def set_index(self, filter_name: str, wait=True):
         """Set the filterwheel index."""
-        self.index = self.filter_list[filter_name]
+        self.index = self.filters[filter_name]
         cmd_str = f"MP {self.index}\r\n"
         self.log.debug(f"FW{self.tiger_axis} move to index: {self.index}.")
         # Note: the filter wheel has slightly different reply line termination.

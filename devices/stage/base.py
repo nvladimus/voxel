@@ -34,32 +34,32 @@ class BaseStage:
         pass
 
     @property
-    def backlash(self):
+    def backlash_mm(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    @backlash.setter
-    def backlash(self, backlash: float):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    @property
-    def speed(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    @speed.setter
-    def speed(self, speed: float):
+    @backlash_mm.setter
+    def backlash_mm(self, backlash: float):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
     @property
-    def acceleration(self):
+    def speed_mm_s(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    @acceleration.setter
-    def acceleration(self, acceleration: float):
+    @speed_mm_s.setter
+    def speed_mm_s(self, speed: float):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @property
+    def acceleration_ms(self):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @acceleration_ms.setter
+    def acceleration_ms(self, acceleration: float):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 

@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import math
 import numpy
 import threading
@@ -251,3 +252,9 @@ if __name__ == '__main__':
 	instrument['data_writer'].close()
 	instrument['cameras'][0].stop()
 	instrument['cameras'][0].log_metadata()
+=======
+from instrument import Instrument
+
+instrument = Instrument('test_instrument.yaml')
+instrument.construct()
+>>>>>>> Stashed changes

@@ -1,7 +1,7 @@
 import logging
 import pytest
 import acquire
-from .base import BaseCamera
+import base
 from acquire import DeviceKind, SampleType
 from acquire.acquire import Trigger
 
@@ -50,7 +50,7 @@ TRIGGER_POLARITY = {
     }
 
 
-class Camera(BaseCamera):
+class Camera(base.BaseCamera):
 
     def __init__(self, camera_cfg, runtime: acquire.Runtime()):
         """Connect to hardware.

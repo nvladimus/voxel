@@ -1,8 +1,8 @@
 import logging
 import time
-from .base import BaseStage
+import base
 
-class Stage(BaseStage):
+class Stage(base.BaseStage):
 
     def __init__(self, hardware_axis: str, instrument_axis: str):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)

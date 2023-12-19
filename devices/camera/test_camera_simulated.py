@@ -19,16 +19,16 @@ for camera in config.cfg['devices']['cameras'].items():
 print(f'board temperature is: {cameras[0].mainboard_temperature_c}')
 print(f'sensor temperature is: {cameras[0].sensor_temperature_c}')
 print(f'binning is: {cameras[0].binning}')
-cameras[0].pixel_type = "Mono8"
+cameras[0].pixel_type = "mono8"
 print(f'pixel type is: {cameras[0].pixel_type}')
 print(f'line time is: {cameras[0].line_interval_us}')
-cameras[0].bit_packing_mode	= 'Msb'
+cameras[0].bit_packing_mode	= 'msb'
 print(f'bit packing mode is: {cameras[0].bit_packing_mode}')
 print(f'sensor height is: {cameras[0].sensor_height_px}')
 print(f'sensor width is: {cameras[0].sensor_width_px}')
 cameras[0].exposure_time_ms	= 10
 print(f'exposure time is: {cameras[0].exposure_time_ms}')
-cameras[0].trigger = ['Off', 'External', 'Rising']
+cameras[0].trigger = ['off', 'external', 'rising']
 print(f'trigger is: {cameras[0].trigger}')
 cameras[0].roi = (14192, 10640)
 print(f'roi is: {cameras[0].roi}')
