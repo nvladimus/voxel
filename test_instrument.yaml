@@ -82,7 +82,6 @@ instrument:
           driver: devices.filterwheel.asi
           module: FilterWheel
           port: COM3
-<<<<<<< Updated upstream
           id: 0
           filters:
             BP405: 0
@@ -134,17 +133,6 @@ instrument:
               prefix: "L3"
             setup:
               { }
-=======
-          init:
-            id: 0
-            filters:
-              BP405: 0
-              BP488: 1
-              BP561: 2
-              LP638: 3
-              MB405/488/561/638: 4
-              Empty1: 5
-              Empty2: 6
       daqs:
         - name: PCIe-6738
           driver: devices.daq.ni
@@ -301,4 +289,3 @@ instrument:
                                   "488": 200.0
                                   "561": 200.0
                                   "639": 200.0
->>>>>>> Stashed changes
