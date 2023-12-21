@@ -56,7 +56,7 @@ TRIGGER_POLARITY = {
 
 class Camera(BaseCamera):
 
-    def __init__(self, camera_id):
+    def __init__(self, id):
         """Connect to hardware.
         
         :param camera_cfg: cfg for camera.
@@ -83,13 +83,13 @@ class Camera(BaseCamera):
         for grabber in egrabber_list['grabbers']:
             try:  
                 grabber = EGrabber(gentl, grabber['interface'], grabber['device'], grabber['stream'], remote_required=True)
-                if grabber.remote.get('DeviceSerialNumber') == camera_id:
-                    self.log.info(f"grabber found for S/N: {camera_id}")
+                if grabber.remote.get('DeviceSerialNumber') == id:
+                    self.log.info(f"grabber found for S/N: {id}")
                     self.grabber = grabber
                     break
             except:
-                self.log.error(f"no grabber found for S/N: {camera_id}")
-                raise ValueError(f"no grabber found for S/N: {camera_id}")
+                self.log.error(f"no grabber found for S/N: {id}")
+                raise ValueError(f"no grabber found for S/N: {id}")
         del grabber
 
     @property
@@ -119,9 +119,10 @@ class Camera(BaseCamera):
                 'height_offest_px': self.grabber.remote.get("OffsetY")}
 
     @roi.setter
-    def roi(self, value: tuple):
+    def roi(self, roi: dict):
 
-        width_px, height_px = value
+        width_px = roi['width_px']
+        height_px = roi['height_px']
 
         sensor_height_px = MAX_HEIGHT_PX
         sensor_width_px = MAX_WIDTH_PX
@@ -208,9 +209,11 @@ class Camera(BaseCamera):
                 "polarity": next(key for key, value in TRIGGER_POLARITY.items() if value == polarity)}
 
     @trigger.setter
-    def trigger(self, value: tuple):
+    def trigger(self, trigger: dict):
 
-        mode, source, polarity = value
+        mode = trigger['mode']
+        source = trigger['source']
+        polarity = trigger['polarity']
 
         valid_mode = list(TRIGGER_MODES.keys())
         if mode not in valid_mode:

@@ -9,5 +9,5 @@ devices:
       timing:
         exposure_time_ms: 10.0
       image format:
-        bit_depth: Mono16
+        bit_depth: mono16
       

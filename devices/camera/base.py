@@ -18,7 +18,7 @@ class BaseCamera:
         pass
 
     @roi.setter
-    def roi(self, value: tuple):
+    def roi(self, roi: dict):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -78,7 +78,7 @@ class BaseCamera:
         pass
 
     @trigger.setter
-    def trigger(self, value: tuple):
+    def trigger(self, trigger: dict):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 

@@ -1,0 +1,7 @@
+writers:
+  - name: ims writer
+    driver: writers.imaris
+    compression: lz4shuffle
+    data_type: uint16
+    path: C:\Users\svc_aind_imaging\Documents\GitHub\exa-spim-refactor\writers
+    hex_color: "#00ff92"

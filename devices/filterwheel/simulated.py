@@ -1,10 +1,10 @@
 import logging
 import time
-from .base import BaseFilterWheel
+import base
 
 SWITCH_TIME_S = 0.1 # estimated timing
 
-class FilterWheel(BaseFilterWheel):
+class FilterWheel(base.BaseFilterWheel):
 
     def __init__(self, filter_list: dict):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)

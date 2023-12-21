@@ -216,34 +216,34 @@ class Stage(BaseStage):
         return limits
 
     @property
-    def backlash(self):
+    def backlash_mm(self):
         """Get the axis backlash compensation."""
         tiger_backlash = self.tigerbox.get_axis_backlash(self.hardware_axis)
         return self._tiger_to_sample(tiger_backlash)
 
-    @backlash.setter
-    def backlash(self, backlash: float):
+    @backlash_mm.setter
+    def backlash_mm(self, backlash: float):
         """Set the axis backlash compensation to a set value (0 to disable)."""
         self.tigerbox.set_axis_backlash(**{self.hardware_axis: backlash})
 
     @property
-    def speed(self):
+    def speed_mm_s(self):
         """Get the tiger axis speed."""
         tiger_speed = self.tigerbox.get_speed(self.hardware_axis)
         return self._tiger_to_sample(tiger_speed)
 
-    @speed.setter
-    def speed(self, speed: float):
+    @speed_mm_s.setter
+    def speed_mm_s(self, speed: float):
         self.tigerbox.set_speed(**{self.hardware_axis: speed})
 
     @property
-    def acceleration(self):
+    def acceleration_ms(self):
         """Get the tiger axis acceleration."""
         tiger_speed = self.tigerbox.get_acceleration(self.hardware_axis)
         return self._tiger_to_sample(tiger_speed)
 
-    @acceleration.setter
-    def acceleration(self, acceleration: float):
+    @acceleration_ms.setter
+    def acceleration_ms(self, acceleration: float):
         """Set the tiger axis acceleration."""
         self.tigerbox.set_acceleration(**{self.hardware_axis: acceleration})
 
