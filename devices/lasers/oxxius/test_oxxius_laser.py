@@ -52,7 +52,7 @@ for name, specs in cfg['channel_specs'].items():
         for nm in specs.keys():
             if nm.isdigit() and specs[nm]['type'] == 'laser':
                 kwds = dict(specs[nm]['kwds'])
-                kwds['combiner'] = combiners[name]# Add combiner to kwds
+                kwds['port'] = combiners[name].ser # Add combiner port to kwds
                 lasers[name +'.'+ nm] = load_device(specs[nm]['driver'], specs[nm]['module'], kwds)
                 setup_device(lasers[name +'.'+ nm], specs[nm]['driver'], specs[nm]['setup'])
 
@@ -69,7 +69,7 @@ for name, laser in lasers.items():
                 prop_obj = get_dict_attr(laser, attr)
                 if prop_obj.fset is not None and prop_obj.fget is not None:
                     get_value = getattr(laser, attr)
-                    set_value = 10.0 if (type(getattr(laser, attr)) == float
+                    set_value = getattr(laser, attr) if (type(getattr(laser, attr)) == float
                                          or type(getattr(laser, attr)) == str) \
                                         else BoolVal.OFF
                     setattr(laser, attr, set_value)

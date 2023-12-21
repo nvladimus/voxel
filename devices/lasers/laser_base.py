@@ -15,22 +15,12 @@ class Laser(ABC):
 
     @property
     @abstractmethod
-    def digital_modulation(self):
-        pass
-
-    @property
-    @abstractmethod
-    def analog_modulation(self):
+    def modulation_mode(self):
         pass
 
     @property
     @abstractmethod
     def temperature(self):
-        pass
-
-    @property
-    @abstractmethod
-    def external_control_mode(self):
         pass
 
     @abstractmethod

@@ -5,12 +5,7 @@ import time
 from pathlib import Path
 from spim_core.config_base import Config
 import sys
-def get_dict_attr(class_def, attr):
-    # for obj in [obj] + obj.__class__.mro():
-    for obj in [class_def] + class_def.__class__.mro():
-        if attr in obj.__dict__:
-            return obj.__dict__[attr]
-    raise AttributeError
+
 def load_device(driver, module, kwds):
     """Load in device based on config. Expecting driver, module, and kwds input"""
     __import__(driver)
@@ -160,9 +155,9 @@ if __name__ == '__main__':
 			for nm in specs.keys():
 				if nm.isdigit() and specs[nm]['type'] == 'laser':
 					kwds = dict(specs[nm]['kwds'])
-					kwds['combiner'] = combiners[name]  # Add combiner to kwds
-					lasers[name + '.' + nm] = load_device(specs[nm]['driver'], specs[nm]['module'], kwds)
-					setup_device(lasers[name + '.' + nm], specs[nm]['driver'], specs[nm]['setup'])
+					kwds['port'] = combiners[name]  # Add combiner port to kwds
+					lasers[nm] = load_device(specs[nm]['driver'], specs[nm]['module'], kwds)
+					setup_device(lasers[nm], specs[nm]['driver'], specs[nm]['setup'])
 
 
 	instrument = dict()

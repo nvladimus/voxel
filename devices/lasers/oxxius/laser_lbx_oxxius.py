@@ -1,23 +1,30 @@
-from oxxius_laser import FaultCodeField, OxxiusState,Query, Cmd, L6CCCombiner, BoolVal, LBX
-from laser_base import Laser
+from oxxius_laser import BoolVal, LBX
+from devices.lasers.laser_base import Laser
 import logging
 from sympy import symbols, Eq, solve
+from serial import Serial
+
+
+MODULATION_MODES = {
+    'off' : {'external_control_mode': BoolVal.OFF, 'digital_modulation':BoolVal.OFF},
+    'analog' : {'external_control_mode':BoolVal.ON, 'digital_modulation':BoolVal.OFF},
+    'digital': {'external_control_mode' :BoolVal.OFF, 'digital_modulation':BoolVal.ON}
+}
 
 class LaserLBXOxxius(LBX, Laser):
 
-    def __init__(self, combiner: L6CCCombiner, prefix:str, coefficients: dict):
+    def __init__(self, port: Serial or str, prefix:str, coefficients: dict):
         """Communicate with specific LBX laser in L6CC Combiner box.
 
-                :param combiner: L6CCCombiner object sharing comm port with individual lasers.
+                :param port: comm port for lasers.
                 :param prefix: prefix specic to laser.
                 :param coefficients: polynomial coefficients describing
                 the relationship between current percentage and power mw
                 """
 
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self.combiner = combiner
         self.prefix = prefix
-        super(LBX, self).__init__(self.combiner.ser, self.prefix)
+        super(LBX, self).__init__(port, self.prefix)
         # inherit from laser base class
 
         # Setup curve to map power input to current percentage
@@ -57,12 +64,20 @@ class LaserLBXOxxius(LBX, Laser):
             return self.max_power
 
     @property
-    def analog_modulation(self):
-        return self.external_control_mode
+    def modulation_mode(self):
+        if self.external_control_mode == BoolVal.ON:
+            return 'analog'
+        elif self.digital_modulation == BoolVal.ON:
+            return 'digital'
+        else:
+            return 'off'
 
-    @analog_modulation.setter
-    def analog_modulation(self, value:str):
-        self.external_control_mode = BoolVal(value)
+    @modulation_mode.setter
+    def modulation_mode(self, value: str):
+        if value not in MODULATION_MODES.keys():
+            raise ValueError("mode must be one of %r." % MODULATION_MODES.keys())
+        for attribute, state in MODULATION_MODES[value].items():
+            setattr(self, attribute, state)
 
     def status(self):
         return self.faults()
