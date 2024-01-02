@@ -5,8 +5,7 @@ from egrabber import *
 
 # constants for VP-151MX camera
 
-MIN_BUFFER_SIZE = 1
-MAX_BUFFER_SIZE = 8
+BUFFER_SIZE_FRAMES = 8
 MIN_WIDTH_PX = 64    
 MAX_WIDTH_PX = 14192
 DIVISIBLE_WIDTH_PX = 16
@@ -262,15 +261,9 @@ class Camera(BaseCamera):
         self.grabber.remote.set("DeviceTemperatureSelector", "Sensor")
         return self.grabber.remote.get("DeviceTemperature")
 
-    def prepare(self, buffer_size_frames: int = 8):
+    def prepare(self):
         # realloc buffers appears to be allocating ram on the pc side, not camera side.
-        if buffer_size_frames < MIN_BUFFER_SIZE or \
-           buffer_size_frames > MAX_BUFFER_SIZE:
-            self.log.error(f"buffer size must be >{MIN_BUFFER_SIZE} frames \
-                             and <{MAX_BUFFER_SIZE} frames")
-            raise ValueError(f"buffer size must be >{MIN_BUFFER_SIZE} frames \
-                             and <{MAX_BUFFER_SIZE} frames")
-        self.grabber.realloc_buffers(buffer_size_frames)  # allocate RAM buffer N frames
+        self.grabber.realloc_buffers(BUFFER_SIZE_FRAMES)  # allocate RAM buffer N frames
         self.log.info(f"buffer set to: {buffer_size_frames} frames")
 
     def start(self, frame_count: int, live: bool = False):
@@ -319,7 +312,7 @@ class Camera(BaseCamera):
         self.log.debug(f"frame: {state['frame_index']}, "
                        f"input buffer size: {state['in_buffer_size']}, "
                        f"output buffer size: {state['out_buffer_size']}, "
-                       f"dropped_frames: {state['dropped_frames']}, "
+                       f"dropped frames: {state['dropped_frames']}, "
                        f"data rate: {state['data_rate']:.2f} [MB/s], "
                        f"frame rate: {state['frame_rate']:.2f} [fps].")
         return state

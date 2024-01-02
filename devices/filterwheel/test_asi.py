@@ -24,7 +24,7 @@ for filter_wheel in config.cfg['devices']['filter wheels']:
 		exec(f"import {driver}")
 		exec(f"filter_wheels.append({driver}.FilterWheel(tigerbox, filter_wheel_id, filter_list))")
 
-filter_wheels[-1].set_index('BP405')
-print(filter_wheels[-1].get_index())
-filter_wheels[-1].set_index('BP488')
-print(filter_wheels[-1].get_index())
+filter_wheels[-1].set_filter('BP405')
+print(filter_wheels[-1].get_filter())
+filter_wheels[-1].set_filter('BP488')
+print(filter_wheels[-1].get_filter())

@@ -4,6 +4,7 @@ import datetime
 import subprocess
 import os
 import sys
+import ruamel
 from pathlib import Path
 from spim_core.config_base import Config
 
@@ -71,129 +72,150 @@ class Instrument:
                         raise LookupError(f'{key} is not a valid attribute of {type(device)}')
 
     def construct_cameras(self, cameras_list: list):
-        self.log.info(f'constructing {cameras_list}')
         for camera in cameras_list:
             name = camera['name']
+            self.log.info(f'constructing {name}')
             driver = camera['driver']
             module = camera['module']
-            init = camera['init']
-            id = init['id']
+            try:
+                init = camera['init']
+            except:
+                self.log.info('simulated camera')
+                init = dict()
             camera_object = self.load_device(driver, module, init)
             try:
                 settings = camera['settings']
-                self.setup_device(camera_object, settings)
             except:
-                print('no settings listed')
-            self.cameras[id] = {
+                settings = dict()
+                self.log.debug('no settings listed')
+            self.setup_device(camera_object, settings)
+
+            writer = camera['writer']
+            writer_object = self.load_device(writer['driver'], writer['module'], dict())
+            try:
+                settings = writer['settings']
+            except:
+                settings = dict()
+                self.log.debug('no settings listed')
+            self.setup_device(writer_object, settings)
+
+            self.cameras[name] = {
                 'object': camera_object,
-                'name': name,
                 'driver': driver,
                 'module': module,
+                'writer': {
+                    'object': writer_object,
+                    'driver': writer['driver'],
+                    'module': writer['module']
+                }
             }
 
     def construct_tiling_stages(self, tiling_stages_list: list):
-        self.log.info(f'constructing {tiling_stages_list}')
         for tiling_stage in tiling_stages_list:
             name = tiling_stage['name']
+            self.log.info(f'constructing {name}')
             driver = tiling_stage['driver']
             module = tiling_stage['module']
-            port = tiling_stage['port']
             init = tiling_stage['init']
-            id = init['instrument_axis']
-            if 'tigerasi.tiger_controller' in sys.modules.keys():
-                self.log.warning(f'tigerasi already exists')
-                init = dict(init)
-                init['tigerbox'] = self.tigerbox
-                tiling_stage_object = self.load_device(driver, module, init)
-            else:
-                self.log.info('loading tigerasi')
-                from tigerasi.tiger_controller import TigerController
-                self.tigerbox = TigerController(port)
-                init = dict(init)
-                init['tigerbox'] = self.tigerbox
-                tiling_stage_object = self.load_device(driver, module, init)
+            try:
+                port = tiling_stage['port']
+                if 'tigerasi.tiger_controller' in sys.modules.keys():
+                    self.log.warning(f'tigerasi already exists')
+                    init = dict(init)
+                    init['tigerbox'] = self.tigerbox
+                else:
+                    self.log.info('loading tigerasi')
+                    from tigerasi.tiger_controller import TigerController
+                    self.tigerbox = TigerController(port)
+                    init = dict(init)
+                    init['tigerbox'] = self.tigerbox
+            except:
+                self.log.info('simulated tiling stage')
+            tiling_stage_object = self.load_device(driver, module, init)
             try:
                 settings = tiling_stage['settings']
-                self.setup_device(tiling_stage_object, settings)
             except:
-                self.log.info(f'no settings listed')
-            self.tiling_stages[id] = {
+                settings = dict()
+                self.log.debug(f'no settings listed')
+            self.setup_device(tiling_stage_object, settings)
+            self.tiling_stages[name] = {
                 'object': tiling_stage_object,
-                'name': name,
                 'driver': driver,
                 'module': module,
             }
 
     def construct_scanning_stages(self, scanning_stages_list: list):
-        self.log.info(f'constructing {scanning_stages_list}')
         for scanning_stage in scanning_stages_list:
             name = scanning_stage['name']
+            self.log.info(f'constructing {name}')
             driver = scanning_stage['driver']
             module = scanning_stage['module']
-            port = scanning_stage['port']
             init = scanning_stage['init']
-            id = init['instrument_axis']
-            if 'tigerasi.tiger_controller' in sys.modules.keys():
-                print(f'tigerasi already exists')
-                init = dict(init)
-                init['tigerbox'] = self.tigerbox
-                scanning_stage_object = self.load_device(driver, module, init)
-            else:
-                print('loading tigerasi')
-                from tigerasi.tiger_controller import TigerController
-                init = dict(init)
-                init['tigerbox'] = self.tigerbox
-                self.tigerbox = TigerController(port)
-                scanning_stage_object = self.load_device(driver, module, init)
+            try:
+                port = scanning_stage['port']
+                if 'tigerasi.tiger_controller' in sys.modules.keys():
+                    self.log.warning(f'tigerasi already exists')
+                    init = dict(init)
+                    init['tigerbox'] = self.tigerbox
+                else:
+                    self.log.info('loading tigerasi')
+                    from tigerasi.tiger_controller import TigerController
+                    init = dict(init)
+                    init['tigerbox'] = self.tigerbox
+                    self.tigerbox = TigerController(port)
+            except:
+                self.log.info('simulated scanning stage')
+            scanning_stage_object = self.load_device(driver, module, init)
             try:
                 settings = scanning_stage['settings']
-                self.setup_device(scanning_stage_object, settings)
             except:
-                self.log.info(f'no settings listed')
-            self.scanning_stages[id] = {
+                settings = dict()
+                self.log.debug(f'no settings listed')
+            self.setup_device(scanning_stage_object, settings)
+            self.scanning_stages[name] = {
                 'object': scanning_stage_object,
-                'name': name,
                 'driver': driver,
                 'module': module,
             }
 
     def construct_filter_wheels(self, filter_wheels_list: list):
-        self.log.info(f'constructing {filter_wheels_list}')
         for filter_wheel in filter_wheels_list:
             name = filter_wheel['name']
+            self.log.info(f'constructing {name}')
             driver = filter_wheel['driver']
             module = filter_wheel['module']
-            port = filter_wheel['port']
             init = filter_wheel['init']
-            id = init['id']
-            if 'tigerasi.tiger_controller' in sys.modules.keys():
-                self.log.warning(f'tigerasi already exists')
-                init = dict(init)
-                init['tigerbox'] = self.tigerbox
-                filter_wheel_object = self.load_device(driver, module, init)
-            else:
-                self.log.info('loading tigerasi')
-                from tigerasi.tiger_controller import TigerController
-                tigerbox = TigerController(port)
-                init = dict(init)
-                init['tigerbox'] = self.tigerbox
-                filter_wheel_object = self.load_device(driver, module, init)
+            try:
+                port = filter_wheel['port']
+                if 'tigerasi.tiger_controller' in sys.modules.keys():
+                    self.log.warning(f'tigerasi already exists')
+                    init = dict(init)
+                    init['tigerbox'] = self.tigerbox
+                else:
+                    self.log.info('loading tigerasi')
+                    from tigerasi.tiger_controller import TigerController
+                    tigerbox = TigerController(port)
+                    init = dict(init)
+                    init['tigerbox'] = self.tigerbox
+            except:
+                self.log.info('simulated filter wheel')
+            filter_wheel_object = self.load_device(driver, module, init)
             try:
                 settings = filter_wheel['settings']
-                self.setup_device(filter_wheel_object, settings)
             except:
-                self.log.info(f'no settings listed')
-            self.filter_wheels[id] = {
+                settings = dict()
+                self.log.debug(f'no settings listed')
+            self.setup_device(filter_wheel_object, settings)
+            self.filter_wheels[name] = {
                 'object': filter_wheel_object,
-                'name': name,
                 'driver': driver,
                 'module': module,
             }
 
     def construct_daqs(self, daqs_list: list):
-        self.log.info(f'constructing {daqs_list}')
         for daq in daqs_list:
             name = daq['name']
+            self.log.info(f'constructing {name}')
             driver = daq['driver']
             module = daq['module']
             init = daq['init']

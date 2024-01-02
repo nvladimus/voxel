@@ -16,12 +16,12 @@ if __name__ == '__main__':
 	config = Config(str(config_path))
 
 	stack_writer_worker = Writer()
-	stack_writer_worker.row_count = 14192
-	stack_writer_worker.column_count = 10640
+	stack_writer_worker.row_count = 10640
+	stack_writer_worker.column_count = 14192
 	stack_writer_worker.frame_count = 128
-	stack_writer_worker.chunk_count = 64
 	stack_writer_worker.x_pos = 0
 	stack_writer_worker.y_pos = 0
+	stack_writer_worker.z_pos = 0
 	stack_writer_worker.x_voxel_size = 0.748
 	stack_writer_worker.y_voxel_size = 0.748
 	stack_writer_worker.z_voxel_size = 1

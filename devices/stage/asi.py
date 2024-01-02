@@ -120,7 +120,7 @@ class Stage(BaseStage):
 
     def move_relative(self, position: float, wait: bool = True):
         w_text = "" if wait else "NOT "
-        self.log.debug(f"Relative move by: {self.hardware_axis} and {w_text} waiting.")
+        self.log.info(f"Relative move by: {self.hardware_axis}={position} mm and {w_text}waiting.")
         self.tigerbox.move_relative(**{self.hardware_axis: position}, wait=wait)
         if wait:
             while self.is_moving():
@@ -136,7 +136,7 @@ class Stage(BaseStage):
         :param position: float, keyed by axis of which axis to move and by how much.
         """
         w_text = "" if wait else "NOT "
-        self.log.debug(f"Absolute move to: {self.hardware_axis} and {w_text} waiting.")
+        self.log.info(f"Absolute move to: {self.hardware_axis}={position} mm and {w_text}waiting.")
         self.tigerbox.move_absolute(**{self.hardware_axis: position}, wait=wait)
         if wait:
             while self.is_moving():

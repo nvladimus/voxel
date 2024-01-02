@@ -1,23 +1,24 @@
 import logging
 import time
-import base
+from .base import BaseFilterWheel
 
 SWITCH_TIME_S = 0.1 # estimated timing
 
-class FilterWheel(base.BaseFilterWheel):
+class FilterWheel(BaseFilterWheel):
 
-    def __init__(self, filter_list: dict):
+    def __init__(self, filters: dict):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.filter_list = filter_list
+        self.filters = filters
         # force homing of the wheel
-        self.set_index(next(key for key, value in self.filter_list.items() if value == 0))
+        self.set_filter(next(key for key, value in self.filters.items() if value == 0))
         # store simulated index internally
         self.index = 0
 
-    def get_index(self):
-        return next(key for key, value in self.filter_list.items() if value == self.index)
+    def get_filter(self):
+        return next(key for key, value in self.filters.items() if value == self.index)
 
-    def set_index(self, filter_name: str, wait=True):
+    def set_filter(self, filter_name: str, wait=True):
         """Set the filterwheel index."""
-        self.index = self.filter_list[filter_name]
+        self.log.info(f'setting filter to: {filter_name}')
+        self.index = self.filters[filter_name]
         time.sleep(SWITCH_TIME_S)
