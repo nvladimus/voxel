@@ -3,6 +3,7 @@ import logging
 import multiprocessing
 import re
 import os
+import sys
 from multiprocessing import Process, Array, Event
 from multiprocessing.shared_memory import SharedMemory
 from ctypes import c_wchar
@@ -12,6 +13,8 @@ from datetime import datetime
 from matplotlib.colors import hex2color
 from time import sleep, perf_counter
 from math import ceil
+
+CHUNK_SIZE = 64
 
 COMPRESSION_TYPES = {
     "none":  pw.eCompressionAlgorithmShuffleLZ4,
@@ -33,7 +36,7 @@ class ImarisProgressChecker(pw.CallbackClass):
     def RecordProgress(self, progress, total_bytes_written):
         self.progress = progress
 
-class Writer(Process):
+class Writer():
 
     def __init__(self):
  
@@ -121,11 +124,7 @@ class Writer(Process):
 
     @property
     def chunk_count(self):
-        return self.chunk_size
-
-    @chunk_count.setter
-    def chunk_count(self, chunk_count: int):
-        self.chunk_size = chunk_count
+        return CHUNK_SIZE
 
     @property
     def compression(self):
@@ -139,12 +138,12 @@ class Writer(Process):
         self.compression_style = compression
 
     @property
-    def dtype(self):
-        return self.data_type
+    def data_type(self):
+        return self.dtype
 
-    @dtype.setter
-    def dtype(self, dtype: np.unsignedinteger):
-        self.data_type = dtype
+    @data_type.setter
+    def data_type(self, data_type: np.unsignedinteger):
+        self.dtype = data_type
 
     @property
     def path(self):
@@ -199,29 +198,23 @@ class Writer(Process):
         self._shm_name[len(name)] = '\x00'  # Null terminate the string.
 
     def prepare(self):
+        self.p = Process(target=self._run)
         # Specs for reconstructing the shared memory object.
         self._shm_name = Array(c_wchar, 32)  # hidden and exposed via property.
         # This is almost always going to be: (chunk_size, rows, columns).
         chunk_shape_map = {'x': self.cols,
            'y': self.rows,
-           'z': self.chunk_size}
+           'z': CHUNK_SIZE}
         self.shm_shape = [chunk_shape_map[x] for x in self.chunk_dim_order]
         self.shm_nbytes = \
             int(np.prod(self.shm_shape, dtype=np.int64)*np.dtype(DATA_TYPES[self.dtype]).itemsize)
-
-    def run(self):
-        """Loop to wait for data from a specified location and write it to disk
-        as an Imaris file. Close up the file afterwards.
-
-        This function executes when called with the start() method.
-        """
-        print(f"{self.stack_name}: intializing writer.")
+        self.log.info(f"{self.stack_name}: intializing writer.")
         self.application_name = 'PyImarisWriter'
         self.application_version = '1.0.0'
         # voxel size metadata to create the converter
         self.image_size = pw.ImageSize(x=self.cols, y=self.rows, z=self.img_count,
                           c=1, t=1)
-        self.block_size = pw.ImageSize(x=self.cols, y=self.rows, z=self.chunk_size,
+        self.block_size = pw.ImageSize(x=self.cols, y=self.rows, z=CHUNK_SIZE,
                                   c=1, t=1)
         self.sample_size = pw.ImageSize(x=1, y=1, z=1, c=1, t=1)
         # compute the start/end extremes of the enclosed rectangular solid.
@@ -265,14 +258,32 @@ class Writer(Process):
         # date time parameters
         self.time_infos = [datetime.today()]
 
-        print(f"{self.stack_name}: starting writer.")
+    def start(self):
+        self.log.info(f"{self.stack_name}: starting writer.")
+        self.p.start()
+
+    def _run(self):
+        """Loop to wait for data from a specified location and write it to disk
+        as an Imaris file. Close up the file afterwards.
+
+        This function executes when called with the start() method.
+        """
+        # internal logger for process
+        logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        fmt = '%(asctime)s.%(msecs)03d %(levelname)s %(name)s: %(message)s'
+        datefmt = '%Y-%m-%d,%H:%M:%S'
+        log_formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
+        log_handler = logging.StreamHandler(sys.stdout)
+        log_handler.setFormatter(log_formatter)
+        logger.addHandler(log_handler)
+
         filepath = str((self.dest_path/Path(f"{self.stack_name}")).absolute())
-        self.converter = \
+        converter = \
             pw.ImageConverter(DATA_TYPES[self.dtype], self.image_size, self.sample_size,
                               self.dimension_sequence, self.block_size, filepath, 
                               self.opts, self.application_name,
                               self.application_version, self.callback_class)
-        chunk_count = ceil(self.img_count/self.chunk_size)
+        chunk_count = ceil(self.img_count/CHUNK_SIZE)
         for chunk_num in range(chunk_count):
             block_index = pw.ImageSize(x=0, y=0, z=chunk_num, c=0, t=0)
             # Wait for new data.
@@ -281,34 +292,33 @@ class Writer(Process):
             # Attach a reference to the data from shared memory.
             shm = SharedMemory(self.shm_name, create=False, size=self.shm_nbytes)
             frames = np.ndarray(self.shm_shape, DATA_TYPES[self.dtype], buffer=shm.buf)
-            print(f"{self.stack_name}: writing chunk "
+            logger.warning(f"{self.stack_name}: writing chunk "
                   f"{chunk_num+1}/{chunk_count} of size {frames.shape}.")
             start_time = perf_counter()
             dim_order = [self.dim_map[x] for x in self.chunk_dim_order]
             # Put the frames back into x, y, z, c, t order.
-            self.converter.CopyBlock(frames.transpose(dim_order), block_index)
+            converter.CopyBlock(frames.transpose(dim_order), block_index)
             frames = None
-            print(f"{self.stack_name}: writing chunk took "
-                  f"{perf_counter() - start_time:.3f}[s].")
+            logger.warning(f"{self.stack_name}: writing chunk took "
+                  f"{perf_counter() - start_time:.3f} [s]")
             shm.close()
             self.done_reading.set()
 
         # Wait for file writing to finish.
         if self.callback_class.progress < 1.0:
-            print(f"waiting for data writing to complete for "
+            logger.warning(f"{self.stack_name}: waiting for data writing to complete for "
                   f"{self.stack_name}. "
-                  f"current progress is {self.callback_class.progress:.3f}.")
+                  f"current progress is {100*self.callback_class.progress:.1f}%.")
         while self.callback_class.progress < 1.0:
-            sleep(1.0)
-            print(f"waiting for data writing to complete for "
+            sleep(0.5)
+            logger.warning(f"{self.stack_name}: waiting for data writing to complete for "
                   f"{self.stack_name}. "
-                  f"current progress is {self.callback_class.progress:.3f}.")
+                  f"current progress is {100*self.callback_class.progress:.1f}%.")
 
-        self.converter.Finish(self.image_extents, self.parameters, self.time_infos,
+        converter.Finish(self.image_extents, self.parameters, self.time_infos,
                               self.color_infos, self.adjust_color_range)
-        self.converter.Destroy()
-        print(f"{self.stack_name}: stack writing complete.")
+        converter.Destroy()
 
     def wait_to_finish(self):
-        print(f"{self.stack_name}: waiting to finish.")
-        self.join()
+        self.log.info(f"{self.stack_name}: waiting to finish.")
+        self.p.join()

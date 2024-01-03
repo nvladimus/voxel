@@ -22,18 +22,18 @@ class FilterWheel(BaseFilterWheel):
         self.tiger_axis = id
         self.filters = filters
         # force homing of the wheel
-        self.set_index(next(key for key, value in self.filters.items() if value == 0))
+        self.set_filter(next(key for key, value in self.filters.items() if value == 0))
         # ASI wheel has no get_index() function so store this internally
         self.index = 0
 
-    def get_index(self):
+    def get_filter(self):
         return next(key for key, value in self.filters.items() if value == self.index)
 
-    def set_index(self, filter_name: str, wait=True):
+    def set_filter(self, filter_name: str, wait=True):
         """Set the filterwheel index."""
         self.index = self.filters[filter_name]
         cmd_str = f"MP {self.index}\r\n"
-        self.log.debug(f"FW{self.tiger_axis} move to index: {self.index}.")
+        self.log.info(f'setting filter to: {filter_name}')
         # Note: the filter wheel has slightly different reply line termination.
         self.tigerbox.send(f"FW {self.tiger_axis}\r\n", read_until=f"\n\r{self.tiger_axis}>")
         self.tigerbox.send(cmd_str, read_until=f"\n\r{self.tiger_axis}>")

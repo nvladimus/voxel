@@ -1,8 +1,8 @@
 import logging
 import time
-import base
+from .base import BaseStage
 
-class Stage(base.BaseStage):
+class Stage(BaseStage):
 
     def __init__(self, hardware_axis: str, instrument_axis: str):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
@@ -13,7 +13,7 @@ class Stage(base.BaseStage):
 
     def move_relative(self, position: float, wait: bool = True):
         w_text = "" if wait else "NOT "
-        self.log.debug(f"Relative move by: {self.hardware_axis} and {w_text} waiting.")
+        self.log.info(f"relative move by: {self.hardware_axis}={position} mm and {w_text}waiting.")
         move_time_s = position/self.simulated_speed
         self.simulated_position += position
         if wait:
@@ -21,7 +21,7 @@ class Stage(base.BaseStage):
 
     def move_absolute(self, position: float, wait: bool = True):
         w_text = "" if wait else "NOT "
-        self.log.debug(f"Absolute move to: {self.hardware_axis} and {w_text} waiting.")
+        self.log.info(f"absolute move to: {self.hardware_axis}={position} mm and {w_text}waiting.")
         move_time_s = abs(self.simulated_position - position)/self.simulated_speed
         self.simulated_position = position
         if wait:
@@ -41,12 +41,12 @@ class Stage(base.BaseStage):
         return {self.instrument_axis: self.simulated_position}
 
     @property
-    def speed(self):
+    def speed_mm_s(self):
         return self.simulated_speed
 
-    @speed.setter
-    def speed(self, speed: float):
-        self.simulated_speed = speed
+    @speed_mm_s.setter
+    def speed_mm_s(self, speed_mm_s: float):
+        self.simulated_speed = speed_mm_s
 
     def zero_in_place(self):
         self.simulated_position = 0

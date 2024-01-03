@@ -74,6 +74,9 @@ docs/_build/
 # PyBuilder
 target/
 
+# IntelliJ
+*.idea
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
@@ -107,8 +110,6 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-
-.idea
 
 # Local test script
 clipper/develop.py

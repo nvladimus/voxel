@@ -1,10 +1,12 @@
 import logging
 import numpy
 import time
-import base
+from .base import BaseCamera
+from multiprocessing import Process
+from threading import Thread
 
 # constants for VP-151MX camera
-
+BUFFER_SIZE_FRAMES = 8
 MIN_WIDTH_PX = 64    
 MAX_WIDTH_PX = 14192
 DIVISIBLE_WIDTH_PX = 16
@@ -24,9 +26,9 @@ LINE_INTERVALS_US = {
     "mono16": 45.44
 }
 
-class Camera(base.BaseCamera):
+class Camera(BaseCamera):
 
-    def __init__(self, camera_id):
+    def __init__(self):
 
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.simulated_pixel_type = None
@@ -100,6 +102,8 @@ class Camera(base.BaseCamera):
         self.simulated_height_px = height_px
         self.simulated_width_offset_px = centered_width_offset_px
         self.simulated_height_offset_px = centered_height_offset_px
+        self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
+        self.log.info(f"roi offset set to: {centered_width_offset_px} x {centered_height_offset_px} [width x height]")
 
     @property
     def pixel_type(self):
@@ -114,12 +118,11 @@ class Camera(base.BaseCamera):
             raise ValueError("pixel_type_bits must be one of %r." % valid)
         
         self.simulated_pixel_type = PIXEL_TYPES[pixel_type_bits]
+        self.simulated_line_interval_us = LINE_INTERVALS_US[self.pixel_type]
         self.log.info(f"pixel type set_to: {pixel_type_bits}")
 
     @property
     def line_interval_us(self):
-        pixel_type = self.simulated_pixel_type
-        self.simulated_line_interval_us = LINE_INTERVALS_US[self.pixel_type]
         return self.simulated_line_interval_us
 
     @property
@@ -130,24 +133,63 @@ class Camera(base.BaseCamera):
     def sensor_height_px(self):
         return MAX_HEIGHT_PX
 
-    def prepare(self, buffer_size_frames: int = 8):
-        self.log.info('Simulated camera preparing...')
-        pass
+    def prepare(self):
+        self.log.info('simulated camera preparing...')
+        self.buffer = list()
 
     def start(self, frame_count: int, live: bool = False):
-        self.log.info('Simulated camera starting...')
-        pass
+        self.log.info('simulated camera starting...')
+        self.thread = Thread(target=self.generate_frames, args=(frame_count,))
+        self.thread.daemon = True
+        self.thread.start()
 
     def stop(self):
-        self.log.info('Simulated camera stopping...')
-        pass
+        self.log.info('simulated camera stopping...')
+        self.thread.join()
 
     def grab_frame(self):
-        start_time = time.time()
-        column_count = self.simulated_width_px
-        row_count = self.simulated_height_px
-        frame_time_s = (row_count*self.simulated_line_interval_us/1000+self.simulated_exposure_time_ms)/1000
-        image = numpy.random.randint(low=0, high=1, size=(row_count, column_count), dtype=self.simulated_pixel_type)
-        while (time.time() - start_time) < frame_time_s:
+        while not self.buffer:
             time.sleep(0.01)
+        image = self.buffer.pop(0)
         return image
+
+    def get_camera_acquisition_state(self):
+        """return a dict with the state of the acquisition buffers"""
+        # Detailed description of constants here:
+        # https://documentation.euresys.com/Products/Coaxlink/Coaxlink/en-us/Content/IOdoc/egrabber-reference/
+        # namespace_gen_t_l.html#a6b498d9a4c08dea2c44566722699706e
+        state = {}
+        state['frame_index'] = self.frame
+        state['in_buffer_size'] = len(self.buffer)
+        state['out_buffer_size'] = BUFFER_SIZE_FRAMES - len(self.buffer)
+         # number of underrun, i.e. dropped frames
+        state['dropped_frames'] = self.dropped_frames
+        state['data_rate'] = self.frame_rate*self.simulated_width_px*self.simulated_height_px*numpy.dtype(self.simulated_pixel_type).itemsize/1e6
+        state['frame_rate'] = self.frame_rate
+        self.log.info(f"frame: {state['frame_index']}, "
+                      f"input buffer size: {state['in_buffer_size']}, "
+                      f"output buffer size: {state['out_buffer_size']}, "
+                      f"dropped frames: {state['dropped_frames']}, "
+                      f"data rate: {state['data_rate']:.2f} [MB/s], "
+                      f"frame rate: {state['frame_rate']:.2f} [fps].")
+
+    def generate_frames(self, frame_count: int):
+        self.frame = 0
+        self.dropped_frames = 0
+        while self.frame < frame_count:
+            start_time = time.time()
+            column_count = self.simulated_width_px
+            row_count = self.simulated_height_px
+            frame_time_s = (row_count*self.simulated_line_interval_us/1000+self.simulated_exposure_time_ms)/1000
+            # image = numpy.random.randint(low=128, high=256, size=(row_count, column_count), dtype=self.simulated_pixel_type)
+            image = numpy.zeros(shape=(row_count, column_count), dtype=self.simulated_pixel_type)
+            while (time.time() - start_time) < frame_time_s:
+                time.sleep(0.01)
+            if len(self.buffer) < BUFFER_SIZE_FRAMES:
+                self.buffer.append(image)
+            else:
+                self.dropped_frames += 1
+                self.log.warning('buffer full, frame dropped.')
+            self.frame += 1
+            end_time = time.time()
+            self.frame_rate = 1/(end_time - start_time)

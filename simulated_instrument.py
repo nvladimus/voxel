@@ -1,6 +1,6 @@
 from instrument import Instrument
 
-instrument = Instrument('test_instrument.yaml')
+instrument = Instrument('simulated_instrument.yaml')
 instrument.construct()
 print(instrument.cameras)
 print(instrument.tiling_stages)
