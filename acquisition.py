@@ -217,6 +217,9 @@ class Acquisition():
                     self.log.info(f"waiting on file transfer of {filenames[camera_id]} for {camera_id}")
                     transfer_thread.join()
 
+        for daq_id in self.instrument.daqs:
+            self.instrument.daqs[daq_id].close_all()
+
     def construct_storage(self, storage_list: list):
         for storage in storage_list:
             name = storage['camera_name']
