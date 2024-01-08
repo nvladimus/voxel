@@ -1,7 +1,7 @@
 channel_specs:
   combiner_0:
     type : "combiner"
-    driver : "oxxius_laser"
+    driver : "simulated"
     module : "L6CCCombiner"
     kwds:
       port: "COM3"
@@ -9,7 +9,7 @@ channel_specs:
       {}
     '405':
       type : "laser"
-      driver : "laser_lbx_oxxius"
+      driver : "simulated"
       module : "LaserLBXOxxius"
       color : "purple"
       disable_voltage : 0.0
@@ -26,7 +26,7 @@ channel_specs:
 
     '561':
       type: "laser"
-      driver: "laser_lcx_oxxius"
+      driver: "simulated"
       module: "LaserLCXOxxius"
       color: "greenyellow"
       disable_voltage: 0.0

@@ -1,7 +1,6 @@
 from stradus import FaultCodeField, Query, Cmd, StradusLaser, BoolVal
 from devices.lasers.laser_base import Laser
 import logging
-from sympy import symbols, Eq, solve
 from serial import Serial
 
 MODULATION_MODES = {
