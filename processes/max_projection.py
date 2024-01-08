@@ -22,6 +22,8 @@ class Processor(Process):
 
     @column_count.setter
     def column_count(self, column_count: int):
+        self.log.info(f'setting column count to: {column_count} [px]')
+
         self.cols = column_count
 
     @property
@@ -30,6 +32,7 @@ class Processor(Process):
 
     @row_count.setter
     def row_count(self, row_count: int):
+        self.log.info(f'setting row count to: {row_count} [px]')
         self.rows = row_count
 
     @property
@@ -38,6 +41,7 @@ class Processor(Process):
 
     @frame_count.setter
     def frame_count(self, frame_count: int):
+        self.log.info(f'setting frame count to: {frame_count} [px]')
         self.img_count = frame_count
 
     @property
@@ -46,6 +50,7 @@ class Processor(Process):
 
     @dtype.setter
     def dtype(self, dtype: np.unsignedinteger):
+        self.log.info(f'setting data type to: {dtype}')
         self.data_type = dtype
 
     @property
@@ -58,6 +63,7 @@ class Processor(Process):
                 self.dest_path = path
         else:
             raise ValueError("%r is not a valid path." % path)
+        self.log.info(f'setting path to: {path}')
 
     @property
     def filename(self):
@@ -67,6 +73,7 @@ class Processor(Process):
     def filename(self, filename: str):
         self.stack_name = filename \
             if filename.endswith(".tiff") else f"{filename}.tiff"
+        self.log.info(f'setting filename to: {filename}')
 
     def prepare(self, shm_name):
         self.shm_shape = (self.rows, self.cols)
@@ -99,3 +106,6 @@ class Processor(Process):
     def wait_to_finish(self):
         print(f"{self.filename}: waiting to finish.")
         self.join()
+        self.log.info(f'saving {self.path}/mip_xy_{self.filename}.tiff"')
+        self.log.info(f'saving {self.path}/mip_xz_{self.filename}.tiff"')
+        self.log.info(f'saving {self.path}/mip_yz_{self.filename}.tiff"')
