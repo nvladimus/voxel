@@ -41,36 +41,8 @@ class Instrument:
         :param settings: dictionary of attributes, values to set according to config"""
         self.log.info(f'setting up {device}')
         # successively iterate through settings keys
-        for key in settings.keys():
-            # determine if key matches an attribute
-            if key in dir(device):
-                # check if key value is a yaml dictionary
-                if type(settings[key]) == ruamel.yaml.comments.CommentedMap:
-                    attribute = key
-                    # if dictionary, convert to dict and set attribute
-                    values = dict(settings[key])
-                    setattr(device, attribute, values)
-                else:
-                    # else set single attribute to single value
-                    attribute = key
-                    value = settings[key]
-                    setattr(device, attribute, value)
-            # if no match, check nested settings dictionary
-            else:
-                nested_settings = settings[key]
-                # repeat process of checking nested keys for matches
-                for key in nested_settings.keys():
-                    if key in dir(device):
-                        if type(nested_settings[key]) == ruamel.yaml.comments.CommentedMap:
-                            attribute = key
-                            values = dict(nested_settings[key])
-                            setattr(device, attribute, values)
-                        else:
-                            attribute = key
-                            value = nested_settings[key]
-                            setattr(device, attribute, value)
-                    else:
-                        raise LookupError(f'{key} is not a valid attribute of {type(device)}')
+        for key, value in settings.items():
+            setattr(device, key, value)
 
     def construct_cameras(self, cameras_list: list):
         for camera in cameras_list:

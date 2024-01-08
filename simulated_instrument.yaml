@@ -62,6 +62,7 @@ instrument:
           image_format:
             pixel_type: mono16
     stages:
+
       tiling:
         - name: ASI MS-8000 x axis
           driver: devices.stage.simulated

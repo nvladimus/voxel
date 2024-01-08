@@ -54,6 +54,7 @@ class DAQ:
         self.devs = list()
         for device in nidaqmx.system.System.local().devices:
             self.devs.append(device.name)
+        print(dev, self.devs)
         if dev not in self.devs:
             raise ValueError("dev name must be one of %r." % self.devs)        
         self.dev_name = dev
