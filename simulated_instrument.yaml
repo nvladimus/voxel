@@ -10,8 +10,7 @@ instrument:
           roi:
             width_px: 14192
             height_px: 10640
-          image_format:
-            pixel_type: mono16
+          pixel_type: mono16
         writer:
           driver: writers.imaris
           module: Writer
@@ -35,53 +34,59 @@ instrument:
             compression: lz4shuffle
             data_type: uint16
     stages:
-      tiling:
-        - name: ASI MS-8000 x axis
-          driver: devices.stage.simulated
-          module: Stage
-          init:
-            hardware_axis: x
-            instrument_axis: x
-          settings:
-            speed_mm_s: 1.0
-        - name: ASI MS-8000 y axis
-          driver: devices.stage.simulated
-          module: Stage
-          init:
-            hardware_axis: y
-            instrument_axis: y
-          settings:
-            speed_mm_s: 1.0
-        - name: ASI MS-8000 z axis
-          driver: devices.stage.simulated
-          module: Stage
-          init:
-            hardware_axis: z
-            instrument_axis: z
-          settings:
-            speed_mm_s: 1.0
-      scanning:
-        - name: ASI LS-100 x axis
-          driver: devices.stage.simulated
-          module: Stage
-          init:
-            hardware_axis: x
-            instrument_axis: z
-          settings:
-            speed_mm_s: 1.0
-    filter_wheels:
-      - name: ASI FW-1000
-        driver: devices.filterwheel.simulated
-        module: FilterWheel
+      tigerbox_0:
+        name: ASI MS-8000
+        driver: tigerbox.
+        module: Stage
         init:
-          filters:
-            BP405: 0
-            BP488: 1
-            BP561: 2
-            LP638: 3
-            MB405/488/561/638: 4
-            Empty1: 5
-            Empty2: 6
+          com_port: COM4
+        tiling:
+          - name: ASI MS-8000 x axis
+            driver: devices.stage.simulated
+            module: Stage
+            init:
+              hardware_axis: x
+              instrument_axis: x
+            settings:
+              speed_mm_s: 1.0
+          - name: ASI MS-8000 y axis
+            driver: devices.stage.simulated
+            module: Stage
+            init:
+              hardware_axis: y
+              instrument_axis: y
+            settings:
+              speed_mm_s: 1.0
+          - name: ASI MS-8000 z axis
+            driver: devices.stage.simulated
+            module: Stage
+            init:
+              hardware_axis: z
+              instrument_axis: z
+            settings:
+              speed_mm_s: 1.0
+        scanning:
+          - name: ASI LS-100 x axis
+            driver: devices.stage.simulated
+            module: Stage
+            init:
+              hardware_axis: x
+              instrument_axis: z
+            settings:
+              speed_mm_s: 1.0
+      filter_wheels:
+        - name: ASI FW-1000
+          driver: devices.filterwheel.simulated
+          module: FilterWheel
+          init:
+            filters:
+              BP405: 0
+              BP488: 1
+              BP561: 2
+              LP638: 3
+              MB405/488/561/638: 4
+              Empty1: 5
+              Empty2: 6
     daqs:
       - name: PCIe-6738
         driver: devices.daq.ni

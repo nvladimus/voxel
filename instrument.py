@@ -40,20 +40,22 @@ class Instrument:
         :param settings: dictionary of attributes, values to set according to config"""
         self.log.info(f'setting up {device}')
         # successively iterate through settings keys
-        for key in settings.keys():
+        for key, value in settings.items():
             # determine if key matches an attribute
             if key in dir(device):
-                # check if key value is a yaml dictionary
-                if type(settings[key]) == ruamel.yaml.comments.CommentedMap:
-                    attribute = key
-                    # if dictionary, convert to dict and set attribute
-                    values = dict(settings[key])
-                    setattr(device, attribute, values)
-                else:
-                    # else set single attribute to single value
-                    attribute = key
-                    value = settings[key]
-                    setattr(device, attribute, value)
+                # # check if key value is a yaml dictionary
+                # if type(settings[key]) == ruamel.yaml.comments.CommentedMap:
+                #     attribute = key
+                #     # if dictionary, convert to dict and set attribute
+                #     values = dict(settings[key])
+                #FIXME: Only need this line to set attribute regardless if type
+                # is dict or other
+                setattr(device, key, value)
+                # else:
+                #     # else set single attribute to single value
+                #     attribute = key
+                #     value = settings[key]
+                #     setattr(device, attribute, value)
             # if no match, check nested settings dictionary
             else:
                 nested_settings = settings[key]
@@ -77,26 +79,14 @@ class Instrument:
             self.log.info(f'constructing {name}')
             driver = camera['driver']
             module = camera['module']
-            try:
-                init = camera['init']
-            except:
-                self.log.info('simulated camera')
-                init = dict()
+            init = camera.get('init', {})
             camera_object = self.load_device(driver, module, init)
-            try:
-                settings = camera['settings']
-            except:
-                settings = dict()
-                self.log.debug('no settings listed')
+            settings = camera.get('settings', {})
             self.setup_device(camera_object, settings)
 
             writer = camera['writer']
             writer_object = self.load_device(writer['driver'], writer['module'], dict())
-            try:
-                settings = writer['settings']
-            except:
-                settings = dict()
-                self.log.debug('no settings listed')
+            settings = writer.get('settings', {})
             self.setup_device(writer_object, settings)
 
             self.cameras[name] = {
@@ -132,11 +122,8 @@ class Instrument:
             except:
                 self.log.info('simulated tiling stage')
             tiling_stage_object = self.load_device(driver, module, init)
-            try:
-                settings = tiling_stage['settings']
-            except:
-                settings = dict()
-                self.log.debug(f'no settings listed')
+
+            settings = tiling_stage.get('settings', {})
             self.setup_device(tiling_stage_object, settings)
             self.tiling_stages[name] = {
                 'object': tiling_stage_object,
