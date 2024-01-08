@@ -1,10 +1,47 @@
 instrument:
   id: exaspim-01
   devices:
+    # cameras:
+      # - name: vnp-604mx
+      #   driver: devices.camera.vieworks_egrabber
+      #   module: Camera
+      #   init:
+      #     id: MB151BAY001
+      #   settings:
+      #     exposure_time_ms: 20.0
+      #     roi:
+      #       width_px: 14192
+      #       height_px: 10640
+      #     image_format:
+      #       pixel_type: mono12
+      #       bit_packing_mode: msb
+      #     trigger:
+      #       mode: off
+      #       source: external
+      #       polarity: rising
+      # - name: vp-151mx
+      #   driver: devices.camera.vieworks_egrabber
+      #   module: Camera
+      #   init:
+      #     id: MP151BBX050
+      #   settings:
+      #     exposure_time_ms: 20.0
+      #     roi:
+      #       width_px: 14192
+      #       height_px: 10640
+      #     image_format:
+      #       pixel_type: mono12
+      #       bit_packing_mode: msb
+      #     trigger:
+      #       mode: off
+      #       source: external
+      #       polarity: rising
     cameras:
       - name: vp-151mx
         driver: devices.camera.simulated
         module: Camera
+        init:
+          id: sim000
         settings:
           exposure_time_ms: 20.0
           roi:
@@ -12,15 +49,11 @@ instrument:
             height_px: 10640
           image_format:
             pixel_type: mono16
-        writer:
-          driver: writers.imaris
-          module: Writer
-          settings:
-            compression: lz4shuffle
-            data_type: uint16
       - name: vnp-604mx
         driver: devices.camera.simulated
         module: Camera
+        init:
+          id: sim001
         settings:
           exposure_time_ms: 20.0
           roi:
@@ -28,12 +61,6 @@ instrument:
             height_px: 10640
           image_format:
             pixel_type: mono16
-        writer:
-          driver: writers.imaris
-          module: Writer
-          settings:
-            compression: lz4shuffle
-            data_type: uint16
     stages:
       tiling:
         - name: ASI MS-8000 x axis

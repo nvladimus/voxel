@@ -52,7 +52,6 @@ TRIGGER_POLARITY = {
     "falling": "FallingEdge",
 }
 
-
 class Camera(BaseCamera):
 
     def __init__(self, id):
@@ -61,6 +60,7 @@ class Camera(BaseCamera):
         :param camera_cfg: cfg for camera.
         """
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.id = id
         gentl = EGenTL()
         discovery = EGrabberDiscovery(gentl)
         discovery.discover()
@@ -82,13 +82,13 @@ class Camera(BaseCamera):
         for grabber in egrabber_list['grabbers']:
             try:  
                 grabber = EGrabber(gentl, grabber['interface'], grabber['device'], grabber['stream'], remote_required=True)
-                if grabber.remote.get('DeviceSerialNumber') == id:
-                    self.log.info(f"grabber found for S/N: {id}")
+                if grabber.remote.get('DeviceSerialNumber') == self.id:
+                    self.log.info(f"grabber found for S/N: {self.id}")
                     self.grabber = grabber
                     break
             except:
-                self.log.error(f"no grabber found for S/N: {id}")
-                raise ValueError(f"no grabber found for S/N: {id}")
+                self.log.error(f"no grabber found for S/N: {self.id}")
+                raise ValueError(f"no grabber found for S/N: {self.id}")
         del grabber
 
     @property
@@ -264,7 +264,7 @@ class Camera(BaseCamera):
     def prepare(self):
         # realloc buffers appears to be allocating ram on the pc side, not camera side.
         self.grabber.realloc_buffers(BUFFER_SIZE_FRAMES)  # allocate RAM buffer N frames
-        self.log.info(f"buffer set to: {buffer_size_frames} frames")
+        self.log.info(f"buffer set to: {BUFFER_SIZE_FRAMES} frames")
 
     def start(self, frame_count: int, live: bool = False):
         if live:
@@ -309,10 +309,11 @@ class Camera(BaseCamera):
                                                                INFO_DATATYPE_SIZET)
         state['data_rate'] = self.grabber.stream.get('StatisticsDataRate')
         state['frame_rate'] = self.grabber.stream.get('StatisticsFrameRate')
-        self.log.debug(f"frame: {state['frame_index']}, "
-                       f"input buffer size: {state['in_buffer_size']}, "
-                       f"output buffer size: {state['out_buffer_size']}, "
-                       f"dropped frames: {state['dropped_frames']}, "
+        self.log.info(f"id: {self.id}, "
+                       f"frame: {state['frame_index']}, "
+                       f"input: {state['in_buffer_size']}, "
+                       f"output: {state['out_buffer_size']}, "
+                       f"dropped: {state['dropped_frames']}, "
                        f"data rate: {state['data_rate']:.2f} [MB/s], "
                        f"frame rate: {state['frame_rate']:.2f} [fps].")
         return state

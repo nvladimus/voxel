@@ -33,11 +33,9 @@ if __name__ == '__main__':
 
     # instrument
     instrument = Instrument('simulated_instrument.yaml')
-    instrument.construct()
 
     # acquisition
     acquisition = Acquisition(instrument, 'test_acquisition.yaml')
     acquisition.check_disk_space()
     acquisition.check_system_memory()
-    # acquisition.check_write_speed()
     acquisition.run()

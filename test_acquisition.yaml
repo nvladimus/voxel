@@ -8,12 +8,49 @@ acquisition:
     y_anatomical_direction: Inferior_to_superior
     z_anatomical_direction: Left_to_right
   storage:
-    filename_prefix: tile
-    local_drive: E:\
-    external_drive: D:\
-  transfer:
-    protocol: xcopy
-    flags: /j/i/y
+    - camera_name: vp-151mx
+      filename_prefix: tile
+      local_drive: C:\Users\svc_aind_imaging\Desktop
+      external_drive: C:\Users\svc_aind_imaging\Desktop\test
+      transfer:
+        driver: processes.file_transfer
+        module: FileTransfer
+        settings:
+          protocol: robocopy
+    - camera_name: vnp-604mx
+      filename_prefix: tile
+      local_drive: C:\Users\svc_aind_imaging\Desktop
+      external_drive: C:\Users\svc_aind_imaging\Desktop\test
+      transfer:
+        driver: processes.file_transfer
+        module: FileTransfer
+        settings:
+          protocol: robocopy
+  writers:
+    - camera_name: vp-151mx
+      driver: writers.imaris
+      module: Writer
+      settings:
+        compression: lz4shuffle
+        data_type: uint16
+    - camera_name: vnp-604mx
+      driver: writers.imaris
+      module: Writer
+      settings:
+        compression: lz4shuffle
+        data_type: uint16
+  processes:
+    pre:
+      - name: background collection
+        driver: processes.background_collection
+        module: Processor
+        settings:
+          frames: 10
+    intra:
+      - name: max projection
+        driver: processes.max_projection
+        module: Processor
+    post:
   tiles:
     - tile_number:
         x: 0
@@ -27,7 +64,7 @@ acquisition:
         x: 0.748 # grayed out -> comes from instrument
         y: 0.748 # grayed out -> comes from instrument
         z: 1.000 # editable -> integer values only
-      frame_count: 256 # editable -> force multiple of 2048
+      frame_count: 64 # editable -> force multiple of 2048
       binning: 1 # editable -> force power of 2
       channel: 488 # editable -> 
       power_mw: 1000 # editable -> range to laser device range(s)
@@ -60,7 +97,7 @@ acquisition:
         x: 0.748 # grayed out -> comes from instrument
         y: 0.748 # grayed out -> comes from instrument
         z: 1.000 # editable -> integer values only
-      frame_count: 256 # editable -> force multiple of 2048
+      frame_count: 64 # editable -> force multiple of 2048
       binning: 1 # editable -> force power of 2
       channel: 488 # editable -> 
       power_mw: 1000 # editable -> range to laser device range(s)

@@ -24,8 +24,8 @@ instrument:
         - name: ASI MS-8000 y axis
           driver: devices.stage.asi
           module: Stage
-          port: COM3
           init:
+            port: COM3
             hardware_axis: y
             instrument_axis: y
           settings:
@@ -38,8 +38,8 @@ instrument:
         - name: ASI MS-8000 z axis
           driver: devices.stage.asi
           module: Stage
-          port: COM3
           init:
+            port: COM3
             hardware_axis: z
             instrument_axis: x
           settings:
@@ -52,8 +52,8 @@ instrument:
         - name: ASI C60-ROT theta axis
           driver: devices.stage.asi
           module: Stage
-          port: COM3
           init:
+            port: COM3
             hardware_axis: t
             instrument_axis: t
           settings:
@@ -67,8 +67,8 @@ instrument:
         - name: ASI LS-100 x axis
           driver: devices.stage.asi
           module: Stage
-          port: COM3
           init:
+            port: COM3
             hardware_axis: x
             instrument_axis: z
           settings:
@@ -82,17 +82,17 @@ instrument:
       - name: ASI FW-1000
         driver: devices.filterwheel.asi
         module: FilterWheel
-        port: COM3
         init:
+          port: COM3
           id: 0
-        filters:
-          BP405: 0
-          BP488: 1
-          BP561: 2
-          LP638: 3
-          MB405/488/561/638: 4
-          Empty1: 5
-          Empty2: 6
+          filters:
+            BP405: 0
+            BP488: 1
+            BP561: 2
+            LP638: 3
+            MB405/488/561/638: 4
+            Empty1: 5
+            Empty2: 6
     lasers:
       combiner_0:
         type: "combiner"

@@ -11,14 +11,14 @@ class FilterWheel(BaseFilterWheel):
 
     """Filter Wheel Abstraction from an ASI Tiger Controller."""
 
-    def __init__(self, tigerbox: TigerController, id, filters: dict):
+    def __init__(self, port: str, id, filters: dict):
         """Connect to hardware.
       
         :param filterwheel_cfg: cfg for filterwheel
         :param tigerbox: TigerController instance.
         """
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.tigerbox = tigerbox
+        self.tigerbox = TigerController(port)
         self.tiger_axis = id
         self.filters = filters
         # force homing of the wheel
@@ -33,7 +33,7 @@ class FilterWheel(BaseFilterWheel):
         """Set the filterwheel index."""
         self.index = self.filters[filter_name]
         cmd_str = f"MP {self.index}\r\n"
-        self.log.info(f'setting filter to: {filter_name}')
+        self.log.info(f'setting filter to {filter_name}')
         # Note: the filter wheel has slightly different reply line termination.
         self.tigerbox.send(f"FW {self.tiger_axis}\r\n", read_until=f"\n\r{self.tiger_axis}>")
         self.tigerbox.send(cmd_str, read_until=f"\n\r{self.tiger_axis}>")

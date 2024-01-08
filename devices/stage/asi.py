@@ -30,7 +30,7 @@ SCAN_PATTERN = {
 
 class Stage(BaseStage):
 
-    def __init__(self, tigerbox: TigerController, hardware_axis: str, instrument_axis: str):
+    def __init__(self, port: str, hardware_axis: str, instrument_axis: str):
         """Connect to hardware.
 
         :param tigerbox: TigerController instance.
@@ -38,7 +38,7 @@ class Stage(BaseStage):
         :param instrument_axis: instrument hardware axis.
         """
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.tigerbox = tigerbox
+        self.tigerbox = TigerController(com_port = port)
         self.hardware_axis = hardware_axis.upper()
         self.instrument_axis = instrument_axis.lower()
         # axis_map: dictionary representing the mapping from sample pose to tigerbox axis.
