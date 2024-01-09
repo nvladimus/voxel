@@ -26,7 +26,7 @@ class Instrument:
         self.combiners = {}
         self.construct()
 
-    def load_device(self, driver: str, module: str, kwds: dict = dict()):
+    def load_device(self, driver: str, module: str, kwds):
         """Load in device based on config. Expecting driver, module, and kwds input"""
         self.log.info(f'loading {driver}.{module}')
         __import__(driver)
@@ -46,139 +46,135 @@ class Instrument:
         for key, value in settings.items():
             setattr(device, key, value)
 
-    def construct_cameras(self, cameras_list: list):
-        for camera in cameras_list:
-            name = camera['name']
+    def construct_device(self, device_type, device_list):
+
+        for device in device_list:
+            name = device['name']
             self.log.info(f'constructing {name}')
-            driver = camera['driver']
-            module = camera['module']
-            init = camera.get('init', {})
-            camera_object = self.load_device(driver, module, init)
-            settings = camera.get('settings', {})
-            self.setup_device(camera_object, settings)
+            driver = device['driver']
+            module = device['module']
+            init = device.get('init', {})
+            device_object = self.load_device(driver, module, init)
+            settings = device.get('settings', {})
+            self.setup_device(device_object, settings)
+            device_dict = getattr(self, device_type)
+            device_dict[name] = device_object
 
-            self.cameras[name] = camera_object
+            if 'children' in device.keys():
+                # TODO: Should children devices always share a port or
+                #  should there be something to signal what they share?
+                for device_type, device_list in device['children'].items():
+                    device_list = device_list.copy() # TODO: Check if copy needed to not edit yaml
+                    for children in device_list:
+                        children['init'] =  {**children['init'], 'port':  device_object.ser}
+                    self.construct_device(device_type, device_list)
 
-    def construct_stages(self, stages_list: list):
-        for stage in stages_list:
-            name = stage['name']
-            self.log.info(f'constructing {name}')
-            driver = stage['driver']
-            module = stage['module']
-            try:
-                init = stage['init']
-                stage_object = self.load_device(driver, module, init)
-            except:
-                stage_object = self.load_device(driver, module)
-            try:
-                settings = stage['settings']
-                self.setup_device(stage_object, settings)
-            except:
-                self.log.debug(f'no settings listed')
 
-            if 'tiling' in stage['type']:
-                self.tiling_stages[name] = stage_object
-            elif 'scanning' in stage['type']:
-                self.scanning_stages[name] = stage_object
 
-    def construct_scanning_stages(self, scanning_stages_list: list):
-        for scanning_stage in scanning_stages_list:
-            name = scanning_stage['name']
-            self.log.info(f'constructing {name}')
-            driver = scanning_stage['driver']
-            module = scanning_stage['module']
-            try:
-                init = scanning_stage['init']
-                scanning_stage_object = self.load_device(driver, module, init)
-            except:
-                scanning_stage_object = self.load_device(driver, module)
-            try:
-                settings = scanning_stage['settings']
-                self.setup_device(scanning_stage_object, settings)
-            except:
-                self.log.debug(f'no settings listed')
-            self.scanning_stages[name] = scanning_stage_object
-
-    def construct_filter_wheels(self, filter_wheels_list: list):
-        for filter_wheel in filter_wheels_list:
-            name = filter_wheel['name']
-            self.log.info(f'constructing {name}')
-            driver = filter_wheel['driver']
-            module = filter_wheel['module']
-            try:
-                init = filter_wheel['init']
-                filter_wheel_object = self.load_device(driver, module, init)
-            except:
-                filter_wheel_object = self.load_device(driver, module)
-            try:
-                settings = filter_wheel['settings']
-                self.setup_device(filter_wheel_object, settings)
-            except:
-                self.log.debug(f'no settings listed')
-            self.filter_wheels[name] = filter_wheel_object
-
-    def construct_daqs(self, daqs_list: list):
-        for daq in daqs_list:
-            name = daq['name']
-            self.log.info(f'constructing {name}')
-            driver = daq['driver']
-            module = daq['module']
-            init = daq['init']
-            id = init['dev']
-            daq_object = self.load_device(driver, module, init)
-            ao_task = daq['tasks']['ao_task']
-            do_task = daq['tasks']['do_task']
-            co_task = daq['tasks']['co_task']
-            daq_object.add_ao_task(ao_task)
-            daq_object.add_do_task(do_task)
-            daq_object.add_co_task(co_task)
-            self.daqs[name] = daq_object
-
-    def construct_lasers(self, laser_list: list):
-
-        for laser in laser_list:
-            name = laser['name']
-            self.log.info(f'constructing {name}')
-            driver = laser['driver']
-            module = laser['module']
-            init = laser.get('init', {})
-            settings = laser.get('settings', {})
-            self.lasers[name] = self.load_device(driver, module, init)
-            self.setup_device(self.lasers[name], settings)
-
-    def construct_combiners(self, combiner_list: list):
-
-        for combiner in combiner_list:
-            name = combiner['name']
-            self.log.info(f'constructing {name}')
-            driver = combiner['driver']
-            module = combiner['module']
-            init = combiner.get('init', {})
-            settings = combiner.get('settings', {})
-            self.combiners[name] = self.load_device(driver, module, init)
-            self.setup_device(self.combiners[name], settings)
-            # setup lasers under combiner
-            combiner_lasers = combiner.get('combiner_lasers', []).copy()  # TODO: Check if copy needed to not edit yaml
-
-            for laser in combiner_lasers:
-                laser['init'] = {**laser['init'], 'port': self.combiners[name].ser}
-            # construct lasers with combiner port added
-            self.construct_lasers(combiner_lasers)
+    # def construct_cameras(self, cameras_list: list):
+    #     for camera in cameras_list:
+    #         name = camera['name']
+    #         self.log.info(f'constructing {name}')
+    #         driver = camera['driver']
+    #         module = camera['module']
+    #         init = camera.get('init', {})
+    #         camera_object = self.load_device(driver, module, init)
+    #         settings = camera.get('settings', {})
+    #         self.setup_device(camera_object, settings)
+    #
+    #         self.cameras[name] = camera_object
+    #
+    # def construct_stages(self, stages_list: list):
+    #     for stage in stages_list:
+    #         name = stage['name']
+    #         self.log.info(f'constructing {name}')
+    #         driver = stage['driver']
+    #         module = stage['module']
+    #         init = stage.get('init', {})
+    #         stage_object = self.load_device(driver, module, init)
+    #         settings = stage.get('settings', {})
+    #         self.setup_device(stage_object, settings)
+    #
+    #         if 'tiling' in stage['type']:
+    #             self.tiling_stages[name] = stage_object
+    #         elif 'scanning' in stage['type']:
+    #             self.scanning_stages[name] = stage_object
+    #
+    # def construct_filter_wheels(self, filter_wheels_list: list):
+    #     for filter_wheel in filter_wheels_list:
+    #         name = filter_wheel['name']
+    #         self.log.info(f'constructing {name}')
+    #         driver = filter_wheel['driver']
+    #         module = filter_wheel['module']
+    #         init = filter_wheel.get('init', {})
+    #         filter_wheel_object = self.load_device(driver, module, init)
+    #         settings = filter_wheel.get('settings', {})
+    #         self.setup_device(filter_wheel_object, settings)
+    #         self.filter_wheels[name] = filter_wheel_object
+    #
+    # def construct_daqs(self, daqs_list: list):
+    #     for daq in daqs_list:
+    #         name = daq['name']
+    #         self.log.info(f'constructing {name}')
+    #         driver = daq['driver']
+    #         module = daq['module']
+    #         init = daq['init']
+    #         id = init['dev']
+    #         daq_object = self.load_device(driver, module, init)
+    #         ao_task = daq['tasks']['ao_task']
+    #         do_task = daq['tasks']['do_task']
+    #         co_task = daq['tasks']['co_task']
+    #         daq_object.add_ao_task(ao_task)
+    #         daq_object.add_do_task(do_task)
+    #         daq_object.add_co_task(co_task)
+    #         self.daqs[name] = daq_object
+    #
+    # def construct_lasers(self, laser_list: list):
+    #
+    #     for laser in laser_list:
+    #         name = laser['name']
+    #         self.log.info(f'constructing {name}')
+    #         driver = laser['driver']
+    #         module = laser['module']
+    #         init = laser.get('init', {})
+    #         settings = laser.get('settings', {})
+    #         self.lasers[name] = self.load_device(driver, module, init)
+    #         self.setup_device(self.lasers[name], settings)
+    #
+    # def construct_combiners(self, combiner_list: list):
+    #
+    #     for combiner in combiner_list:
+    #         name = combiner['name']
+    #         self.log.info(f'constructing {name}')
+    #         driver = combiner['driver']
+    #         module = combiner['module']
+    #         init = combiner.get('init', {})
+    #         settings = combiner.get('settings', {})
+    #         self.combiners[name] = self.load_device(driver, module, init)
+    #         self.setup_device(self.combiners[name], settings)
+    #         # setup lasers under combiner
+    #         combiner_lasers = combiner.get('combiner_lasers', []).copy()  # TODO: Check if copy needed to not edit yaml
+    #
+    #         for laser in combiner_lasers:
+    #             laser['init'] = {**laser['init'], 'port': self.combiners[name].ser}
+    #         # construct lasers with combiner port added
+    #         self.construct_lasers(combiner_lasers)
 
     def construct(self):
         self.log.info(f'constructing instrument from {self.config_path}')
         for device in self.config.cfg['instrument']['devices'].items():
             device_type = device[0]
             device_list = device[1]
-            construct_function = getattr(self, f'construct_{device_type}')
-            construct_function(device_list)
+            self.construct_device(device_type, device_list)
+            # construct_function = getattr(self, f'construct_{device_type}')
+            # construct_function(device_list)
         print('scanning',self.scanning_stages)
         print('tiling',self.tiling_stages)
         print('daq', self.daqs)
         print('laser', self.lasers)
         print('fw', self.filter_wheels)
         print('combiner', self.combiners)
-        
+        print('camera', self.cameras)
     # def run(self)
     # import writer and assert only one
     # assert len(writer_cfg) == 1
