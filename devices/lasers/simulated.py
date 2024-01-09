@@ -22,7 +22,7 @@ class SimulatedLaser(Laser):
 
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.prefix = prefix
-        self.ser = port
+        self.ser = Serial
         self._simulated_power_setpoint_m = 10.0
         self._max_power_mw = 100.0
         self._modulation_mode = 'digital'
@@ -81,7 +81,7 @@ class SimulatedCombiner:
     def __init__(self, port):
         """Class for the L6CC oxxius combiner. This combiner can have LBX lasers or LCX"""
 
-        self.ser = port
+        self.ser = Serial
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self._PercentageSplitStatus = 0
     @property

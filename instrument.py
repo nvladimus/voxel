@@ -7,6 +7,9 @@ import sys
 import ruamel
 from pathlib import Path
 from spim_core.config_base import Config
+import inspect
+import importlib
+from serial import Serial
 
 class Instrument:
 
@@ -28,9 +31,8 @@ class Instrument:
 
     def load_device(self, driver: str, module: str, kwds):
         """Load in device based on config. Expecting driver, module, and kwds input"""
-        self.log.info(f'loading {driver}.{module}')
-        __import__(driver)
-        device_class = getattr(sys.modules[driver], module)
+        #self.log.info(f'loading {driver}.{module}')
+        device_class = getattr(importlib.import_module(driver), module)
         # for k, v in kwds.items():
         #     if str(v).split('.')[0] in dir(sys.modules[driver]):
         #         arg_class = getattr(sys.modules[driver], v.split('.')[0])
@@ -41,7 +43,7 @@ class Instrument:
         """Setup device based on settings dictionary
         :param device: device to be setup
         :param settings: dictionary of attributes, values to set according to config"""
-        self.log.info(f'setting up {device}')
+        #self.log.info(f'setting up {device}')
         # successively iterate through settings keys
         for key, value in settings.items():
             setattr(device, key, value)
@@ -50,7 +52,7 @@ class Instrument:
 
         for device in device_list:
             name = device['name']
-            self.log.info(f'constructing {name}')
+            #self.log.info(f'constructing {name}')
             driver = device['driver']
             module = device['module']
             init = device.get('init', {})
@@ -60,17 +62,18 @@ class Instrument:
             device_dict = getattr(self, device_type)
             device_dict[name] = device_object
 
-            if 'children' in device.keys():
-                for device_type, device_list in device['children'].items():
-                    device_list = device_list.copy() # TODO: Check if copy needed to not edit yaml
-                    # Need to add in required parent attributes to child inits
-                    for children in device_list:
-                        needs = children.get('parent_requirements', {})
-                        parent_reqs = {k:getattr(device_object, v) for k,v in needs.items()}
-                        children['init'] =  {**children['init'], **parent_reqs}
-                    self.construct_device(device_type, device_list)
-
-
+            # Add subdevices under device and fill in any needed keywords to init like
+            for subdevice_type, subdevice_list in device.get('subdevices', {}).items():
+                for subdevice in subdevice_list:
+                    subdevice_class = getattr(importlib.import_module(subdevice['driver']), subdevice['module'])
+                    subdevice_needs = inspect.signature(subdevice_class.__init__).parameters
+                    for name, parameter in subdevice_needs.items():
+                        if parameter.annotation == Serial and Serial in device_object.__dict__.values():
+                            device_port_name = [k for k, v in device_object.__dict__.items() if v == Serial]
+                            subdevice['init'][name] = getattr(device_object, *device_port_name)
+                        elif parameter.annotation == type(device_object):
+                            subdevice['init'][name] = device_object
+                self.construct_device(subdevice_type, subdevice_list)
 
     # def construct_cameras(self, cameras_list: list):
     #     for camera in cameras_list:
@@ -163,12 +166,8 @@ class Instrument:
 
     def construct(self):
         self.log.info(f'constructing instrument from {self.config_path}')
-        for device in self.config.cfg['instrument']['devices'].items():
-            device_type = device[0]
-            device_list = device[1]
+        for device_type, device_list in self.config.cfg['instrument']['devices'].items():
             self.construct_device(device_type, device_list)
-            # construct_function = getattr(self, f'construct_{device_type}')
-            # construct_function(device_list)
         print('scanning',self.scanning_stages)
         print('tiling',self.tiling_stages)
         print('daq', self.daqs)

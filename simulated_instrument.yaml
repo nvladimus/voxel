@@ -84,7 +84,7 @@ instrument:
         module: SimulatedCombiner
         init:
           port: COM3
-        children:
+        subdevices:
           lasers:
             - name: 405
               driver: devices.lasers.simulated
@@ -95,8 +95,6 @@ instrument:
                 coefficients:
                   1: 3.218
                   0: -57.515
-              parent_requirements:
-                port: ser
               settings:
                 cdrh: OFF
                 constant_current: ON
@@ -107,9 +105,6 @@ instrument:
               color: greenyellow
               init:
                 prefix: L3
-              parent_requirements:
-                port: ser
-
     daqs:
       - name: PCIe-6738
         driver: devices.daq.ni
