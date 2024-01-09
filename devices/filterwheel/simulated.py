@@ -19,6 +19,6 @@ class FilterWheel(BaseFilterWheel):
 
     def set_filter(self, filter_name: str, wait=True):
         """Set the filterwheel index."""
-        self.log.info(f'setting filter to: {filter_name}')
+        self.log.info(f'setting filter to {filter_name}')
         self.index = self.filters[filter_name]
         time.sleep(SWITCH_TIME_S)

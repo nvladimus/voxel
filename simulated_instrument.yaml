@@ -5,33 +5,25 @@ instrument:
       - name: vp-151mx
         driver: devices.camera.simulated
         module: Camera
+        init:
+          id: sim000
         settings:
           exposure_time_ms: 20.0
+          pixel_type: mono16
           roi:
             width_px: 14192
             height_px: 10640
-          pixel_type: mono16
-        writer:
-          driver: writers.imaris
-          module: Writer
-          settings:
-            compression: lz4shuffle
-            data_type: uint16
       - name: vnp-604mx
         driver: devices.camera.simulated
         module: Camera
+        init:
+          id: sim001
         settings:
           exposure_time_ms: 20.0
+          pixel_type: mono16
           roi:
             width_px: 14192
             height_px: 10640
-          pixel_type: mono16
-        writer:
-          driver: writers.imaris
-          module: Writer
-          settings:
-            compression: lz4shuffle
-            data_type: uint16
     stages:
 
         - name: ASI MS-8000 x axis

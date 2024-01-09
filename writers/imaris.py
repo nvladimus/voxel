@@ -56,6 +56,7 @@ class Writer():
 
     @x_voxel_size.setter
     def x_voxel_size(self, x_voxel_size: float):
+        self.log.info(f'setting x voxel size to: {x_voxel_size} [um]')
         self.pixel_x_size_um = x_voxel_size
 
     @property
@@ -64,6 +65,7 @@ class Writer():
 
     @y_voxel_size.setter
     def y_voxel_size(self, y_voxel_size: float):
+        self.log.info(f'setting y voxel size to: {y_voxel_size} [um]')
         self.pixel_y_size_um = y_voxel_size
 
     @property
@@ -72,31 +74,35 @@ class Writer():
 
     @z_voxel_size.setter
     def z_voxel_size(self, z_voxel_size: float):
+        self.log.info(f'setting z voxel size to: {z_voxel_size} [um]')
         self.pixel_z_size_um = z_voxel_size
 
     @property
-    def x_pos(self):
+    def x_pos_mm(self):
         return self.first_img_centroid_x_um
 
-    @x_pos.setter
-    def x_pos(self, x_pos: float):
-        self.first_img_centroid_x_um = x_pos
+    @x_pos_mm.setter
+    def x_pos_mm(self, x_pos_mm: float):
+        self.log.info(f'setting x position to: {x_pos_mm} [mm]')
+        self.first_img_centroid_x_um = x_pos_mm*1000
 
     @property
-    def y_pos(self):
+    def y_pos_mm(self):
         return self.first_img_centroid_y_um
 
-    @y_pos.setter
-    def y_pos(self, y_pos: float):
-        self.first_img_centroid_y_um = y_pos
+    @y_pos_mm.setter
+    def y_pos_mm(self, y_pos_mm: float):
+        self.log.info(f'setting y position to: {y_pos_mm} [mm]')
+        self.first_img_centroid_y_um = y_pos_mm*1000
 
     @property
-    def z_pos(self):
+    def z_pos_mm(self):
         return self.first_img_centroid_z_um
 
-    @z_pos.setter
-    def z_pos(self, z_pos: float):
-        self.first_img_centroid_z_um = z_pos
+    @z_pos_mm.setter
+    def z_pos_mm(self, z_pos_mm: float):
+        self.log.info(f'setting z position to: {z_pos_mm} [mm]')
+        self.first_img_centroid_z_um = z_pos_mm*1000
 
     @property
     def frame_count(self):
@@ -104,6 +110,7 @@ class Writer():
 
     @frame_count.setter
     def frame_count(self, frame_count: int):
+        self.log.info(f'setting frame count to: {frame_count} [px]')
         self.img_count = frame_count
 
     @property
@@ -112,6 +119,7 @@ class Writer():
 
     @column_count.setter
     def column_count(self, column_count: int):
+        self.log.info(f'setting column count to: {column_count} [px]')
         self.cols = column_count
 
     @property
@@ -120,6 +128,7 @@ class Writer():
 
     @row_count.setter
     def row_count(self, row_count: int):
+        self.log.info(f'setting row count to: {row_count} [px]')
         self.rows = row_count
 
     @property
@@ -135,6 +144,7 @@ class Writer():
         valid = list(COMPRESSION_TYPES.keys())
         if compression not in valid:
             raise ValueError("compression type must be one of %r." % valid)
+        self.log.info(f'setting compression mode to: {compression}')
         self.compression_style = compression
 
     @property
@@ -143,6 +153,7 @@ class Writer():
 
     @data_type.setter
     def data_type(self, data_type: np.unsignedinteger):
+        self.log.info(f'setting data type to: {data_type}')
         self.dtype = data_type
 
     @property
@@ -155,6 +166,7 @@ class Writer():
                 self.dest_path = path
         else:
             raise ValueError("%r is not a valid path." % path)
+        self.log.info(f'setting path to: {path}')
 
     @property
     def filename(self):
@@ -164,6 +176,7 @@ class Writer():
     def filename(self, filename: str):
         self.stack_name = filename \
             if filename.endswith(".ims") else f"{filename}.ims"
+        self.log.info(f'setting filename to: {filename}')
 
     @property
     def channel(self):
@@ -171,6 +184,7 @@ class Writer():
 
     @channel.setter
     def channel(self, channel: str):
+        self.log.info(f'setting channel name to: {channel}')
         self.channel_name = channel
 
     @property
@@ -183,6 +197,7 @@ class Writer():
             self.viz_color_hex = color
         else:
             raise ValueError("%r is not a valid hex color code." % color)
+        self.log.info(f'setting color to: {color}')
 
     @property
     def shm_name(self):
@@ -196,6 +211,7 @@ class Writer():
         for i, c in enumerate(name):
             self._shm_name[i] = c
         self._shm_name[len(name)] = '\x00'  # Null terminate the string.
+        self.log.info(f'setting shared memory to: {name}')
 
     def prepare(self):
         self.p = Process(target=self._run)

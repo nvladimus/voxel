@@ -28,9 +28,10 @@ LINE_INTERVALS_US = {
 
 class Camera(BaseCamera):
 
-    def __init__(self):
+    def __init__(self, id):
 
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.id = id
         self.simulated_pixel_type = None
         self.simulated_line_interval_us = None
         self.simulated_exposure_time_ms = None
@@ -166,10 +167,11 @@ class Camera(BaseCamera):
         state['dropped_frames'] = self.dropped_frames
         state['data_rate'] = self.frame_rate*self.simulated_width_px*self.simulated_height_px*numpy.dtype(self.simulated_pixel_type).itemsize/1e6
         state['frame_rate'] = self.frame_rate
-        self.log.info(f"frame: {state['frame_index']}, "
-                      f"input buffer size: {state['in_buffer_size']}, "
-                      f"output buffer size: {state['out_buffer_size']}, "
-                      f"dropped frames: {state['dropped_frames']}, "
+        self.log.info(f"id: {self.id}, "
+                      f"frame: {state['frame_index']}, "
+                      f"input: {state['in_buffer_size']}, "
+                      f"output: {state['out_buffer_size']}, "
+                      f"dropped: {state['dropped_frames']}, "
                       f"data rate: {state['data_rate']:.2f} [MB/s], "
                       f"frame rate: {state['frame_rate']:.2f} [fps].")
 
