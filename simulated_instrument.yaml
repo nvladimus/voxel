@@ -34,8 +34,8 @@ instrument:
             data_type: uint16
     stages:
 
-      tiling:
         - name: ASI MS-8000 x axis
+          type: tiling
           driver: devices.stage.simulated
           module: Stage
           init:
@@ -44,6 +44,7 @@ instrument:
           settings:
             speed_mm_s: 1.0
         - name: ASI MS-8000 y axis
+          type: tiling
           driver: devices.stage.simulated
           module: Stage
           init:
@@ -52,6 +53,7 @@ instrument:
           settings:
             speed_mm_s: 1.0
         - name: ASI MS-8000 z axis
+          type: tiling
           driver: devices.stage.simulated
           module: Stage
           init:
@@ -59,8 +61,8 @@ instrument:
             instrument_axis: z
           settings:
             speed_mm_s: 1.0
-      scanning:
         - name: ASI LS-100 x axis
+          type: scanning
           driver: devices.stage.simulated
           module: Stage
           init:
@@ -81,6 +83,43 @@ instrument:
             MB405/488/561/638: 4
             Empty1: 5
             Empty2: 6
+    lasers:
+      - name: 638
+        type: lasers
+        driver: devices.lasers.simulated
+        module: SimulatedLaser
+        color: red
+        init:
+          port: COM5
+    combiners:
+      - name: combiner_0
+        type: combiners
+        driver: devices.lasers.simulated
+        module: SimulatedCombiner
+        init:
+          port: COM3
+        combiner_lasers:
+          - name: 405
+            type: lasers
+            driver: devices.lasers.simulated
+            module: SimulatedLaser
+            color: purple
+            init:
+              prefix: L6
+              coefficients:
+                1: 3.218
+                0: -57.515
+            settings:
+              cdrh: OFF
+              constant_current: ON
+              modulation_mode: digital
+          - name: 561
+            type: lasers
+            driver: devices.lasers.simulated
+            module: SimulatedLaser
+            color: greenyellow
+            init:
+              prefix: L3
     daqs:
       - name: PCIe-6738
         driver: devices.daq.ni

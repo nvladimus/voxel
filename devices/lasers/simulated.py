@@ -11,9 +11,9 @@ MODULATION_MODES = {
 }
 
 
-class LaserLBXOxxius(Laser):
+class SimulatedLaser(Laser):
 
-    def __init__(self, port: Serial or str, prefix: str, coefficients: dict):
+    def __init__(self, port: Serial or str, prefix: str = '', coefficients: dict = {}):
         """Communicate with specific LBX laser in L6CC Combiner box.
 
                 :param port: comm port for lasers.
@@ -22,7 +22,7 @@ class LaserLBXOxxius(Laser):
 
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.prefix = prefix
-
+        self.ser = port
         self._simulated_power_setpoint_m = 10.0
         self._max_power_mw = 100.0
         self._modulation_mode = 'digital'
@@ -76,8 +76,7 @@ class LaserLBXOxxius(Laser):
     def disable(self):
         pass
 
-class L6CCCombiner:
-
+class SimulatedCombiner:
 
     def __init__(self, port):
         """Class for the L6CC oxxius combiner. This combiner can have LBX lasers or LCX"""
@@ -99,68 +98,3 @@ class L6CCCombiner:
             self.log.error(f'Impossible to set percentage spilt to {value}')
             return
         self._PercentageSplitStatus = value
-
-class LaserLCXOxxius(Laser):
-
-    def __init__(self, port: Serial or str, prefix: str ):
-        """Communicate with specific LCX laser in L6CC Combiner box.
-
-                :param port: comm port for lasers.
-                :param prefix: prefix specic to laser.
-                """
-
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self.prefix = prefix
-
-        self._simulated_power_setpoint_m = 10.0
-        self._max_power_mw = 100.0
-        self._modulation_mode = 'digital'
-        self._temperature = 20.0
-        self._cdrh = 'ON'
-
-    @property
-    def power_setpoint_mw(self):
-        return self._simulated_power_setpoint_m
-
-    @power_setpoint_mw.setter
-    def power_setpoint_mw(self, value: float):
-        self._simulated_power_setpoint_m = value
-
-    @property
-    def max_power_mw(self):
-        return self._max_power_mw
-
-    @max_power_mw.setter
-    def max_power_mw(self, value: float):
-        self._max_power_mw = value
-
-    @property
-    def modulation_mode(self):
-        return self._modulation_mode
-
-    @modulation_mode.setter
-    def modulation_mode(self, value: str):
-        if value not in MODULATION_MODES.keys():
-            raise ValueError("mode must be one of %r." % MODULATION_MODES.keys())
-        for attribute, state in MODULATION_MODES[value].items():
-            setattr(self, attribute, state)
-    @property
-    def temperature(self):
-        return self._temperature
-
-    def status(self):
-        return []
-
-    @property
-    def cdrh(self):
-        return self._cdrh
-
-    @cdrh.setter
-    def cdrh(self, value: str):
-        self._cdrh = value
-
-    def enable(self):
-        pass
-
-    def disable(self):
-        pass

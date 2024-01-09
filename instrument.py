@@ -8,6 +8,7 @@ import ruamel
 from pathlib import Path
 from spim_core.config_base import Config
 
+
 class Instrument:
 
     def __init__(self, config_filename: str):
@@ -22,6 +23,8 @@ class Instrument:
         self.lasers = dict()
         self.filter_wheels = dict()
         self.daqs = dict()
+        self.lasers = {}
+        self.combiners = {}
 
     def load_device(self, driver: str, module: str, kwds):
         """Load in device based on config. Expecting driver, module, and kwds input"""
@@ -69,16 +72,16 @@ class Instrument:
                     'module': writer['module']
                 }
             }
+    def construct_stages(self, stages_list:list):
 
-    def construct_tiling_stages(self, tiling_stages_list: list):
-        for tiling_stage in tiling_stages_list:
-            name = tiling_stage['name']
+        for stage in stages_list:
+            name = stage['name']
             self.log.info(f'constructing {name}')
-            driver = tiling_stage['driver']
-            module = tiling_stage['module']
-            init = tiling_stage['init']
+            driver = stage['driver']
+            module = stage['module']
+            init = stage['init']
             try:
-                port = tiling_stage['port']
+                port = stage['port']
                 if 'tigerasi.tiger_controller' in sys.modules.keys():
                     self.log.warning(f'tigerasi already exists')
                     init = dict(init)
@@ -91,49 +94,22 @@ class Instrument:
                     init['tigerbox'] = self.tigerbox
             except:
                 self.log.info('simulated tiling stage')
-            tiling_stage_object = self.load_device(driver, module, init)
+            stage_object = self.load_device(driver, module, init)
 
-            settings = tiling_stage.get('settings', {})
-            self.setup_device(tiling_stage_object, settings)
-            self.tiling_stages[name] = {
-                'object': tiling_stage_object,
-                'driver': driver,
-                'module': module,
-            }
-
-    def construct_scanning_stages(self, scanning_stages_list: list):
-        for scanning_stage in scanning_stages_list:
-            name = scanning_stage['name']
-            self.log.info(f'constructing {name}')
-            driver = scanning_stage['driver']
-            module = scanning_stage['module']
-            init = scanning_stage['init']
-            try:
-                port = scanning_stage['port']
-                if 'tigerasi.tiger_controller' in sys.modules.keys():
-                    self.log.warning(f'tigerasi already exists')
-                    init = dict(init)
-                    init['tigerbox'] = self.tigerbox
-                else:
-                    self.log.info('loading tigerasi')
-                    from tigerasi.tiger_controller import TigerController
-                    init = dict(init)
-                    init['tigerbox'] = self.tigerbox
-                    self.tigerbox = TigerController(port)
-            except:
-                self.log.info('simulated scanning stage')
-            scanning_stage_object = self.load_device(driver, module, init)
-            try:
-                settings = scanning_stage['settings']
-            except:
-                settings = dict()
-                self.log.debug(f'no settings listed')
-            self.setup_device(scanning_stage_object, settings)
-            self.scanning_stages[name] = {
-                'object': scanning_stage_object,
-                'driver': driver,
-                'module': module,
-            }
+            settings = stage.get('settings', {})
+            self.setup_device(stage_object, settings)
+            if 'scanning' in stage['type']:
+                self.scanning_stages[name] = {
+                    'object': stage_object,
+                    'driver': driver,
+                    'module': module,
+                }
+            elif 'tiling' in stage['type']:
+                self.tiling_stages[name] = {
+                    'object': stage_object,
+                    'driver': driver,
+                    'module': module,
+                }
 
     def construct_filter_wheels(self, filter_wheels_list: list):
         for filter_wheel in filter_wheels_list:
@@ -191,27 +167,81 @@ class Instrument:
                 'module': module,
             }
 
+    def construct_lasers(self, laser_list: list):
+
+        for laser in laser_list:
+            name = laser['name']
+            self.log.info(f'constructing {name}')
+            driver = laser['driver']
+            module = laser['module']
+            init = laser.get('init', {})
+            settings = laser.get('settings', {})
+            laser_object = self.load_device(driver, module, init)
+            self.setup_device(laser_object, settings)
+            self.lasers[name] = {
+                'object': laser_object,
+                'driver': driver,
+                'module': module,
+                                }
+    def construct_combiners(self, combiner_list: list):
+
+        for combiner in combiner_list:
+            name = combiner['name']
+            self.log.info(f'constructing {name}')
+            driver = combiner['driver']
+            module = combiner['module']
+            init = combiner.get('init', {})
+            settings = combiner.get('settings', {})
+            combiner_object = self.load_device(driver, module, init)
+            self.setup_device(combiner_object, settings)
+            self.combiners[name] = {
+                'object': combiner_object,
+                'driver': driver,
+                'module': module,
+            }
+
+            # setup lasers under combiner
+            combiner_lasers = combiner.get('combiner_lasers', []).copy()  # TODO: Check if copy needed to not edit yaml
+
+            for laser in combiner_lasers:
+                laser['init'] = {**laser['init'], 'port': combiner_object.ser}
+            # construct lasers with combiner port added
+            self.construct_lasers(combiner_lasers)
+
     def construct(self):
         self.log.info(f'constructing instrument from {self.config_path}')
         for device in self.config.cfg['instrument']['devices'].items():
+            print(device)
             device_type = device[0]
-            if device_type == 'cameras':
-                cameras_list = device[1]
-                self.construct_cameras(cameras_list)
-            if device_type == 'stages':
-                for stage_type in device[1]:
-                    if stage_type == 'tiling':
-                        tiling_stages_list = device[1][stage_type]
-                        self.construct_tiling_stages(tiling_stages_list)
-                    elif stage_type == 'scanning':
-                        scanning_stages_list = device[1][stage_type]
-                        self.construct_scanning_stages(scanning_stages_list) 
-            if device_type == 'filter_wheels':
-                filter_wheels_list = device[1]
-                self.construct_filter_wheels(filter_wheels_list)
-            if device_type == 'daqs':
-                daqs_list = device[1]
-                self.construct_daqs(daqs_list)
+            device_list = device[1]
+            construct_function = getattr(self, f'construct_{device_type}')
+            construct_function(device_list)
+        print(self.scanning_stages)
+        print(self.tiling_stages)
+        print(self.daqs)
+        print(self.lasers)
+        print(self.filter_wheels)
+        print(self.combiners)
+            # if device_type == 'cameras':
+            #     cameras_list = device[1]
+            #     self.construct_cameras(cameras_list)
+            # if device_type == 'stages':
+            #     for stage_type in device[1]:
+            #         if stage_type == 'tiling':
+            #             tiling_stages_list = device[1][stage_type]
+            #             self.construct_tiling_stages(tiling_stages_list)
+            #         elif stage_type == 'scanning':
+            #             scanning_stages_list = device[1][stage_type]
+            #             self.construct_scanning_stages(scanning_stages_list)
+            # if device_type == 'filter_wheels':
+            #     filter_wheels_list = device[1]
+            #     self.construct_filter_wheels(filter_wheels_list)
+            # if device_type == 'daqs':
+            #     daqs_list = device[1]
+            #     self.construct_daqs(daqs_list)
+            # if device_type == 'lasers':
+            #     laser_list = device[1]
+            #     self.construct_lasers(laser_list)
 
     # def run(self)
     # import writer and assert only one
