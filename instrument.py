@@ -31,7 +31,7 @@ class Instrument:
 
     def load_device(self, driver: str, module: str, kwds):
         """Load in device based on config. Expecting driver, module, and kwds input"""
-        #self.log.info(f'loading {driver}.{module}')
+        self.log.info(f'loading {driver}.{module}')
         device_class = getattr(importlib.import_module(driver), module)
         # for k, v in kwds.items():
         #     if str(v).split('.')[0] in dir(sys.modules[driver]):
@@ -43,7 +43,7 @@ class Instrument:
         """Setup device based on settings dictionary
         :param device: device to be setup
         :param settings: dictionary of attributes, values to set according to config"""
-        #self.log.info(f'setting up {device}')
+        self.log.info(f'setting up {device}')
         # successively iterate through settings keys
         for key, value in settings.items():
             setattr(device, key, value)
@@ -52,7 +52,7 @@ class Instrument:
 
         for device in device_list:
             name = device['name']
-            #self.log.info(f'constructing {name}')
+            self.log.info(f'constructing {name}')
             driver = device['driver']
             module = device['module']
             init = device.get('init', {})
