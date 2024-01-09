@@ -61,12 +61,13 @@ class Instrument:
             device_dict[name] = device_object
 
             if 'children' in device.keys():
-                # TODO: Should children devices always share a port or
-                #  should there be something to signal what they share?
                 for device_type, device_list in device['children'].items():
                     device_list = device_list.copy() # TODO: Check if copy needed to not edit yaml
+                    # Need to add in required parent attributes to child inits
                     for children in device_list:
-                        children['init'] =  {**children['init'], 'port':  device_object.ser}
+                        needs = children.get('parent_requirements', {})
+                        parent_reqs = {k:getattr(device_object, v) for k,v in needs.items()}
+                        children['init'] =  {**children['init'], **parent_reqs}
                     self.construct_device(device_type, device_list)
 
 
