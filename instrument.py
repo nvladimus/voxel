@@ -62,107 +62,27 @@ class Instrument:
             device_dict = getattr(self, device_type)
             device_dict[name] = device_object
 
+            if 'tasks' in device.keys() and device_type == 'daqs':
+                for task_type, task_dict in device['tasks'].items():
+                    add_task_type = getattr(device_object, 'add_' + task_type)
+                    add_task_type(task_dict)
+
             # Add subdevices under device and fill in any needed keywords to init like
             for subdevice_type, subdevice_list in device.get('subdevices', {}).items():
-                for subdevice in subdevice_list:
-                    subdevice_class = getattr(importlib.import_module(subdevice['driver']), subdevice['module'])
-                    subdevice_needs = inspect.signature(subdevice_class.__init__).parameters
-                    for name, parameter in subdevice_needs.items():
-                        if parameter.annotation == Serial and Serial in device_object.__dict__.values():
-                            device_port_name = [k for k, v in device_object.__dict__.items() if v == Serial]
-                            subdevice['init'][name] = getattr(device_object, *device_port_name)
-                        elif parameter.annotation == type(device_object):
-                            subdevice['init'][name] = device_object
-                self.construct_device(subdevice_type, subdevice_list)
+                self.construct_subdevice(device_object, subdevice_type, subdevice_list)
+    def construct_subdevice(self, device_object, subdevice_type, subdevice_list):
 
-    # def construct_cameras(self, cameras_list: list):
-    #     for camera in cameras_list:
-    #         name = camera['name']
-    #         self.log.info(f'constructing {name}')
-    #         driver = camera['driver']
-    #         module = camera['module']
-    #         init = camera.get('init', {})
-    #         camera_object = self.load_device(driver, module, init)
-    #         settings = camera.get('settings', {})
-    #         self.setup_device(camera_object, settings)
-    #
-    #         self.cameras[name] = camera_object
-    #
-    # def construct_stages(self, stages_list: list):
-    #     for stage in stages_list:
-    #         name = stage['name']
-    #         self.log.info(f'constructing {name}')
-    #         driver = stage['driver']
-    #         module = stage['module']
-    #         init = stage.get('init', {})
-    #         stage_object = self.load_device(driver, module, init)
-    #         settings = stage.get('settings', {})
-    #         self.setup_device(stage_object, settings)
-    #
-    #         if 'tiling' in stage['type']:
-    #             self.tiling_stages[name] = stage_object
-    #         elif 'scanning' in stage['type']:
-    #             self.scanning_stages[name] = stage_object
-    #
-    # def construct_filter_wheels(self, filter_wheels_list: list):
-    #     for filter_wheel in filter_wheels_list:
-    #         name = filter_wheel['name']
-    #         self.log.info(f'constructing {name}')
-    #         driver = filter_wheel['driver']
-    #         module = filter_wheel['module']
-    #         init = filter_wheel.get('init', {})
-    #         filter_wheel_object = self.load_device(driver, module, init)
-    #         settings = filter_wheel.get('settings', {})
-    #         self.setup_device(filter_wheel_object, settings)
-    #         self.filter_wheels[name] = filter_wheel_object
-    #
-    # def construct_daqs(self, daqs_list: list):
-    #     for daq in daqs_list:
-    #         name = daq['name']
-    #         self.log.info(f'constructing {name}')
-    #         driver = daq['driver']
-    #         module = daq['module']
-    #         init = daq['init']
-    #         id = init['dev']
-    #         daq_object = self.load_device(driver, module, init)
-    #         ao_task = daq['tasks']['ao_task']
-    #         do_task = daq['tasks']['do_task']
-    #         co_task = daq['tasks']['co_task']
-    #         daq_object.add_ao_task(ao_task)
-    #         daq_object.add_do_task(do_task)
-    #         daq_object.add_co_task(co_task)
-    #         self.daqs[name] = daq_object
-    #
-    # def construct_lasers(self, laser_list: list):
-    #
-    #     for laser in laser_list:
-    #         name = laser['name']
-    #         self.log.info(f'constructing {name}')
-    #         driver = laser['driver']
-    #         module = laser['module']
-    #         init = laser.get('init', {})
-    #         settings = laser.get('settings', {})
-    #         self.lasers[name] = self.load_device(driver, module, init)
-    #         self.setup_device(self.lasers[name], settings)
-    #
-    # def construct_combiners(self, combiner_list: list):
-    #
-    #     for combiner in combiner_list:
-    #         name = combiner['name']
-    #         self.log.info(f'constructing {name}')
-    #         driver = combiner['driver']
-    #         module = combiner['module']
-    #         init = combiner.get('init', {})
-    #         settings = combiner.get('settings', {})
-    #         self.combiners[name] = self.load_device(driver, module, init)
-    #         self.setup_device(self.combiners[name], settings)
-    #         # setup lasers under combiner
-    #         combiner_lasers = combiner.get('combiner_lasers', []).copy()  # TODO: Check if copy needed to not edit yaml
-    #
-    #         for laser in combiner_lasers:
-    #             laser['init'] = {**laser['init'], 'port': self.combiners[name].ser}
-    #         # construct lasers with combiner port added
-    #         self.construct_lasers(combiner_lasers)
+        for subdevice in subdevice_list:
+            subdevice_class = getattr(importlib.import_module(subdevice['driver']), subdevice['module'])
+            subdevice_needs = inspect.signature(subdevice_class.__init__).parameters
+            for name, parameter in subdevice_needs.items():
+                if parameter.annotation == Serial and Serial in device_object.__dict__.values():
+                    device_port_name = [k for k, v in device_object.__dict__.items() if v == Serial]
+                    subdevice['init'][name] = getattr(device_object, *device_port_name)
+                elif parameter.annotation == type(device_object):
+                    subdevice['init'][name] = device_object
+
+        self.construct_device(subdevice_type, subdevice_list)
 
     def construct(self):
         self.log.info(f'constructing instrument from {self.config_path}')
