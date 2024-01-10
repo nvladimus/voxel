@@ -1,0 +1,12 @@
+channel_specs:
+  '594':
+    type : "laser"
+    driver : "devices.lasers.obis.laser_ls_obis"
+    module : "LaserLSObis"
+    color : "orange"
+    kwds:
+      port: 'COM4'
+    setup:
+      cdrh: "OFF"
+      modulation_mode: 'digital'
+

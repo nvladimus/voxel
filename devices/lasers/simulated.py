@@ -10,6 +10,28 @@ MODULATION_MODES = {
     'digital': {'external_control_mode' : 'OFF', 'digital_modulation': 'ON'}
 }
 
+class SimulatedCombiner:
+
+    def __init__(self, port):
+        """Class for the L6CC oxxius combiner. This combiner can have LBX lasers or LCX"""
+
+        self.ser = Serial
+        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self._PercentageSplitStatus = 0
+    @property
+    def percentage_split(self):
+        """Set percentage split of lasers"""
+
+        return self._PercentageSplitStatus
+
+
+    @percentage_split.setter
+    def percentage_split(self, value):
+        """Get percentage split of lasers"""
+        if value > 100 or value < 0:
+            self.log.error(f'Impossible to set percentage spilt to {value}')
+            return
+        self._PercentageSplitStatus = value
 
 class SimulatedLaser(Laser):
 
@@ -75,26 +97,3 @@ class SimulatedLaser(Laser):
 
     def disable(self):
         pass
-
-class SimulatedCombiner:
-
-    def __init__(self, port):
-        """Class for the L6CC oxxius combiner. This combiner can have LBX lasers or LCX"""
-
-        self.ser = Serial
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self._PercentageSplitStatus = 0
-    @property
-    def percentage_split(self):
-        """Set percentage split of lasers"""
-
-        return self._PercentageSplitStatus
-
-
-    @percentage_split.setter
-    def percentage_split(self, value):
-        """Get percentage split of lasers"""
-        if value > 100 or value < 0:
-            self.log.error(f'Impossible to set percentage spilt to {value}')
-            return
-        self._PercentageSplitStatus = value
