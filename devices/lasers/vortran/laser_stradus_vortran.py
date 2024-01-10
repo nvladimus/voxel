@@ -36,7 +36,7 @@ class LaserStradusVortran(StradusLaser, Laser):
 
     @property
     def modulation_mode(self):
-        if self.external_control_mode == BoolVal.ON:
+        if self.external_control == BoolVal.ON:
             return 'analog'
         elif self.digital_modulation == BoolVal.ON:
             return 'digital'
