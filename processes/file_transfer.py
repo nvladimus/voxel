@@ -32,18 +32,18 @@ class FileTransfer():
         return self._local_drive
 
     @local_drive.setter
-    def local_drive(self, local_drive: Path):
+    def local_drive(self, local_drive: Path or str):
         self.log.info(f'setting local path to: {local_drive}')
-        self._local_drive = local_drive
+        self._local_drive = Path(local_drive)
 
     @property
     def external_drive(self):
         return self._external_drive
 
     @external_drive.setter
-    def external_drive(self, external_drive: Path):
+    def external_drive(self, external_drive: Path or str):
         self.log.info(f'setting external path to: {external_drive}')
-        self._external_drive = external_drive
+        self._external_drive = Path(external_drive)
 
     @property
     def protocol(self):

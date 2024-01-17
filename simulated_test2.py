@@ -37,5 +37,5 @@ if __name__ == '__main__':
     # acquisition
     acquisition = Acquisition(instrument, 'test_acquisition.yaml')
     acquisition.check_disk_space()
-    acquisition.check_system_memory()
+    #acquisition.check_system_memory()
     acquisition.run()

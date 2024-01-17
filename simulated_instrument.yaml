@@ -11,8 +11,8 @@ instrument:
           exposure_time_ms: 20.0
           pixel_type: mono16
           roi:
-            width_px: 14192
-            height_px: 10640
+            width_px: 1152
+            height_px: 1152
       - name: vnp-604mx
         driver: devices.camera.simulated
         module: Camera
@@ -22,8 +22,8 @@ instrument:
           exposure_time_ms: 20.0
           pixel_type: mono16
           roi:
-            width_px: 14192
-            height_px: 10640
+            width_px: 1152
+            height_px: 1152
     tiling_stages:
         - name: ASI MS-8000 x axis
           driver: devices.stage.simulated

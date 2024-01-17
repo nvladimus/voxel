@@ -7,50 +7,58 @@ acquisition:
     x_anatomical_direction: Anterior_to_posterior
     y_anatomical_direction: Inferior_to_superior
     z_anatomical_direction: Left_to_right
-  storage:
-    - camera_name: vp-151mx
-      filename_prefix: tile
-      local_drive: C:\Users\svc_aind_imaging\Desktop
-      external_drive: C:\Users\svc_aind_imaging\Desktop\test
-      transfer:
+#  storage:
+#    - camera_name: vp-151mx
+#      filename_prefix: tile
+#      local_drive: C:\Users\svc_aind_imaging\Desktop
+#      external_drive: C:\Users\svc_aind_imaging\Desktop\test
+#    - camera_name: vnp-604mx
+#      filename_prefix: tile
+#      local_drive: C:\Users\svc_aind_imaging\Desktop
+#      external_drive: C:\Users\svc_aind_imaging\Desktop\test
+  operations:
+    transfers:
+      vp-151mx:
         driver: processes.file_transfer
         module: FileTransfer
         settings:
           protocol: robocopy
-    - camera_name: vnp-604mx
-      filename_prefix: tile
-      local_drive: C:\Users\svc_aind_imaging\Desktop
-      external_drive: C:\Users\svc_aind_imaging\Desktop\test
-      transfer:
+          external_drive: C:\Users\micah.woodard\Downloads\exaspim-test
+      vnp-604mx:
         driver: processes.file_transfer
         module: FileTransfer
         settings:
           protocol: robocopy
-  writers:
-    - camera_name: vp-151mx
-      driver: writers.imaris
-      module: Writer
-      settings:
-        compression: lz4shuffle
-        data_type: uint16
-    - camera_name: vnp-604mx
-      driver: writers.imaris
-      module: Writer
-      settings:
-        compression: lz4shuffle
-        data_type: uint16
-  processes:
-    pre:
-      - name: background collection
+          external_drive: C:\Users\micah.woodard\Downloads\exaspim-test
+
+    writers:
+      vp-151mx:
+        driver: writers.imaris
+        module: Writer
+        settings:
+          compression: lz4shuffle
+          data_type: uint16
+          path: C:\Users\micah.woodard\Downloads
+      vnp-604mx:
+        driver: writers.imaris
+        module: Writer
+        settings:
+          compression: lz4shuffle
+          data_type: uint16
+          path: C:\Users\micah.woodard\Downloads
+    #processes:
+    pre_processes:
+      background collection:
         driver: processes.background_collection
-        module: Processor
+        module: BackgroundCollection
         settings:
           frames: 10
-    intra:
-      - name: max projection
+    intra_processes:
+      max projection:
         driver: processes.max_projection
-        module: Processor
-    post:
+        module: MaxProjection
+    post_processes:
+      {}
   tiles:
     - tile_number:
         x: 0
@@ -64,6 +72,7 @@ acquisition:
         x: 0.748 # grayed out -> comes from instrument
         y: 0.748 # grayed out -> comes from instrument
         z: 1.000 # editable -> integer values only
+      filename_prefix: tile
       frame_count: 64 # editable -> force multiple of 2048
       binning: 1 # editable -> force power of 2
       channel: 488 # editable -> 
@@ -97,6 +106,7 @@ acquisition:
         x: 0.748 # grayed out -> comes from instrument
         y: 0.748 # grayed out -> comes from instrument
         z: 1.000 # editable -> integer values only
+      filename_prefix: tile
       frame_count: 64 # editable -> force multiple of 2048
       binning: 1 # editable -> force power of 2
       channel: 488 # editable -> 

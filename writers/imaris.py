@@ -161,9 +161,9 @@ class Writer():
         return self.dest_path
 
     @path.setter
-    def path(self, path: Path):
+    def path(self, path: Path or str):
         if os.path.isdir(path):
-                self.dest_path = path
+                self.dest_path = Path(path)
         else:
             raise ValueError("%r is not a valid path." % path)
         self.log.info(f'setting path to: {path}')

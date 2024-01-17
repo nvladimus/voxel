@@ -7,7 +7,7 @@ from multiprocessing import Process, Value, Event, Array
 from multiprocessing.shared_memory import SharedMemory
 from pathlib import Path
 
-class Processor(Process):
+class MaxProjection(Process):
 
     def __init__(self):
 
