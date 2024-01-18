@@ -1,7 +1,6 @@
 import logging
-import pytest
 import acquire
-from .base import BaseCamera
+from devices.camera.base import BaseCamera
 from acquire import DeviceKind, SampleType
 from acquire.acquire import Trigger
 
@@ -34,21 +33,20 @@ LINE_INTERVALS_US = {
     "mono16": 45.44
     }
 
-TRIGGER_MODES = {
+TRIGGERS = {
+    "modes":{
     "on":  True,
     "off": False,
-    }
-
-TRIGGER_SOURCES = {
+    },
+    "sources": {
     "internal":  None,
     "external": 0,
-    }
-
-TRIGGER_POLARITY = {
+    },
+    "polarity": {
     "rising":  "Rising",
     "falling": "Falling",
     }
-
+}
 
 class Camera(BaseCamera):
 
@@ -70,7 +68,7 @@ class Camera(BaseCamera):
         # instantiate acquire runtime configuration
         self.p = self.runtime.get_configuration()
         # TODO: make this tied to an id in the passed camera config
-        self.p.video[0].camera.identifier = dm.select_one_of(DeviceKind.Camera, "VIEWORKS.*")
+        self.p.video[0].camera.identifier = self.dm.select_one_of(DeviceKind.Camera, "VIEWORKS.*")
         self.p = self.runtime.set_configuration(self.p)
 
     @property
@@ -193,21 +191,11 @@ class Camera(BaseCamera):
     @property
     def readout_mode(self):
         self.log.warning(f"readout mode cannot be set for the VP-151MX camera!")
-        return self.camera_cfg['readout']['mode'] = None
+        #return self.camera_cfg['readout']['mode'] = None
 
     @readout_mode.setter
     def readout_mode(self):
         self.log.warning(f"readout mode cannot be set for the VP-151MX camera!")
-        pass
-
-    @property
-    def get_readout_direction(self):
-        self.log.warning(f"readout direction cannot be set for the VP-151MX camera!")
-        return self.camera_cfg['readout']['direction'] = None
-
-    @readout_direction.setter
-    def set_readout_direction(self):
-        self.log.warning(f"readout direction cannot be set for the VP-151MX camera!")
         pass
 
     @property
@@ -224,29 +212,28 @@ class Camera(BaseCamera):
                 "polarity": self.p.video[0].camera.settings.input_triggers.frame_start.edge}
 
     @trigger.setter
-    def trigger(self, mode: str, source: str, polarity: str):
+    def trigger(self, trigger: dict):
 
-        valid_mode = list(TRIGGER_MODES.keys())
+        mode = trigger['mode']
+        source = trigger['source']
+        polarity = trigger['polarity']
+
+        valid_mode = list(TRIGGERS['modes'].keys())
         if mode not in valid_mode:
-            raise ValueError("mode must be one of %r." % valid)
-        valid_source = list(TRIGGER_SOURCES.keys())
+            raise ValueError("mode must be one of %r." % valid_mode)
+        valid_source = list(TRIGGERS['sources'].keys())
         if source not in valid_source:
-            raise ValueError("source must be one of %r." % valid)
-        valid_polarity = list(TRIGGER_POLARITY.keys())
+            raise ValueError("source must be one of %r." % valid_source)
+        valid_polarity = list(TRIGGERS['polarity'].keys())
         if polarity not in valid_polarity:
-            raise ValueError("polarity must be one of %r." % valid)
-
+            raise ValueError("polarity must be one of %r." % valid_polarity)
         # Note: Setting TriggerMode if it's already correct will throw an error
         if mode == "On":
             self.p.video[0].camera.settings.input_triggers.frame_start = Trigger(
-            enable = True, line = 0, edge = polarity)
+                enable=True, line=0, edge=polarity)
         if mode == "Off":
             self.p.video[0].camera.settings.input_triggers.frame_start = Trigger(
-            enable = False, line = 0, edge = polarity)
-
-        self.camera_cfg['trigger']['mode'] = mode
-        self.camera_cfg['trigger']['source'] = source
-        self.camera_cfg['trigger']['polarity'] = polarity
+                enable=False, line=0, edge=polarity)
 
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
 
@@ -283,7 +270,7 @@ class Camera(BaseCamera):
     def prepare(self, buffer_size_frames: int):
         # enforce that runtime is updated
         self.log.warning(f"buffer size not used in ACQUIRE!")
-        self.p = runtime.set_configuration(self.p)
+        self.p = self.runtime.set_configuration(self.p)
         
     def start(self, frame_count: int, live: bool = False):
         if live:

@@ -1,7 +1,7 @@
 import logging
 from acquire import DeviceKind, Trigger, SampleType, Trigger, SignalIOKind, TriggerEdge, Direction, Runtime, \
     AvailableData
-from exa-spim-refactor.devices.camera.base import BaseCamera
+from devices.camera.base import BaseCamera
 
 # constants for Hamamatsu C15440-20UP camera
 
@@ -27,19 +27,19 @@ PIXEL_TYPES = {
     "Mono16": SampleType.U16
 }
 
-TRIGGER_MODES = {
-    "On": True,
-    "Off": False,
-}
-
-TRIGGER_SOURCES = {
-    "Internal": None,
-    "External": 0,
-}
-
-TRIGGER_POLARITY = {
-    "Rising": "Rising",
-    "Falling": "Falling",
+TRIGGERS = {
+    "modes":{
+    "on":  True,
+    "off": False,
+    },
+    "sources": {
+    "internal":  None,
+    "external": 0,
+    },
+    "polarity": {
+    "rising":  "Rising",
+    "falling": "Falling",
+    }
 }
 
 
@@ -210,16 +210,21 @@ class CameraHamamatsuAcquire(BaseCamera):
                 "polarity": self.p.video[0].camera.settings.input_triggers.frame_start.edge}
 
     @trigger.setter
-    def trigger(self, value: (str, str, str)):
-        """Should be set to a tuple with values for mode: str, source: str, polarity: str"""
-        (mode, source, polarity) = value
-        if mode not in TRIGGER_MODES.keys():
-            raise ValueError("mode must be one of %r." % TRIGGER_MODES.keys())
-        if source not in TRIGGER_SOURCES.keys():
-            raise ValueError("source must be one of %r." % TRIGGER_SOURCES.keys())
-        if polarity not in TRIGGER_POLARITY.keys():
-            raise ValueError("polarity must be one of %r." % TRIGGER_POLARITY.keys())
+    def trigger(self, trigger: dict):
 
+        mode = trigger['mode']
+        source = trigger['source']
+        polarity = trigger['polarity']
+
+        valid_mode = list(TRIGGERS['modes'].keys())
+        if mode not in valid_mode:
+            raise ValueError("mode must be one of %r." % valid_mode)
+        valid_source = list(TRIGGERS['sources'].keys())
+        if source not in valid_source:
+            raise ValueError("source must be one of %r." % valid_source)
+        valid_polarity = list(TRIGGERS['polarity'].keys())
+        if polarity not in valid_polarity:
+            raise ValueError("polarity must be one of %r." % valid_polarity)
         # Note: Setting TriggerMode if it's already correct will throw an error
         if mode == "On":
             self.p.video[0].camera.settings.input_triggers.frame_start = Trigger(
@@ -228,7 +233,6 @@ class CameraHamamatsuAcquire(BaseCamera):
             self.p.video[0].camera.settings.input_triggers.frame_start = Trigger(
                 enable=False, line=0, edge=polarity)
 
-        self.runtime.set_configuration(self.p)
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
 
     @property

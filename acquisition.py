@@ -76,7 +76,6 @@ class Acquisition():
             self.setup_device(operation_object, settings)
             operation_dict = getattr(self, operation_type)
             operation_dict[name] = operation_object
-        # print(operation_type, operation_dict)
 
     def engine(self, tile, filename, camera, writer):
 

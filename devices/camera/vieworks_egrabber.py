@@ -6,7 +6,7 @@ from egrabber import *
 # constants for VP-151MX camera
 
 BUFFER_SIZE_FRAMES = 8
-MIN_WIDTH_PX = 64    
+MIN_WIDTH_PX = 64
 MAX_WIDTH_PX = 14192
 DIVISIBLE_WIDTH_PX = 16
 MIN_HEIGHT_PX = 2
@@ -16,7 +16,7 @@ MIN_EXPOSURE_TIME_MS = 0.001
 MAX_EXPOSURE_TIME_MS = 6e4
 
 PIXEL_TYPES = {
-    "mono8":  "Mono8",
+    "mono8": "Mono8",
     "mono10": "Mono10",
     "mono12": "Mono12",
     "mono14": "Mono14",
@@ -24,7 +24,7 @@ PIXEL_TYPES = {
 }
 
 LINE_INTERVALS_US = {
-    "mono8":  15.00,
+    "mono8": 15.00,
     "mono10": 15.00,
     "mono12": 15.00,
     "mono14": 20.21,
@@ -32,25 +32,26 @@ LINE_INTERVALS_US = {
 }
 
 BIT_PACKING_MODES = {
-    "msb":  "Msb",
-    "lsb":  "Lsb",
+    "msb": "Msb",
+    "lsb": "Lsb",
     "none": "None"
 }
 
-TRIGGER_MODES = {
-    "on":  "On",
-    "off": "Off",
+TRIGGERS = {
+    "modes": {
+        "on": "On",
+        "off": "Off",
+    },
+    "sources": {
+        "internal": "None",
+        "external": "Line0",
+    },
+    "polarity": {
+        "rising": "RisingEdge",
+        "falling": "FallingEdge",
+    }
 }
 
-TRIGGER_SOURCES = {
-    "internal": "None",
-    "external": "Line0",
-}
-
-TRIGGER_POLARITY = {
-    "rising":  "RisingEdge",
-    "falling": "FallingEdge",
-}
 
 class Camera(BaseCamera):
 
@@ -70,18 +71,19 @@ class Camera(BaseCamera):
         for interfaceIndex in range(interface_count):
             device_count = discovery.device_count(interfaceIndex)
             for deviceIndex in range(device_count):
-                stream_count = discovery.stream_count(interfaceIndex,deviceIndex)
+                stream_count = discovery.stream_count(interfaceIndex, deviceIndex)
                 for streamIndex in range(stream_count):
                     info = {'interface': interfaceIndex,
                             'device': deviceIndex,
                             'stream': streamIndex
-                           }
+                            }
                     egrabber_list['grabbers'].append(info)
         del discovery
         # indentify by serial number and return correct grabber
         for grabber in egrabber_list['grabbers']:
-            try:  
-                grabber = EGrabber(gentl, grabber['interface'], grabber['device'], grabber['stream'], remote_required=True)
+            try:
+                grabber = EGrabber(gentl, grabber['interface'], grabber['device'], grabber['stream'],
+                                   remote_required=True)
                 if grabber.remote.get('DeviceSerialNumber') == self.id:
                     self.log.info(f"grabber found for S/N: {self.id}")
                     self.grabber = grabber
@@ -94,13 +96,13 @@ class Camera(BaseCamera):
     @property
     def exposure_time_ms(self):
         # us to ms conversion
-        return self.grabber.remote.get("ExposureTime")/1000
+        return self.grabber.remote.get("ExposureTime") / 1000
 
     @exposure_time_ms.setter
     def exposure_time_ms(self, exposure_time_ms: float):
 
         if exposure_time_ms < MIN_EXPOSURE_TIME_MS or \
-           exposure_time_ms > MAX_EXPOSURE_TIME_MS:
+                exposure_time_ms > MAX_EXPOSURE_TIME_MS:
             self.log.error(f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
                              and <{MAX_EXPOSURE_TIME_MS} ms")
             raise ValueError(f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
@@ -127,8 +129,8 @@ class Camera(BaseCamera):
         sensor_width_px = MAX_WIDTH_PX
 
         if height_px < MIN_WIDTH_PX or \
-           (height_px % DIVISIBLE_HEIGHT_PX) != 0 or \
-           height_px > MAX_HEIGHT_PX:
+                (height_px % DIVISIBLE_HEIGHT_PX) != 0 or \
+                height_px > MAX_HEIGHT_PX:
             self.log.error(f"Height must be >{MIN_HEIGHT_PX} px, \
                              <{MAX_HEIGHT_PX} px, \
                              and a multiple of {DIVISIBLE_HEIGHT_PX} px!")
@@ -137,8 +139,8 @@ class Camera(BaseCamera):
                              and a multiple of {DIVISIBLE_HEIGHT_PX} px!")
 
         if width_px < MIN_WIDTH_PX or \
-           (width_px % DIVISIBLE_WIDTH_PX) != 0 or \
-           width_px > MAX_WIDTH_PX:
+                (width_px % DIVISIBLE_WIDTH_PX) != 0 or \
+                width_px > MAX_WIDTH_PX:
             self.log.error(f"Width must be >{MIN_WIDTH_PX} px, \
                              <{MAX_WIDTH_PX}, \
                             and a multiple of {DIVISIBLE_WIDTH_PX} px!")
@@ -149,13 +151,14 @@ class Camera(BaseCamera):
         self.grabber.remote.set("OffsetX", 0)
         self.grabber.remote.set("Width", width_px)
         # width offset must be a multiple of the divisible width in px
-        centered_width_offset_px = round((sensor_width_px/2 - width_px/2)/DIVISIBLE_WIDTH_PX)*DIVISIBLE_WIDTH_PX  
-        self.grabber.remote.set("OffsetX", centered_width_offset_px)    
+        centered_width_offset_px = round((sensor_width_px / 2 - width_px / 2) / DIVISIBLE_WIDTH_PX) * DIVISIBLE_WIDTH_PX
+        self.grabber.remote.set("OffsetX", centered_width_offset_px)
         self.grabber.remote.set("OffsetY", 0)
         self.grabber.remote.set("Height", height_px)
         height_px = self.grabber.remote.get("Height")
         # Height offset must be a multiple of the divisible height in px
-        centered_height_offset_px = round((sensor_height_px/2 - height_px/2)/DIVISIBLE_HEIGHT_PX)*DIVISIBLE_HEIGHT_PX  
+        centered_height_offset_px = round(
+            (sensor_height_px / 2 - height_px / 2) / DIVISIBLE_HEIGHT_PX) * DIVISIBLE_HEIGHT_PX
         self.grabber.remote.set("OffsetY", centered_height_offset_px)
         self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
         self.log.info(f"roi offset set to: {centered_width_offset_px} x {centered_height_offset_px} [width x height]")
@@ -172,7 +175,7 @@ class Camera(BaseCamera):
         valid = list(PIXEL_TYPES.keys())
         if pixel_type_bits not in valid:
             raise ValueError("pixel_type_bits must be one of %r." % valid)
-        
+
         # Note: for the Vieworks VP-151MX camera, the pixel type also controls line interval
         self.grabber.remote.set("PixelFormat", PIXEL_TYPES[pixel_type_bits])
         self.log.info(f"pixel type set_to: {pixel_type_bits}")
@@ -214,30 +217,30 @@ class Camera(BaseCamera):
         source = trigger['source']
         polarity = trigger['polarity']
 
-        valid_mode = list(TRIGGER_MODES.keys())
+        valid_mode = list(TRIGGERS['modes'].keys())
         if mode not in valid_mode:
-            raise ValueError("mode must be one of %r." % valid)
-        valid_source = list(TRIGGER_SOURCES.keys())
+            raise ValueError("mode must be one of %r." % valid_mode)
+        valid_source = list(TRIGGERS['sources'].keys())
         if source not in valid_source:
-            raise ValueError("source must be one of %r." % valid)
-        valid_polarity = list(TRIGGER_POLARITY.keys())
+            raise ValueError("source must be one of %r." % valid_source)
+        valid_polarity = list(TRIGGERS['polarity'].keys())
         if polarity not in valid_polarity:
-            raise ValueError("polarity must be one of %r." % valid)
+            raise ValueError("polarity must be one of %r." % valid_polarity)
 
         # Note: Setting TriggerMode if it's already correct will throw an error
         if self.grabber.remote.get("TriggerMode") != mode:  # set camera to external trigger mode
-            self.grabber.remote.set("TriggerMode", TRIGGER_MODES[mode])
-        self.grabber.remote.set("TriggerSource", TRIGGER_SOURCES[source])
-        self.grabber.remote.set("TriggerActivation", TRIGGER_POLARITY[polarity])
+            self.grabber.remote.set("TriggerMode", TRIGGERS['modes'][mode])
+        self.grabber.remote.set("TriggerSource", TRIGGERS['sources'][source])
+        self.grabber.remote.set("TriggerActivation", trigger['polarity'][polarity])
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
 
     @property
-    def binning(self): 
+    def binning(self):
         self.log.warning(f"binning is not available on the VP-151MX")
         pass
 
     @binning.setter
-    def binning(self, binning: int): 
+    def binning(self, binning: int):
         self.log.warning(f"binning is not available on the VP-151MX")
         pass
 
@@ -304,18 +307,18 @@ class Camera(BaseCamera):
                                                                INFO_DATATYPE_SIZET)
         state['out_buffer_size'] = self.grabber.stream.get_info(STREAM_INFO_NUM_AWAIT_DELIVERY,
                                                                 INFO_DATATYPE_SIZET)
-         # number of underrun, i.e. dropped frames
+        # number of underrun, i.e. dropped frames
         state['dropped_frames'] = self.grabber.stream.get_info(STREAM_INFO_NUM_UNDERRUN,
                                                                INFO_DATATYPE_SIZET)
         state['data_rate'] = self.grabber.stream.get('StatisticsDataRate')
         state['frame_rate'] = self.grabber.stream.get('StatisticsFrameRate')
         self.log.info(f"id: {self.id}, "
-                       f"frame: {state['frame_index']}, "
-                       f"input: {state['in_buffer_size']}, "
-                       f"output: {state['out_buffer_size']}, "
-                       f"dropped: {state['dropped_frames']}, "
-                       f"data rate: {state['data_rate']:.2f} [MB/s], "
-                       f"frame rate: {state['frame_rate']:.2f} [fps].")
+                      f"frame: {state['frame_index']}, "
+                      f"input: {state['in_buffer_size']}, "
+                      f"output: {state['out_buffer_size']}, "
+                      f"dropped: {state['dropped_frames']}, "
+                      f"data rate: {state['data_rate']:.2f} [MB/s], "
+                      f"frame rate: {state['frame_rate']:.2f} [fps].")
         return state
 
     def log_metadata(self):
