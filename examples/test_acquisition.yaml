@@ -19,13 +19,13 @@ acquisition:
   operations:
     transfers:
       vp-151mx:
-        driver: processes.file_transfer
+        driver: exa_spim_refactor.processes.file_transfer
         module: FileTransfer
         settings:
           protocol: robocopy
           external_drive: C:\Users\micah.woodard\Downloads\exaspim-test
       vnp-604mx:
-        driver: processes.file_transfer
+        driver: exa_spim_refactor.processes.file_transfer
         module: FileTransfer
         settings:
           protocol: robocopy
@@ -33,14 +33,14 @@ acquisition:
 
     writers:
       vp-151mx:
-        driver: writers.imaris
+        driver: exa_spim_refactor.writers.imaris
         module: Writer
         settings:
           compression: lz4shuffle
           data_type: uint16
           path: C:\Users\micah.woodard\Downloads
       vnp-604mx:
-        driver: writers.imaris
+        driver: exa_spim_refactor.writers.imaris
         module: Writer
         settings:
           compression: lz4shuffle
@@ -49,13 +49,13 @@ acquisition:
     #processes:
     pre_processes:
       background collection:
-        driver: processes.background_collection
+        driver: exa_spim_refactor.processes.background_collection
         module: BackgroundCollection
         settings:
           frames: 10
     intra_processes:
       max projection:
-        driver: processes.max_projection
+        driver: exa_spim_refactor.processes.max_projection
         module: MaxProjection
     post_processes:
       {}

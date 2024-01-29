@@ -62,10 +62,6 @@ class SimulatedLaser(Laser):
     def max_power_mw(self):
         return self._max_power_mw
 
-    @max_power_mw.setter
-    def max_power_mw(self, value: float):
-        self._max_power_mw = value
-
     @property
     def modulation_mode(self):
         return self._modulation_mode
