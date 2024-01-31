@@ -3,9 +3,9 @@ import numpy
 from .base import BaseCamera
 from egrabber import *
 
-# constants for VP-151MX camera
 
 BUFFER_SIZE_FRAMES = 8
+# TODO grab these automatically from egrabber
 MIN_WIDTH_PX = 64
 MAX_WIDTH_PX = 14192
 DIVISIBLE_WIDTH_PX = 16
@@ -178,7 +178,7 @@ class Camera(BaseCamera):
 
         # Note: for the Vieworks VP-151MX camera, the pixel type also controls line interval
         self.grabber.remote.set("PixelFormat", PIXEL_TYPES[pixel_type_bits])
-        self.log.info(f"pixel type set_to: {pixel_type_bits}")
+        self.log.info(f"pixel type set to: {pixel_type_bits}")
 
     @property
     def bit_packing_mode(self):
@@ -240,7 +240,7 @@ class Camera(BaseCamera):
         pass
 
     @binning.setter
-    def binning(self, binning: int):
+    def binning(self, binning: str):
         self.log.warning(f"binning is not available on the VP-151MX")
         pass
 

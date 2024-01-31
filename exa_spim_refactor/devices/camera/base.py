@@ -88,7 +88,7 @@ class BaseCamera:
         pass
 
     @binning.setter
-    def binning(self, binning: int): 
+    def binning(self, binning: str): 
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
