@@ -6,6 +6,7 @@ from dcam import *
 
 BUFFER_SIZE_FRAMES = 8
 
+# dcam properties dict for convenience in calls
 PROPERTIES = {
     "exposure_time": 2031888,  # 0x001F0110, R/W, sec, "EXPOSURE TIME"
     "sensor_mode": 4194832,  # 0x00400210, R/W, mode,  "SENSOR MODE"
@@ -38,6 +39,24 @@ BINNING = {
     "4x4": 4
 }
 
+# full dcam trigger modes mapping
+# NORMAL = 1
+# PIV = 3
+# START = 6
+# full dcam trigger sources mapping
+# INTERNAL = 1
+# EXTERNAL = 2
+# SOFTWARE = 3
+# MASTERPULSE = 4
+# full dcam trigger polarity mapping
+# NEGATIVE = 1
+# POSITIVE = 2
+# full dcam trigger active mapping
+# EDGE = 1
+# LEVEL = 2
+# SYNCREADOUT = 3
+# POINT = 4
+
 TRIGGERS = {
     "modes": {
         "on": DCAM_PROP.TRIGGER_MODE.NORMAL,
@@ -53,13 +72,33 @@ TRIGGERS = {
     }
 }
 
+# full dcam readout modes mapping
+# AREA = 1
+# LINE = 3
+# TDI = 4
+# TDI_EXTENDED = 10
+# PROGRESSIVE = 12
+# SPLITVIEW = 14
+# DUALLIGHTSHEET = 16
+# PHOTONNUMBERRESOLVING = 18
+# WHOLELINES = 19
+# full dcam readout directions  mapping
+# FORWARD = 1
+# BACKWARD = 2
+# BYTRIGGER = 3
+# DIVERGE = 5
+# FORWARDBIDIRECTION = 6
+# REVERSEBIDIRECTION = 7
+
+READOUT_MODES = {
+    "rolling": DCAM_PROP.SENSORMODE.AREA,
+    "light sheet forward": DCAM_PROP.READOUT_DIRECTION.FORWARD,
+    "light sheet backward": DCAM_PROP.READOUT_DIRECTION.BACKWARD
+}
+
 class Camera(BaseCamera):
 
-    def __init__(self, id):
-        """Connect to hardware.
-        
-        :param camera_cfg: cfg for camera.
-        """
+    def __init__(self, id = str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = id
 
@@ -259,6 +298,31 @@ class Camera(BaseCamera):
     def sensor_temperature_c(self):
         """get the sensor temperature in degrees C."""
         return self.dcam.prop_getvalue(PROPERTIES["sensor_temperature"])
+
+    @property
+    def readout_mode(self):
+        sensor_mode = self.dcam.prop_getvalue(PROPERTIES['sensor_mode'])
+        readout_direction = self.dcam.prop_getvalue(PROPERTIES['readout_direction'])
+        if sensor_mode == DCAM_PROP.SENSORMODE.AREA:
+            readout_mode = "rolling"
+        if sensor_mode == DCAM_PROP.SENSORMODE.PROGRESSIVE:
+            if readout_direction == DCAM_PROP.READOUT_DIRECTION.FORWARD:
+                readout_mode = "light sheet forward"
+            if readout_direction == DCAM_PROP.READOUT_DIRECTION.BACKWARD:
+                readout_mode = "light sheet backward"
+        return readout_mode
+
+    @readout_mode.setter
+    def readout_mode(self, readout_mode: str):
+        valid_mode = list(READOUT_MODES.keys())
+        if mode not in valid_mode:
+            raise ValueError("mode must be one of %r." % valid_mode)
+        if readout_mode == "rolling":
+            self.dcam.prop_setvalue(PROPERTIES['sensor_mode'], READOUT_MODES[readout_mode])
+        else:
+            self.dcam.prop_setvalue(PROPERTIES['sensor_mode'], DCAM_PROP.SENSORMODE.PROGRESSIVE)
+            self.dcam.prop_setvalue(PROPERTIES['readout_direction'], READOUT_MODES[readout_mode])
+        self.log.info(f"readout mode set to: {readout_mode}")
 
     def prepare(self):
         # realloc buffers appears to be allocating ram on the pc side, not camera side.

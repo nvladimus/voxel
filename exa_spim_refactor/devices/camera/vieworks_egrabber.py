@@ -55,11 +55,7 @@ TRIGGERS = {
 
 class Camera(BaseCamera):
 
-    def __init__(self, id):
-        """Connect to hardware.
-        
-        :param camera_cfg: cfg for camera.
-        """
+    def __init__(self, id = str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = id
         gentl = EGenTL()
@@ -236,13 +232,9 @@ class Camera(BaseCamera):
 
     @property
     def binning(self):
-        self.log.warning(f"binning is not available on the VP-151MX")
-        pass
-
-    @binning.setter
-    def binning(self, binning: str):
-        self.log.warning(f"binning is not available on the VP-151MX")
-        pass
+        self.log.warning(f"binning is not available with egrabber")
+        binning = 1
+        return binning
 
     @property
     def sensor_width_px(self):
@@ -263,6 +255,12 @@ class Camera(BaseCamera):
         """get the sensor temperature in degrees C."""
         self.grabber.remote.set("DeviceTemperatureSelector", "Sensor")
         return self.grabber.remote.get("DeviceTemperature")
+
+    @property
+    def readout_mode(self):
+        self.log.warning(f"binning is not available with egrabber")
+        readout_mode = "light sheet forward"
+        return readout_mode
 
     def prepare(self):
         # realloc buffers appears to be allocating ram on the pc side, not camera side.

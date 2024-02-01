@@ -63,16 +63,6 @@ class BaseCamera:
         pass
 
     @property
-    def readout_direction(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    @readout_direction.setter
-    def readout_direction(self, readout_direction: str):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    @property
     def trigger(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass

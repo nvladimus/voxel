@@ -32,13 +32,22 @@ TRIGGERS = {
     "polarity": None
 }
 
+# full pco readout mode mappings
+# * 'top bottom'
+# * 'top center bottom center'
+# * 'center top center bottom'
+# * 'center top bottom center'
+# * 'top center center bottom'
+
+READOUT_MODES = {
+    "rolling": "center top center bottom",
+    "light sheet forward": "top bottom",
+    "light sheet backward": "inverse"
+}
+
 class Camera(BaseCamera):
 
-    def __init__(self, id):
-        """Connect to hardware.
-        
-        :param camera_cfg: cfg for camera.
-        """
+    def __init__(self, id = str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = id
         # note self.id here is the interface, not a unique camera id
@@ -223,6 +232,21 @@ class Camera(BaseCamera):
     def sensor_temperature_c(self):
         """get the sensor temperature in degrees C."""
         return self.pco.sdk.get_temperature()['sensor temperature']
+
+    @property
+    def readout_mode(self):
+        # returns dict with only key as 'format'
+        readout_mode = self.pco.sdk.set_interface_output_format()['format']
+        return next(key for key, value in READOUT_MODES.items() if value == readout_mode)
+
+    @readout_mode.setter
+    def readout_mode(self, readout_mode: str):
+        # pco api requires edge input for scmos readout control
+        valid_mode = list(READOUT_MODES.keys())
+        if mode not in valid_mode:
+            raise ValueError("mode must be one of %r." % valid_mode)
+        self.pco.sdk.set_interface_output_format(interface='edge', format=READOUT_MODES[readout_mode])
+        self.log.info(f"readout mode set to: {readout_mode}")
 
     def prepare(self):
         # pco api prepares buffer and autostarts. api call is in start()
