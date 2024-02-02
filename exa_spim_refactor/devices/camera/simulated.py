@@ -26,6 +26,21 @@ LINE_INTERVALS_US = {
     "mono16": 45.44
 }
 
+TRIGGERS = {
+    "mode": {
+        "on": "On",
+        "off": "Off",
+    },
+    "source": {
+        "internal": "None",
+        "external": "Line0",
+    },
+    "polarity": {
+        "rising": "RisingEdge",
+        "falling": "FallingEdge",
+    }
+}
+
 class Camera(BaseCamera):
 
     def __init__(self, id):
@@ -39,6 +54,7 @@ class Camera(BaseCamera):
         self.simulated_height_px = None
         self.simulated_width_offset_px = None
         self.simulated_height_offset_px = None
+        self.simulated_trigger = {'mode':'on','source': 'internal', 'polarity':'rising'}
 
     @property
     def exposure_time_ms(self):
@@ -105,6 +121,28 @@ class Camera(BaseCamera):
         self.simulated_height_offset_px = centered_height_offset_px
         self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
         self.log.info(f"roi offset set to: {centered_width_offset_px} x {centered_height_offset_px} [width x height]")
+
+    @property
+    def trigger(self):
+        return self.simulated_trigger
+
+    @trigger.setter
+    def trigger(self, trigger: dict):
+
+        mode = trigger['mode']
+        source = trigger['source']
+        polarity = trigger['polarity']
+
+        valid_mode = list(TRIGGERS['mode'].keys())
+        if mode not in valid_mode:
+            raise ValueError("mode must be one of %r." % valid_mode)
+        valid_source = list(TRIGGERS['source'].keys())
+        if source not in valid_source:
+            raise ValueError("source must be one of %r." % valid_source)
+        valid_polarity = list(TRIGGERS['polarity'].keys())
+        if polarity not in valid_polarity:
+            raise ValueError("polarity must be one of %r." % valid_polarity)
+        self.simulated_trigger = dict(trigger)
 
     @property
     def pixel_type(self):

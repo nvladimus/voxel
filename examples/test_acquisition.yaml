@@ -21,31 +21,35 @@ acquisition:
       vp-151mx:
         driver: exa_spim_refactor.processes.file_transfer
         module: FileTransfer
+        init:
+          external_drive: C:\Users\micah.woodard\Downloads\exaspim-test
         settings:
           protocol: robocopy
-          external_drive: C:\Users\micah.woodard\Downloads\exaspim-test
       vnp-604mx:
         driver: exa_spim_refactor.processes.file_transfer
         module: FileTransfer
+        init:
+          external_drive: C:\Users\micah.woodard\Downloads\exaspim-test
         settings:
           protocol: robocopy
-          external_drive: C:\Users\micah.woodard\Downloads\exaspim-test
 
     writers:
       vp-151mx:
         driver: exa_spim_refactor.writers.imaris
         module: Writer
+        init:
+          path: C:\Users\micah.woodard\Downloads
         settings:
           compression: lz4shuffle
           data_type: uint16
-          path: C:\Users\micah.woodard\Downloads
       vnp-604mx:
         driver: exa_spim_refactor.writers.imaris
         module: Writer
+        init:
+          path: C:\Users\micah.woodard\Downloads
         settings:
           compression: lz4shuffle
           data_type: uint16
-          path: C:\Users\micah.woodard\Downloads
     #processes:
     pre_processes:
       background collection:

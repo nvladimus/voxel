@@ -206,9 +206,9 @@ class Camera(BaseCamera):
         mode = self.grabber.remote.get("TriggerMode")
         source = self.grabber.remote.get("TriggerSource")
         polarity = self.grabber.remote.get("TriggerActivation")
-        return {"mode": next(key for key, value in TRIGGER_MODES.items() if value == mode),
-                "source": next(key for key, value in TRIGGER_SOURCES.items() if value == source),
-                "polarity": next(key for key, value in TRIGGER_POLARITY.items() if value == polarity)}
+        return {"mode": next(key for key, value in TRIGGERS['modes'].items() if value == mode),
+                "source": next(key for key, value in TRIGGERS['sources'].items() if value == source),
+                "polarity": next(key for key, value in TRIGGERS['polarity'].items() if value == polarity)}
 
     @trigger.setter
     def trigger(self, trigger: dict):
@@ -231,7 +231,7 @@ class Camera(BaseCamera):
         if self.grabber.remote.get("TriggerMode") != mode:  # set camera to external trigger mode
             self.grabber.remote.set("TriggerMode", TRIGGERS['modes'][mode])
         self.grabber.remote.set("TriggerSource", TRIGGERS['sources'][source])
-        self.grabber.remote.set("TriggerActivation", trigger['polarity'][polarity])
+        self.grabber.remote.set("TriggerActivation", TRIGGERS['polarity'][polarity])
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
 
     @property
