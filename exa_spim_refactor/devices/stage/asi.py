@@ -253,11 +253,11 @@ class Stage(BaseStage):
         card_address = self.tigerbox.axis_to_card[self.hardware_axis][0]
         ttl_reply = self.tigerbox.get_ttl_pin_modes(card_address) # note this does not return ENUM values
         mode = int(ttl_reply[str.find(ttl_reply, 'X')+2:str.find(ttl_reply, 'Y')-1]) # strip the X= response
-        converted_axes = next(key for key, enum in MODES.items() if enum.value == mode)
-        return {self.instrument_axis: converted_axes}
+        converted_mode = next(key for key, enum in MODES.items() if enum.value == mode)
+        return converted_mode
 
     @mode.setter
-    def mode(self, mode: int):
+    def mode(self, mode: str):
         """Set the tiger axis ttl."""
 
         valid = list(MODES.keys())

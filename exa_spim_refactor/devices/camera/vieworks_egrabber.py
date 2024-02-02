@@ -3,9 +3,9 @@ import numpy
 from .base import BaseCamera
 from egrabber import *
 
-# constants for VP-151MX camera
 
 BUFFER_SIZE_FRAMES = 8
+# TODO grab these automatically from egrabber
 MIN_WIDTH_PX = 64
 MAX_WIDTH_PX = 14192
 DIVISIBLE_WIDTH_PX = 16
@@ -55,11 +55,7 @@ TRIGGERS = {
 
 class Camera(BaseCamera):
 
-    def __init__(self, id):
-        """Connect to hardware.
-        
-        :param camera_cfg: cfg for camera.
-        """
+    def __init__(self, id = str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = id
         gentl = EGenTL()
@@ -178,7 +174,7 @@ class Camera(BaseCamera):
 
         # Note: for the Vieworks VP-151MX camera, the pixel type also controls line interval
         self.grabber.remote.set("PixelFormat", PIXEL_TYPES[pixel_type_bits])
-        self.log.info(f"pixel type set_to: {pixel_type_bits}")
+        self.log.info(f"pixel type set to: {pixel_type_bits}")
 
     @property
     def bit_packing_mode(self):
@@ -236,13 +232,9 @@ class Camera(BaseCamera):
 
     @property
     def binning(self):
-        self.log.warning(f"binning is not available on the VP-151MX")
-        pass
-
-    @binning.setter
-    def binning(self, binning: int):
-        self.log.warning(f"binning is not available on the VP-151MX")
-        pass
+        self.log.warning(f"binning is not available with egrabber")
+        binning = 1
+        return binning
 
     @property
     def sensor_width_px(self):
@@ -263,6 +255,12 @@ class Camera(BaseCamera):
         """get the sensor temperature in degrees C."""
         self.grabber.remote.set("DeviceTemperatureSelector", "Sensor")
         return self.grabber.remote.get("DeviceTemperature")
+
+    @property
+    def readout_mode(self):
+        self.log.warning(f"binning is not available with egrabber")
+        readout_mode = "light sheet forward"
+        return readout_mode
 
     def prepare(self):
         # realloc buffers appears to be allocating ram on the pc side, not camera side.
