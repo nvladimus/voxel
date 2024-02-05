@@ -5,10 +5,10 @@ import subprocess
 import os
 import sys
 from pathlib import Path
-from spim_core.config_base import Config
 import inspect
 import importlib
 from serial import Serial
+from ruamel.yaml import YAML
 
 class Instrument:
 
@@ -17,7 +17,8 @@ class Instrument:
         # current working directory
         this_dir = Path(__file__).parent.resolve()
         self.config_path = this_dir / Path(config_filename)
-        self.config = Config(str(self.config_path))
+        #yaml = YAML(typ='safe', pure=True)    # loads yaml in as dict. May want to use in future
+        self.config = YAML().load(Path(self.config_path))
         self.cameras = dict()
         self.tiling_stages = dict()
         self.scanning_stages = dict()
@@ -102,7 +103,7 @@ class Instrument:
         """Construct device based on configuration yaml"""
 
         self.log.info(f'constructing instrument from {self.config_path}')
-        for device_type, device_list in self.config.cfg['instrument']['devices'].items():
+        for device_type, device_list in self.config['instrument']['devices'].items():
             self.construct_device(device_type, device_list)
 
 

@@ -22,7 +22,7 @@ class LaserLXObis(ObisLX, Laser):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.prefix = prefix
         super(ObisLX, self).__init__(port, self.prefix)
-        # inherit from laser device_widget class
+        # inherit from laser device_widgets class
 
     @property
     def power_setpoint_mw(self):

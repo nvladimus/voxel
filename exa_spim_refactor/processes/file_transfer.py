@@ -9,12 +9,12 @@ from pathlib import Path
 
 class FileTransfer():
 
-    def __init__(self):
+    def __init__(self, external_drive):
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.filename = None
         self._local_drive = None
-        self._external_drive = None
+        self._external_drive = external_drive
         self._protocol = None
         self.progress = None
 

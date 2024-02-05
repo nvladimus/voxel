@@ -17,8 +17,8 @@ from math import ceil
 CHUNK_COUNT_PX = 64
 
 COMPRESSION_TYPES = {
-    "none":  pw.eCompressionAlgorithmShuffleLZ4,
-    "lz4shuffle": pw.eCompressionAlgorithmNone,
+    "lz4shuffle":  pw.eCompressionAlgorithmShuffleLZ4,
+    "none": pw.eCompressionAlgorithmNone,
 }
 
 DATA_TYPES = {
@@ -38,9 +38,26 @@ class ImarisProgressChecker(pw.CallbackClass):
 
 class Writer():
 
-    def __init__(self):
+    def __init__(self, path):
  
         super().__init__()
+
+        self._color = None
+        self._channel = None
+        self._filename = None
+        self._path = path
+        self._data_type = DATA_TYPES['uint8']
+        self._compression = COMPRESSION_TYPES["none"]
+        self._rows = None
+        self._colum_count = None
+        self._frame_count = None
+        self._z_pos_mm = None
+        self._y_pos_mm = None
+        self._x_pos_mm = None
+        self._z_voxel_size = None
+        self._y_voxel_size = None
+        self._x_voxel_size = None
+
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         # Opinioated decision on chunking dimension order
         self.chunk_dim_order = ('z', 'y', 'x')
@@ -150,7 +167,7 @@ class Writer():
         if compression not in valid:
             raise ValueError("compression type must be one of %r." % valid)
         self.log.info(f'setting compression mode to: {compression}')
-        self._compression = compression
+        self._compression = COMPRESSION_TYPES[compression]
 
     @property
     def data_type(self):
@@ -268,10 +285,7 @@ class Writer():
         self.thread_count = 2*multiprocessing.cpu_count()
         self.opts.mNumberOfThreads = self.thread_count
         # set compression type
-        if self._compression == 'lz4shuffle':
-            self.opts.mCompressionAlgorithmType = pw.eCompressionAlgorithmShuffleLZ4
-        elif self._compression == 'none':
-            self.opts.mCompressionAlgorithmType = pw.eCompressionAlgorithmNone
+        self.opts.mCompressionAlgorithmType = self._compression
         # color parameters
         self.adjust_color_range = False
         self.color_infos = [pw.ColorInfo()]
@@ -297,8 +311,7 @@ class Writer():
         log_handler = logging.StreamHandler(sys.stdout)
         log_handler.setFormatter(log_formatter)
         logger.addHandler(log_handler)
-
-        filepath = str((self._path/Path(f"{self._filename}")).absolute())
+        filepath = str((self._path / Path(f"{self._filename}")).absolute())
         converter = \
             pw.ImageConverter(DATA_TYPES[self._data_type], self.image_size, self.sample_size,
                               self.dimension_sequence, self.block_size, filepath, 

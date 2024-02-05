@@ -25,7 +25,7 @@ class LaserLBXOxxius(LBX, Laser):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.prefix = prefix
         super(LBX, self).__init__(port, self.prefix)
-        # inherit from laser device_widget class
+        # inherit from laser device_widgets class
 
         # Setup curve to map power input to current percentage
         self.coefficients = coefficients

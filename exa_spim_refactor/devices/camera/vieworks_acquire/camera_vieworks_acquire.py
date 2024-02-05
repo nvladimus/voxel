@@ -1,6 +1,6 @@
 import logging
 import acquire
-from devices.camera.base import BaseCamera
+from exa_spim_refactor.devices.camera.base import BaseCamera
 from acquire import DeviceKind, SampleType
 from acquire.acquire import Trigger
 

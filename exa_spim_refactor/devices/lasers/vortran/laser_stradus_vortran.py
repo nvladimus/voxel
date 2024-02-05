@@ -19,7 +19,7 @@ class LaserStradusVortran(StradusLaser, Laser):
 
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         super(StradusLaser, self).__init__(port)
-        # inherit from laser device_widget class
+        # inherit from laser device_widgets class
 
 
     @property

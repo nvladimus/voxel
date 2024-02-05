@@ -9,22 +9,23 @@ import os
 import subprocess
 from pathlib import Path
 from psutil import virtual_memory
-from spim_core.config_base import Config
+#from spim_core.config_base import Config
+from ruamel.yaml import YAML
 from exa_spim_refactor.instrument import Instrument
 from exa_spim_refactor.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
 
 MINIMUM_WRITE_SPEED_MB_S = 500
 
 
-class Acquisition():
+class Acquisition:
 
     def __init__(self, instrument: Instrument, config_filename: str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         # current working directory
         this_dir = Path(__file__).parent.resolve()
         self.config_path = this_dir / Path(config_filename)
-        self.config = Config(str(self.config_path))
-        self.acquisition = self.config.cfg['acquisition']
+        self.config = YAML().load(Path(self.config_path))
+        self.acquisition = self.config['acquisition']
         self.instrument = instrument
         self.writers = dict()
         #self.storages = dict()
@@ -32,10 +33,9 @@ class Acquisition():
         self.pre_processes = {}
         self.intra_processes = {}
         self.post_processes = {}
-        self.transfer_worker_list = dict()
         # self.construct_writers(self.acquisition['writers'])
         # self.construct_storage(self.acquisition['storage'])
-        for operation_type, operation_dict in self.config.cfg['acquisition']['operations'].items():
+        for operation_type, operation_dict in self.config['acquisition']['operations'].items():
             self.construct_operations(operation_type, operation_dict)
         # self.construct_processes(self.acquisition['processes'])
 
