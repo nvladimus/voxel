@@ -73,7 +73,7 @@ class SimulatedLaser(Laser):
         for attribute, state in MODULATION_MODES[value].items():
             setattr(self, attribute, state)
     @property
-    def temperature(self):
+    def signal_temperature_c(self):
         return self._temperature
 
     def status(self):

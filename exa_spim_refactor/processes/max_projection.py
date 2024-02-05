@@ -92,7 +92,6 @@ class MaxProjection(Process):
         while frame_index < self.frame_count:
             if self.new_image.is_set():
                 self.latest_img = np.ndarray(self.shm_shape, self.data_type, buffer=self.shm.buf)
-                print(np.max(self.latest_img[:]))
                 self.mip_xy = np.maximum(self.mip_xy, self.latest_img).astype(np.uint16)
                 self.mip_yz[:, frame_index] = np.max(self.latest_img, axis=0)
                 self.mip_xz[frame_index, :] = np.max(self.latest_img, axis=1)

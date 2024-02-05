@@ -57,21 +57,21 @@ class DAQ:
         print(dev, self.devs)
         if dev not in self.devs:
             raise ValueError("dev name must be one of %r." % self.devs)        
-        self.dev_name = dev
-        self.dev = nidaqmx.system.device.Device(self.dev_name)
+        self.id = dev
+        self.dev = nidaqmx.system.device.Device(self.id)
         self.ao_physical_chans = self.dev.ao_physical_chans.channel_names
-        self.ao_physical_chans = [channel.replace(f'{self.dev_name}/', "") for channel in self.ao_physical_chans]
+        self.ao_physical_chans = [channel.replace(f'{self.id}/', "") for channel in self.ao_physical_chans]
         self.co_physical_chans = self.dev.co_physical_chans.channel_names
-        self.co_physical_chans = [channel.replace(f'{self.dev_name}/', "") for channel in self.co_physical_chans]
+        self.co_physical_chans = [channel.replace(f'{self.id}/', "") for channel in self.co_physical_chans]
         self.dio_ports = self.dev.do_ports.channel_names
-        self.dio_ports = [channel.replace(f'{self.dev_name}/', "") for channel in self.dio_ports]
+        self.dio_ports = [channel.replace(f'{self.id}/', "") for channel in self.dio_ports]
         self.dio_ports = [channel.replace(f'port', "PFI") for channel in self.dio_ports]
         self.dio_lines = self.dev.do_lines.channel_names
-        self.ao_max_rate = self.dev.ao_max_rate
-        self.ao_min_rate = self.dev.ao_min_rate
-        self.do_max_rate = self.dev.do_max_rate
-        self.ao_max_volts = self.dev.ao_voltage_rngs[1]
-        self.ao_min_volts = self.dev.ao_voltage_rngs[0]
+        self.max_ao_rate = self.dev.ao_max_rate
+        self.min_ao_rate = self.dev.ao_min_rate
+        self.max_do_rate = self.dev.do_max_rate
+        self.max_ao_volts = self.dev.ao_voltage_rngs[1]
+        self.min_ao_volts = self.dev.ao_voltage_rngs[0]
         self.log.info('resetting nidaq')
         self.dev.reset_device()
         self.tasks = list()
@@ -115,16 +115,16 @@ class DAQ:
             raise ValueError("Period time must be >0 ms")
 
         sampling_frequency_hz = ao_task['timing']['sampling_frequency_hz']
-        if sampling_frequency_hz < self.ao_min_rate or sampling_frequency_hz > self.ao_max_rate:
-            raise ValueError(f"Sampling frequency must be >{self.ao_min_rate} Hz and \
-                             <{self.ao_max_rate} Hz!")
+        if sampling_frequency_hz < self.min_ao_rate or sampling_frequency_hz > self.max_ao_rate:
+            raise ValueError(f"Sampling frequency must be >{self.min_ao_rate} Hz and \
+                             <{self.max_ao_rate} Hz!")
 
         for channel in ao_task['ports']:
             # add channel to task
             channel_port = channel['port']
             if channel_port not in self.ao_physical_chans:
                 raise ValueError("ao number must be one of %r." % self.ao_physical_chans)
-            physical_name = f"/{self.dev_name}/{channel_port}"
+            physical_name = f"/{self.id}/{channel_port}"
             self.ao_task.ao_channels.add_ao_voltage_chan(physical_name)
 
         total_time_ms = period_time_ms + rest_time_ms
@@ -139,7 +139,7 @@ class DAQ:
                 samps_per_chan = daq_samples)
 
             self.ao_task.triggers.start_trigger.cfg_dig_edge_start_trig(
-                trigger_source=f'/{self.dev_name}/{trigger_port}',
+                trigger_source=f'/{self.id}/{trigger_port}',
                 trigger_edge=TRIGGER_EDGE[trigger_polarity])
 
             self.ao_task.triggers.start_trigger.retriggerable = RETRIGGERABLE_MODE[retriggerable]
@@ -169,9 +169,9 @@ class DAQ:
             raise ValueError("Period time must be >0 ms")
 
         sampling_frequency_hz = ao_task['timing']['sampling_frequency_hz']
-        if sampling_frequency_hz < 0 or sampling_frequency_hz > self.ao_max_rate:
+        if sampling_frequency_hz < 0 or sampling_frequency_hz > self.max_ao_rate:
             raise ValueError(f"Sampling frequency must be >0 Hz and \
-                             <{self.ao_max_rate} Hz!")
+                             <{self.max_ao_rate} Hz!")
 
         # store these values as properties for plotting purposes
         self.ao_sampling_frequency_hz = sampling_frequency_hz
@@ -196,11 +196,11 @@ class DAQ:
                     if end_time_ms > period_time_ms or end_time_ms < start_time_ms:
                         raise ValueError("end time must be < period time and > start time")
                     max_volts = channel['parameters']['max_volts']['channels'][wavelength]
-                    if max_volts > self.ao_max_volts:
-                        raise ValueError(f"max volts must be < {self.ao_max_volts} volts")
+                    if max_volts > self.max_ao_volts:
+                        raise ValueError(f"max volts must be < {self.max_ao_volts} volts")
                     min_volts = channel['parameters']['min_volts']['channels'][wavelength]
-                    if min_volts < self.ao_min_volts:
-                        raise ValueError(f"min volts must be > {self.ao_min_volts} volts")
+                    if min_volts < self.min_ao_volts:
+                        raise ValueError(f"min volts must be > {self.min_ao_volts} volts")
                 except:
                     raise ValueError("missing input parameter for square wave")
                 voltages = self.square_wave(sampling_frequency_hz,
@@ -222,8 +222,8 @@ class DAQ:
                         raise ValueError("end time must be < period time and > start time")
                     amplitude_volts = channel['parameters']['amplitude_volts']['channels'][wavelength]
                     offset_volts = channel['parameters']['offset_volts']['channels'][wavelength]
-                    if offset_volts < self.ao_min_volts or offset_volts > self.ao_max_volts:
-                        raise ValueError(f"min volts must be > {self.ao_min_volts} volts and < {self.ao_max_volts} volts")
+                    if offset_volts < self.min_ao_volts or offset_volts > self.max_ao_volts:
+                        raise ValueError(f"min volts must be > {self.min_ao_volts} volts and < {self.max_ao_volts} volts")
                     cutoff_frequency_hz = channel['parameters']['cutoff_frequency_hz']['channels'][wavelength]
                     if cutoff_frequency_hz < 0:
                         raise ValueError(f"cutoff frequnecy must be > 0 Hz")
@@ -248,8 +248,8 @@ class DAQ:
                         raise ValueError("end time must be < period time and > start time")
                     amplitude_volts = channel['parameters']['amplitude_volts']['channels'][wavelength]
                     offset_volts = channel['parameters']['offset_volts']['channels'][wavelength]
-                    if offset_volts < self.ao_min_volts or offset_volts > self.ao_max_volts:
-                        raise ValueError(f"min volts must be > {self.ao_min_volts} volts and < {self.ao_max_volts} volts")
+                    if offset_volts < self.min_ao_volts or offset_volts > self.max_ao_volts:
+                        raise ValueError(f"min volts must be > {self.min_ao_volts} volts and < {self.max_ao_volts} volts")
                     cutoff_frequency_hz = channel['parameters']['cutoff_frequency_hz']['channels'][wavelength]
                     if cutoff_frequency_hz < 0:
                         raise ValueError(f"cutoff frequnecy must be > 0 Hz")
@@ -266,8 +266,8 @@ class DAQ:
                                             )
 
             # sanity check voltages for ni card range
-            if numpy.max(voltages[:]) > self.ao_max_volts or numpy.min(voltages[:]) < self.ao_min_volts:
-                raise ValueError(f"voltages are out of ni card range [{self.ao_min_volts}, {self.ao_max_volts}] volts")
+            if numpy.max(voltages[:]) > self.max_ao_volts or numpy.min(voltages[:]) < self.min_ao_volts:
+                raise ValueError(f"voltages are out of ni card range [{self.min_ao_volts}, {self.max_ao_volts}] volts")
 
             # sanity check voltages for device range
             if numpy.max(voltages[:]) > device_max_volts or numpy.min(voltages[:]) < device_min_volts:
@@ -307,7 +307,7 @@ class DAQ:
             channel_number = channel['counter']
             if channel_number not in self.co_physical_chans:
                 raise ValueError("co number must be one of %r." % self.co_physical_chans)
-            physical_name = f"/{self.dev_name}/{channel_number}"
+            physical_name = f"/{self.id}/{channel_number}"
             co_chan = self.co_task.co_channels.add_co_pulse_chan_freq(
                 counter = physical_name,
                 units = Freq.HZ,
@@ -315,7 +315,7 @@ class DAQ:
                 duty_cycle = 0.5
                 )
 
-            co_chan.co_pulse_term = f'/{self.dev_name}/{output_port}'
+            co_chan.co_pulse_term = f'/{self.id}/{output_port}'
 
             optional_kwds = {}
             # don't specify samps_per_chan to use default value if it was specified
@@ -336,7 +336,7 @@ class DAQ:
             channel_number = channel['port']
             if channel_number not in self.dio_ports:
                 raise ValueError("do port must be one of %r." % self.dio_ports)
-            physical_name = f"/{self.dev_name}/{channel_number}"
+            physical_name = f"/{self.id}/{channel_number}"
             self.do_task.do_channels.add_do_chan(physical_name)
 
         trigger_polarity = do_task['timing']['trigger_polarity']
@@ -368,9 +368,9 @@ class DAQ:
             raise ValueError("Period time must be >0 ms")
 
         sampling_frequency_hz = do_task['timing']['sampling_frequency_hz']
-        if sampling_frequency_hz < 0 or sampling_frequency_hz > self.ao_max_rate:
+        if sampling_frequency_hz < 0 or sampling_frequency_hz > self.max_ao_rate:
             raise ValueError(f"Sampling frequency must be >0 Hz and \
-                             <{self.ao_max_rate} Hz!")
+                             <{self.max_ao_rate} Hz!")
 
         daq_samples = int((period_time_ms/1000)*sampling_frequency_hz)
 
@@ -383,7 +383,7 @@ class DAQ:
                 samps_per_chan = daq_samples)
 
             self.do_task.triggers.start_trigger.cfg_dig_edge_start_trig(
-                trigger_source=f'/{self.dev_name}/{trigger_port}',
+                trigger_source=f'/{self.id}/{trigger_port}',
                 trigger_edge=TRIGGER_EDGE[trigger_polarity])
 
             self.do_task.triggers.start_trigger.retriggerable = RETRIGGERABLE_MODE[retriggerable]
@@ -411,9 +411,9 @@ class DAQ:
             raise ValueError("Period time must be >0 ms")
 
         sampling_frequency_hz = do_task['timing']['sampling_frequency_hz']
-        if sampling_frequency_hz < 0 or sampling_frequency_hz > self.do_max_rate:
+        if sampling_frequency_hz < 0 or sampling_frequency_hz > self.max_do_rate:
             raise ValueError(f"Sampling frequency must be >0 Hz and \
-                             <{self.do_max_rate} Hz!")
+                             <{self.max_do_rate} Hz!")
 
         for channel in do_task['ports']:
             # load waveform and variables

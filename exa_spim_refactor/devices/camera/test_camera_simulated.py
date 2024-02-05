@@ -35,7 +35,7 @@ print(f'roi is: {cameras[0].roi}')
 cameras[0].prepare()
 cameras[0].start(10)
 for frame in range(10):
-	cameras[0].get_camera_acquisition_state()
+	cameras[0].signal_acquisition_state()
 	cameras[0].grab_frame()
 cameras[0].stop()
 cameras[0].log_metadata()

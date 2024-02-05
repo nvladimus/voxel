@@ -13,7 +13,7 @@ class BaseTunableLens:
         pass
 
     @property
-    def temperature(self):
+    def signal_temperature_c(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 

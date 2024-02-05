@@ -93,12 +93,12 @@ class BaseCamera:
         pass
 
     @property
-    def mainboard_temperature_c(self):
+    def signal_mainboard_temperature_c(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
     @property
-    def sensor_temperature_c(self):
+    def signal_sensor_temperature_c(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -106,7 +106,7 @@ class BaseCamera:
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    def start(self, frame_count: int, live: bool = False):
+    def start(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -118,7 +118,7 @@ class BaseCamera:
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    def get_camera_acquisition_state(self):
+    def signal_acquisition_state(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
