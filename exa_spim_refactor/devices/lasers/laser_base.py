@@ -20,7 +20,7 @@ class Laser(ABC):
 
     @property
     @abstractmethod
-    def temperature(self):
+    def signal_temperature_c(self):
         pass
 
     @abstractmethod

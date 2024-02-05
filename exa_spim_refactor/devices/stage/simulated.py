@@ -8,6 +8,8 @@ class Stage(BaseStage):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.hardware_axis = hardware_axis.upper()
         self.instrument_axis = instrument_axis.lower()
+        # TODO change this, but self.id for consistency in lookup
+        self.id = self.instrument_axis
         self.simulated_position = 0
         self.simulated_speed = 0
 

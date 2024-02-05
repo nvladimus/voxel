@@ -6,7 +6,10 @@ __pycache__/
 # Generated files
 *.pdf
 *.ims
+*.h5
+*.bdv
 *.tiff
+*.xml
 
 # C extensions
 *.so

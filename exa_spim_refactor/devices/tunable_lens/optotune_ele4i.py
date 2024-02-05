@@ -1,6 +1,7 @@
 import logging
-from .base import BaseTunableLens
+import struct
 import serial
+from base import BaseTunableLens
 
 # constants for Optotune EL-E-4i controller
 
@@ -9,23 +10,36 @@ MODES = {
     "internal": ['MwCA', '>xxxBhh'],
 }
 
+def crc_16(s):
+    crc = 0x0000
+    for c in s:
+        crc = crc ^ c
+        for i in range(0, 8):
+            crc = (crc >> 1) ^ 0xA001 if (crc & 1) > 0 else crc >> 1
+
+    return crc
+
 class TunableLens(BaseTunableLens):
 
     def __init__(self, port: str):
-        """Connect to hardware.
 
-        :param tigerbox: TigerController instance.
-        :param hardware_axis: stage hardware axis.
-        """
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        # (!!) hardcode debug to false
+        self.debug = False
         self.tunable_lens = serial.Serial(port=port, baudrate=115200, timeout=1)
         self.tunable_lens.flush()
+        # set id to serial number of lens
+        self.id = self.send_command('X', '>x8s')[0].decode('ascii')
 
     @property
     def mode(self):
         """Get the tunable lens control mode."""
         mode = self.send_command('MMA', '>xxxB')[0]
-        return mode
+
+        if mode == 1:
+            return 'internal'
+        if mode == 5:
+            return 'external'
 
     @mode.setter
     def mode(self, mode: str):
@@ -38,9 +52,11 @@ class TunableLens(BaseTunableLens):
         self.send_command(mode_list[0], mode_list[1])
 
     @property
-    def temperature(self):
+    def signal_temperature_c(self):
         """Get the temperature in deg C."""
-        return self.send_command(b'TCA', '>xxxh')[0] * 0.0625
+        state = {}
+        state['Temperature [C]'] = self.send_command(b'TCA', '>xxxh')[0] * 0.0625
+        return state
 
     def send_command(self, command, reply_fmt=None):
         if type(command) is not bytes:
@@ -49,11 +65,11 @@ class TunableLens(BaseTunableLens):
         if self.debug:
             commandhex = ' '.join('{:02x}'.format(c) for c in command)
             print('{:<50} ¦ {}'.format(commandhex, command))
-        self.connection.write(command)
+        self.tunable_lens.write(command)
 
         if reply_fmt is not None:
             response_size = struct.calcsize(reply_fmt)
-            response = self.connection.read(response_size+4)
+            response = self.tunable_lens.read(response_size+4)
             if self.debug:
                 responsehex = ' '.join('{:02x}'.format(c) for c in response)
                 print('{:>50} ¦ {}'.format(responsehex, response))

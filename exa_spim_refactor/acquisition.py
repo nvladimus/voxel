@@ -75,15 +75,15 @@ class Acquisition():
 
     def engine(self, tile, filename, camera, writer):
 
-        writer.row_count = camera.roi['height_px']
-        writer.column_count = camera.roi['width_px']
-        writer.frame_count = tile['frame_count']
-        writer.x_pos_mm = tile['position_mm']['x']
-        writer.y_pos_mm = tile['position_mm']['y']
-        writer.z_pos_mm = tile['position_mm']['z']
-        writer.x_voxel_size = tile['voxel_size_um']['x']
-        writer.y_voxel_size = tile['voxel_size_um']['x']
-        writer.z_voxel_size = tile['voxel_size_um']['x']
+        writer.row_count_px = camera.roi['height_px']
+        writer.column_count_px = camera.roi['width_px']
+        writer.frame_count_px = tile['frame_count']
+        writer.x_position_mm = tile['position_mm']['x']
+        writer.y_position_mm = tile['position_mm']['y']
+        writer.z_position_mm = tile['position_mm']['z']
+        writer.x_voxel_size_um = tile['voxel_size_um']['x']
+        writer.y_voxel_size_um = tile['voxel_size_um']['x']
+        writer.z_voxel_size_um = tile['voxel_size_um']['x']
         #writer.path = writer['local_drive']
         writer.filename = filename
         writer.channel = tile['channel']

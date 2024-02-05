@@ -5,7 +5,6 @@ from .base import BaseCamera
 from multiprocessing import Process
 from threading import Thread
 
-# constants for VP-151MX camera
 BUFFER_SIZE_FRAMES = 8
 MIN_WIDTH_PX = 64    
 MAX_WIDTH_PX = 14192
@@ -154,26 +153,26 @@ class Camera(BaseCamera):
         image = self.buffer.pop(0)
         return image
 
-    def get_camera_acquisition_state(self):
+    def signal_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""
         # Detailed description of constants here:
         # https://documentation.euresys.com/Products/Coaxlink/Coaxlink/en-us/Content/IOdoc/egrabber-reference/
         # namespace_gen_t_l.html#a6b498d9a4c08dea2c44566722699706e
         state = {}
-        state['frame_index'] = self.frame
-        state['in_buffer_size'] = len(self.buffer)
-        state['out_buffer_size'] = BUFFER_SIZE_FRAMES - len(self.buffer)
+        state['Frame Index'] = self.frame
+        state['Input Buffer Size'] = len(self.buffer)
+        state['Output Buffer Size'] = BUFFER_SIZE_FRAMES - len(self.buffer)
          # number of underrun, i.e. dropped frames
-        state['dropped_frames'] = self.dropped_frames
-        state['data_rate'] = self.frame_rate*self.simulated_width_px*self.simulated_height_px*numpy.dtype(self.simulated_pixel_type).itemsize/1e6
-        state['frame_rate'] = self.frame_rate
+        state['Dropped Frames'] = self.dropped_frames
+        state['Data Rate [MB/s]'] = self.frame_rate*self.simulated_width_px*self.simulated_height_px*numpy.dtype(self.simulated_pixel_type).itemsize/1e6
+        state['Frame Rate [fps]'] = self.frame_rate
         self.log.info(f"id: {self.id}, "
-                      f"frame: {state['frame_index']}, "
-                      f"input: {state['in_buffer_size']}, "
-                      f"output: {state['out_buffer_size']}, "
-                      f"dropped: {state['dropped_frames']}, "
-                      f"data rate: {state['data_rate']:.2f} [MB/s], "
-                      f"frame rate: {state['frame_rate']:.2f} [fps].")
+                      f"frame: {state['Frame Index']}, "
+                      f"input: {state['Input Buffer Size']}, "
+                      f"output: {state['Output Buffer Size']}, "
+                      f"dropped: {state['Dropped Frames']}, "
+                      f"data rate: {state['Data Rate [MB/s]']:.2f} [MB/s], "
+                      f"frame rate: {state['Frame Rate [fps]']:.2f} [fps].")
 
     def generate_frames(self, frame_count: int):
         self.frame = 0
