@@ -4,7 +4,7 @@ import multiprocessing
 import re
 import os
 import sys
-import npy2bdv
+from bdv_writer import npy2bdv
 from multiprocessing import Process, Array, Value, Event
 from multiprocessing.shared_memory import SharedMemory
 from ctypes import c_wchar

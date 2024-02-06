@@ -6,6 +6,12 @@ from egrabber import *
 
 BUFFER_SIZE_MB = 2400
 
+BINNING = {
+    "1x1": 1,
+    "2x2": 2,
+    "4x4": 4
+}
+
 PIXEL_TYPES = {
     "mono8": "Mono8",
     "mono10": "Mono10",
@@ -78,6 +84,8 @@ class Camera(BaseCamera):
                 self.log.error(f"no grabber found for S/N: {self.id}")
                 raise ValueError(f"no grabber found for S/N: {self.id}")
         del grabber
+        # initialize binning as 1
+        self._binning = 1
         # grab min/max parameter values
         self.get_min_max_step_values()
 
@@ -237,8 +245,14 @@ class Camera(BaseCamera):
 
     @property
     def binning(self):
-        binning = 1
-        return binning
+        return next(key for key, value in BINNING.items() if value == self._binning)
+
+    @binning.setter
+    def binning(self, binning: str):
+        valid_binning = list(BINNING.keys())
+        if binning not in valid_binning:
+            raise ValueError("binning must be one of %r." % valid_binning)
+        self._binning = BINNING[binning]
 
     @property
     def sensor_width_px(self):
@@ -276,17 +290,15 @@ class Camera(BaseCamera):
             bit_to_byte = 1
         else:
             bit_to_byte = 2
-        frame_size_mb = self.roi['width_px']*self.roi['height_px']/self.binning**2*bit_to_byte/1e6
+        # software binning, so frame size is independent of binning factor
+        frame_size_mb = self.roi['width_px']*self.roi['height_px']*bit_to_byte/1e6
         self.buffer_size_frames = round(BUFFER_SIZE_MB / frame_size_mb)
         # realloc buffers appears to be allocating ram on the pc side, not camera side.
         self.grabber.realloc_buffers(self.buffer_size_frames)  # allocate RAM buffer N frames
         self.log.info(f"buffer set to: {self.buffer_size_frames} frames")
 
     def start(self):
-        if live:
-            self.grabber.start()
-        else:
-            self.grabber.start(frame_count)
+        self.grabber.start()
 
     def stop(self):
         self.grabber.stop()
@@ -307,7 +319,12 @@ class Camera(BaseCamera):
             image = numpy.frombuffer(data, count=int(column_count * row_count),
                                      dtype=numpy.uint16).reshape((row_count,
                                                                   column_count))
-        return image
+        # do software binning if != 1
+        if self._binning > 1:
+            return image[::self._binning, ::self._binning]
+            # TODO ADD GPUTOOLS LINE HERE
+        else:
+            return image
 
     def signal_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""
@@ -323,7 +340,8 @@ class Camera(BaseCamera):
         # number of underrun, i.e. dropped frames
         state['Dropped Frames'] = self.grabber.stream.get_info(STREAM_INFO_NUM_UNDERRUN,
                                                                INFO_DATATYPE_SIZET)
-        state['Data Rate [MB/s]'] = self.grabber.stream.get('StatisticsDataRate')
+        # adjust data rate based on internal software binning
+        state['Data Rate [MB/s]'] = self.grabber.stream.get('StatisticsDataRate')/self._binning**2
         state['Frame Rate [fps]'] = self.grabber.stream.get('StatisticsFrameRate')
         self.log.info(f"id: {self.id}, "
                       f"frame: {state['Frame Index']}, "
