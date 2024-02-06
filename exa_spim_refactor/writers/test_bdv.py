@@ -69,21 +69,21 @@ if __name__ == '__main__':
                 remaining_chunks = chunk_count - chunks_filled
             # Grab simulated frame
             if chunks_filled % 2 == 0:
-                img_buffer.write_buf[chunk_index] = \
+                img_buffer.add_image( \
                 numpy.random.randint(
                     low=0,
                     high=256,
                     size=(stack_writer_worker.row_count_px, stack_writer_worker.column_count_px),
                     dtype = config.cfg['writer']['data_type']
-                )
+                ))
             else:
-                img_buffer.write_buf[chunk_index] = \
+                img_buffer.add_image( \
                     numpy.random.randint(
                         low=0,
                         high=32,
                         size=(stack_writer_worker.row_count_px, stack_writer_worker.column_count_px),
                         dtype = config.cfg['writer']['data_type']
-                    )
+                    ))
             # mimic 5 fps imaging
             time.sleep(0.05)
             frame_index += 1

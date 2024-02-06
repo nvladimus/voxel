@@ -65,26 +65,28 @@ if __name__ == '__main__':
         for stack_index in range(num_frames):
             chunk_index = stack_index % chunk_size_frames
             # Start a batch of pulses to generate more frames and movements.
+            img_buffer.get_last_image()
             if chunk_index == 0:
                 chunks_filled = math.floor(stack_index / chunk_size_frames)
                 remaining_chunks = chunk_count - chunks_filled
             # Grab simulated frame
             if chunks_filled % 2 == 0:
-                img_buffer.write_buf[chunk_index] = \
+                img_buffer.add_image( \
                 numpy.random.randint(
                     low=0,
                     high=256,
                     size=(stack_writer_worker.row_count_px, stack_writer_worker.column_count_px),
                     dtype = config.cfg['writer']['data_type']
-                )
+                ))
             else:
-                img_buffer.write_buf[chunk_index] = \
+                img_buffer.add_image( \
                     numpy.random.randint(
                         low=0,
                         high=32,
                         size=(stack_writer_worker.row_count_px, stack_writer_worker.column_count_px),
                         dtype = config.cfg['writer']['data_type']
-                    )
+                    ))
+
             # mimic 5 fps imaging
             time.sleep(0.05)
             frame_index += 1

@@ -9,7 +9,38 @@ import skimage.transform
 import shutil
 from pathlib import Path
 from tqdm import trange
+from gputools import OCLProgram, OCLArray, get_device
 
+class SubSample:
+    def __init__(self):
+        # opencl kernel
+        self.kernel = """
+        __kernel void downsample2d(__global short * input,
+                                   __global short * output){
+          int i = get_global_id(0);
+          int j = get_global_id(1);
+          int Nx = get_global_size(0);
+          int Ny = get_global_size(1);
+          int res = 0; 
+
+          for (int m = 0; m < BLOCK; ++m) 
+             for (int n = 0; n < BLOCK; ++n) 
+                  res+=input[BLOCK*Nx*(BLOCK*j+m)+BLOCK*i+n];
+          output[Nx*j+i] = (short)(res/BLOCK/BLOCK);
+        }
+        """
+
+    def compute(self, image, downsample_factor):
+
+        prog = OCLProgram(src_str=self.kernel,
+                       build_options=['-D', f'BLOCK={downsample_factor}'])
+        x_g = OCLArray.from_array(image)
+        y_g = OCLArray.empty(tuple(s // downsample_factor for s in image.shape), image.dtype)
+        prog.run_kernel(f'downsample2d', y_g.shape[::-1],
+                             None, x_g.data, y_g.data)
+        downsampled_image = y_g.get()
+
+        return downsampled_image
 
 class BdvBase:
     __version__ = "2022.08"
@@ -49,6 +80,7 @@ class BdvBase:
         self.ntimes = self.nilluminations = self.nchannels = self.ntiles = self.nangles = self.nsetups = 0
         self.compression = None
         self.compressions_supported = (None, 'gzip', 'lzf', 'b3d')
+        self.subsample = SubSample()
 
     def _determine_setup_id(self, illumination=0, channel=0, tile=0, angle=0):
         """Takes the view attributes (illumination, channel, tile, angle) and converts them into unique setup_id.
@@ -170,7 +202,7 @@ class BdvBase:
             if level and (not elem.tail or not elem.tail.strip()):
                 elem.tail = i
 
-    def _subsample_stack(self, stack, subsamp_level):
+    def _subsample_stack(self, stack: np.array, subsamp_level: tuple):
         """Subsampling of a 3d stack.
 
         Parameters:
@@ -185,7 +217,9 @@ class BdvBase:
         if all(subsamp_level[:] == 1):
             stack_sub = stack
         else:
-            stack_sub = skimage.transform.downscale_local_mean(stack, tuple(subsamp_level)).astype(np.uint16)
+            # stack_sub = skimage.transform.downscale_local_mean(stack, tuple(subsamp_level)).astype(np.uint16)
+            # stack_sub = stack[::subsamp_level[0], ::subsamp_level[1], ::subsamp_level[2]]
+            stack_sub = self.subsample.compute(image=stack, downsample_factor=subsamp_level)
         return stack_sub
 
     def _write_pyramids_header(self):

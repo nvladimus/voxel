@@ -282,6 +282,9 @@ class Camera(BaseCamera):
 
     @binning.setter
     def binning(self, binning: str):
+        valid_binning = list(BINNING.keys())
+        if binning not in valid_binning:
+            raise ValueError("binning must be one of %r." % valid_binning)
         self.dcam.prop_setvalue(PROPERTIES["binning"], BINNING[binning])
         self.log.info(f"binning set to: {binning}")
         # refresh parameter values

@@ -32,13 +32,15 @@ for camera in config.cfg['devices']['cameras']:
 	}
 
 cameras[-1].roi = {
-	'width_px': 2048, 
+	'width_px': 14192, 
 	'height_px': 10640
 }
 
+cameras[-1].binning = '4x4'
+
 frames = 10
 cameras[-1].prepare()
-cameras[-1].start(frames)
+cameras[-1].start()
 
 for i in range(frames):
 	cameras[-1].grab_frame()
