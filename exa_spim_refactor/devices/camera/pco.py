@@ -7,9 +7,9 @@ from pco import *
 BUFFER_SIZE_MB = 2400
 
 BINNING = {
-    "1x1": 1,
-    "2x2": 2,
-    "4x4": 4
+    1: 1,
+    2: 2,
+    4: 4
 }
 
 # full pco trigger mappings

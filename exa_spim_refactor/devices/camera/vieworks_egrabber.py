@@ -6,27 +6,14 @@ from egrabber import *
 
 BUFFER_SIZE_MB = 2400
 
-BINNING = {
-    "1x1": 1,
-    "2x2": 2,
-    "4x4": 4
-}
+# generate valid binning by querying egrabber
+BINNING = dict()
 
-PIXEL_TYPES = {
-    "mono8": "Mono8",
-    "mono10": "Mono10",
-    "mono12": "Mono12",
-    "mono14": "Mono14",
-    "mono16": "Mono16"
-}
+# generate valid pixel types by querying egrabber
+PIXEL_TYPES = dict()
 
-LINE_INTERVALS_US = {
-    "mono8": 15.00,
-    "mono10": 15.00,
-    "mono12": 15.00,
-    "mono14": 20.21,
-    "mono16": 45.44
-}
+# generate line intervals by querying egrabber
+LINE_INTERVALS_US = dict()
 
 BIT_PACKING_MODES = {
     "msb": "Msb",
@@ -71,10 +58,13 @@ class Camera(BaseCamera):
                             }
                     egrabber_list['grabbers'].append(info)
         del discovery
-        # indentify by serial number and return correct grabber
-        for grabber in egrabber_list['grabbers']:
+        # identify by serial number and return correct grabber
+        if not egrabber_list['grabbers']:
+            raise ValueError('no valid cameras found. check connections and close any software.')
+
+        for egrabber in egrabber_list['grabbers']:
             try:
-                grabber = EGrabber(gentl, grabber['interface'], grabber['device'], grabber['stream'],
+                grabber = EGrabber(gentl, egrabber['interface'], egrabber['device'], egrabber['stream'],
                                    remote_required=True)
                 if grabber.remote.get('DeviceSerialNumber') == self.id:
                     self.log.info(f"grabber found for S/N: {self.id}")
@@ -87,7 +77,11 @@ class Camera(BaseCamera):
         # initialize binning as 1
         self._binning = 1
         # grab min/max parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
+        # check binning options
+        self._query_binning()
+        # check pixel types options
+        self._query_pixel_types()
 
     @property
     def exposure_time_ms(self):
@@ -108,7 +102,7 @@ class Camera(BaseCamera):
         self.grabber.remote.set("ExposureTime", round(exposure_time_ms * 1e3, 1))
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def roi(self):
@@ -124,7 +118,7 @@ class Camera(BaseCamera):
         self.grabber.remote.set("OffsetX", 0)
         self.grabber.remote.set("OffsetY", 0)
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
         
         width_px = roi['width_px']
         height_px = roi['height_px']
@@ -164,7 +158,7 @@ class Camera(BaseCamera):
         self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
         self.log.info(f"roi offset set to: {centered_width_offset_px} x {centered_height_offset_px} [width x height]")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def pixel_type(self):
@@ -183,7 +177,7 @@ class Camera(BaseCamera):
         self.grabber.remote.set("PixelFormat", PIXEL_TYPES[pixel_type_bits])
         self.log.info(f"pixel type set to: {pixel_type_bits}")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def bit_packing_mode(self):
@@ -201,7 +195,7 @@ class Camera(BaseCamera):
         self.grabber.stream.set("UnpackingMode", BIT_PACKING_MODES[bit_packing])
         self.log.info(f"bit packing mode set to: {bit_packing}")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def line_interval_us(self):
@@ -241,7 +235,7 @@ class Camera(BaseCamera):
         self.grabber.remote.set("TriggerActivation", TRIGGERS['polarity'][polarity])
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def binning(self):
@@ -253,6 +247,10 @@ class Camera(BaseCamera):
         if binning not in valid_binning:
             raise ValueError("binning must be one of %r." % valid_binning)
         self._binning = BINNING[binning]
+        # if binning is not an integer, do it in hardware
+        if not isinstance(BINNING[binning], int):
+            self.grabber.remote.set("BinningHorizontal", self._binning)
+            self.grabber.remote.set("BinningVertical", self._binning)
 
     @property
     def sensor_width_px(self):
@@ -319,8 +317,9 @@ class Camera(BaseCamera):
             image = numpy.frombuffer(data, count=int(column_count * row_count),
                                      dtype=numpy.uint16).reshape((row_count,
                                                                   column_count))
-        # do software binning if != 1
-        if self._binning > 1:
+        # do software binning if != 1 and not a string for setting in egrabber
+        if self._binning > 1 and isinstance(self._binning, int):
+            # decimate binning
             return image[::self._binning, ::self._binning]
             # TODO ADD GPUTOOLS LINE HERE
         else:
@@ -402,7 +401,7 @@ class Camera(BaseCamera):
                         if not self.grabber.system.get(query.command(feature)):
                             self.log.info(f'system, {feature}, {self.grabber.system.get(feature)}')
 
-    def get_min_max_step_values(self):
+    def _get_min_max_step_values(self):
 
         # gather min max values. all may not be available for certain cameras.
         # minimum exposure time
@@ -513,3 +512,52 @@ class Camera(BaseCamera):
             print(f"step offset y is: {self.step_offset_y_px} px")
         except:
             self.log.debug(f"step offset y not available for camera {self.id}")
+
+    def _query_binning(self):
+        # egrabber defines 1 as 'X1', 2 as 'X2', 3 as 'X3'...
+        # check only horizontal since we will use same binning for vertical
+        binning_options = self.grabber.remote.get("@ee BinningHorizontal", dtype=list)
+        for binning in binning_options:
+            try:
+                self.grabber.remote.set("BinningHorizontal", binning)
+                # generate integer key
+                key = int(binning.replace("X", ""))
+                BINNING[key] = binning
+            except:
+                self.log.debug(f"{binning} not avaiable on this camera")
+                # only implement software binning for even numbers
+                if int(binning.replace("X", "")) % 2 == 0:
+                    self.log.debug(f"{binning} will be implemented through software")
+                    key = int(binning.replace("X", ""))
+                    BINNING[key] = key
+
+        # initialize binning as 1
+        self.grabber.remote.set("BinningHorizontal", BINNING[1])
+
+    def _query_pixel_types(self):
+        # egrabber defines as 'Mono8', 'Mono12', 'Mono16'...
+        pixel_type_options = self.grabber.remote.get("@ee PixelFormat", dtype=list)
+        for pixel_type in pixel_type_options:
+            try:
+                self.grabber.remote.set("PixelFormat", pixel_type)
+                # generate lowercase string key
+                key = pixel_type.lower()
+                PIXEL_TYPES[key] = pixel_type
+            except:
+                self.log.debug(f"{pixel_type} not avaiable on this camera")
+        # initialize pixel type as mono16
+        self.grabber.remote.set("PixelFormat", PIXEL_TYPES["mono16"])
+
+        # once the pixel types are found, detrmine line intervals
+        self._query_line_intervals()
+
+    def _query_line_intervals(self):
+
+        for key in PIXEL_TYPES:
+            # set pixel type
+            self.grabber.remote.set("PixelFormat", PIXEL_TYPES[key])
+            # check max acquisition rate, used to determine line interval
+            max_frame_rate = self.grabber.remote.get("AcquisitionFrameRate.Max")
+            line_interval_s = (1/max_frame_rate)/self.sensor_height_px
+            # conver from s to us and store
+            LINE_INTERVALS_US[key] = line_interval_s*1e6

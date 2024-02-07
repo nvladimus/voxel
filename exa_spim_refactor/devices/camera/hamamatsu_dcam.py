@@ -34,9 +34,9 @@ PIXEL_TYPES = {
 }
 
 BINNING = {
-    "1x1": 1,
-    "2x2": 2,
-    "4x4": 4
+    1: 1,
+    2: 2,
+    4: 4
 }
 
 # full dcam trigger modes mapping
@@ -119,7 +119,7 @@ class Camera(BaseCamera):
         else:
             self.log.error('Dcamapi.init() fails with error {}'.format(Dcamapi.lasterr()))
         # grab parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def exposure_time_ms(self):
@@ -419,7 +419,7 @@ class Camera(BaseCamera):
             self.log.info(f'{propname}, {propvalue}')
             idprop = self.dcam.prop_getnextid(idprop)
 
-    def get_min_max_step_values(self):
+    def _get_min_max_step_values(self):
         # gather min max values
         # convert from s to ms
         self.min_exposure_time_ms = self.dcam.prop_getattr(PROPERTIES["exposure_time"]).valuemin*1e3
@@ -461,16 +461,3 @@ class Camera(BaseCamera):
         self.log.info(f"step height is: {self.step_height_px} px")
         self.log.info(f"step offset x is: {self.step_offset_x_px} px")
         self.log.info(f"step offset y is: {self.step_offset_y_px} px")
-
-        print(f"min exposure time is: {self.min_exposure_time_ms} ms")
-        print(f"max exposure time is: {self.max_exposure_time_ms} ms")
-        print(f"min line interval is: {self.min_line_interval_us} us")
-        print(f"max line interval is: {self.max_line_interval_us} us")
-        print(f"min width is: {self.min_width_px} px")
-        print(f"max width is: {self.max_width_px} px")
-        print(f"min height is: {self.min_height_px} px")
-        print(f"max height is: {self.max_height_px} px")
-        print(f"step exposure time is: {self.step_exposure_time_ms} ms")
-        print(f"step line interval is: {self.step_line_interval_us} us")
-        print(f"step width is: {self.step_width_px} px")
-        print(f"step height is: {self.step_height_px} px")
