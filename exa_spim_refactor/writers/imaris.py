@@ -4,7 +4,7 @@ import multiprocessing
 import re
 import os
 import sys
-from multiprocessing import Process, Array, Event
+from multiprocessing import Process, Array, Value, Event
 from multiprocessing.shared_memory import SharedMemory
 from ctypes import c_wchar
 from PyImarisWriter import PyImarisWriter as pw
@@ -14,7 +14,7 @@ from matplotlib.colors import hex2color
 from time import sleep, perf_counter
 from math import ceil
 
-CHUNK_SIZE = 64
+CHUNK_COUNT_PX = 64
 
 COMPRESSION_TYPES = {
     "lz4shuffle":  pw.eCompressionAlgorithmShuffleLZ4,
@@ -68,89 +68,94 @@ class Writer():
         self.callback_class = ImarisProgressChecker()
 
     @property
-    def x_voxel_size(self):
-        return self._x_voxel_size
-
-    @x_voxel_size.setter
-    def x_voxel_size(self, x_voxel_size: float):
-        self.log.info(f'setting x voxel size to: {x_voxel_size} [um]')
-        self._x_voxel_size = x_voxel_size
+    def signal_progress_percent(self):
+        # convert to %
+        return self.progress*100
 
     @property
-    def y_voxel_size(self):
-        return self._y_voxel_size
+    def x_voxel_size_um(self):
+        return self._x_voxel_size_um
 
-    @y_voxel_size.setter
-    def y_voxel_size(self, y_voxel_size: float):
-        self.log.info(f'setting y voxel size to: {y_voxel_size} [um]')
-        self._y_voxel_size = y_voxel_size
-
-    @property
-    def z_voxel_size(self):
-        return self._z_voxel_size
-
-    @z_voxel_size.setter
-    def z_voxel_size(self, z_voxel_size: float):
-        self.log.info(f'setting z voxel size to: {z_voxel_size} [um]')
-        self._z_voxel_size = z_voxel_size
+    @x_voxel_size_um.setter
+    def x_voxel_size_um(self, x_voxel_size_um: float):
+        self.log.info(f'setting x voxel size to: {x_voxel_size_um} [um]')
+        self._x_voxel_size_um = x_voxel_size_um
 
     @property
-    def x_pos_mm(self):
-        return self._x_pos_mm
+    def y_voxel_size_um(self):
+        return self._y_voxel_size_um
 
-    @x_pos_mm.setter
-    def x_pos_mm(self, x_pos_mm: float):
-        self.log.info(f'setting x position to: {x_pos_mm} [mm]')
-        self._x_pos_mm = x_pos_mm * 1000
-
-    @property
-    def y_pos_mm(self):
-        return self._y_pos_mm
-
-    @y_pos_mm.setter
-    def y_pos_mm(self, y_pos_mm: float):
-        self.log.info(f'setting y position to: {y_pos_mm} [mm]')
-        self._y_pos_mm = y_pos_mm * 1000
+    @y_voxel_size_um.setter
+    def y_voxel_size_um(self, y_voxel_size_um: float):
+        self.log.info(f'setting y voxel size to: {y_voxel_size_um} [um]')
+        self._y_voxel_size_um = y_voxel_size_um
 
     @property
-    def z_pos_mm(self):
-        return self._z_pos_mm
+    def z_voxel_size_um(self):
+        return self._z_voxel_size_um
 
-    @z_pos_mm.setter
-    def z_pos_mm(self, z_pos_mm: float):
-        self.log.info(f'setting z position to: {z_pos_mm} [mm]')
-        self._z_pos_mm = z_pos_mm * 1000
-
-    @property
-    def frame_count(self):
-        return self._frame_count
-
-    @frame_count.setter
-    def frame_count(self, frame_count: int):
-        self.log.info(f'setting frame count to: {frame_count} [px]')
-        self._frame_count = frame_count
+    @z_voxel_size_um.setter
+    def z_voxel_size_um(self, z_voxel_size_um: float):
+        self.log.info(f'setting z voxel size to: {z_voxel_size_um} [um]')
+        self._z_voxel_size_um = z_voxel_size_um
 
     @property
-    def column_count(self):
-        return self._colum_count
+    def x_position_mm(self):
+        return self._x_position_mm
 
-    @column_count.setter
-    def column_count(self, column_count: int):
-        self.log.info(f'setting column count to: {column_count} [px]')
-        self._colum_count = column_count
-
-    @property
-    def row_count(self):
-        return self._rows
-
-    @row_count.setter
-    def row_count(self, row_count: int):
-        self.log.info(f'setting row count to: {row_count} [px]')
-        self._rows = row_count
+    @x_position_mm.setter
+    def x_position_mm(self, x_position_mm: float):
+        self.log.info(f'setting x position to: {x_position_mm} [mm]')
+        self._x_position_mm = x_position_mm
 
     @property
-    def chunk_count(self):
-        return CHUNK_SIZE
+    def y_position_mm(self):
+        return self._y_position_mm
+
+    @y_position_mm.setter
+    def y_position_mm(self, y_position_mm: float):
+        self.log.info(f'setting y position to: {y_position_mm} [mm]')
+        self._y_position_mm = y_position_mm
+
+    @property
+    def z_position_mm(self):
+        return self._z_position_mm
+
+    @z_position_mm.setter
+    def z_position_mm(self, z_position_mm: float):
+        self.log.info(f'setting z position to: {z_position_mm} [mm]')
+        self._z_position_mm = z_position_mm
+
+    @property
+    def frame_count_px(self):
+        return self._frame_count_px
+
+    @frame_count_px.setter
+    def frame_count_px(self, frame_count_px: int):
+        self.log.info(f'setting frame count to: {frame_count_px} [px]')
+        self._frame_count_px = frame_count_px
+
+    @property
+    def column_count_px(self):
+        return self._column_count_px
+
+    @column_count_px.setter
+    def column_count_px(self, column_count_px: int):
+        self.log.info(f'setting column count to: {column_count_px} [px]')
+        self._column_count_px = column_count_px
+
+    @property
+    def row_count_px(self):
+        return self._row_count_px
+
+    @row_count_px.setter
+    def row_count_px(self, row_count_px: int):
+        self.log.info(f'setting row count to: {row_count_px} [px]')
+        self._row_count_px = row_count_px
+
+    @property
+    def chunk_count_px(self):
+        return CHUNK_COUNT_PX
 
     @property
     def compression(self):
@@ -235,9 +240,9 @@ class Writer():
         # Specs for reconstructing the shared memory object.
         self._shm_name = Array(c_wchar, 32)  # hidden and exposed via property.
         # This is almost always going to be: (chunk_size, rows, columns).
-        chunk_shape_map = {'x': self._colum_count,
-           'y': self._rows,
-           'z': CHUNK_SIZE}
+        chunk_shape_map = {'x': self._column_count_px,
+           'y': self._row_count_px,
+           'z': CHUNK_COUNT_PX}
         self.shm_shape = [chunk_shape_map[x] for x in self.chunk_dim_order]
         self.shm_nbytes = \
             int(np.prod(self.shm_shape, dtype=np.int64)*np.dtype(DATA_TYPES[self._data_type]).itemsize)
@@ -245,20 +250,20 @@ class Writer():
         self.application_name = 'PyImarisWriter'
         self.application_version = '1.0.0'
         # voxel size metadata to create the converter
-        self.image_size = pw.ImageSize(x=self._colum_count, y=self._rows, z=self._frame_count,
-                                       c=1, t=1)
-        self.block_size = pw.ImageSize(x=self._colum_count, y=self._rows, z=CHUNK_SIZE,
-                                       c=1, t=1)
+        self.image_size = pw.ImageSize(x=self._column_count_px, y=self._row_count_px, z=self._frame_count_px,
+                          c=1, t=1)
+        self.block_size = pw.ImageSize(x=self._column_count_px, y=self._row_count_px, z=CHUNK_COUNT_PX,
+                                  c=1, t=1)
         self.sample_size = pw.ImageSize(x=1, y=1, z=1, c=1, t=1)
         # compute the start/end extremes of the enclosed rectangular solid.
         # (x0, y0, z0) position (in [um]) of the beginning of the first voxel,
         # (xf, yf, zf) position (in [um]) of the end of the last voxel.
-        x0 = self._x_pos_mm - (self._x_voxel_size * 0.5 * self._colum_count)
-        y0 = self._y_pos_mm - (self._y_voxel_size * 0.5 * self._rows)
-        z0 = self._z_pos_mm
-        xf = self._x_pos_mm + (self._x_voxel_size * 0.5 * self._colum_count)
-        yf = self._y_pos_mm + (self._y_voxel_size * 0.5 * self._rows)
-        zf = self._z_pos_mm + self._frame_count * self._z_voxel_size
+        x0 = self._x_position_mm - (self._x_voxel_size_um * 0.5 * self._column_count_px)
+        y0 = self._y_position_mm - (self._y_voxel_size_um * 0.5 * self._row_count_px)
+        z0 = self._z_position_mm
+        xf = self._x_position_mm + (self._x_voxel_size_um * 0.5 * self._column_count_px)
+        yf = self._y_position_mm + (self._y_voxel_size_um * 0.5 * self._row_count_px)
+        zf = self._z_position_mm + self._frame_count_px * self._z_voxel_size_um
         self.image_extents = pw.ImageExtents(-x0, -y0, -z0, -xf, -yf, -zf)
         # c = channel, t = time. These fields are unused for now.
         # Note: ImarisWriter performs MUCH faster when the dimension sequence
@@ -280,10 +285,6 @@ class Writer():
         self.thread_count = 2*multiprocessing.cpu_count()
         self.opts.mNumberOfThreads = self.thread_count
         # set compression type
-        # if self.compression_style == 'lz4shuffle':
-        #     self.opts.mCompressionAlgorithmType = pw.eCompressionAlgorithmShuffleLZ4
-        # elif self.compression_style == 'none':
-        #     self.opts.mCompressionAlgorithmType = pw.eCompressionAlgorithmNone
         self.opts.mCompressionAlgorithmType = self._compression
         # color parameters
         self.adjust_color_range = False
@@ -310,15 +311,14 @@ class Writer():
         log_handler = logging.StreamHandler(sys.stdout)
         log_handler.setFormatter(log_formatter)
         logger.addHandler(log_handler)
-
         filepath = str((self._path / Path(f"{self._filename}")).absolute())
         converter = \
             pw.ImageConverter(DATA_TYPES[self._data_type], self.image_size, self.sample_size,
                               self.dimension_sequence, self.block_size, filepath, 
                               self.opts, self.application_name,
                               self.application_version, self.callback_class)
-        chunk_count = ceil(self._frame_count / CHUNK_SIZE)
-        for chunk_num in range(chunk_count):
+        chunk_total = ceil(self._frame_count_px/CHUNK_COUNT_PX)
+        for chunk_num in range(chunk_total):
             block_index = pw.ImageSize(x=0, y=0, z=chunk_num, c=0, t=0)
             # Wait for new data.
             while self.done_reading.is_set():
@@ -327,7 +327,7 @@ class Writer():
             shm = SharedMemory(self.shm_name, create=False, size=self.shm_nbytes)
             frames = np.ndarray(self.shm_shape, DATA_TYPES[self._data_type], buffer=shm.buf)
             logger.warning(f"{self._filename}: writing chunk "
-                  f"{chunk_num+1}/{chunk_count} of size {frames.shape}.")
+                  f"{chunk_num+1}/{chunk_total} of size {frames.shape}.")
             start_time = perf_counter()
             dim_order = [self.dim_map[x] for x in self.chunk_dim_order]
             # Put the frames back into x, y, z, c, t order.

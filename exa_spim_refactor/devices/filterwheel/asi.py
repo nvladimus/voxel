@@ -19,7 +19,7 @@ class FilterWheel(BaseFilterWheel):
         """
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.tigerbox = TigerController(port)
-        self.tiger_axis = id
+        self.id = id
         self.filters = filters
         # force homing of the wheel
         self.set_filter(next(key for key, value in self.filters.items() if value == 0))
@@ -35,7 +35,7 @@ class FilterWheel(BaseFilterWheel):
         cmd_str = f"MP {self.index}\r\n"
         self.log.info(f'setting filter to {filter_name}')
         # Note: the filter wheel has slightly different reply line termination.
-        self.tigerbox.send(f"FW {self.tiger_axis}\r\n", read_until=f"\n\r{self.tiger_axis}>")
-        self.tigerbox.send(cmd_str, read_until=f"\n\r{self.tiger_axis}>")
+        self.tigerbox.send(f"FW {self.id}\r\n", read_until=f"\n\r{self.id}>")
+        self.tigerbox.send(cmd_str, read_until=f"\n\r{self.id}>")
         # TODO: add "busy" check because tigerbox.is_moving() doesn't apply to filter wheels.
         time.sleep(SWITCH_TIME_S)

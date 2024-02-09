@@ -4,12 +4,12 @@ import time
 from .base import BaseCamera
 from pco import *
 
-BUFFER_SIZE_FRAMES = 8
+BUFFER_SIZE_MB = 2400
 
 BINNING = {
-    "1x1": 1,
-    "2x2": 2,
-    "4x4": 4
+    1: 1,
+    2: 2,
+    4: 4
 }
 
 # full pco trigger mappings
@@ -57,17 +57,15 @@ class Camera(BaseCamera):
 
         # gather min max values
         # convert from s to ms
-        self.MIN_EXPOSURE_TIME_MS = self.pco.description['min exposure time']*1e3
-        self.MAX_EXPOSURE_TIME_MS = self.pco.description['max exposure time']*1e3
-        # convert from s to us
-        self.MIN_LINE_INTERVAL_US = self.dcam.prop_getattr(PROPERTIES["line_interval"]).valuemin*1e6
-        self.MAX_LINE_INTERVAL_US = self.dcam.prop_getattr(PROPERTIES["line_interval"]).valuemax*1e6
-        self.MIN_WIDTH_PX = self.pco.description['min width']
-        self.MAX_WIDTH_PX = self.pco.description['max width']
-        self.MIN_HEIGHT_PX = self.pco.description['min height']
-        self.MAX_HEIGHT_PX = self.pco.description['max height']
-        self.DIVISIBLE_WIDTH_PX = self.pco.description['roi steps'][0]
-        self.DIVISIBLE_HEIGHT_PX = self.pco.description['roi steps'][1]
+        self.min_exposure_time_ms = self.pco.description['min exposure time']*1e3
+        self.max_exposure_time_ms = self.pco.description['max exposure time']*1e3
+        self.step_exposure_time_ms = self.pco.description['min exposure step']*1e3
+        self.min_width_px = self.pco.description['min width']
+        self.max_width_px = self.pco.description['max width']
+        self.min_height_px = self.pco.description['min height']
+        self.max_height_px = self.pco.description['max height']
+        self.step_width_px = self.pco.description['roi steps'][0]
+        self.step_height_px = self.pco.description['roi steps'][1]
 
         # intialize pco camera configuration
         self.configuration = {
@@ -92,12 +90,12 @@ class Camera(BaseCamera):
     @exposure_time_ms.setter
     def exposure_time_ms(self, exposure_time_ms: float):
 
-        if exposure_time_ms < self.MIN_EXPOSURE_TIME_MS or \
-                exposure_time_ms > self.MAX_EXPOSURE_TIME_MS:
-            self.log.error(f"exposure time must be >{self.MIN_EXPOSURE_TIME_MS} ms \
-                             and <{self.MAX_EXPOSURE_TIME_MS} ms")
-            raise ValueError(f"exposure time must be >{self.MIN_EXPOSURE_TIME_MS} ms \
-                             and <{self.MAX_EXPOSURE_TIME_MS} ms")
+        if exposure_time_ms < self.min_exposure_time_ms or \
+                exposure_time_ms > self.max_exposure_time_ms:
+            self.log.error(f"exposure time must be >{self.min_exposure_time_ms} ms \
+                             and <{self.max_exposure_time_ms} ms")
+            raise ValueError(f"exposure time must be >{self.min_exposure_time_ms} ms \
+                             and <{self.max_exposure_time_ms} ms")
 
         # Note: this pco function autocalculates the timebase unit to be ms
         self.pco.exposure_time = exposure_time_ms
@@ -115,42 +113,43 @@ class Camera(BaseCamera):
     @roi.setter
     def roi(self, roi: dict):
 
+        # set roi to origin {'x0', 'y0', 'x1', 'y1'}
+        self.pco.sdk.set_roi(0, 0, 0, 0)
+
         width_px = roi['width_px']
         height_px = roi['height_px']
 
-        sensor_height_px = self.MAX_HEIGHT_PX
-        sensor_width_px = self.MAX_WIDTH_PX
+        sensor_height_px = self.max_height_px
+        sensor_width_px = self.max_width_px
 
-        if height_px < self.MIN_WIDTH_PX or \
-                (height_px % self.DIVISIBLE_HEIGHT_PX) != 0 or \
-                height_px > self.MAX_HEIGHT_PX:
-            self.log.error(f"Height must be >{self.MIN_HEIGHT_PX} px, \
-                             <{self.MAX_HEIGHT_PX} px, \
-                             and a multiple of {self.DIVISIBLE_HEIGHT_PX} px!")
-            raise ValueError(f"Height must be >{self.MIN_HEIGHT_PX} px, \
-                             <{self.MAX_HEIGHT_PX} px, \
-                             and a multiple of {self.DIVISIBLE_HEIGHT_PX} px!")
+        if height_px < self.min_height_px or \
+                (height_px % self.step_height_px) != 0 or \
+                height_px > self.max_height_px:
+            self.log.error(f"Height must be >{self.min_height_px} px, \
+                             <{self.max_height_px} px, \
+                             and a multiple of {self.step_height_px} px!")
+            raise ValueError(f"Height must be >{self.min_height_px} px, \
+                             <{self.max_height_px} px, \
+                             and a multiple of {self.step_height_px} px!")
 
-        if width_px < self.MIN_WIDTH_PX or \
-                (width_px % self.DIVISIBLE_WIDTH_PX) != 0 or \
-                width_px > self.MAX_WIDTH_PX:
-            self.log.error(f"Width must be >{self.MIN_WIDTH_PX} px, \
-                             <{self.MAX_WIDTH_PX}, \
-                            and a multiple of {self.DIVISIBLE_WIDTH_PX} px!")
-            raise ValueError(f"Width must be >{self.MIN_WIDTH_PX} px, \
-                             <{self.MAX_WIDTH_PX}, \
-                            and a multiple of {self.DIVISIBLE_WIDTH_PX} px!")
+        if width_px < self.min_width_px or \
+                (width_px % self.step_width_px) != 0 or \
+                width_px > self.max_width_px:
+            self.log.error(f"Width must be >{self.min_width_px} px, \
+                             <{self.max_width_px}, \
+                            and a multiple of {self.step_width_px} px!")
+            raise ValueError(f"Width must be >{self.min_width_px} px, \
+                             <{self.max_width_px}, \
+                            and a multiple of {self.step_width_px} px!")
 
-        # roi {'x0', 'y0', 'x1', 'y1'}
-        self.pco.sdk.set_roi(0, 0, 0, 0)
         self.pco.sdk.set_roi(0, 0, width_px, 0)
         # width offset must be a multiple of the divisible width in px
-        centered_width_offset_px = round((sensor_width_px / 2 - width_px / 2) / self.DIVISIBLE_WIDTH_PX) * self.DIVISIBLE_WIDTH_PX
+        centered_width_offset_px = round((sensor_width_px / 2 - width_px / 2) / self.step_width_px) * self.step_width_px
         self.pco.sdk.set_roi(centered_width_offset_px, 0, centered_width_offset_px+width_px, 0)
         self.pco.sdk.set_roi(centered_width_offset_px, 0, centered_width_offset_px+width_px, height_px)
         # Height offset must be a multiple of the divisible height in px
         centered_height_offset_px = round(
-            (sensor_height_px / 2 - height_px / 2) / self.DIVISIBLE_HEIGHT_PX) * self.DIVISIBLE_HEIGHT_PX
+            (sensor_height_px / 2 - height_px / 2) / self.step_height_px) * self.step_height_px
         self.pco.sdk.set_roi(centered_width_offset_px, centered_height_offset_px, centered_width_offset_px+width_px, centered_height_offset_px+height_px)
         self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
         self.log.info(f"roi offset set to: {centered_width_offset_px} x {centered_height_offset_px} [width x height]")
@@ -164,12 +163,12 @@ class Camera(BaseCamera):
     @line_interval_us.setter
     def line_interval_us(self, line_interval_us: float):
 
-        if line_interval_us < self.MAX_LINE_INTERVAL_US or \
-                line_interval_us > self.MAX_LINE_INTERVAL_US:
-            self.log.error(f"line interval must be >{self.MIN_LINE_INTERVAL_US} us \
-                             and <{self.MAX_LINE_INTERVAL_US} us")
-            raise ValueError(f"exposure time must be >{self.MIN_LINE_INTERVAL_US} us \
-                             and <{self.MAX_LINE_INTERVAL_US} us")
+        if line_interval_us < self.max_line_interval_us or \
+                line_interval_us > self.max_line_interval_us:
+            self.log.error(f"line interval must be >{self.min_line_interval_us} us \
+                             and <{self.max_line_interval_us} us")
+            raise ValueError(f"exposure time must be >{self.min_line_interval_us} us \
+                             and <{self.max_line_interval_us} us")
         # timebase is us if interval > 4 us
         self.pco.sdk.set_cmos_line_timing("on", line_interval_us)
         self.log.info(f"line interval set to: {line_interval_us} us")
@@ -179,7 +178,7 @@ class Camera(BaseCamera):
         mode = self.pco.sdk.get_trigger_mode()
         source = None
         polarity = None
-        return {"mode": next(key for key, value in TRIGGER_MODES.items() if value == mode),
+        return {"mode": next(key for key, value in TRIGGERS['modes'].items() if value == mode),
                 "source": None,
                 "polarity": None}
 
@@ -217,21 +216,25 @@ class Camera(BaseCamera):
 
     @property
     def sensor_width_px(self):
-        return self.MAX_WIDTH_PX
+        return self.max_width_px
 
     @property
     def sensor_height_px(self):
-        return self.MAX_HEIGHT_PX
+        return self.max_height_px
 
     @property
-    def mainboard_temperature_c(self):
+    def signal_mainboard_temperature_c(self):
         """get the mainboard temperature in degrees C."""
-        return self.pco.sdk.get_temperature()['camera temperature']
+        state = {}
+        state['Mainboard Temperature [C]'] = self.pco.sdk.get_temperature()['camera temperature']
+        return state
 
     @property
-    def sensor_temperature_c(self):
+    def signal_sensor_temperature_c(self):
         """get the sensor temperature in degrees C."""
-        return self.pco.sdk.get_temperature()['sensor temperature']
+        state = {}
+        state['Sensor Temperature [C]'] = self.pco.sdk.get_temperature()['sensor temperature']
+        return state
 
     @property
     def readout_mode(self):
@@ -250,12 +253,16 @@ class Camera(BaseCamera):
 
     def prepare(self):
         # pco api prepares buffer and autostarts. api call is in start()
-        self.log.info(f"buffer set to: {BUFFER_SIZE_FRAMES} frames")
+        # pco only 16-bit A/D
+        bit_to_byte = 2
+        frame_size_mb = self.roi['width_px']*self.roi['height_px']/BINNING[self.binning]**2*bit_to_byte/1e6
+        self.buffer_size_frames = round(BUFFER_SIZE_MB / frame_size_mb)
+        self.log.info(f"buffer set to: {self.buffer_size_frames} frames")
         pass
 
     def start(self, frame_count: int, live: bool = False):
         self.dropped_frames = 0
-        self.pco.record(number_of_images=BUFFER_SIZE_FRAMES, mode='fifo')
+        self.pco.record(number_of_images=self.buffer_size_frames, mode='fifo')
 
     def stop(self):
         self.pco.stop()
@@ -272,30 +279,30 @@ class Camera(BaseCamera):
         image, metadata = self.pco.image(image_index=0)
         return image
 
-    def get_camera_acquisition_state(self):
+    def signal_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""
         self.pre_time = time.time()
         frame_index = self.pco.recorded_image_count()
-        out_buffer_size = "UNKNOWN"
-        in_buffer_size = "UNKNOWN"
+        out_buffer_size = None
+        in_buffer_size = None
         dropped_frames = self.pco.rec.get_status()["bFIFOOverflow"]
         frame_rate = out_buffer_size/(self.pre_time - self.post_time)
         data_rate = frame_rate*self.roi['width_px']*self.roi['height_px']/BINNING[self.binning]**2/1e6
         state = {}
-        state['frame_index'] = frame_index
-        state['in_buffer_size'] = in_buffer_size
-        state['out_buffer_size'] = out_buffer_size
+        state['Frame Index'] = frame_index
+        state['Input Buffer Size'] = in_buffer_size
+        state['Output Buffer Size'] = out_buffer_size
         # number of underrun, i.e. dropped frames
-        state['dropped_frames'] = self.dropped_frames
-        state['data_rate'] = frame_rate
-        state['frame_rate'] = data_rate
+        state['Dropped Frames'] = self.dropped_frames
+        state['Data Rate [MB/s]'] = frame_rate
+        state['Frame Rate [fps]'] = data_rate
         self.log.info(f"id: {self.id}, "
-                      f"frame: {state['frame_index']}, "
-                      f"input: {state['in_buffer_size']}, "
-                      f"output: {state['out_buffer_size']}, "
-                      f"dropped: {state['dropped_frames']}, "
-                      f"data rate: {state['data_rate']:.2f} [MB/s], "
-                      f"frame rate: {state['frame_rate']:.2f} [fps].")
+                      f"frame: {state['Frame Index']}, "
+                      f"input: {state['Input Buffer Size']}, "
+                      f"output: {state['Output Buffer Size']}, "
+                      f"dropped: {state['Dropped Frames']}, "
+                      f"data rate: {state['Data Rate [MB/s]']:.2f} [MB/s], "
+                      f"frame rate: {state['Frame Rate [fps]']:.2f} [fps].")
         self.post_time = time.time()
         return state
 

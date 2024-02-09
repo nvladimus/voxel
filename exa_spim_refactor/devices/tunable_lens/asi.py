@@ -21,6 +21,8 @@ class TunableLens(BaseTunableLens):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.tigerbox = TigerController(com_port = port)
         self.hardware_axis = hardware_axis.upper()
+        # TODO change this, but self.id for consistency in lookup
+        self.id = self.hardware_axis
 
     @property
     def mode(self):
@@ -40,10 +42,11 @@ class TunableLens(BaseTunableLens):
         self.tigerbox.set_axis_control_mode(**{self.hardware_axis: MODES[mode]})
 
     @property
-    def temperature(self):
+    def signal_temperature_c(self):
         """Get the temperature in deg C."""
-        temperature_c = self.tigerbox.get_etl_temp(self.hardware_axis)
-        return temperature_c  
+        state = {}
+        state['Temperature [C]'] = self.tigerbox.get_etl_temp(self.hardware_axis)
+        return state  
 
     def log_metadata(self):
         self.log.info('tiger hardware axis parameters')

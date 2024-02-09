@@ -57,20 +57,19 @@ class DAQ:
         print(dev, self.devs)
         if dev not in self.devs:
             raise ValueError("dev name must be one of %r." % self.devs)        
-        self.dev_name = dev
-        self.dev = nidaqmx.system.device.Device(self.dev_name)
-
+        self.id = dev
+        self.dev = nidaqmx.system.device.Device(self.id)
         self.ao_physical_chans = self.dev.ao_physical_chans.channel_names
         self.co_physical_chans = self.dev.co_physical_chans.channel_names
         self.do_physical_chans = self.dev.do_ports.channel_names
         self.dio_ports = [channel.replace(f'port', "PFI") for channel in self.dev.do_ports.channel_names]
 
         self.dio_lines = self.dev.do_lines.channel_names
-        self.ao_max_rate = self.dev.ao_max_rate
-        self.ao_min_rate = self.dev.ao_min_rate
-        self.do_max_rate = self.dev.do_max_rate
-        self.ao_max_volts = self.dev.ao_voltage_rngs[1]
-        self.ao_min_volts = self.dev.ao_voltage_rngs[0]
+        self.max_ao_rate = self.dev.ao_max_rate
+        self.min_ao_rate = self.dev.ao_min_rate
+        self.max_do_rate = self.dev.do_max_rate
+        self.max_ao_volts = self.dev.ao_voltage_rngs[1]
+        self.min_ao_volts = self.dev.ao_voltage_rngs[0]
         self.log.info('resetting nidaq')
         self.dev.reset_device()
         self.tasks = list()
@@ -99,16 +98,16 @@ class DAQ:
             self.timing_checks(task, task_type)
 
             trigger_port = timing['trigger_port']
-            if f"{self.dev_name}/{trigger_port}" not in self.dio_ports:
+            if f"{self.id}/{trigger_port}" not in self.dio_ports:
                 raise ValueError("trigger port must be one of %r." % self.dio_ports)
 
             for channel in task['ports']:
                 # add channel to task
                 channel_port = channel['port']
                 print(task_type)
-                if f"{self.dev_name}/{channel_port}" not in channel_options[task_type]:
+                if f"{self.id}/{channel_port}" not in channel_options[task_type]:
                     raise ValueError(f"{task_type} number must be one of {channel_options[task_type]}")
-                physical_name = f"/{self.dev_name}/{channel_port}"
+                physical_name = f"/{self.id}/{channel_port}"
                 add_task_options[task_type](physical_name)
 
             total_time_ms = timing['period_time_ms'] + timing['rest_time_ms']
@@ -121,7 +120,7 @@ class DAQ:
                     sample_mode = SAMPLE_MODE[timing['sample_mode']],
                     samps_per_chan = daq_samples)
                 daq_task.triggers.start_trigger.cfg_dig_edge_start_trig(
-                    trigger_source=f'/{self.dev_name}/{trigger_port}',
+                    trigger_source=f'/{self.id}/{trigger_port}',
                     trigger_edge=TRIGGER_EDGE[timing['trigger_polarity']])
                 daq_task.triggers.start_trigger.retriggerable = RETRIGGERABLE[timing['retriggerable']]
             else:
@@ -134,7 +133,7 @@ class DAQ:
             setattr(daq_task, f"{task_type}_line_states_paused_state", Level.LOW)
 
         else:   # co channel
-            if f"{self.dev_name}/{ timing['output_port']}" not in self.dio_ports:
+            if f"{self.id}/{ timing['output_port']}" not in self.dio_ports:
                 raise ValueError("output port must be one of %r." % self.dio_ports)
 
             if timing['frequency_hz'] < 0:
@@ -142,15 +141,15 @@ class DAQ:
 
             for channel in task['counters']:
                 channel_number = channel['counter']
-                if f"{self.dev_name}/{channel_number}" not in self.co_physical_chans:
+                if f"{self.id}/{channel_number}" not in self.co_physical_chans:
                     raise ValueError("co number must be one of %r." % self.co_physical_chans)
-                physical_name = f"/{self.dev_name}/{channel_number}"
+                physical_name = f"/{self.id}/{channel_number}"
                 co_chan = daq_task.co_channels.add_co_pulse_chan_freq(
                     counter=physical_name,
                     units=Freq.HZ,
                     freq=timing['frequency_hz'],
                     duty_cycle=0.5)
-                co_chan.co_pulse_term = f'/{self.dev_name}/{timing["output_port"]}'
+                co_chan.co_pulse_term = f'/{self.id}/{timing["output_port"]}'
                 pulse_count = {'samps_per_chan': pulse_count} if pulse_count else {}
                 daq_task.timing.cfg_implicit_timing(
                     sample_mode=AcqType.FINITE if pulse_count else AcqType.CONTINUOUS,
@@ -174,8 +173,8 @@ class DAQ:
             raise ValueError("Period time must be >0 ms")
 
         sampling_frequency_hz = timing['sampling_frequency_hz']
-        if sampling_frequency_hz < getattr(self, f"{task_type}_min_rate", 0) or sampling_frequency_hz > \
-                getattr(self, f"{task_type}_max_rate"):
+        if sampling_frequency_hz < getattr(self, f"min_{task_type}_rate", 0) or sampling_frequency_hz > \
+                getattr(self, f"max_{task_type}_rate"):
             raise ValueError(f"Sampling frequency must be > {getattr(self, f'{task_type}_min_rate', 0)} Hz and \
                                          <{getattr(self, f'{task_type}_max_rate')} Hz!")
 
@@ -212,12 +211,12 @@ class DAQ:
             if waveform == 'square wave':
                 try:
                     max_volts = channel['parameters']['max_volts']['channels'][wavelength] if task_type == 'ao' else 5
-                    if max_volts > self.ao_max_volts:
-                        raise ValueError(f"max volts must be < {self.ao_max_volts} volts")
+                    if max_volts > self.max_ao_volts:
+                        raise ValueError(f"max volts must be < {self.max_ao_volts} volts")
                     min_volts = channel['parameters']['min_volts']['channels'][wavelength] if task_type == 'ao' else 0
-                    if min_volts < self.ao_min_volts:
-                        raise ValueError(f"min volts must be > {self.ao_min_volts} volts")
-                except:
+                    if min_volts < self.min_ao_volts:
+                        raise ValueError(f"min volts must be > {self.min_ao_volts} volts")
+                except AttributeError:
                     raise ValueError("missing input parameter for square wave")
                 voltages = self.square_wave(timing['sampling_frequency_hz'],
                                              timing['period_time_ms'],
@@ -232,12 +231,12 @@ class DAQ:
                 try:
                     amplitude_volts = channel['parameters']['amplitude_volts']['channels'][wavelength]
                     offset_volts = channel['parameters']['offset_volts']['channels'][wavelength]
-                    if offset_volts < self.ao_min_volts or offset_volts > self.ao_max_volts:
-                        raise ValueError(f"min volts must be > {self.ao_min_volts} volts and < {self.ao_max_volts} volts")
+                    if offset_volts < self.min_ao_volts or offset_volts > self.max_ao_volts:
+                        raise ValueError(f"min volts must be > {self.min_ao_volts} volts and < {self.max_ao_volts} volts")
                     cutoff_frequency_hz = channel['parameters']['cutoff_frequency_hz']['channels'][wavelength]
                     if cutoff_frequency_hz < 0:
                         raise ValueError(f"cutoff frequnecy must be > 0 Hz")
-                except:
+                except AttributeError:
                     raise ValueError(f"missing input parameter for {waveform}")
 
                 waveform_function = getattr(self, waveform.replace(' ', '_'))

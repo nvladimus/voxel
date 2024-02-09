@@ -41,6 +41,8 @@ class Stage(BaseStage):
         self.tigerbox = TigerController(com_port = port)
         self.hardware_axis = hardware_axis.upper()
         self.instrument_axis = instrument_axis.lower()
+        # TODO change this, but self.id for consistency in lookup
+        self.id = self.instrument_axis
         # axis_map: dictionary representing the mapping from sample pose to tigerbox axis.
         # i.e: `axis_map[<sample_frame_axis>] = <tiger_frame_axis>`.
         axis_map = {self.instrument_axis: self.hardware_axis}
@@ -56,6 +58,19 @@ class Stage(BaseStage):
         self.log.debug(f"New hardware to instrument axis mapping: "
                        f"{self.tiger_to_sample_axis_map}")
         self.tiger_joystick_mapping = self.tigerbox.get_joystick_axis_mapping()
+
+        # set parameter values
+        # (!!) these are hardcoded here and cannot
+        # be queiried from the tigerbox
+        self.min_speed_mm_s = 0.001
+        self.max_speed_mm_s = 1.000
+        self.step_speed_mm_s = 0.01
+        self.min_acceleration_ms = 50
+        self.max_acceleration_ms = 2000
+        self.step_acceleration_ms = 10
+        self.min_backlash_mm = 0
+        self.max_backlash_mm = 1
+        self.step_backlash_mm = 0.01
 
     def _sanitize_axis_map(self, axis_map: dict):
         """save an input axis mapping to apply to move commands.

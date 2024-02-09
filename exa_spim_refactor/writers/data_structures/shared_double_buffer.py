@@ -49,10 +49,14 @@ class SharedDoubleBuffer:
         # Create flag to indicate if data has been read out from the read buf.
         self.is_read = Event()
         self.is_read.clear()
+        # Initialize buffer index
+        self.buffer_index = -1
 
     def toggle_buffers(self):
         """Switch read and write references and the locations of their shared
         memory."""
+        # Reset buffer index
+        self.buffer_index = -1
         # Toggle who acts as read buf and write buf.
         tmp = self.read_buf
         self.read_buf = self.write_buf
@@ -61,6 +65,18 @@ class SharedDoubleBuffer:
         tmp = self.read_buf_mem_name
         self.read_buf_mem_name = self.write_buf_mem_name
         self.write_buf_mem_name = tmp
+
+    def add_image(self, image):
+        self.write_buf[self.buffer_index+1] = image
+        self.buffer_index += 1
+
+    def get_last_image(self):
+        if self.buffer_index == -1:
+            # buffer just switched, grab last image from read buffer
+            return self.read_buf[-1]
+        else:
+            # return the image from the write buffer
+            return self.write_buf[self.buffer_index]
 
     def close_and_unlink(self):
         """Shared memory cleanup; call when done using this object."""
