@@ -3,7 +3,6 @@ import numpy
 from .base import BaseCamera
 from egrabber import *
 
-
 BUFFER_SIZE_FRAMES = 8
 # TODO grab these automatically from egrabber
 MIN_WIDTH_PX = 64
@@ -55,7 +54,7 @@ TRIGGERS = {
 
 class Camera(BaseCamera):
 
-    def __init__(self, id = str):
+    def __init__(self, id=str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = id
         gentl = EGenTL()
@@ -267,11 +266,9 @@ class Camera(BaseCamera):
         self.grabber.realloc_buffers(BUFFER_SIZE_FRAMES)  # allocate RAM buffer N frames
         self.log.info(f"buffer set to: {BUFFER_SIZE_FRAMES} frames")
 
-    def start(self, frame_count: int, live: bool = False):
-        if live:
-            self.grabber.start()
-        else:
-            self.grabber.start(frame_count)
+    def start(self, frame_count=GENTL_INFINITE):
+        """Start camera. If no frame count given, assume infinite frames"""
+        self.grabber.start(frame_count=frame_count)
 
     def stop(self):
         self.grabber.stop()

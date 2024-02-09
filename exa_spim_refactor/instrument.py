@@ -51,14 +51,13 @@ class Instrument:
         for key, value in settings.items():
             setattr(device, key, value)
 
-    def construct_device(self, device_type, device_list):
+    def construct_device(self, device_type, device_dictionary):
         """Load, setup, and add any subdevices or tasks of a device
         :param device_type: type of device setting up like camera. Type is specified by yaml
-        :param device_list: list of dictionaries describing all alike devices of an instrument
+        :param device_dictionary: list of dictionaries describing all alike devices of an instrument
         like [{camera0}, {camera1}]"""
 
-        for device in device_list:
-            name = device['name']
+        for name, device in device_dictionary.items():
             self.log.info(f'constructing {name}')
             driver = device['driver']
             module = device['module']
@@ -71,20 +70,20 @@ class Instrument:
 
             if 'tasks' in device.keys() and device_type == 'daqs':
                 for task_type, task_dict in device['tasks'].items():
-                    add_task_type = getattr(device_object, 'add_' + task_type)
-                    add_task_type(task_dict)
+                    #TODO: how to deal with pulse count?
+                    device_object.add_task(task_dict, task_type[:2] )
 
             # Add subdevices under device and fill in any needed keywords to init
-            for subdevice_type, subdevice_list in device.get('subdevices', {}).items():
-                self.construct_subdevice(device_object, subdevice_type, subdevice_list)
+            for subdevice_type, subdevice_dictionary in device.get('subdevices', {}).items():
+                self.construct_subdevice(device_object, subdevice_type, subdevice_dictionary)
 
-    def construct_subdevice(self, device_object, subdevice_type, subdevice_list):
+    def construct_subdevice(self, device_object, subdevice_type, subdevice_dictionary):
         """Handle the case where devices share serial ports or device objects
         :param device_object: parent device setup before subdevice
         :param subdevice_type: device type of subdevice. Can be different from parent device
-        :param subdevice_list: list of all subdevices"""
+        :param subdevice_dictionary: dictionary of all subdevices"""
 
-        for subdevice in subdevice_list:
+        for subdevice in subdevice_dictionary.values():
             # Import subdevice class in order to access keyword argument required in the init of the device
             subdevice_class = getattr(importlib.import_module(subdevice['driver']), subdevice['module'])
             subdevice_needs = inspect.signature(subdevice_class.__init__).parameters
@@ -97,7 +96,7 @@ class Instrument:
                 elif parameter.annotation == type(device_object):
                     subdevice['init'][name] = device_object
 
-        self.construct_device(subdevice_type, subdevice_list)
+        self.construct_device(subdevice_type, subdevice_dictionary)
 
     def construct(self):
         """Construct device based on configuration yaml"""

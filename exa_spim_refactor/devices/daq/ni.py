@@ -41,7 +41,7 @@ TRIGGER_EDGE = {
     "falling": Slope.FALLING,
 }
 
-RETRIGGERABLE_MODE = {
+RETRIGGERABLE = {
     "on": True,
     "off": False
 }
@@ -59,13 +59,12 @@ class DAQ:
             raise ValueError("dev name must be one of %r." % self.devs)        
         self.dev_name = dev
         self.dev = nidaqmx.system.device.Device(self.dev_name)
+
         self.ao_physical_chans = self.dev.ao_physical_chans.channel_names
-        self.ao_physical_chans = [channel.replace(f'{self.dev_name}/', "") for channel in self.ao_physical_chans]
         self.co_physical_chans = self.dev.co_physical_chans.channel_names
-        self.co_physical_chans = [channel.replace(f'{self.dev_name}/', "") for channel in self.co_physical_chans]
-        self.dio_ports = self.dev.do_ports.channel_names
-        self.dio_ports = [channel.replace(f'{self.dev_name}/', "") for channel in self.dio_ports]
-        self.dio_ports = [channel.replace(f'port', "PFI") for channel in self.dio_ports]
+        self.do_physical_chans = self.dev.do_ports.channel_names
+        self.dio_ports = [channel.replace(f'port', "PFI") for channel in self.dev.do_ports.channel_names]
+
         self.dio_lines = self.dev.do_lines.channel_names
         self.ao_max_rate = self.dev.ao_max_rate
         self.ao_min_rate = self.dev.ao_min_rate
@@ -78,148 +77,159 @@ class DAQ:
         self.ao_waveforms = dict()
         self.do_waveforms = dict()
 
-    def add_ao_task(self, ao_task: dict):
+    def add_task(self, task: dict, task_type: str, pulse_count = None):
 
-        self.ao_task = nidaqmx.Task(ao_task['name'])
+        # check task type
+        if task_type not in ['ao', 'co', 'do']:
+            raise ValueError(f"{task_type} must be one of {['ao', 'co', 'do']}")
 
-        trigger_polarity = ao_task['timing']['trigger_polarity']
-        valid = list(TRIGGER_POLARITY.keys())
-        if trigger_polarity not in valid:
-            raise ValueError("trigger polarity must be one of %r." % valid)
+        daq_task = nidaqmx.Task(task['name'])
+        timing = task['timing']
 
-        trigger_mode = ao_task['timing']['trigger_mode']
-        valid = TRIGGER_MODE
-        if trigger_mode not in valid:
-            raise ValueError("trigger mode must be one of %r." % valid)
+        for k, v in timing.items():
+            global_var = globals().get(k.upper(),{})
+            valid = list(global_var.keys()) if type(global_var) == dict else global_var
+            if v not in valid and valid != []:
+                raise ValueError(f"{k} must be one of {valid}")
 
-        trigger_port = ao_task['timing']['trigger_port']
-        if trigger_port not in self.dio_ports:
-            raise ValueError("trigger port must be one of %r." % self.dio_ports)
+        channel_options = {'ao':self.ao_physical_chans, 'do':self.do_physical_chans, 'co':self.co_physical_chans}
+        add_task_options = {'ao':daq_task.ao_channels.add_ao_voltage_chan, 'do':daq_task.do_channels.add_do_chan}
 
-        retriggerable = ao_task['timing']['retriggerable']
-        valid = RETRIGGERABLE_MODE
-        if retriggerable not in valid:
-            raise ValueError("retriggerable must be one of %r." % valid)
+        if task_type in ['ao', 'do']:
+            self.timing_checks(task, task_type)
 
-        sample_mode = ao_task['timing']['sample_mode']
-        valid = list(SAMPLE_MODE.keys())
-        if sample_mode not in valid:
-            raise ValueError("sample mode must be one of %r." % valid)
+            trigger_port = timing['trigger_port']
+            if f"{self.dev_name}/{trigger_port}" not in self.dio_ports:
+                raise ValueError("trigger port must be one of %r." % self.dio_ports)
 
-        period_time_ms = ao_task['timing']['period_time_ms']
+            for channel in task['ports']:
+                # add channel to task
+                channel_port = channel['port']
+                print(task_type)
+                if f"{self.dev_name}/{channel_port}" not in channel_options[task_type]:
+                    raise ValueError(f"{task_type} number must be one of {channel_options[task_type]}")
+                physical_name = f"/{self.dev_name}/{channel_port}"
+                add_task_options[task_type](physical_name)
+
+            total_time_ms = timing['period_time_ms'] + timing['rest_time_ms']
+            daq_samples = int(((total_time_ms)/1000)*timing['sampling_frequency_hz'])
+
+            if timing['trigger_mode'] == "on":
+                daq_task.timing.cfg_samp_clk_timing(
+                    rate = timing['sampling_frequency_hz'],
+                    active_edge = TRIGGER_POLARITY[timing['trigger_polarity']],
+                    sample_mode = SAMPLE_MODE[timing['sample_mode']],
+                    samps_per_chan = daq_samples)
+                daq_task.triggers.start_trigger.cfg_dig_edge_start_trig(
+                    trigger_source=f'/{self.dev_name}/{trigger_port}',
+                    trigger_edge=TRIGGER_EDGE[timing['trigger_polarity']])
+                daq_task.triggers.start_trigger.retriggerable = RETRIGGERABLE[timing['retriggerable']]
+            else:
+                daq_task.timing.cfg_samp_clk_timing(
+                    rate = timing['sampling_frequency_hz'],
+                    sample_mode = SAMPLE_MODE[timing['sample_mode']],
+                    samps_per_chan = int((timing['period_time_ms']/1000)/timing['sampling_frequency_hz']))
+
+            setattr(daq_task, f"{task_type}_line_states_done_state", Level.LOW)
+            setattr(daq_task, f"{task_type}_line_states_paused_state", Level.LOW)
+
+        else:   # co channel
+            if f"{self.dev_name}/{ timing['output_port']}" not in self.dio_ports:
+                raise ValueError("output port must be one of %r." % self.dio_ports)
+
+            if timing['frequency_hz'] < 0:
+                raise ValueError(f"frequency must be >0 Hz")
+
+            for channel in task['counters']:
+                channel_number = channel['counter']
+                if f"{self.dev_name}/{channel_number}" not in self.co_physical_chans:
+                    raise ValueError("co number must be one of %r." % self.co_physical_chans)
+                physical_name = f"/{self.dev_name}/{channel_number}"
+                co_chan = daq_task.co_channels.add_co_pulse_chan_freq(
+                    counter=physical_name,
+                    units=Freq.HZ,
+                    freq=timing['frequency_hz'],
+                    duty_cycle=0.5)
+                co_chan.co_pulse_term = f'/{self.dev_name}/{timing["output_port"]}'
+                pulse_count = {'samps_per_chan': pulse_count} if pulse_count else {}
+                daq_task.timing.cfg_implicit_timing(
+                    sample_mode=AcqType.FINITE if pulse_count else AcqType.CONTINUOUS,
+                    **pulse_count)
+
+
+        setattr(self, f"{task_type}_task", daq_task)  # set task attribute
+        self.tasks.append(daq_task)
+
+    def timing_checks(self, task: dict, task_type: str):
+        """Check period time, rest time, and sample frequency"""
+
+        timing = task['timing']
+
+        period_time_ms = timing['period_time_ms']
         if period_time_ms < 0:
             raise ValueError("Period time must be >0 ms")
 
-        rest_time_ms = ao_task['timing']['rest_time_ms']
+        rest_time_ms = timing['rest_time_ms']
         if rest_time_ms < 0:
             raise ValueError("Period time must be >0 ms")
 
-        sampling_frequency_hz = ao_task['timing']['sampling_frequency_hz']
-        if sampling_frequency_hz < self.ao_min_rate or sampling_frequency_hz > self.ao_max_rate:
-            raise ValueError(f"Sampling frequency must be >{self.ao_min_rate} Hz and \
-                             <{self.ao_max_rate} Hz!")
+        sampling_frequency_hz = timing['sampling_frequency_hz']
+        if sampling_frequency_hz < getattr(self, f"{task_type}_min_rate", 0) or sampling_frequency_hz > \
+                getattr(self, f"{task_type}_max_rate"):
+            raise ValueError(f"Sampling frequency must be > {getattr(self, f'{task_type}_min_rate', 0)} Hz and \
+                                         <{getattr(self, f'{task_type}_max_rate')} Hz!")
 
-        for channel in ao_task['ports']:
-            # add channel to task
-            channel_port = channel['port']
-            if channel_port not in self.ao_physical_chans:
-                raise ValueError("ao number must be one of %r." % self.ao_physical_chans)
-            physical_name = f"/{self.dev_name}/{channel_port}"
-            self.ao_task.ao_channels.add_ao_voltage_chan(physical_name)
+    def generate_waveforms(self, task: dict, task_type: str, wavelength: str):
 
-        total_time_ms = period_time_ms + rest_time_ms
-        daq_samples = int(((total_time_ms)/1000)*sampling_frequency_hz)
+        # check task type
+        if task_type not in ['ao', 'do']:
+            raise ValueError(f"{task_type} must be one of {['ao', 'do']}")
 
-        if trigger_mode == "on":
+        self.timing_checks(task, task_type)
 
-            self.ao_task.timing.cfg_samp_clk_timing(
-                rate = sampling_frequency_hz,
-                active_edge = TRIGGER_POLARITY[trigger_polarity],
-                sample_mode = SAMPLE_MODE[sample_mode],
-                samps_per_chan = daq_samples)
+        timing = task['timing']
 
-            self.ao_task.triggers.start_trigger.cfg_dig_edge_start_trig(
-                trigger_source=f'/{self.dev_name}/{trigger_port}',
-                trigger_edge=TRIGGER_EDGE[trigger_polarity])
-
-            self.ao_task.triggers.start_trigger.retriggerable = RETRIGGERABLE_MODE[retriggerable]
-
-        if trigger_mode == "off":
-
-            self.ao_task.timing.cfg_samp_clk_timing(
-                rate = sampling_frequency,
-                sample_mode = SAMPLE_MODE[sample_mode],
-                samps_per_chan = int((period_time_ms/1000)/sampling_frequency_hz))
-
-        self.ao_task.out_stream.output_buf_size = daq_samples  # Sets buffer to length of voltages
-        self.ao_task.control(TaskMode.TASK_COMMIT)
-        self.ao_task.ao_line_states_done_state = Level.LOW
-        self.ao_task.ao_line_states_paused_state = Level.LOW
-
-        self.tasks.append(self.ao_task)
-
-    def generate_ao_waveforms(self, ao_task: dict, wavelength: str):
-
-        period_time_ms = ao_task['timing']['period_time_ms']
-        if period_time_ms < 0:
-            raise ValueError("Period time must be >0 ms")
-
-        rest_time_ms = ao_task['timing']['rest_time_ms']
-        if rest_time_ms < 0:
-            raise ValueError("Period time must be >0 ms")
-
-        sampling_frequency_hz = ao_task['timing']['sampling_frequency_hz']
-        if sampling_frequency_hz < 0 or sampling_frequency_hz > self.ao_max_rate:
-            raise ValueError(f"Sampling frequency must be >0 Hz and \
-                             <{self.ao_max_rate} Hz!")
-
-        # store these values as properties for plotting purposes
-        self.ao_sampling_frequency_hz = sampling_frequency_hz
-        self.ao_total_time_ms = period_time_ms + rest_time_ms
-
-        for channel in ao_task['ports']:
+        waveform_attribute = getattr(self, f"{task_type}_waveforms")
+        for channel in task['ports']:
             # load waveform and variables
             port = channel['port']
             name = channel['name']
-            device_min_volts = channel['device_min_volts']
-            device_max_volts = channel['device_max_volts']
+            device_min_volts = channel.get('device_min_volts', 0)
+            device_max_volts = channel.get('device_max_volts', 5)
             waveform = channel['waveform']
-            valid = AO_WAVEFORMS
-            if waveform not in AO_WAVEFORMS:
+
+            valid = globals().get(f"{task_type.upper()}_WAVEFORMS")
+            if waveform not in valid:
                 raise ValueError("waveform must be one of %r." % valid)
+
+            start_time_ms = channel['parameters']['start_time_ms']['channels'][wavelength]
+            if start_time_ms > timing['period_time_ms']:
+                raise ValueError("start time must be < period time")
+            end_time_ms = channel['parameters']['end_time_ms']['channels'][wavelength]
+            if end_time_ms > timing['period_time_ms'] or end_time_ms < start_time_ms:
+                raise ValueError("end time must be < period time and > start time")
+
             if waveform == 'square wave':
                 try:
-                    start_time_ms = channel['parameters']['start_time_ms']['channels'][wavelength]
-                    if start_time_ms > period_time_ms:
-                        raise ValueError("start time must be < period time")
-                    end_time_ms = channel['parameters']['end_time_ms']['channels'][wavelength]
-                    if end_time_ms > period_time_ms or end_time_ms < start_time_ms:
-                        raise ValueError("end time must be < period time and > start time")
-                    max_volts = channel['parameters']['max_volts']['channels'][wavelength]
+                    max_volts = channel['parameters']['max_volts']['channels'][wavelength] if task_type == 'ao' else 5
                     if max_volts > self.ao_max_volts:
                         raise ValueError(f"max volts must be < {self.ao_max_volts} volts")
-                    min_volts = channel['parameters']['min_volts']['channels'][wavelength]
+                    min_volts = channel['parameters']['min_volts']['channels'][wavelength] if task_type == 'ao' else 0
                     if min_volts < self.ao_min_volts:
                         raise ValueError(f"min volts must be > {self.ao_min_volts} volts")
                 except:
                     raise ValueError("missing input parameter for square wave")
-                voltages = self.square_wave(sampling_frequency_hz,
-                                             period_time_ms,
+                voltages = self.square_wave(timing['sampling_frequency_hz'],
+                                             timing['period_time_ms'],
                                              start_time_ms,
                                              end_time_ms,
-                                             rest_time_ms,
+                                             timing['rest_time_ms'],
                                              max_volts,
                                              min_volts
                                              )
 
-            if waveform == 'sawtooth':
+            if waveform == 'sawtooth' or waveform == 'triangle wave':   # setup is same for both waves, only be ao task
                 try:
-                    start_time_ms = channel['parameters']['start_time_ms']['channels'][wavelength]
-                    if start_time_ms > period_time_ms:
-                        raise ValueError("start time must be < period time")
-                    end_time_ms = channel['parameters']['end_time_ms']['channels'][wavelength]
-                    if end_time_ms > period_time_ms or end_time_ms < start_time_ms:
-                        raise ValueError("end time must be < period time and > start time")
                     amplitude_volts = channel['parameters']['amplitude_volts']['channels'][wavelength]
                     offset_volts = channel['parameters']['offset_volts']['channels'][wavelength]
                     if offset_volts < self.ao_min_volts or offset_volts > self.ao_max_volts:
@@ -228,238 +238,61 @@ class DAQ:
                     if cutoff_frequency_hz < 0:
                         raise ValueError(f"cutoff frequnecy must be > 0 Hz")
                 except:
-                    raise ValueError("missing input parameter for sawtooth")
-                voltages = self.sawtooth(sampling_frequency_hz,
-                                         period_time_ms,
+                    raise ValueError(f"missing input parameter for {waveform}")
+
+                waveform_function = getattr(self, waveform.replace(' ', '_'))
+                voltages = waveform_function(timing['sampling_frequency_hz'],
+                                         timing['period_time_ms'],
                                          start_time_ms,
                                          end_time_ms,
-                                         rest_time_ms,
+                                         timing['rest_time_ms'],
                                          amplitude_volts,
                                          offset_volts,
                                          cutoff_frequency_hz
                                         )
-            if waveform == 'triangle wave':
-                try:
-                    start_time_ms = channel['parameters']['start_time_ms']['channels'][wavelength]
-                    if start_time_ms > period_time_ms:
-                        raise ValueError("start time must be < period time")
-                    end_time_ms = channel['parameters']['end_time_ms']['channels'][wavelength]
-                    if end_time_ms > period_time_ms or end_time_ms < start_time_ms:
-                        raise ValueError("end time must be < period time and > start time")
-                    amplitude_volts = channel['parameters']['amplitude_volts']['channels'][wavelength]
-                    offset_volts = channel['parameters']['offset_volts']['channels'][wavelength]
-                    if offset_volts < self.ao_min_volts or offset_volts > self.ao_max_volts:
-                        raise ValueError(f"min volts must be > {self.ao_min_volts} volts and < {self.ao_max_volts} volts")
-                    cutoff_frequency_hz = channel['parameters']['cutoff_frequency_hz']['channels'][wavelength]
-                    if cutoff_frequency_hz < 0:
-                        raise ValueError(f"cutoff frequnecy must be > 0 Hz")
-                except:
-                    raise ValueError("missing input parameter for triangle wave")
-                voltages = self.triangle_wave(sampling_frequency_hz,
-                                             period_time_ms,
-                                             start_time_ms,
-                                             end_time_ms,
-                                             rest_time_ms,
-                                             amplitude_volts,
-                                             offset_volts,
-                                             cutoff_frequency_hz
-                                            )
+
 
             # sanity check voltages for ni card range
-            if numpy.max(voltages[:]) > self.ao_max_volts or numpy.min(voltages[:]) < self.ao_min_volts:
-                raise ValueError(f"voltages are out of ni card range [{self.ao_min_volts}, {self.ao_max_volts}] volts")
+            max = getattr(self, 'ao_max_volts', 5)
+            min = getattr(self, 'ao_min_volts', 0)
+            if numpy.max(voltages[:]) > max or numpy.min(voltages[:]) < min:
+                raise ValueError(f"voltages are out of ni card range [{max}, {min}] volts")
 
             # sanity check voltages for device range
             if numpy.max(voltages[:]) > device_max_volts or numpy.min(voltages[:]) < device_min_volts:
                 raise ValueError(f"voltages are out of device range [{device_min_volts}, {device_max_volts}] volts")
 
             # store 1d voltage array into 2d waveform array
-            self.ao_waveforms[f"{port}: {name}"] = voltages
+
+            waveform_attribute[f"{port}: {name}"] = voltages
+
+        # store these values as properties for plotting purposes
+        setattr(self, f"{task_type}_sampling_frequency_hz", timing['sampling_frequency_hz'])
+        setattr(self, f"{task_type}_total_time_ms", timing['period_time_ms'] + timing['rest_time_ms'])
+
 
     def write_ao_waveforms(self):
 
-        ao_voltages = list()
-        for waveform in self.ao_waveforms:
-            ao_voltages.append(self.ao_waveforms[waveform])
-        ao_voltages = numpy.array(ao_voltages)
+        ao_voltages = numpy.array(list(self.ao_waveforms.values()))
 
         # unreserve buffer
         self.ao_task.control(TaskMode.TASK_UNRESERVE)
         # sets buffer to length of voltages
         self.ao_task.out_stream.output_buf_size = len(ao_voltages[0])
         self.ao_task.control(TaskMode.TASK_COMMIT)
-
         self.ao_task.write(numpy.array(ao_voltages))
-
-    def add_co_task(self, co_task: dict, pulse_count: int = None):
-
-        self.co_task = nidaqmx.Task(co_task['name'])
-
-        output_port = co_task['timing']['output_port']
-        if output_port not in self.dio_ports:
-            raise ValueError("output port must be one of %r." % self.do_ports)
-
-        frequency_hz = co_task['timing']['frequency_hz']
-        if frequency_hz < 0:
-            raise ValueError(f"frequency must be >0 Hz")
-
-        for channel in co_task['counters']:
-            channel_number = channel['counter']
-            if channel_number not in self.co_physical_chans:
-                raise ValueError("co number must be one of %r." % self.co_physical_chans)
-            physical_name = f"/{self.dev_name}/{channel_number}"
-            co_chan = self.co_task.co_channels.add_co_pulse_chan_freq(
-                counter = physical_name,
-                units = Freq.HZ,
-                freq = frequency_hz,
-                duty_cycle = 0.5
-                )
-
-            co_chan.co_pulse_term = f'/{self.dev_name}/{output_port}'
-
-            optional_kwds = {}
-            # don't specify samps_per_chan to use default value if it was specified
-            # as 0 or None.
-            if pulse_count:
-                optional_kwds['samps_per_chan'] = pulse_count
-            self.co_task.timing.cfg_implicit_timing(
-                sample_mode=AcqType.FINITE if pulse_count else AcqType.CONTINUOUS,
-                **optional_kwds)
-
-        self.tasks.append(self.co_task)
-
-    def add_do_task(self, do_task: dict):
-
-        self.do_task = nidaqmx.Task(do_task['name'])
-
-        for channel in do_task['ports']:
-            channel_number = channel['port']
-            if channel_number not in self.dio_ports:
-                raise ValueError("do port must be one of %r." % self.dio_ports)
-            physical_name = f"/{self.dev_name}/{channel_number}"
-            self.do_task.do_channels.add_do_chan(physical_name)
-
-        trigger_polarity = do_task['timing']['trigger_polarity']
-        valid = list(TRIGGER_POLARITY.keys())
-        if trigger_polarity not in valid:
-            raise ValueError("trigger polarity must be one of %r." % valid)
-
-        trigger_mode = do_task['timing']['trigger_mode']
-        valid = TRIGGER_MODE
-        if trigger_mode not in valid:
-            raise ValueError("trigger mode must be one of %r." % valid)
-
-        trigger_port = do_task['timing']['trigger_port']
-        if trigger_port not in self.dio_ports:
-            raise ValueError("trigger port must be one of %r." % self.dio_ports)
-
-        retriggerable = do_task['timing']['retriggerable']
-        valid = RETRIGGERABLE_MODE
-        if retriggerable not in valid:
-            raise ValueError("retriggerable must be one of %r." % valid)
-
-        sample_mode = do_task['timing']['sample_mode']
-        valid = list(SAMPLE_MODE.keys())
-        if sample_mode not in valid:
-            raise ValueError("sample mode must be one of %r." % valid)
-
-        period_time_ms = do_task['timing']['period_time_ms']
-        if period_time_ms < 0:
-            raise ValueError("Period time must be >0 ms")
-
-        sampling_frequency_hz = do_task['timing']['sampling_frequency_hz']
-        if sampling_frequency_hz < 0 or sampling_frequency_hz > self.ao_max_rate:
-            raise ValueError(f"Sampling frequency must be >0 Hz and \
-                             <{self.ao_max_rate} Hz!")
-
-        daq_samples = int((period_time_ms/1000)*sampling_frequency_hz)
-
-        if trigger_mode == "on":
-
-            self.do_task.timing.cfg_samp_clk_timing(
-                rate = sampling_frequency_hz,
-                active_edge = TRIGGER_POLARITY[trigger_polarity],
-                sample_mode = SAMPLE_MODE[sample_mode],
-                samps_per_chan = daq_samples)
-
-            self.do_task.triggers.start_trigger.cfg_dig_edge_start_trig(
-                trigger_source=f'/{self.dev_name}/{trigger_port}',
-                trigger_edge=TRIGGER_EDGE[trigger_polarity])
-
-            self.do_task.triggers.start_trigger.retriggerable = RETRIGGERABLE_MODE[retriggerable]
-
-        if trigger_mode == "off":
-
-            self.do_task.timing.cfg_samp_clk_timing(
-                rate = sampling_frequency,
-                sample_mode = SAMPLE_MODE[sample_mode],
-                samps_per_chan = int((period_time_ms/1000)/sampling_frequency_hz))
-
-        self.do_task.do_line_states_done_state = Level.LOW
-        self.do_task.do_line_states_paused_state = Level.LOW
-
-        self.tasks.append(self.do_task)
-
-    def generate_do_waveforms(self, do_task: dict, wavelength: str):
-
-        period_time_ms = do_task['timing']['period_time_ms']
-        if period_time_ms < 0:
-            raise ValueError("Period time must be >0 ms")
-
-        rest_time_ms = do_task['timing']['rest_time_ms']
-        if rest_time_ms < 0:
-            raise ValueError("Period time must be >0 ms")
-
-        sampling_frequency_hz = do_task['timing']['sampling_frequency_hz']
-        if sampling_frequency_hz < 0 or sampling_frequency_hz > self.do_max_rate:
-            raise ValueError(f"Sampling frequency must be >0 Hz and \
-                             <{self.do_max_rate} Hz!")
-
-        for channel in do_task['ports']:
-            # load waveform and variables
-            port = channel['port']
-            name = channel['name']
-            waveform = channel['waveform']
-            valid = DO_WAVEFORMS
-            if waveform not in DO_WAVEFORMS:
-                raise ValueError("waveform must be one of %r." % valid)
-            if waveform == 'square wave':
-                try:
-                    start_time_ms = channel['parameters']['start_time_ms']['channels'][wavelength]
-                    if start_time_ms > period_time_ms:
-                        raise ValueError("start time must be < period time")
-                    end_time_ms = channel['parameters']['end_time_ms']['channels'][wavelength]
-                    if end_time_ms > period_time_ms or end_time_ms < start_time_ms:
-                        raise ValueError("end time must be < period time and > start time")
-                except:
-                    raise ValueError("missing input parameter for square wave")
-                self.do_waveforms[f'{port}: {name}'] = self.square_wave(sampling_frequency_hz,
-                                                     period_time_ms,
-                                                     start_time_ms,
-                                                     end_time_ms,
-                                                     rest_time_ms,
-                                                     5.0,
-                                                     0.0
-                                                     )
-
-        self.do_sampling_frequency_hz = sampling_frequency_hz
-        self.do_total_time_ms = period_time_ms + rest_time_ms
 
     def write_do_waveforms(self):
 
-        do_voltages = list()
-        for waveform in self.do_waveforms:
-            do_voltages.append(self.do_waveforms[waveform])
-        do_voltages = numpy.array(do_voltages)
 
+        do_voltages = numpy.array(list(self.do_waveforms.values()))
         # unreserve buffer
         self.do_task.control(TaskMode.TASK_UNRESERVE)
         # sets buffer to length of voltages
         self.do_task.out_stream.output_buf_size = len(do_voltages[0])
-        self.do_task.control(TaskMode.TASK_COMMIT)
-
-        self.do_task.write(numpy.array(do_voltages).astype(bool))
-
+        #FIXME: Really weird quirk on Micah's computer. Check if actually real
+        do_voltages = do_voltages.astype("uint32")[0] if len(do_voltages) == 1 else do_voltages.astype("uint32")
+        self.do_task.write(do_voltages.astype("uint32"))
     def sawtooth(self,
                  sampling_frequency_hz: float,
                  period_time_ms: float,
@@ -587,6 +420,16 @@ class DAQ:
         ax.tick_params(which='major', direction='out', length=8, width=0.75)
         ax.tick_params(which='minor', length=4)
         plt.savefig('waveforms.pdf', bbox_inches='tight')
+
+    def rereserve_buffer(self, buf_len):
+        """If tasks are already configured, the buffer needs to be cleared and rereserved to work"""
+        self.ao_task.control(TaskMode.TASK_UNRESERVE)  # Unreserve buffer
+        self.ao_task.out_stream.output_buf_size = buf_len  # Sets buffer to length of voltages
+        self.ao_task.control(TaskMode.TASK_COMMIT)
+
+        self.do_task.control(TaskMode.TASK_UNRESERVE)  # Unreserve buffer
+        self.do_task.out_stream.output_buf_size = buf_len
+        self.do_task.control(TaskMode.TASK_COMMIT)
 
     def start_all(self):
 

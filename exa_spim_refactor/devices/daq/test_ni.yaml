@@ -135,7 +135,7 @@ daq:
                 rest_time_ms: 50
                 sampling_frequency_hz: 10000
             ports:
-                - port: PFI1
+                - port: port0
                   name: laser
                   waveform: square wave
                   parameters:

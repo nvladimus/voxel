@@ -176,7 +176,7 @@ class Camera(BaseCamera):
         self.log.info('simulated camera preparing...')
         self.buffer = list()
 
-    def start(self, frame_count: int, live: bool = False):
+    def start(self, frame_count: int = None):
         self.log.info('simulated camera starting...')
         self.thread = Thread(target=self.generate_frames, args=(frame_count,))
         self.thread.daemon = True
@@ -216,7 +216,9 @@ class Camera(BaseCamera):
     def generate_frames(self, frame_count: int):
         self.frame = 0
         self.dropped_frames = 0
-        while self.frame < frame_count:
+        i = 1
+        frame_count = frame_count if frame_count is not None else 1
+        while i <= frame_count:
             start_time = time.time()
             column_count = self.simulated_width_px
             row_count = self.simulated_height_px
@@ -231,5 +233,6 @@ class Camera(BaseCamera):
                 self.dropped_frames += 1
                 self.log.warning('buffer full, frame dropped.')
             self.frame += 1
+            i = i if frame_count is None else i+1
             end_time = time.time()
             self.frame_rate = 1/(end_time - start_time)
