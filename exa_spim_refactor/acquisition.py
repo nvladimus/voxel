@@ -9,7 +9,6 @@ import os
 import subprocess
 from pathlib import Path
 from psutil import virtual_memory
-#from spim_core.config_base import Config
 from ruamel.yaml import YAML
 from exa_spim_refactor.instrument import Instrument
 from exa_spim_refactor.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
@@ -28,7 +27,7 @@ class Acquisition:
         self.acquisition = self.config['acquisition']
         self.instrument = instrument
         self.writers = dict()
-        #self.storages = dict()
+        self.storages = dict()
         self.transfers = dict()
         self.pre_processes = {}
         self.intra_processes = {}

@@ -1,7 +1,8 @@
 import logging
 import numpy
 import time
-import pco
+from devices import pco
+from devices.camera.base import BaseCamera
 
 BUFFER_SIZE_MB = 2400
 
@@ -23,7 +24,7 @@ TRIGGERS = {
 
 READOUT_MODES = dict()
 
-class Camera():
+class Camera(BaseCamera):
 
     def __init__(self, id=str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")

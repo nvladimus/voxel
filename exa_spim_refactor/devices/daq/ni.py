@@ -54,7 +54,6 @@ class DAQ:
         self.devs = list()
         for device in nidaqmx.system.System.local().devices:
             self.devs.append(device.name)
-        print(dev, self.devs)
         if dev not in self.devs:
             raise ValueError("dev name must be one of %r." % self.devs)        
         self.id = dev
@@ -104,7 +103,6 @@ class DAQ:
             for channel in task['ports']:
                 # add channel to task
                 channel_port = channel['port']
-                print(task_type)
                 if f"{self.id}/{channel_port}" not in channel_options[task_type]:
                     raise ValueError(f"{task_type} number must be one of {channel_options[task_type]}")
                 physical_name = f"/{self.id}/{channel_port}"

@@ -4,43 +4,44 @@
 import os
 import h5py
 import numpy as np
+import logging
 from xml.etree import ElementTree as ET
 import skimage.transform
 import shutil
 from pathlib import Path
 from tqdm import trange
-from gputools import OCLProgram, OCLArray, get_device
+# from gputools import OCLProgram, OCLArray, get_device
 
-class SubSample:
-    def __init__(self):
-        # opencl kernel
-        self.kernel = """
-        __kernel void downsample2d(__global short * input,
-                                   __global short * output){
-          int i = get_global_id(0);
-          int j = get_global_id(1);
-          int Nx = get_global_size(0);
-          int Ny = get_global_size(1);
-          int res = 0; 
+# class SubSample:
+#     def __init__(self):
+#         # opencl kernel
+#         self.kernel = """
+#         __kernel void downsample2d(__global short * input,
+#                                    __global short * output){
+#           int i = get_global_id(0);
+#           int j = get_global_id(1);
+#           int Nx = get_global_size(0);
+#           int Ny = get_global_size(1);
+#           int res = 0; 
 
-          for (int m = 0; m < BLOCK; ++m) 
-             for (int n = 0; n < BLOCK; ++n) 
-                  res+=input[BLOCK*Nx*(BLOCK*j+m)+BLOCK*i+n];
-          output[Nx*j+i] = (short)(res/BLOCK/BLOCK);
-        }
-        """
+#           for (int m = 0; m < BLOCK; ++m) 
+#              for (int n = 0; n < BLOCK; ++n) 
+#                   res+=input[BLOCK*Nx*(BLOCK*j+m)+BLOCK*i+n];
+#           output[Nx*j+i] = (short)(res/BLOCK/BLOCK);
+#         }
+#         """
 
-    def compute(self, image, downsample_factor):
+    # def compute(self, image, downsample_factor):
 
-        prog = OCLProgram(src_str=self.kernel,
-                       build_options=['-D', f'BLOCK={downsample_factor}'])
-        x_g = OCLArray.from_array(image)
-        y_g = OCLArray.empty(tuple(s // downsample_factor for s in image.shape), image.dtype)
-        prog.run_kernel(f'downsample2d', y_g.shape[::-1],
-                             None, x_g.data, y_g.data)
-        downsampled_image = y_g.get()
+    #     prog = OCLProgram(src_str=self.kernel,
+    #                    build_options=['-D', f'BLOCK={downsample_factor}'])
+    #     x_g = OCLArray.from_array(image)
+    #     y_g = OCLArray.empty(tuple(s // downsample_factor for s in image.shape), image.dtype)
+    #     prog.run_kernel(f'downsample2d', y_g.shape[::-1],
+    #                          None, x_g.data, y_g.data)
+    #     downsampled_image = y_g.get()
 
-        return downsampled_image
+    #     return downsampled_image
 
 class BdvBase:
     __version__ = "2022.08"
@@ -54,6 +55,7 @@ class BdvBase:
             filename: string,
                 Path to either .h5 or .xml file. The other file of the pair will be in the same folder.
         """
+        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self._fmt = 't{:05d}/s{:02d}/{}'
         if filename[-2:] == 'h5':
             self.filename_h5 = filename
@@ -80,7 +82,7 @@ class BdvBase:
         self.ntimes = self.nilluminations = self.nchannels = self.ntiles = self.nangles = self.nsetups = 0
         self.compression = None
         self.compressions_supported = (None, 'gzip', 'lzf', 'b3d')
-        self.subsample = SubSample()
+        # self.subsample = SubSample()
 
     def _determine_setup_id(self, illumination=0, channel=0, tile=0, angle=0):
         """Takes the view attributes (illumination, channel, tile, angle) and converts them into unique setup_id.
@@ -218,8 +220,8 @@ class BdvBase:
             stack_sub = stack
         else:
             # stack_sub = skimage.transform.downscale_local_mean(stack, tuple(subsamp_level)).astype(np.uint16)
-            # stack_sub = stack[::subsamp_level[0], ::subsamp_level[1], ::subsamp_level[2]]
-            stack_sub = self.subsample.compute(image=stack, downsample_factor=subsamp_level)
+            stack_sub = stack[::subsamp_level[0], ::subsamp_level[1], ::subsamp_level[2]]
+            # stack_sub = self.subsample.compute(image=stack, downsample_factor=subsamp_level)
         return stack_sub
 
     def _write_pyramids_header(self):
@@ -329,7 +331,7 @@ class BdvWriter(BdvBase):
         assert all([isinstance(element, int) for tupl in subsamp for element in
                     tupl]), 'subsamp values should be integers >= 1.'
         if len(blockdim) < len(subsamp):
-            print(f"INFO: blockdim levels ({len(blockdim)}) < subsamp levels ({len(subsamp)}):"
+            self.log.info(f"INFO: blockdim levels ({len(blockdim)}) < subsamp levels ({len(subsamp)}):"
                   f" First-level block size {blockdim[0]} will be used for all levels")
         self.nsetups = nilluminations * nchannels * ntiles * nangles
         self.nilluminations = nilluminations
@@ -358,9 +360,9 @@ class BdvWriter(BdvBase):
         if os.path.exists(self.filename_h5):
             if overwrite:
                 os.remove(self.filename_h5)
-                print("Warning: H5 file already exists, overwriting.")
+                self.log.warning("Warning: H5 file already exists, overwriting.")
             else:
-                print("Warning: H5 file already exists, appending.")
+                self.log.warning("Warning: H5 file already exists, appending.")
         self._file_object_h5 = h5py.File(self.filename_h5, 'a')
         self._write_setups_header()
         self.virtual_stacks = False
@@ -542,7 +544,7 @@ class BdvWriter(BdvBase):
         for ilevel in range(self.nlevels):
             group_name = self._fmt.format(time, isetup, ilevel)
             if group_name in self._file_object_h5:
-                print(f"H5 group {group_name} already exists, skipping")
+                self.log.debug(f"H5 group {group_name} already exists, skipping")
             else:
                 grp = self._file_object_h5.create_group(group_name)
                 if stack is not None:

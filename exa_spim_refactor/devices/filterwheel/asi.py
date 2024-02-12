@@ -1,7 +1,7 @@
 import logging
 import time
 from tigerasi.tiger_controller import TigerController
-from .base import BaseFilterWheel
+from devices.filterwheel.base import BaseFilterWheel
 
 # constants for the ASI filter wheel
 
@@ -22,17 +22,19 @@ class FilterWheel(BaseFilterWheel):
         self.id = id
         self.filters = filters
         # force homing of the wheel
-        self.set_filter(next(key for key, value in self.filters.items() if value == 0))
+        self.filter = next(key for key, value in self.filters.items() if value == 0)
         # ASI wheel has no get_index() function so store this internally
-        self.index = 0
+        self._filter = 0
 
-    def get_filter(self):
-        return next(key for key, value in self.filters.items() if value == self.index)
+    @property
+    def filter(self):
+        return next(key for key, value in self.filters.items() if value == self._filter)
 
-    def set_filter(self, filter_name: str, wait=True):
+    @filter.setter
+    def filter(self, filter_name: str):
         """Set the filterwheel index."""
-        self.index = self.filters[filter_name]
-        cmd_str = f"MP {self.index}\r\n"
+        self._filter = self.filters[filter_name]
+        cmd_str = f"MP {self._filter}\r\n"
         self.log.info(f'setting filter to {filter_name}')
         # Note: the filter wheel has slightly different reply line termination.
         self.tigerbox.send(f"FW {self.id}\r\n", read_until=f"\n\r{self.id}>")

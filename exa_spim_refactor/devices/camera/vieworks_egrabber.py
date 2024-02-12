@@ -1,7 +1,7 @@
 import logging
 import numpy
 from functools import wraps
-from base import BaseCamera
+from devices.camera.base import BaseCamera
 from egrabber import *
 
 BUFFER_SIZE_MB = 2400
@@ -246,7 +246,7 @@ class Camera(BaseCamera):
         valid_binning = list(BINNING.keys())
         if binning not in valid_binning:
             raise ValueError("binning must be one of %r." % valid_binning)
-        self._binning = BINNING[binning]
+        self._binning = binning
         # if binning is not an integer, do it in hardware
         if not isinstance(BINNING[binning], int):
             self.grabber.remote.set("BinningHorizontal", self._binning)
@@ -531,6 +531,8 @@ class Camera(BaseCamera):
                     self.log.debug(f"{binning} will be implemented through software")
                     key = int(binning.replace("X", ""))
                     BINNING[key] = key
+
+        print(BINNING)
 
         # initialize binning as 1
         self.grabber.remote.set("BinningHorizontal", BINNING[1])

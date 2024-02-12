@@ -10,7 +10,7 @@ ao_task = config['daq']['tasks']['ao_task']
 do_task = config['daq']['tasks']['do_task']
 co_task = config['daq']['tasks']['co_task']
 
-daq = DAQ("Dev2")
+daq = DAQ("Dev1")
 daq.add_task(ao_task, 'ao')
 daq.add_task(do_task, 'do')
 daq.add_task(co_task, 'co')

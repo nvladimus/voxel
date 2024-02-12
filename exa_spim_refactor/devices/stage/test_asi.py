@@ -1,16 +1,16 @@
 from pathlib import Path
-from spim_core.config_base import Config
 from tigerasi.tiger_controller import TigerController
+from ruamel.yaml import YAML
 
 this_dir = Path(__file__).parent.resolve() # directory of this test file.
 config_path = this_dir / Path("test_asi.yaml")
-config = Config(str(config_path))
+config = YAML().load(Path(config_path))
 
 # ugly constructor and init for config values...
 
 # loop over all tiling stages in config
 tiling_stages=dict()
-for stage in config.cfg['devices']['stages']['tiling']:
+for stage in config['devices']['stages']['tiling']:
 	# grab config values for creating object
 	driver = stage['driver']
 	port = stage['port']
@@ -32,9 +32,9 @@ for stage in config.cfg['devices']['stages']['tiling']:
 	tiling_stages[instrument_axis].joystick_mapping = stage['joystick_mapping']
 
 # import scanning stage and assert only one
-assert len(config.cfg['devices']['stages']['scanning']) == 1
+assert len(config['devices']['stages']['scanning']) == 1
 # grab config values for creating object
-stage = config.cfg['devices']['stages']['scanning'][0]
+stage = config['devices']['stages']['scanning'][0]
 driver = stage['driver']
 port = stage['port']
 hardware_axis = stage['hardware_axis']

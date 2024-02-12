@@ -1,7 +1,7 @@
 import logging
 import numpy
 import time
-from .base import BaseCamera
+from devices.camera.base import BaseCamera
 from multiprocessing import Process
 from threading import Thread
 
@@ -193,9 +193,6 @@ class Camera(BaseCamera):
 
     def signal_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""
-        # Detailed description of constants here:
-        # https://documentation.euresys.com/Products/Coaxlink/Coaxlink/en-us/Content/IOdoc/egrabber-reference/
-        # namespace_gen_t_l.html#a6b498d9a4c08dea2c44566722699706e
         state = {}
         state['Frame Index'] = self.frame
         state['Input Buffer Size'] = len(self.buffer)
@@ -211,9 +208,11 @@ class Camera(BaseCamera):
                       f"dropped: {state['Dropped Frames']}, "
                       f"data rate: {state['Data Rate [MB/s]']:.2f} [MB/s], "
                       f"frame rate: {state['Frame Rate [fps]']:.2f} [fps].")
+        return state
 
     def generate_frames(self, frame_count: int):
         self.frame = 0
+        self.frame_rate = 0
         self.dropped_frames = 0
         i = 1
         frame_count = frame_count if frame_count is not None else 1

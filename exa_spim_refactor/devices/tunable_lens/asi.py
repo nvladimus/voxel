@@ -1,5 +1,5 @@
 import logging
-from .base import BaseTunableLens
+from devices.tunable_lens.base import BaseTunableLens
 from tigerasi.tiger_controller import TigerController
 from tigerasi.device_codes import *
 

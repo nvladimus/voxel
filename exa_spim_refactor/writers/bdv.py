@@ -4,7 +4,7 @@ import multiprocessing
 import re
 import os
 import sys
-from bdv_writer import npy2bdv
+from writers.bdv_writer import npy2bdv
 from multiprocessing import Process, Array, Value, Event
 from multiprocessing.shared_memory import SharedMemory
 from ctypes import c_wchar
@@ -58,8 +58,8 @@ class Writer():
 
     @property
     def signal_progress_percent(self):
-        # convert to %
-        return self.progress*100
+        state = {'Progress [%]': self.progress*100}
+        return state
 
     @property
     def x_voxel_size_um(self):

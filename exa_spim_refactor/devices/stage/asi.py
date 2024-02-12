@@ -1,5 +1,5 @@
 import logging
-from .base import BaseStage
+from devices.stage.base import BaseStage
 from tigerasi.tiger_controller import TigerController, STEPS_PER_UM
 from tigerasi.device_codes import *
 

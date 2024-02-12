@@ -32,7 +32,6 @@ acquisition:
           external_drive: C:\Users\micah.woodard\Downloads\exaspim-test
         settings:
           protocol: robocopy
-
     writers:
       vp-151mx:
         driver: exa_spim_refactor.writers.imaris

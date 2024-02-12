@@ -1,8 +1,8 @@
 import logging
 import numpy
 import time
-from base import BaseCamera
-from dcam.dcam import *
+from devices.camera.base import BaseCamera
+from devices.camera.dcam.dcam import *
 
 BUFFER_SIZE_MB = 2400
 
@@ -140,7 +140,7 @@ class Camera(BaseCamera):
         self.dcam.prop_setvalue(PROPERTIES["exposure_time"], exposure_time_ms/1000)
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def roi(self):
@@ -192,7 +192,7 @@ class Camera(BaseCamera):
         self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
         self.log.info(f"roi offset set to: {centered_width_offset_px} x {centered_height_offset_px} [width x height]")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def pixel_type(self):
@@ -210,7 +210,7 @@ class Camera(BaseCamera):
         self.dcam.prop_setvalue(PROPERTIES["pixel_type"], PIXEL_TYPES[pixel_type_bits])
         self.log.info(f"pixel type set to: {pixel_type_bits}")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def line_interval_us(self):
@@ -232,7 +232,7 @@ class Camera(BaseCamera):
         self.dcam.prop_setvalue(PROPERTIES["line_interval"], line_interval_us/1e6)
         self.log.info(f"line interval set to: {line_interval_us} us")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def trigger(self):
@@ -273,7 +273,7 @@ class Camera(BaseCamera):
             self.dcam.prop_setvalue(PROPERTIES["trigger_polarity"], TRIGGERS['sources'][polarity])
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def binning(self):
@@ -288,7 +288,7 @@ class Camera(BaseCamera):
         self.dcam.prop_setvalue(PROPERTIES["binning"], BINNING[binning])
         self.log.info(f"binning set to: {binning}")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def sensor_width_px(self):
@@ -331,7 +331,7 @@ class Camera(BaseCamera):
             # set readout direction to forward or backward
             self.dcam.prop_setvalue(PROPERTIES['readout_direction'], READOUT_MODES[readout_mode])
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     def prepare(self):
         # determine bits to bytes

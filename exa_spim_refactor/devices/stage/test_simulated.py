@@ -1,15 +1,15 @@
 from pathlib import Path
-from spim_core.config_base import Config
+from ruamel.yaml import YAML
 
 this_dir = Path(__file__).parent.resolve() # directory of this test file.
 config_path = this_dir / Path("test_simulated.yaml")
-config = Config(str(config_path))
+config = YAML().load(Path(config_path))
 
 # ugly constructor...
 
 stages=[]
 
-for stage in config.cfg['devices']['stages'].items():
+for stage in config['devices']['stages'].items():
 	driver = stage[1]['driver']
 	port = stage[1]['port']
 	hardware_axis = stage[1]['hardware_axis']

@@ -1,7 +1,7 @@
 import logging
 import struct
 import serial
-from base import BaseTunableLens
+from devices.stage.base import BaseTunableLens
 
 # constants for Optotune EL-E-4i controller
 

@@ -1,14 +1,14 @@
 from pathlib import Path
-from spim_core.config_base import Config
+from ruamel.yaml import YAML
 
 this_dir = Path(__file__).parent.resolve() # directory of this test file.
 config_path = this_dir / Path("test_camera_hamamatsu_dcam.yaml")
-config = Config(str(config_path))
+config = YAML().load(Path(config_path))
 
 # loop over all cameras in config
 cameras=list()
 
-for camera in config.cfg['devices']['cameras']:
+for camera in config['devices']['cameras']:
     # grab config values for creating object
     driver = camera['driver']
     camera_id = camera['id']

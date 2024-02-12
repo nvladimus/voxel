@@ -70,7 +70,8 @@ class Writer():
     @property
     def signal_progress_percent(self):
         # convert to %
-        return self.progress*100
+        state = {'Progress [%]': self.progress*100}
+        return state
 
     @property
     def x_voxel_size_um(self):
