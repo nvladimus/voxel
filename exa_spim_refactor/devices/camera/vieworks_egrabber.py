@@ -2,7 +2,7 @@ import logging
 import numpy
 from functools import wraps
 from devices.camera.base import BaseCamera
-from egrabber import *
+from devices.camera.sdks.egrabber import *
 
 BUFFER_SIZE_MB = 2400
 
