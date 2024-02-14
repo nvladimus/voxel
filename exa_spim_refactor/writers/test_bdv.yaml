@@ -2,4 +2,4 @@ writer:
   driver: bdv
   compression: none
   data_type: uint16
-  path: C:\Users\svc_aind_imaging\Documents\GitHub\exa-spim-refactor\exa_spim_refactor\writers
+  path: .\

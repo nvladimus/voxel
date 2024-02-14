@@ -1,4 +1,4 @@
 writer:
   driver: tiff
   data_type: uint16
-  path: /Users/adam.glaser/Documents/GitHub/exa-spim-refactor/exa_spim_refactor/writers
+  path: .\

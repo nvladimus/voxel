@@ -1,8 +1,9 @@
 import logging
 import numpy
 import time
-from devices import pco
-from devices.camera.base import BaseCamera
+from singleton import Singleton
+from sdks import pco
+from base import BaseCamera
 
 BUFFER_SIZE_MB = 2400
 
@@ -24,6 +25,11 @@ TRIGGERS = {
 
 READOUT_MODES = dict()
 
+# singleton wrapper around pco
+class pcoSingleton(pco, metaclass=Singleton):
+    def __init__(self):
+        super(pcoSingleton, self).__init__()
+
 class Camera(BaseCamera):
 
     def __init__(self, id=str):
@@ -32,7 +38,7 @@ class Camera(BaseCamera):
         # note self.id here is the interface, not a unique camera id
         # potential to do -> this could be hardcoded and changed in the pco sdk
         # error handling is taken care of within pco api
-        self.pco = pco.Camera(id=self.id)
+        self.pco = pcoSingleton.Camera(id=self.id)
         # grab min/max parameter values
         self._get_min_max_step_values()
         # check valid trigger modes

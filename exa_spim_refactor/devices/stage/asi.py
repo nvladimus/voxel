@@ -1,4 +1,5 @@
 import logging
+from singleton import Singleton
 from devices.stage.base import BaseStage
 from tigerasi.tiger_controller import TigerController, STEPS_PER_UM
 from tigerasi.device_codes import *
@@ -28,6 +29,11 @@ SCAN_PATTERN = {
     "serpentine": ScanPattern.SERPENTINE,
 }
 
+# singleton wrapper around TigerController
+class TigerControllerSingleton(TigerController, metaclass=Singleton):
+    def __init__(self):
+        super(TigerControllerSingleton, self).__init__()
+
 class Stage(BaseStage):
 
     def __init__(self, port: str, hardware_axis: str, instrument_axis: str):
@@ -38,7 +44,7 @@ class Stage(BaseStage):
         :param instrument_axis: instrument hardware axis.
         """
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.tigerbox = TigerController(com_port = port)
+        self.tigerbox = TigerControllerSingleton(com_port = port)
         self.hardware_axis = hardware_axis.upper()
         self.instrument_axis = instrument_axis.lower()
         # TODO change this, but self.id for consistency in lookup

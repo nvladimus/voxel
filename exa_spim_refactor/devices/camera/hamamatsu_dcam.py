@@ -1,8 +1,9 @@
 import logging
 import numpy
 import time
-from devices.camera.base import BaseCamera
-from devices.camera.dcam.dcam import *
+from singleton import Singleton
+from base import BaseCamera
+from dcam.dcam import *
 
 BUFFER_SIZE_MB = 2400
 
@@ -96,13 +97,18 @@ READOUT_MODES = {
     "light sheet backward": DCAMPROP.READOUT_DIRECTION.BACKWARD
 }
 
+# singleton wrapper around Dcamapi
+class DcamapiSingleton(Dcamapi, metaclass=Singleton):
+    def __init__(self):
+        super(DcamapiSingleton, self).__init__()
+
 class Camera(BaseCamera):
 
     def __init__(self, id = str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = id
-        if Dcamapi.init() is not False:
-            num_cams = Dcamapi.get_devicecount()
+        if DcamapiSingleton.init() is not False:
+            num_cams = DcamapiSingleton.get_devicecount()
             for cam in range(0, num_cams):
                 dcam = Dcam(cam)
                 cam_id = dcam.dev_getstring(DCAM_IDSTR.CAMERAID)
@@ -117,7 +123,7 @@ class Camera(BaseCamera):
                     raise ValueError(f"no camera found for S/N: {self.id}")
             del dcam
         else:
-            self.log.error('Dcamapi.init() fails with error {}'.format(Dcamapi.lasterr()))
+            self.log.error('DcamapiSingleton.init() fails with error {}'.format(DcamapiSingleton.lasterr()))
         # grab parameter values
         self._get_min_max_step_values()
 
@@ -358,7 +364,7 @@ class Camera(BaseCamera):
 
     def close(self):
         self.dcam.dev_close()
-        Dcamapi.uninit()
+        DcamapiSingleton.uninit()
 
     def grab_frame(self):
         """Retrieve a frame as a 2D numpy array with shape (rows, cols)."""

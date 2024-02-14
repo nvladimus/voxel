@@ -1,8 +1,9 @@
 import logging
 import numpy
 from functools import wraps
-from devices.camera.base import BaseCamera
-from devices.camera.sdks.egrabber import *
+from base import BaseCamera
+from singleton import Singleton
+from egrabber import *
 
 BUFFER_SIZE_MB = 2400
 
@@ -36,12 +37,17 @@ TRIGGERS = {
     }
 }
 
+# singleton wrapper around EGenTL
+class EGenTLSingleton(EGenTL, metaclass=Singleton):
+    def __init__(self):
+        super(EGenTLSingleton, self).__init__()
+
 class Camera(BaseCamera):
 
     def __init__(self, id=str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = id
-        gentl = EGenTL()
+        gentl = EGenTLSingleton()
         discovery = EGrabberDiscovery(gentl)
         discovery.discover()
         # list all possible grabbers
