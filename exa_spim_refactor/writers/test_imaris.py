@@ -108,3 +108,6 @@ if __name__ == '__main__':
                         stack_writer_worker.done_reading.clear()
 
         stack_writer_worker.wait_to_finish()
+
+        img_buffer.close_and_unlink()
+        del img_buffer

@@ -7,29 +7,26 @@ from ruamel.yaml import YAML
 from threading import Event, Thread
 from data_structures.shared_double_buffer import SharedDoubleBuffer
 from multiprocessing.shared_memory import SharedMemory
-from bdv import Writer
+from tiff import Writer
 
 if __name__ == '__main__':
 
     this_dir = Path(__file__).parent.resolve() # directory of this test file.
-    config_path = this_dir / Path("test_bdv.yaml")
+    config_path = this_dir / Path("test_tiff.yaml")
     config = YAML().load(Path(config_path))
 
-    chunk_size_frames = 128
-    num_frames = 256
-    num_tiles = 3
+    chunk_size_frames = 64
+    num_frames = 128
+    num_tiles = 1
 
-    stack_writer_worker = Writer()
+    stack_writer_worker = Writer(config['writer']['path'])
     stack_writer_worker.row_count_px = 2048
     stack_writer_worker.column_count_px = 2048
     stack_writer_worker.x_voxel_size_um = 0.748
     stack_writer_worker.y_voxel_size_um = 0.748
     stack_writer_worker.z_voxel_size_um = 1
-    stack_writer_worker.theta_deg = 45
     stack_writer_worker.frame_count_px = num_frames
-    stack_writer_worker.compression = config['writer']['compression']
     stack_writer_worker.data_type = config['writer']['data_type']
-    stack_writer_worker.path = config['writer']['path']
     stack_writer_worker.channel = '488'
     frame_index = 0
     tile_index = 0
@@ -37,7 +34,7 @@ if __name__ == '__main__':
     for tile_index in range(num_tiles):
 
         # do note update filename so all tiles go into a single file
-        stack_writer_worker.filename = 'test.h5'
+        stack_writer_worker.filename = 'test.tiff'
         
         # move tile over 1 mm
         stack_writer_worker.x_position_mm = 0 + tile_index*1.000
@@ -71,7 +68,7 @@ if __name__ == '__main__':
             if chunks_filled % 2 == 0:
                 img_buffer.add_image( \
                 numpy.random.randint(
-                    low=0,
+                    low=128,
                     high=256,
                     size=(stack_writer_worker.row_count_px, stack_writer_worker.column_count_px),
                     dtype = config['writer']['data_type']

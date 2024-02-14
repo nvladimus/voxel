@@ -19,7 +19,7 @@ for camera in config['devices']['cameras'].items():
 print(f'board temperature is: {cameras[0].signal_mainboard_temperature_c}')
 print(f'sensor temperature is: {cameras[0].signal_mainboard_temperature_c}')
 print(f'binning is: {cameras[0].binning}')
-cameras[0].pixel_type = "mono8"
+cameras[0].pixel_type = "mono16"
 print(f'pixel type is: {cameras[0].pixel_type}')
 print(f'line time is: {cameras[0].line_interval_us}')
 cameras[0].bit_packing_mode	= 'msb'
@@ -36,6 +36,6 @@ cameras[0].prepare()
 cameras[0].start(10)
 for frame in range(10):
 	print(cameras[0].signal_acquisition_state())
-	cameras[0].grab_frame()
+	image = cameras[0].grab_frame()
 cameras[0].stop()
 cameras[0].log_metadata()

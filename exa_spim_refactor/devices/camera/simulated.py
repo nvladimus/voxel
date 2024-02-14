@@ -1,7 +1,7 @@
 import logging
 import numpy
 import time
-from devices.camera.base import BaseCamera
+from base import BaseCamera
 from multiprocessing import Process
 from threading import Thread
 
@@ -221,8 +221,8 @@ class Camera(BaseCamera):
             column_count = self.simulated_width_px
             row_count = self.simulated_height_px
             frame_time_s = (row_count*self.simulated_line_interval_us/1000+self.simulated_exposure_time_ms)/1000
-            # image = numpy.random.randint(low=128, high=256, size=(row_count, column_count), dtype=self.simulated_pixel_type)
-            image = numpy.zeros(shape=(row_count, column_count), dtype=self.simulated_pixel_type)
+            image = numpy.random.randint(low=128, high=256, size=(row_count, column_count), dtype=self.simulated_pixel_type)
+            # image = numpy.zeros(shape=(row_count, column_count), dtype=self.simulated_pixel_type)
             while (time.time() - start_time) < frame_time_s:
                 time.sleep(0.01)
             if len(self.buffer) < BUFFER_SIZE_FRAMES:
