@@ -1,6 +1,6 @@
 import logging
 import time
-from devices.stage.base import BaseStage
+from exa_spim_refactor.devices.stage.base import BaseStage
 
 class Stage(BaseStage):
 

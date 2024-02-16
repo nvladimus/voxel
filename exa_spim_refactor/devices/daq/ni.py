@@ -281,7 +281,6 @@ class DAQ:
 
     def write_do_waveforms(self):
 
-
         do_voltages = numpy.array(list(self.do_waveforms.values()))
         # unreserve buffer
         self.do_task.control(TaskMode.TASK_UNRESERVE)
@@ -290,6 +289,7 @@ class DAQ:
         #FIXME: Really weird quirk on Micah's computer. Check if actually real
         do_voltages = do_voltages.astype("uint32")[0] if len(do_voltages) == 1 else do_voltages.astype("uint32")
         self.do_task.write(do_voltages.astype("uint32"))
+        
     def sawtooth(self,
                  sampling_frequency_hz: float,
                  period_time_ms: float,

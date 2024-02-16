@@ -1,6 +1,6 @@
-import optotune_ele4i
+from exa_spim_refactor.devices.tunable_lens.optotune_ele4i import TunableLens
 
-etl = optotune_ele4i.TunableLens(port='COM4')
+etl = TunableLens(port='COM4')
 print(etl.mode)
 etl.mode = 'internal'
 print(etl.mode)

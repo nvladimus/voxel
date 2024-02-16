@@ -1,9 +1,9 @@
 import logging
 import numpy
 import time
-from singleton import Singleton
+from exa_spim_refactor.devices.utils.singleton import Singleton
+from exa_spim_refactor.devices.camera.base import BaseCamera
 from sdks import pco
-from base import BaseCamera
 
 BUFFER_SIZE_MB = 2400
 

@@ -1,8 +1,8 @@
 import logging
 import numpy
 from functools import wraps
-from base import BaseCamera
-from singleton import Singleton
+from exa_spim_refactor.devices.camera.base import BaseCamera
+from exa_spim_refactor.devices.utils.singleton import Singleton
 from egrabber import *
 
 BUFFER_SIZE_MB = 2400

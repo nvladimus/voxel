@@ -1,5 +1,5 @@
 from stradus import StradusLaser, BoolVal
-from devices.lasers.laser_base import Laser
+from exa_spim_refactor.devices.lasers.base import BaseLaser
 import logging
 from serial import Serial
 
@@ -9,7 +9,7 @@ MODULATION_MODES = {
     'digital': {'external_control' :BoolVal.OFF, 'digital_modulation':BoolVal.ON}
 }
 
-class LaserStradusVortran(StradusLaser, Laser):
+class LaserStradusVortran(StradusLaser, BaseLaser):
 
     def __init__(self, port: Serial):
         """Communicate with stradus laser.

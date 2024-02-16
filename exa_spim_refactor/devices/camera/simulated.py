@@ -1,7 +1,7 @@
 import logging
 import numpy
 import time
-from base import BaseCamera
+from exa_spim_refactor.devices.camera.base import BaseCamera
 from multiprocessing import Process
 from threading import Thread
 

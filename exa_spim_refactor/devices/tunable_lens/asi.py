@@ -1,5 +1,6 @@
 import logging
-from devices.tunable_lens.base import BaseTunableLens
+from exa_spim_refactor.devices.utils.singleton import Singleton
+from exa_spim_refactor.devices.tunable_lens.base import BaseTunableLens
 from tigerasi.tiger_controller import TigerController
 from tigerasi.device_codes import *
 
@@ -10,6 +11,11 @@ MODES = {
     "internal": TunableLensControlMode.TG1000_INPUT_NO_TEMP_COMPENSATION,
 }
 
+# singleton wrapper around TigerController
+class TigerControllerSingleton(TigerController, metaclass=Singleton):
+    def __init__(self, com_port):
+        super(TigerControllerSingleton, self).__init__(com_port)
+        
 class TunableLens(BaseTunableLens):
 
     def __init__(self, port: str, hardware_axis: str):
@@ -19,7 +25,7 @@ class TunableLens(BaseTunableLens):
         :param hardware_axis: stage hardware axis.
         """
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.tigerbox = TigerController(com_port = port)
+        self.tigerbox = TigerControllerSingleton(com_port = port)
         self.hardware_axis = hardware_axis.upper()
         # TODO change this, but self.id for consistency in lookup
         self.id = self.hardware_axis

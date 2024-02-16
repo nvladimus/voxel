@@ -4,7 +4,8 @@ import multiprocessing
 import re
 import os
 import sys
-from writers.bdv_writer import npy2bdv
+from exa_spim_refactor.writers.base import BaseWriter
+from exa_spim_refactor.writers.bdv_writer import npy2bdv
 from multiprocessing import Process, Array, Value, Event
 from multiprocessing.shared_memory import SharedMemory
 from ctypes import c_wchar
@@ -32,7 +33,7 @@ DATA_TYPES = {
     "uint16": "uint16",
 }
 
-class Writer():
+class Writer(BaseWriter):
 
     def __init__(self):
  

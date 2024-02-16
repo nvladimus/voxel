@@ -1,6 +1,6 @@
 import logging
-from singleton import Singleton
-from devices.stage.base import BaseStage
+from exa_spim_refactor.devices.utils.singleton import Singleton
+from exa_spim_refactor.devices.stage.base import BaseStage
 from tigerasi.tiger_controller import TigerController, STEPS_PER_UM
 from tigerasi.device_codes import *
 
@@ -31,8 +31,8 @@ SCAN_PATTERN = {
 
 # singleton wrapper around TigerController
 class TigerControllerSingleton(TigerController, metaclass=Singleton):
-    def __init__(self):
-        super(TigerControllerSingleton, self).__init__()
+    def __init__(self, com_port):
+        super(TigerControllerSingleton, self).__init__(com_port)
 
 class Stage(BaseStage):
 

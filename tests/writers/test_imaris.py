@@ -2,12 +2,13 @@ import numpy
 import time
 import math
 import threading
+import os
 from pathlib import Path
 from ruamel.yaml import YAML
 from threading import Event, Thread
-from data_structures.shared_double_buffer import SharedDoubleBuffer
+from exa_spim_refactor.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
 from multiprocessing.shared_memory import SharedMemory
-from imaris import Writer
+from exa_spim_refactor.writers.imaris import Writer
 
 if __name__ == '__main__':
 
@@ -17,7 +18,7 @@ if __name__ == '__main__':
 
     chunk_size_frames = 64
     num_frames = 256
-    num_tiles = 1
+    num_tiles = 3
 
     frame_index = 0
     tile_index = 0
@@ -111,3 +112,6 @@ if __name__ == '__main__':
 
         img_buffer.close_and_unlink()
         del img_buffer
+
+        # remove files
+        os.remove(f'test_{tile_index}.ims')

@@ -1,8 +1,8 @@
 import logging
 import numpy
 import time
-from singleton import Singleton
-from base import BaseCamera
+from exa_spim_refactor.devices.utils.singleton import Singleton
+from exa_spim_refactor.devices.camera.base import BaseCamera
 from dcam.dcam import *
 
 BUFFER_SIZE_MB = 2400
@@ -308,7 +308,7 @@ class Camera(BaseCamera):
     def signal_sensor_temperature_c(self):
         """get the sensor temperature in degrees C."""
         state = {}
-        state['Sensor Temperature [C]'] = self.dcam.prop_getvalue(PROPERTIES["sensor_temperature"])
+        state['Sensor Temperature [C]'] = [self.dcam.prop_getvalue(PROPERTIES["sensor_temperature"]), 0, 50]
         return state
 
     @property

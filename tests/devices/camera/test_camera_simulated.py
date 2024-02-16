@@ -10,10 +10,10 @@ config = YAML().load(Path(config_path))
 cameras=[]
 
 for camera in config['devices']['cameras'].items():
-	driver = camera[1]['driver']
-	camera_id = camera[1]['id']
-	exec(f"import {driver}")
-	exec(f"cameras.append({driver}.Camera('{camera_id}'))")
+    driver = camera[1]['driver']
+    camera_id = camera[1]['id']
+    exec(f"from exa_spim_refactor.devices.camera import {driver}")
+    exec(f"cameras.append({driver}.Camera('{camera_id}'))")
 
 # tests
 print(f'board temperature is: {cameras[0].signal_mainboard_temperature_c}')
@@ -22,11 +22,11 @@ print(f'binning is: {cameras[0].binning}')
 cameras[0].pixel_type = "mono16"
 print(f'pixel type is: {cameras[0].pixel_type}')
 print(f'line time is: {cameras[0].line_interval_us}')
-cameras[0].bit_packing_mode	= 'msb'
+cameras[0].bit_packing_mode = 'msb'
 print(f'bit packing mode is: {cameras[0].bit_packing_mode}')
 print(f'sensor height is: {cameras[0].sensor_height_px}')
 print(f'sensor width is: {cameras[0].sensor_width_px}')
-cameras[0].exposure_time_ms	= 10
+cameras[0].exposure_time_ms = 10
 print(f'exposure time is: {cameras[0].exposure_time_ms}')
 cameras[0].trigger = {'mode': 'off', 'source': 'external', 'polarity': 'rising'}
 print(f'trigger is: {cameras[0].trigger}')
@@ -35,7 +35,7 @@ print(f'roi is: {cameras[0].roi}')
 cameras[0].prepare()
 cameras[0].start(10)
 for frame in range(10):
-	print(cameras[0].signal_acquisition_state())
-	image = cameras[0].grab_frame()
+    print(cameras[0].signal_acquisition_state())
+    image = cameras[0].grab_frame()
 cameras[0].stop()
 cameras[0].log_metadata()
