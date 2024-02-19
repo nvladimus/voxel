@@ -1,9 +1,9 @@
 import logging
 import numpy
 import time
-from singleton import Singleton
-from base import BaseCamera
-from dcam.dcam import *
+from exa_spim_refactor.devices.camera.singleton import Singleton
+from exa_spim_refactor.devices.camera.base import BaseCamera
+from exa_spim_refactor.devices.camera.sdks.dcam.dcam import *
 
 BUFFER_SIZE_MB = 2400
 
@@ -150,6 +150,7 @@ class Camera(BaseCamera):
 
     @property
     def roi(self):
+
         return {'width_px': self.dcam.prop_getvalue(PROPERTIES["subarray_hsize"]),
                 'height_px': self.dcam.prop_getvalue(PROPERTIES["subarray_vsize"]),
                 'width_offset_px': self.dcam.prop_getvalue(PROPERTIES["subarray_hpos"]),
