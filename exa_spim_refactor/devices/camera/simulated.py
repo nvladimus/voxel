@@ -2,6 +2,7 @@ import logging
 import numpy
 import time
 from exa_spim_refactor.devices.camera.base import BaseCamera
+from exa_spim_refactor.processes.gpu.downsample_2d import DownSample2D
 from multiprocessing import Process
 from threading import Thread
 
@@ -14,6 +15,12 @@ MAX_HEIGHT_PX = 10640
 DIVISIBLE_HEIGHT_PX = 1
 MIN_EXPOSURE_TIME_MS = 0.001
 MAX_EXPOSURE_TIME_MS = 6e4
+
+BINNING = {
+    1: 1,
+    2: 2,
+    4: 4
+}
 
 PIXEL_TYPES = {
     "mono8":  "uint8",
@@ -46,18 +53,21 @@ class Camera(BaseCamera):
 
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = id
-        self.simulated_pixel_type = None
-        self.simulated_line_interval_us = None
-        self.simulated_exposure_time_ms = None
-        self.simulated_width_px = None
-        self.simulated_height_px = None
-        self.simulated_width_offset_px = None
-        self.simulated_height_offset_px = None
-        self.simulated_trigger = {'mode':'on','source': 'internal', 'polarity':'rising'}
+        self._pixel_type = "mono16"
+        self._line_interval_us = LINE_INTERVALS_US[self._pixel_type]
+        self._exposure_time_ms = 10
+        self._width_px = MAX_WIDTH_PX
+        self._height_px = MAX_HEIGHT_PX
+        self._width_offset_px = 0
+        self._height_offset_px = 0
+        self._binning = 1
+        self._trigger = {'mode':'on',
+                         'source': 'internal',
+                         'polarity':'rising'}
 
     @property
     def exposure_time_ms(self):
-        return self.simulated_exposure_time_ms
+        return self._exposure_time_ms
 
     @exposure_time_ms.setter
     def exposure_time_ms(self, exposure_time_ms: float):
@@ -70,15 +80,15 @@ class Camera(BaseCamera):
                              and <{MAX_EXPOSURE_TIME_MS} ms")
 
         # Note: round ms to nearest us
-        self.simulated_exposure_time_ms = exposure_time_ms
+        self._exposure_time_ms = exposure_time_ms
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
 
     @property
     def roi(self):
-        return {'width_px': self.simulated_width_px,
-                'height_px': self.simulated_height_px,
-                'width_offset_px': self.simulated_width_offset_px,
-                'height_offest_px': self.simulated_height_offset_px}
+        return {'width_px': self._width_px,
+                'height_px': self._height_px,
+                'width_offset_px': self._width_offset_px,
+                'height_offest_px': self._height_offset_px}
 
     @roi.setter
     def roi(self, roi: dict):
@@ -114,16 +124,16 @@ class Camera(BaseCamera):
         # Height offset must be a multiple of the divisible height in px
         centered_height_offset_px = round((sensor_height_px/2 - height_px/2)/DIVISIBLE_HEIGHT_PX)*DIVISIBLE_HEIGHT_PX
 
-        self.simulated_width_px = width_px
-        self.simulated_height_px = height_px
-        self.simulated_width_offset_px = centered_width_offset_px
-        self.simulated_height_offset_px = centered_height_offset_px
+        self._width_px = width_px
+        self._height_px = height_px
+        self._width_offset_px = centered_width_offset_px
+        self._height_offset_px = centered_height_offset_px
         self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
         self.log.info(f"roi offset set to: {centered_width_offset_px} x {centered_height_offset_px} [width x height]")
 
     @property
     def trigger(self):
-        return self.simulated_trigger
+        return self._trigger
 
     @trigger.setter
     def trigger(self, trigger: dict):
@@ -141,11 +151,24 @@ class Camera(BaseCamera):
         valid_polarity = list(TRIGGERS['polarity'].keys())
         if polarity not in valid_polarity:
             raise ValueError("polarity must be one of %r." % valid_polarity)
-        self.simulated_trigger = dict(trigger)
+        self._trigger = dict(trigger)
+
+    @property
+    def binning(self):
+        return next(key for key, value in BINNING.items() if value == self._binning)
+
+    @binning.setter
+    def binning(self, binning: str):
+        valid_binning = list(BINNING.keys())
+        if binning not in valid_binning:
+            raise ValueError("binning must be one of %r." % valid_binning)
+        self._binning = binning
+        # initialize the downsampling in 2d
+        self.gpu_binning = DownSample2D(binning=self._binning)
 
     @property
     def pixel_type(self):
-        pixel_type = self.simulated_pixel_type
+        pixel_type = self._pixel_type
         # invert the dictionary and find the abstracted key to output
         return next(key for key, value in PIXEL_TYPES.items() if value == pixel_type)
 
@@ -155,13 +178,13 @@ class Camera(BaseCamera):
         if pixel_type_bits not in valid:
             raise ValueError("pixel_type_bits must be one of %r." % valid)
         
-        self.simulated_pixel_type = PIXEL_TYPES[pixel_type_bits]
-        self.simulated_line_interval_us = LINE_INTERVALS_US[self.pixel_type]
+        self._pixel_type = PIXEL_TYPES[pixel_type_bits]
+        self._line_interval_us = LINE_INTERVALS_US[self.pixel_type]
         self.log.info(f"pixel type set_to: {pixel_type_bits}")
 
     @property
     def line_interval_us(self):
-        return self.simulated_line_interval_us
+        return self._line_interval_us
 
     @property
     def sensor_width_px(self):
@@ -189,7 +212,10 @@ class Camera(BaseCamera):
         while not self.buffer:
             time.sleep(0.01)
         image = self.buffer.pop(0)
-        return image
+        if self._binning > 1:
+            return self.gpu_binning.run(image)
+        else:
+            return image
 
     def signal_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""
@@ -199,7 +225,7 @@ class Camera(BaseCamera):
         state['Output Buffer Size'] = BUFFER_SIZE_FRAMES - len(self.buffer)
          # number of underrun, i.e. dropped frames
         state['Dropped Frames'] = self.dropped_frames
-        state['Data Rate [MB/s]'] = self.frame_rate*self.simulated_width_px*self.simulated_height_px*numpy.dtype(self.simulated_pixel_type).itemsize/1e6
+        state['Data Rate [MB/s]'] = self.frame_rate*self._width_px*self._height_px*numpy.dtype(self._pixel_type).itemsize/self._binning**2/1e6
         state['Frame Rate [fps]'] = self.frame_rate
         self.log.info(f"id: {self.id}, "
                       f"frame: {state['Frame Index']}, "
@@ -218,11 +244,11 @@ class Camera(BaseCamera):
         frame_count = frame_count if frame_count is not None else 1
         while i <= frame_count:
             start_time = time.time()
-            column_count = self.simulated_width_px
-            row_count = self.simulated_height_px
-            frame_time_s = (row_count*self.simulated_line_interval_us/1000+self.simulated_exposure_time_ms)/1000
-            image = numpy.random.randint(low=128, high=256, size=(row_count, column_count), dtype=self.simulated_pixel_type)
-            # image = numpy.zeros(shape=(row_count, column_count), dtype=self.simulated_pixel_type)
+            column_count = self._width_px
+            row_count = self._height_px
+            frame_time_s = (row_count*self._line_interval_us/1000+self._exposure_time_ms)/1000
+            image = numpy.random.randint(low=128, high=256, size=(row_count, column_count), dtype=self._pixel_type)
+            # image = numpy.zeros(shape=(row_count, column_count), dtype=self._pixel_type)
             while (time.time() - start_time) < frame_time_s:
                 time.sleep(0.01)
             if len(self.buffer) < BUFFER_SIZE_FRAMES:

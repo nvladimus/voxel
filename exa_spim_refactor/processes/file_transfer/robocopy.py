@@ -12,10 +12,10 @@ class FileTransfer():
     def __init__(self, external_drive):
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self.filename = None
+        self._filename = None
         self._local_drive = None
         self._external_drive = external_drive
-        self._protocol = None
+        self._protocol = 'robocopy'
         self.progress = None
 
     @property
@@ -40,71 +40,60 @@ class FileTransfer():
     def external_drive(self):
         return self._external_drive
 
-    @external_drive.setter
-    def external_drive(self, external_drive: Path or str):
-        self.log.info(f'setting external path to: {external_drive}')
-        self._external_drive = Path(external_drive)
-
     @property
-    def protocol(self):
-        return self._protocol
-
-    @protocol.setter
-    def protocol(self, protocol: str):
-        self.log.info(f'setting transfer protocol to: {protocol}')
-        self._protocol = protocol
-
-    def get_progress(self):
-        self.log.info(f'{self.filename} transfer progress: {self.progress} [%]')
+    def signal_progress_percent(self):
+        self.log.info(f'{self._filename} transfer progress: {self.progress} [%]')
+        return self.progress
 
     def start(self):
-        if not os.path.isfile(self.local_drive.absolute() / self.filename):
-            raise FileNotFoundError(f"{self.local_drive} does not exist.")
+        if not os.path.isfile(self._local_drive.absolute() / self._filename):
+            raise FileNotFoundError(f"{self._local_drive} does not exist.")
         # xcopy requires an asterisk to indicate source and destination are
         # files, not directories.
         # TODO: identify if xcopy src/dest are files or directories, and
         #   annotate them as such.
         # flags = f'/j /mov /log:{self.local_drive.absolute()}\\log.txt /njh /njs'
-        self.log_name = self.filename.replace('ims', 'txt')
-        flags = f'/j /mov /njh /njs /log:{self.local_drive.absolute()}\\{self.log_name}'
-        cmd_with_args = f'{self.protocol} {self.local_drive.absolute()} {self.external_drive.absolute()} \
-            {self.filename} {flags}'
-        self.log.info(f"transferring from {self.local_drive} to {self.external_drive}")
+        file_extension = Path(self._filename).suffix
+        self._log_name = self._filename.replace(file_extension, 'txt')
+        flags = f'/j /mov /njh /njs /log:{self._local_drive.absolute()}\\{self._log_name}'
+        cmd_with_args = f'{self.protocol} {self._local_drive.absolute()} {self._external_drive.absolute()} \
+            {self._filename} {flags}'
+        self.log.info(f"transferring from {self._local_drive} to {self._external_drive}")
         # self.cmd = subprocess.run(cmd_with_args, check=True)
         self.thread = threading.Thread(target=self._run, args=(cmd_with_args,))
         self.thread.start()
 
-    def join(self):
+    def wait_until_finished(self):
         self.thread.join()
 
     def is_alive(self):
         return self.thread.is_alive()
 
     def _run(self, cmd_with_args: str):
-        subprocess = Popen(cmd_with_args, stdout=PIPE, stderr=STDOUT)  # blocks.
+        subprocess = Popen(cmd_with_args, stdout=PIPE, stderr=STDOUT)
+        # pause for 1 sec for log file first line write
         time.sleep(1)
         self.progress = 0
         while self.progress < 100:
-            f = open(f'{self.local_drive.absolute()}\\{self.log_name}', 'r')
+            # open log file
+            f = open(f'{self._local_drive.absolute()}\\{self.log_name}', 'r')
+            # read the last line
             line = f.readlines()[-1]
+            # close the log file
             f.close()
-            del f
+            # try to find if there is a % in the last line
             try:
+                # conver the string to a float
                 self.progress = float(line.replace('%',''))
+            # line did not contain %
             except:
                 self.progress = 0
-            self.get_progress()
+            print(self.signal_progress_percent)
+            # pause for 1 sec
             time.sleep(1)
-        # while subprocess.poll() == None:
-        #     time.sleep(1)
-        # with subprocess.stdout:
-        #     try:
-        #         for line in iter(subprocess.stdout.readline, b''):
-        #             self.log.info(f'subprocess: {line.decode("utf-8").strip()}')       
-        #     except CalledProcessError as e:
-        #         self.log.info(f"{str(e)}")
+        # cleanup the subprocess
         subprocess.kill()
         subprocess.wait()
-        os.remove(f'{self.local_drive.absolute()}\\{self.log_name}')
+        # remove the log file
+        os.remove(f'{self._local_drive.absolute()}\\{self._log_name}')
         self.log.info(f"transfer finished")
-

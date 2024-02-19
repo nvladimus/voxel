@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     chunk_size_frames = 128
     num_frames = 256
-    num_tiles = 3
+    num_tiles = 1
 
     stack_writer_worker = Writer()
     stack_writer_worker.row_count_px = 2048
@@ -113,5 +113,5 @@ if __name__ == '__main__':
         del img_buffer
 
         # remove files
-        os.remove(f'test_{tile_index}.h5')
-        os.remove(f'test_{tile_index}.xml')
+        # os.remove(f'test_{tile_index}.h5')
+        # os.remove(f'test_{tile_index}.xml')

@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     chunk_size_frames = 64
     num_frames = 256
-    num_tiles = 3
+    num_tiles = 1
 
     frame_index = 0
     tile_index = 0

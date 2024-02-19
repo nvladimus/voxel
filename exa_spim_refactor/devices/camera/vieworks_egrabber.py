@@ -3,6 +3,7 @@ import numpy
 from functools import wraps
 from exa_spim_refactor.devices.camera.base import BaseCamera
 from exa_spim_refactor.devices.utils.singleton import Singleton
+from exa_spim_refactor.processes.gpu.downsample_2d import DownSample2D
 from egrabber import *
 
 BUFFER_SIZE_MB = 2400
@@ -253,10 +254,14 @@ class Camera(BaseCamera):
         if binning not in valid_binning:
             raise ValueError("binning must be one of %r." % valid_binning)
         self._binning = binning
+
         # if binning is not an integer, do it in hardware
         if not isinstance(BINNING[binning], int):
             self.grabber.remote.set("BinningHorizontal", self._binning)
             self.grabber.remote.set("BinningVertical", self._binning)
+        # initialize the opencl binning program
+        else:
+            self.gpu_binning = DownSample2D(binning=self._binning)
 
     @property
     def sensor_width_px(self):
@@ -326,9 +331,7 @@ class Camera(BaseCamera):
                                                                   column_count))
         # do software binning if != 1 and not a string for setting in egrabber
         if self._binning > 1 and isinstance(self._binning, int):
-            # decimate binning
-            return image[::self._binning, ::self._binning]
-            # TODO ADD GPUTOOLS LINE HERE
+            return self.gpu_binning.run(image)
         else:
             return image
 

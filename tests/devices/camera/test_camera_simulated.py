@@ -32,6 +32,8 @@ cameras[0].trigger = {'mode': 'off', 'source': 'external', 'polarity': 'rising'}
 print(f'trigger is: {cameras[0].trigger}')
 cameras[0].roi = {'width_px': 14192, 'height_px': 10640}
 print(f'roi is: {cameras[0].roi}')
+cameras[0].binning = 2
+print(f'binning is: {cameras[0].binning}')
 cameras[0].prepare()
 cameras[0].start(10)
 for frame in range(10):

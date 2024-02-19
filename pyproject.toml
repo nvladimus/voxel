@@ -19,5 +19,7 @@ dependencies = [
     'tifffile >= 2024.1.30',
     'egrabber >= 0.0.2',
     'h5py >= 3.0.0',
-    'scikit-image >= 0.20.0'
+    'scikit-image >= 0.20.0',
+    'gputools >= 0.2.14',
+    'scikit-tensor-py3'
 ]
