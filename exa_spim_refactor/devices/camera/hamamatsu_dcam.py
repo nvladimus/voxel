@@ -7,6 +7,10 @@ from dcam.dcam import *
 
 BUFFER_SIZE_MB = 2400
 
+# subarray parameter values
+SUBARRAY_OFF = 1
+SUBARRAY_ON = 2
+
 # dcam properties dict for convenience in calls
 PROPERTIES = {
     "exposure_time": 2031888,  # 0x001F0110, R/W, sec, "EXPOSURE TIME"
@@ -184,6 +188,8 @@ class Camera(BaseCamera):
                              <{self.max_width_px}, \
                             and a multiple of {self.step_width_px} px!")
 
+        # need to set to off before changing roi!
+        self.dcam.prop_setvalue(PROPERTIES['subarray_mode'], SUBARRAY_OFF)
         self.dcam.prop_setvalue(PROPERTIES["subarray_hpos"], 0)
         self.dcam.prop_setvalue(PROPERTIES["subarray_hsize"], width_px)
         # width offset must be a multiple of the divisible width in px
@@ -195,6 +201,8 @@ class Camera(BaseCamera):
         centered_height_offset_px = round(
             (sensor_height_px / 2 - height_px / 2) / self.step_height_px) * self.step_height_px
         self.dcam.prop_setvalue(PROPERTIES["subarray_vpos"], centered_height_offset_px)
+        # need to set back to on after changing roi!
+        self.dcam.prop_setvalue(PROPERTIES['subarray_mode'], SUBARRAY_ON)
         self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
         self.log.info(f"roi offset set to: {centered_width_offset_px} x {centered_height_offset_px} [width x height]")
         # refresh parameter values
