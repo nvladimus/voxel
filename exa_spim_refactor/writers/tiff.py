@@ -5,6 +5,7 @@ import re
 import os
 import sys
 import tifffile
+from exa_spim_refactor.writers.base import BaseWriter
 from multiprocessing import Process, Array, Value, Event
 from multiprocessing.shared_memory import SharedMemory
 from ctypes import c_wchar
@@ -24,7 +25,7 @@ DATA_TYPES = {
     "uint16": "uint16",
 }
 
-class Writer():
+class Writer(BaseWriter):
 
     def __init__(self, path):
  
@@ -230,6 +231,7 @@ class Writer():
         log_handler.setFormatter(log_formatter)
         logger.addHandler(log_handler)
         filepath = str((self._path / Path(f"{self._filename}")).absolute())
+        print(filepath)
 
         writer = tifffile.TiffWriter(filepath,
                                      bigtiff=True)

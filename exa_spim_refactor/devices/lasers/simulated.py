@@ -1,4 +1,4 @@
-from exa_spim_refactor.devices.lasers.laser_base import Laser
+from exa_spim_refactor.devices.lasers.base import BaseLaser
 import logging
 from serial import Serial
 
@@ -32,7 +32,7 @@ class SimulatedCombiner:
             return
         self._PercentageSplitStatus = value
 
-class SimulatedLaser(Laser):
+class SimulatedLaser(BaseLaser):
 
     def __init__(self, port: Serial or str, prefix: str = '', coefficients: dict = {}):
         """Communicate with specific LBX laser in L6CC Combiner box.

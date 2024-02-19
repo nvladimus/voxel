@@ -1,9 +1,9 @@
 from oxxius_laser import LCX
-from devices.lasers.laser_base import Laser
+from exa_spim_refactor.devices.lasers.base import BaseLaser
 import logging
 from serial import Serial
 
-class LaserLCXOxxius(LCX, Laser):
+class LaserLCXOxxius(LCX, BaseLaser):
 
     def __init__(self,  port: Serial or str, prefix:str):
         """Communicate with specific LBX laser in L6CC Combiner box.

@@ -1,12 +1,18 @@
 import logging
 import time
+from exa_spim_refactor.devices.utils.singleton import Singleton
 from tigerasi.tiger_controller import TigerController
-from devices.filterwheel.base import BaseFilterWheel
+from exa_spim_refactor.devices.filterwheel.base import BaseFilterWheel
 
 # constants for the ASI filter wheel
 
 SWITCH_TIME_S = 0.1 # estimated timing
 
+# singleton wrapper around TigerController
+class TigerControllerSingleton(TigerController, metaclass=Singleton):
+    def __init__(self, com_port):
+        super(TigerControllerSingleton, self).__init__(com_port)
+        
 class FilterWheel(BaseFilterWheel):
 
     """Filter Wheel Abstraction from an ASI Tiger Controller."""
@@ -18,7 +24,7 @@ class FilterWheel(BaseFilterWheel):
         :param tigerbox: TigerController instance.
         """
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.tigerbox = TigerController(port)
+        self.tigerbox = TigerControllerSingleton(port)
         self.id = id
         self.filters = filters
         # force homing of the wheel

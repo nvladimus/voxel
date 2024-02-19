@@ -10,12 +10,12 @@ config = YAML().load(Path(config_path))
 stages=[]
 
 for stage in config['devices']['stages'].items():
-	driver = stage[1]['driver']
-	port = stage[1]['port']
-	hardware_axis = stage[1]['hardware_axis']
-	instrument_axis = stage[1]['instrument_axis']
-	exec(f"import {driver}")
-	exec(f"stages.append({driver}.Stage(hardware_axis, instrument_axis))")
+    driver = stage[1]['driver']
+    port = stage[1]['port']
+    hardware_axis = stage[1]['hardware_axis']
+    instrument_axis = stage[1]['instrument_axis']
+    exec(f"from exa_spim_refactor.devices.stage import {driver}")
+    exec(f"stages.append({driver}.Stage(hardware_axis, instrument_axis))")
 
 # stage 0
 print('settings for stage0')

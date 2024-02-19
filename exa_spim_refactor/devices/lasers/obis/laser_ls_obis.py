@@ -1,5 +1,5 @@
 from obis_laser import ObisLS, OperationalQuery, OperationalCmd
-from devices.lasers.laser_base import Laser
+from exa_spim_refactor.devices.lasers.base import BaseLaser
 import logging
 from serial import Serial
 
@@ -11,7 +11,7 @@ MODULATION_MODES = {
 }
 
 
-class LaserLSObis(ObisLS, Laser):
+class LaserLSObis(ObisLS, BaseLaser):
 
     def __init__(self, port: Serial or str, prefix: str = None):
         """Communicate with specific LS laser.

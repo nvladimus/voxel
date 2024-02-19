@@ -1,4 +1,4 @@
 writer:
   driver: tiff
   data_type: uint16
-  path: .\
+  path: .

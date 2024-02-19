@@ -1,7 +1,7 @@
 driver = 'pco'
 camera_id = '61009303'
 # create camera object
-exec(f"import {driver}")
+exec(f"from exa_spim_refactor.devices.camera import {driver}")
 exec(f"camera = ({driver}.Camera('{camera_id}'))")
 # init values from config
 camera.roi = {

@@ -6,7 +6,6 @@ COMPRESSION_TYPES = {
     "ZSTDShuffle": "ZarrBlosc1Lz4ByteShuffle",
 }
 
-
 class StackWriter:
     """Class for writing a stack of frames to a file on disk."""
 

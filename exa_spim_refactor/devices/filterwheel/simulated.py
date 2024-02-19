@@ -1,6 +1,6 @@
 import logging
 import time
-from devices.filterwheel.base import BaseFilterWheel
+from exa_spim_refactor.devices.filterwheel.base import BaseFilterWheel
 
 SWITCH_TIME_S = 0.1 # estimated timing
 

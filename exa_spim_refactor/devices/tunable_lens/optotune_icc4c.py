@@ -1,5 +1,5 @@
 import logging
-from devices.tunable_lens.base import BaseTunableLens
+from exa_spim_refactor.devices.tunable_lens.base import BaseTunableLens
 import optoICC
 
 # constants for Optotune ICC-4C controller

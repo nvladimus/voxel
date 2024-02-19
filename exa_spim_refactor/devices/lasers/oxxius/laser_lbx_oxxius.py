@@ -1,5 +1,5 @@
 from oxxius_laser import BoolVal, LBX
-from devices.lasers.laser_base import Laser
+from exa_spim_refactor.devices.lasers.base import BaseLaser
 import logging
 from sympy import symbols, solve
 from serial import Serial
@@ -11,7 +11,7 @@ MODULATION_MODES = {
     'digital': {'external_control_mode' :BoolVal.OFF, 'digital_modulation':BoolVal.ON}
 }
 
-class LaserLBXOxxius(LBX, Laser):
+class LaserLBXOxxius(LBX, BaseLaser):
 
     def __init__(self, port: Serial or str, prefix:str, coefficients: dict):
         """Communicate with specific LBX laser in L6CC Combiner box.
