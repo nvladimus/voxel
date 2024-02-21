@@ -1,6 +1,7 @@
 import logging
 import time
 from .base import BaseStage
+import random
 
 class Stage(BaseStage):
 
@@ -40,6 +41,7 @@ class Stage(BaseStage):
 
     @property
     def position(self):
+        self.simulated_position = random.randint(0,100)
         return {self.instrument_axis: self.simulated_position}
 
     @property

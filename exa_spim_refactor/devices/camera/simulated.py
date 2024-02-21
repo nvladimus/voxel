@@ -2,7 +2,7 @@ import logging
 import numpy
 import time
 from .base import BaseCamera
-from multiprocessing import Process
+from multiprocessing import Process, Queue, Event
 from threading import Thread
 
 BUFFER_SIZE_FRAMES = 8
@@ -46,6 +46,9 @@ class Camera(BaseCamera):
 
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = id
+        self.terminate_frame_grab = Event()
+        self.terminate_frame_grab.clear()
+
         self.simulated_pixel_type = None
         self.simulated_line_interval_us = None
         self.simulated_exposure_time_ms = None
@@ -173,14 +176,18 @@ class Camera(BaseCamera):
 
     def prepare(self):
         self.log.info('simulated camera preparing...')
-        self.buffer = list()
+        self.buffer = Queue(BUFFER_SIZE_FRAMES)  # buffer to store lastest image
 
-    def start(self, frame_count: int = None):
+    def start(self, frame_count: int = float('inf')):
         self.log.info('simulated camera starting...')
         self.thread = Thread(target=self.generate_frames, args=(frame_count,))
         self.thread.daemon = True
         self.thread.start()
 
+    def abort(self):
+        self.terminate_frame_grab.set()
+        self.thread.join()
+        self.terminate_frame_grab.clear()
     def stop(self):
         self.log.info('simulated camera stopping...')
         self.thread.join()
@@ -188,8 +195,7 @@ class Camera(BaseCamera):
     def grab_frame(self):
         while not self.buffer:
             time.sleep(0.01)
-        image = self.buffer.pop(0)
-        return image
+        return self.buffer.get()
 
     def signal_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""
@@ -216,22 +222,16 @@ class Camera(BaseCamera):
         self.frame = 0
         self.dropped_frames = 0
         i = 1
-        frame_count = frame_count if frame_count is not None else 1
-        while i <= frame_count:
+        while i <= frame_count and not self.terminate_frame_grab.is_set():
             start_time = time.time()
             column_count = self.simulated_width_px
             row_count = self.simulated_height_px
             frame_time_s = (row_count*self.simulated_line_interval_us/1000+self.simulated_exposure_time_ms)/1000
-            # image = numpy.random.randint(low=128, high=256, size=(row_count, column_count), dtype=self.simulated_pixel_type)
-            image = numpy.zeros(shape=(row_count, column_count), dtype=self.simulated_pixel_type)
+            image = numpy.random.randint(low=128, high=256, size=(row_count, column_count), dtype=self.simulated_pixel_type)
+            #image = numpy.zeros(shape=(row_count, column_count), dtype=self.simulated_pixel_type)
             while (time.time() - start_time) < frame_time_s:
                 time.sleep(0.01)
-            if len(self.buffer) < BUFFER_SIZE_FRAMES:
-                self.buffer.append(image)
-            else:
-                self.dropped_frames += 1
-                self.log.warning('buffer full, frame dropped.')
+            self.buffer.put(image)
             self.frame += 1
-            i = i if frame_count is None else i+1
             end_time = time.time()
             self.frame_rate = 1/(end_time - start_time)

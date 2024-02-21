@@ -50,11 +50,13 @@ class DAQ:
 
     def __init__(self, dev: str):
 
+        self.do_task = None
+        self.ao_task = None
+
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.devs = list()
         for device in nidaqmx.system.System.local().devices:
             self.devs.append(device.name)
-        print(dev, self.devs)
         if dev not in self.devs:
             raise ValueError("dev name must be one of %r." % self.devs)        
         self.id = dev
@@ -101,10 +103,9 @@ class DAQ:
             if f"{self.id}/{trigger_port}" not in self.dio_ports:
                 raise ValueError("trigger port must be one of %r." % self.dio_ports)
 
-            for channel in task['ports']:
+            for channel_port in task['ports'].keys():
                 # add channel to task
-                channel_port = channel['port']
-                print(task_type)
+                #channel_port = channel['port']
                 if f"{self.id}/{channel_port}" not in channel_options[task_type]:
                     raise ValueError(f"{task_type} number must be one of {channel_options[task_type]}")
                 physical_name = f"/{self.id}/{channel_port}"
@@ -189,9 +190,9 @@ class DAQ:
         timing = task['timing']
 
         waveform_attribute = getattr(self, f"{task_type}_waveforms")
-        for channel in task['ports']:
+        for port, channel in task['ports'].items():
             # load waveform and variables
-            port = channel['port']
+            #port = channel['port']
             name = channel['name']
             device_min_volts = channel.get('device_min_volts', 0)
             device_max_volts = channel.get('device_max_volts', 5)
@@ -291,7 +292,7 @@ class DAQ:
         self.do_task.out_stream.output_buf_size = len(do_voltages[0])
         #FIXME: Really weird quirk on Micah's computer. Check if actually real
         do_voltages = do_voltages.astype("uint32")[0] if len(do_voltages) == 1 else do_voltages.astype("uint32")
-        self.do_task.write(do_voltages.astype("uint32"))
+        self.do_task.write(do_voltages)
     def sawtooth(self,
                  sampling_frequency_hz: float,
                  period_time_ms: float,
