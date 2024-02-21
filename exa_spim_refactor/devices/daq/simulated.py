@@ -1,16 +1,60 @@
 import logging
-import nidaqmx
 import numpy
 import matplotlib.pyplot as plt
 from exa_spim_refactor.devices.daq.base import BaseDAQ
 from matplotlib.ticker import AutoMinorLocator
 from scipy import signal
-from nidaqmx.constants import FrequencyUnits as Freq
-from nidaqmx.constants import Level
-from nidaqmx.constants import AcquisitionType as AcqType
-from nidaqmx.constants import Edge
-from nidaqmx.constants import Slope
-from nidaqmx.constants import TaskMode
+
+# lets just simulate the PCIe-6738
+AO_PHYSICAL_CHANS = [
+    'ao0',
+    'ao1',
+    'ao2',
+    'ao3',
+    'ao4',
+    'ao5',
+    'ao6',
+    'ao7',
+    'ao8',
+    'ao9',
+    'ao10',
+    'ao11',
+    'ao12',
+    'ao13',
+    'ao14',
+    'ao15',
+    'ao16',
+    'ao17',
+    'ao18',
+    'ao19',
+    'ao20',
+    'ao21',
+    'ao22',
+    'ao23',
+    'ao24',
+    'ao25',
+    'ao26',
+    'ao27',
+    'ao28',
+    'ao29',
+    'ao30',
+    'ao31',
+]
+
+CO_PHYSICAL_CHANS = [
+    'ctr0',
+    'ctr1'
+]
+
+DO_PHYSICAL_CHANS = [
+    'port0',
+    'port1'
+]
+
+DIO_PORTS = [
+    'PFI0',
+    'PFI1'
+]
 
 DO_WAVEFORMS = [
     'square wave'
@@ -22,56 +66,30 @@ AO_WAVEFORMS = [
     'triangle wave'
 ]
 
-TRIGGER_MODE = [
-    "on",
-    "off"
-]
-
-SAMPLE_MODE = {
-    "finite": AcqType.FINITE,
-    "continuous": AcqType.CONTINUOUS
-}
-
-TRIGGER_POLARITY = {
-    "rising":  Edge.RISING,
-    "falling": Edge.FALLING
-}
-
-TRIGGER_EDGE = {
-    "rising":  Slope.RISING,
-    "falling": Slope.FALLING,
-}
-
-RETRIGGERABLE = {
-    "on": True,
-    "off": False
-}
-
 class DAQ(BaseDAQ):
 
     def __init__(self, dev: str):
 
-        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.devs = list()
-        for device in nidaqmx.system.System.local().devices:
-            self.devs.append(device.name)
-        if dev not in self.devs:
-            raise ValueError("dev name must be one of %r." % self.devs)        
+        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)       
         self.id = dev
-        self.dev = nidaqmx.system.device.Device(self.id)
-        self.ao_physical_chans = self.dev.ao_physical_chans.channel_names
-        self.co_physical_chans = self.dev.co_physical_chans.channel_names
-        self.do_physical_chans = self.dev.do_ports.channel_names
-        self.dio_ports = [channel.replace(f'port', "PFI") for channel in self.dev.do_ports.channel_names]
-
-        self.dio_lines = self.dev.do_lines.channel_names
-        self.max_ao_rate = self.dev.ao_max_rate
-        self.min_ao_rate = self.dev.ao_min_rate
-        self.max_do_rate = self.dev.do_max_rate
-        self.max_ao_volts = self.dev.ao_voltage_rngs[1]
-        self.min_ao_volts = self.dev.ao_voltage_rngs[0]
+        self.ao_physical_chans = list()
+        self.co_physical_chans = list()
+        self.do_physical_chans = list()
+        self.dio_ports = list()
+        for channel in AO_PHYSICAL_CHANS:
+            self.ao_physical_chans.append(f'{self.id}/{channel}')
+        for channel in CO_PHYSICAL_CHANS:
+            self.co_physical_chans.append(f'{self.id}/{channel}')
+        for channel in DO_PHYSICAL_CHANS:
+            self.do_physical_chans.append(f'{self.id}/{channel}')
+        for port in DIO_PORTS:
+            self.dio_ports.append(f'{self.id}/{port}')
+        self.max_ao_rate = 350e3
+        self.min_ao_rate = 1e3
+        self.max_do_rate = 350e3
+        self.max_ao_volts = 10
+        self.min_ao_volts = -10
         self.log.info('resetting nidaq')
-        self.dev.reset_device()
         self.tasks = list()
         self.ao_waveforms = dict()
         self.do_waveforms = dict()
@@ -82,7 +100,6 @@ class DAQ(BaseDAQ):
         if task_type not in ['ao', 'co', 'do']:
             raise ValueError(f"{task_type} must be one of {['ao', 'co', 'do']}")
 
-        daq_task = nidaqmx.Task(task['name'])
         timing = task['timing']
 
         for k, v in timing.items():
@@ -92,7 +109,6 @@ class DAQ(BaseDAQ):
                 raise ValueError(f"{k} must be one of {valid}")
 
         channel_options = {'ao':self.ao_physical_chans, 'do':self.do_physical_chans, 'co':self.co_physical_chans}
-        add_task_options = {'ao':daq_task.ao_channels.add_ao_voltage_chan, 'do':daq_task.do_channels.add_do_chan}
 
         if task_type in ['ao', 'do']:
             self._timing_checks(task, task_type)
@@ -107,29 +123,9 @@ class DAQ(BaseDAQ):
                 if f"{self.id}/{channel_port}" not in channel_options[task_type]:
                     raise ValueError(f"{task_type} number must be one of {channel_options[task_type]}")
                 physical_name = f"/{self.id}/{channel_port}"
-                add_task_options[task_type](physical_name)
 
             total_time_ms = timing['period_time_ms'] + timing['rest_time_ms']
             daq_samples = int(((total_time_ms)/1000)*timing['sampling_frequency_hz'])
-
-            if timing['trigger_mode'] == "on":
-                daq_task.timing.cfg_samp_clk_timing(
-                    rate = timing['sampling_frequency_hz'],
-                    active_edge = TRIGGER_POLARITY[timing['trigger_polarity']],
-                    sample_mode = SAMPLE_MODE[timing['sample_mode']],
-                    samps_per_chan = daq_samples)
-                daq_task.triggers.start_trigger.cfg_dig_edge_start_trig(
-                    trigger_source=f'/{self.id}/{trigger_port}',
-                    trigger_edge=TRIGGER_EDGE[timing['trigger_polarity']])
-                daq_task.triggers.start_trigger.retriggerable = RETRIGGERABLE[timing['retriggerable']]
-            else:
-                daq_task.timing.cfg_samp_clk_timing(
-                    rate = timing['sampling_frequency_hz'],
-                    sample_mode = SAMPLE_MODE[timing['sample_mode']],
-                    samps_per_chan = int((timing['period_time_ms']/1000)/timing['sampling_frequency_hz']))
-
-            setattr(daq_task, f"{task_type}_line_states_done_state", Level.LOW)
-            setattr(daq_task, f"{task_type}_line_states_paused_state", Level.LOW)
 
         else:   # co channel
             if f"{self.id}/{ timing['output_port']}" not in self.dio_ports:
@@ -143,20 +139,6 @@ class DAQ(BaseDAQ):
                 if f"{self.id}/{channel_number}" not in self.co_physical_chans:
                     raise ValueError("co number must be one of %r." % self.co_physical_chans)
                 physical_name = f"/{self.id}/{channel_number}"
-                co_chan = daq_task.co_channels.add_co_pulse_chan_freq(
-                    counter=physical_name,
-                    units=Freq.HZ,
-                    freq=timing['frequency_hz'],
-                    duty_cycle=0.5)
-                co_chan.co_pulse_term = f'/{self.id}/{timing["output_port"]}'
-                pulse_count = {'samps_per_chan': pulse_count} if pulse_count else {}
-                daq_task.timing.cfg_implicit_timing(
-                    sample_mode=AcqType.FINITE if pulse_count else AcqType.CONTINUOUS,
-                    **pulse_count)
-
-
-        setattr(self, f"{task_type}_task", daq_task)  # set task attribute
-        self.tasks.append(daq_task)
 
     def _timing_checks(self, task: dict, task_type: str):
         """Check period time, rest time, and sample frequency"""
@@ -270,26 +252,10 @@ class DAQ(BaseDAQ):
 
 
     def write_ao_waveforms(self):
-
-        ao_voltages = numpy.array(list(self.ao_waveforms.values()))
-
-        # unreserve buffer
-        self.ao_task.control(TaskMode.TASK_UNRESERVE)
-        # sets buffer to length of voltages
-        self.ao_task.out_stream.output_buf_size = len(ao_voltages[0])
-        self.ao_task.control(TaskMode.TASK_COMMIT)
-        self.ao_task.write(numpy.array(ao_voltages))
+        pass
 
     def write_do_waveforms(self):
-
-        do_voltages = numpy.array(list(self.do_waveforms.values()))
-        # unreserve buffer
-        self.do_task.control(TaskMode.TASK_UNRESERVE)
-        # sets buffer to length of voltages
-        self.do_task.out_stream.output_buf_size = len(do_voltages[0])
-        #FIXME: Really weird quirk on Micah's computer. Check if actually real
-        do_voltages = do_voltages.astype("uint32")[0] if len(do_voltages) == 1 else do_voltages.astype("uint32")
-        self.do_task.write(do_voltages.astype("uint32"))
+        pass
         
     def sawtooth(self,
                  sampling_frequency_hz: float,
@@ -420,47 +386,22 @@ class DAQ(BaseDAQ):
         plt.savefig('waveforms.pdf', bbox_inches='tight')
 
     def _rereserve_buffer(self, buf_len):
-        """If tasks are already configured, the buffer needs to be cleared and rereserved to work"""
-        self.ao_task.control(TaskMode.TASK_UNRESERVE)  # Unreserve buffer
-        self.ao_task.out_stream.output_buf_size = buf_len  # Sets buffer to length of voltages
-        self.ao_task.control(TaskMode.TASK_COMMIT)
-
-        self.do_task.control(TaskMode.TASK_UNRESERVE)  # Unreserve buffer
-        self.do_task.out_stream.output_buf_size = buf_len
-        self.do_task.control(TaskMode.TASK_COMMIT)
+        pass
 
     def start_all(self):
-
-        for task in self.tasks:
-            task.start()
+        pass
 
     def stop_all(self):
-
-        for task in self.tasks:
-            task.stop()
+        pass
 
     def close_all(self):
-        
-        for task in self.tasks:
-            task.close()
+        pass
 
     def restart_all(self):
-
-        for task in self.tasks:
-            task.stop()
-        for task in self.tasks:
-            task.start()
+        pass
 
     def wait_until_done_all(self, timeout=1.0):
-
-        for task in self.tasks:
-            task.wait_until_done(timeout)
+        pass
 
     def is_finished_all(self):
-
-        for task in self.tasks:
-            if not task.is_task_done():
-                return False
-            else:
-                pass
-        return True
+        pass
