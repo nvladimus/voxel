@@ -55,6 +55,7 @@ class Camera(BaseCamera):
         self.id = id
         self.terminate_frame_grab = Event()
         self.terminate_frame_grab.clear()
+        self._pixel_type = "mono16"
         self._line_interval_us = LINE_INTERVALS_US[self._pixel_type]
         self._exposure_time_ms = 10
         self._width_px = MAX_WIDTH_PX
@@ -180,7 +181,7 @@ class Camera(BaseCamera):
             raise ValueError("pixel_type_bits must be one of %r." % valid)
         
         self._pixel_type = PIXEL_TYPES[pixel_type_bits]
-        self._line_interval_us = LINE_INTERVALS_US[self.pixel_type]
+        self._line_interval_us = LINE_INTERVALS_US[pixel_type_bits]
         self.log.info(f"pixel type set_to: {pixel_type_bits}")
 
     @property
@@ -197,7 +198,9 @@ class Camera(BaseCamera):
 
     def prepare(self):
         self.log.info('simulated camera preparing...')
-        self.buffer = Queue(BUFFER_SIZE_FRAMES)  # buffer to store lastest image
+        # self.buffer = Queue(BUFFER_SIZE_FRAMES)  # buffer to store lastest image
+        # above breaks other parts of code since self.buffer becomes a Queue object
+        self.buffer = list()
 
     def start(self, frame_count: int = float('inf')):
         self.log.info('simulated camera starting...')
@@ -245,8 +248,12 @@ class Camera(BaseCamera):
         self.frame = 0
         self.frame_rate = 0
         self.dropped_frames = 0
+        # commenting out below, this breaks the current code
+        # i = 1
+        # while i <= frame_count and not self.terminate_frame_grab.is_set():
         i = 1
-        while i <= frame_count and not self.terminate_frame_grab.is_set():
+        frame_count = frame_count if frame_count is not None else 1
+        while i <= frame_count:
             start_time = time.time()
             column_count = self._width_px
             row_count = self._height_px
@@ -255,7 +262,13 @@ class Camera(BaseCamera):
             # image = numpy.zeros(shape=(row_count, column_count), dtype=self._pixel_type)
             while (time.time() - start_time) < frame_time_s:
                 time.sleep(0.01)
-            self.buffer.put(image)
+            # commenting out queue for now
+            # self.buffer.put(image)
+            self.buffer.append(image)
+            # self.frame += 1
+            # end_time = time.time()
+            # self.frame_rate = 1/(end_time - start_time)
             self.frame += 1
+            i = i if frame_count is None else i+1
             end_time = time.time()
             self.frame_rate = 1/(end_time - start_time)
