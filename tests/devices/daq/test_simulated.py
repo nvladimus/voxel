@@ -1,5 +1,5 @@
 from pathlib import Path
-from exa_spim_refactor.devices.daq.simulated import DAQ
+from voxel.devices.daq.simulated import DAQ
 from ruamel.yaml import YAML
 
 this_dir = Path(__file__).parent.resolve() # directory of this test file.

@@ -1,4 +1,4 @@
-from exa_spim_refactor.devices.tunable_lens.optotune_ele4i import TunableLens
+from voxel.devices.tunable_lens.optotune_ele4i import TunableLens
 
 etl = TunableLens(port='COM4')
 print(etl.mode)

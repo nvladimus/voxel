@@ -15,7 +15,7 @@ for camera in config['devices']['cameras']:
 	driver = camera['driver']
 	camera_id = camera['id']
 	# create camera object
-    exec(f"from exa_spim_refactor.devices.camera import {driver}")
+    exec(f"from voxel.devices.camera import {driver}")
 	exec(f"cameras.append({driver}.Camera('{camera_id}'))")
 	# init values from config
 	cameras[-1].roi = {

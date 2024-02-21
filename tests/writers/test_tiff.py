@@ -6,9 +6,9 @@ import os
 from pathlib import Path
 from ruamel.yaml import YAML
 from threading import Event, Thread
-from exa_spim_refactor.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
+from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
 from multiprocessing.shared_memory import SharedMemory
-from exa_spim_refactor.writers.tiff import Writer
+from voxel.writers.tiff import Writer
 
 if __name__ == '__main__':
 

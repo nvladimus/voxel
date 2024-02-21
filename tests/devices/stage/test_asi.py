@@ -17,7 +17,7 @@ for stage in config['devices']['stages']['tiling']:
     hardware_axis = stage['hardware_axis']
     instrument_axis = stage['instrument_axis']
     # create stage object, check if exists already
-    exec(f"from exa_spim_refactor.devices.stage import {driver}")
+    exec(f"from voxel.devices.stage import {driver}")
     exec(f"tiling_stages[instrument_axis] = {driver}.Stage(port, hardware_axis, instrument_axis)")
     # init values from config
     tiling_stages[instrument_axis].speed = stage['speed_mm_s']
@@ -35,7 +35,7 @@ driver = stage['driver']
 port = stage['port']
 hardware_axis = stage['hardware_axis']
 instrument_axis = stage['instrument_axis']
-exec(f"from exa_spim_refactor.devices.stage import {driver}")
+exec(f"from voxel.devices.stage import {driver}")
 exec(f"scanning_stage = {driver}.Stage(port, hardware_axis, instrument_axis)")
 # init values from config
 scanning_stage.speed = stage['speed_mm_s']

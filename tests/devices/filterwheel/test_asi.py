@@ -17,7 +17,7 @@ for filter_wheel in config['devices']['filter wheels']:
     port = filter_wheel['port']
     filter_wheel_id = filter_wheel['id']
     filter_list = filter_wheel['filters']
-    exec(f"from exa_spim_refactor.devices.filterwheel import {driver}")
+    exec(f"from voxel.devices.filterwheel import {driver}")
     exec(f"filter_wheels.append({driver}.FilterWheel(port, filter_wheel_id, filter_list))")
 
 filter_wheels[-1].filter = 'BP405'

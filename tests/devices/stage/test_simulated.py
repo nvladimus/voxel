@@ -14,7 +14,7 @@ for stage in config['devices']['stages'].items():
     port = stage[1]['port']
     hardware_axis = stage[1]['hardware_axis']
     instrument_axis = stage[1]['instrument_axis']
-    exec(f"from exa_spim_refactor.devices.stage import {driver}")
+    exec(f"from voxel.devices.stage import {driver}")
     exec(f"stages.append({driver}.Stage(hardware_axis, instrument_axis))")
 
 # stage 0

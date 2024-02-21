@@ -1,7 +1,7 @@
 import logging
 import sys
-from exa_spim_refactor.instrument import Instrument
-from exa_spim_refactor.acquisition import Acquisition
+from voxel.instrument import Instrument
+from voxel.acquisition import Acquisition
 
 if __name__ == '__main__':
 
