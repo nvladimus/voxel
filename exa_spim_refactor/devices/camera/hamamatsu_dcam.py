@@ -1,10 +1,15 @@
 import logging
 import numpy
 import time
-from base import BaseCamera
-from dcam.dcam import *
+from exa_spim_refactor.devices.utils.singleton import Singleton
+from exa_spim_refactor.devices.camera.base import BaseCamera
+from exa_spim_refactor.devices.camera.sdks.dcam.dcam import *
 
 BUFFER_SIZE_MB = 2400
+
+# subarray parameter values
+SUBARRAY_OFF = 1
+SUBARRAY_ON = 2
 
 # dcam properties dict for convenience in calls
 PROPERTIES = {
@@ -96,13 +101,18 @@ READOUT_MODES = {
     "light sheet backward": DCAMPROP.READOUT_DIRECTION.BACKWARD
 }
 
+# singleton wrapper around Dcamapi
+class DcamapiSingleton(Dcamapi, metaclass=Singleton):
+    def __init__(self):
+        super(DcamapiSingleton, self).__init__()
+
 class Camera(BaseCamera):
 
     def __init__(self, id = str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = id
-        if Dcamapi.init() is not False:
-            num_cams = Dcamapi.get_devicecount()
+        if DcamapiSingleton.init() is not False:
+            num_cams = DcamapiSingleton.get_devicecount()
             for cam in range(0, num_cams):
                 dcam = Dcam(cam)
                 cam_id = dcam.dev_getstring(DCAM_IDSTR.CAMERAID)
@@ -117,7 +127,7 @@ class Camera(BaseCamera):
                     raise ValueError(f"no camera found for S/N: {self.id}")
             del dcam
         else:
-            self.log.error('Dcamapi.init() fails with error {}'.format(Dcamapi.lasterr()))
+            self.log.error('DcamapiSingleton.init() fails with error {}'.format(DcamapiSingleton.lasterr()))
         # grab parameter values
         self._get_min_max_step_values()
 
@@ -140,10 +150,11 @@ class Camera(BaseCamera):
         self.dcam.prop_setvalue(PROPERTIES["exposure_time"], exposure_time_ms/1000)
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def roi(self):
+
         return {'width_px': self.dcam.prop_getvalue(PROPERTIES["subarray_hsize"]),
                 'height_px': self.dcam.prop_getvalue(PROPERTIES["subarray_vsize"]),
                 'width_offset_px': self.dcam.prop_getvalue(PROPERTIES["subarray_hpos"]),
@@ -178,6 +189,8 @@ class Camera(BaseCamera):
                              <{self.max_width_px}, \
                             and a multiple of {self.step_width_px} px!")
 
+        # need to set to off before changing roi!
+        self.dcam.prop_setvalue(PROPERTIES['subarray_mode'], SUBARRAY_OFF)
         self.dcam.prop_setvalue(PROPERTIES["subarray_hpos"], 0)
         self.dcam.prop_setvalue(PROPERTIES["subarray_hsize"], width_px)
         # width offset must be a multiple of the divisible width in px
@@ -189,10 +202,12 @@ class Camera(BaseCamera):
         centered_height_offset_px = round(
             (sensor_height_px / 2 - height_px / 2) / self.step_height_px) * self.step_height_px
         self.dcam.prop_setvalue(PROPERTIES["subarray_vpos"], centered_height_offset_px)
+        # need to set back to on after changing roi!
+        self.dcam.prop_setvalue(PROPERTIES['subarray_mode'], SUBARRAY_ON)
         self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
         self.log.info(f"roi offset set to: {centered_width_offset_px} x {centered_height_offset_px} [width x height]")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def pixel_type(self):
@@ -210,7 +225,7 @@ class Camera(BaseCamera):
         self.dcam.prop_setvalue(PROPERTIES["pixel_type"], PIXEL_TYPES[pixel_type_bits])
         self.log.info(f"pixel type set to: {pixel_type_bits}")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def line_interval_us(self):
@@ -232,7 +247,7 @@ class Camera(BaseCamera):
         self.dcam.prop_setvalue(PROPERTIES["line_interval"], line_interval_us/1e6)
         self.log.info(f"line interval set to: {line_interval_us} us")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def trigger(self):
@@ -273,7 +288,7 @@ class Camera(BaseCamera):
             self.dcam.prop_setvalue(PROPERTIES["trigger_polarity"], TRIGGERS['sources'][polarity])
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def binning(self):
@@ -288,7 +303,7 @@ class Camera(BaseCamera):
         self.dcam.prop_setvalue(PROPERTIES["binning"], BINNING[binning])
         self.log.info(f"binning set to: {binning}")
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     @property
     def sensor_width_px(self):
@@ -302,7 +317,7 @@ class Camera(BaseCamera):
     def signal_sensor_temperature_c(self):
         """get the sensor temperature in degrees C."""
         state = {}
-        state['Sensor Temperature [C]'] = self.dcam.prop_getvalue(PROPERTIES["sensor_temperature"])
+        state['Sensor Temperature [C]'] = [self.dcam.prop_getvalue(PROPERTIES["sensor_temperature"]), 0, 50]
         return state
 
     @property
@@ -331,7 +346,7 @@ class Camera(BaseCamera):
             # set readout direction to forward or backward
             self.dcam.prop_setvalue(PROPERTIES['readout_direction'], READOUT_MODES[readout_mode])
         # refresh parameter values
-        self.get_min_max_step_values()
+        self._get_min_max_step_values()
 
     def prepare(self):
         # determine bits to bytes
@@ -358,7 +373,7 @@ class Camera(BaseCamera):
 
     def close(self):
         self.dcam.dev_close()
-        Dcamapi.uninit()
+        DcamapiSingleton.uninit()
 
     def grab_frame(self):
         """Retrieve a frame as a 2D numpy array with shape (rows, cols)."""

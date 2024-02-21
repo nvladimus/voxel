@@ -4,6 +4,7 @@ import multiprocessing
 import re
 import os
 import sys
+from exa_spim_refactor.writers.base import BaseWriter
 from multiprocessing import Process, Array, Value, Event
 from multiprocessing.shared_memory import SharedMemory
 from ctypes import c_wchar
@@ -36,7 +37,7 @@ class ImarisProgressChecker(pw.CallbackClass):
     def RecordProgress(self, progress, total_bytes_written):
         self.progress = progress
 
-class Writer():
+class Writer(BaseWriter):
 
     def __init__(self, path):
  
@@ -64,13 +65,15 @@ class Writer():
         # Flow control attributes to synchronize inter-process communication.
         self.done_reading = Event()
         self.done_reading.set()  # Set after processing all data in shared mem.
+        self.deallocating = Event()
         # Internal flow control attributes to monitor compression progress.
         self.callback_class = ImarisProgressChecker()
 
     @property
     def signal_progress_percent(self):
         # convert to %
-        return self.progress*100
+        state = {'Progress [%]': self.progress*100}
+        return state
 
     @property
     def x_voxel_size_um(self):
@@ -348,6 +351,13 @@ class Writer():
             logger.warning(f"{self._filename}: waiting for data writing to complete for "
                   f"{self._filename}. "
                   f"current progress is {100*self.callback_class.progress:.1f}%.")
+
+        self.deallocating.set()
+        for ch in list(self.img_buffers.keys()):
+            self.log.debug(f"Deallocating {ch}[nm] stack shared double buffer.")
+            self.img_buffers[ch].close_and_unlink()
+            del self.img_buffers[ch]
+        self.deallocating.clear()
 
         converter.Finish(self.image_extents, self.parameters, self.time_infos,
                               self.color_infos, self.adjust_color_range)

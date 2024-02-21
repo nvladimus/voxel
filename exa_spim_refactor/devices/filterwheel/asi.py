@@ -1,12 +1,18 @@
 import logging
 import time
+from exa_spim_refactor.devices.utils.singleton import Singleton
 from tigerasi.tiger_controller import TigerController
-from .base import BaseFilterWheel
+from exa_spim_refactor.devices.filterwheel.base import BaseFilterWheel
 
 # constants for the ASI filter wheel
 
 SWITCH_TIME_S = 0.1 # estimated timing
 
+# singleton wrapper around TigerController
+class TigerControllerSingleton(TigerController, metaclass=Singleton):
+    def __init__(self, com_port):
+        super(TigerControllerSingleton, self).__init__(com_port)
+        
 class FilterWheel(BaseFilterWheel):
 
     """Filter Wheel Abstraction from an ASI Tiger Controller."""
@@ -18,21 +24,23 @@ class FilterWheel(BaseFilterWheel):
         :param tigerbox: TigerController instance.
         """
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.tigerbox = TigerController(port)
+        self.tigerbox = TigerControllerSingleton(port)
         self.id = id
         self.filters = filters
         # force homing of the wheel
-        self.set_filter(next(key for key, value in self.filters.items() if value == 0))
+        self.filter = next(key for key, value in self.filters.items() if value == 0)
         # ASI wheel has no get_index() function so store this internally
-        self.index = 0
+        self._filter = 0
 
-    def get_filter(self):
-        return next(key for key, value in self.filters.items() if value == self.index)
+    @property
+    def filter(self):
+        return next(key for key, value in self.filters.items() if value == self._filter)
 
-    def set_filter(self, filter_name: str, wait=True):
+    @filter.setter
+    def filter(self, filter_name: str):
         """Set the filterwheel index."""
-        self.index = self.filters[filter_name]
-        cmd_str = f"MP {self.index}\r\n"
+        self._filter = self.filters[filter_name]
+        cmd_str = f"MP {self._filter}\r\n"
         self.log.info(f'setting filter to {filter_name}')
         # Note: the filter wheel has slightly different reply line termination.
         self.tigerbox.send(f"FW {self.id}\r\n", read_until=f"\n\r{self.id}>")

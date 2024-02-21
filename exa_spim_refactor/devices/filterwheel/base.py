@@ -5,10 +5,12 @@ class BaseFilterWheel:
     def __init__(self):
         self.filter_list = list()
 
-    def get_filter(self):
+    @property
+    def filter(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    def set_filter(self, filter_name: str, wait=True):
+    @filter.setter
+    def filter(self, filter_name: str):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass

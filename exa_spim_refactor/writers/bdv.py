@@ -4,7 +4,8 @@ import multiprocessing
 import re
 import os
 import sys
-from bdv_writer import npy2bdv
+from exa_spim_refactor.writers.base import BaseWriter
+from exa_spim_refactor.writers.bdv_writer import npy2bdv
 from multiprocessing import Process, Array, Value, Event
 from multiprocessing.shared_memory import SharedMemory
 from ctypes import c_wchar
@@ -32,7 +33,7 @@ DATA_TYPES = {
     "uint16": "uint16",
 }
 
-class Writer():
+class Writer(BaseWriter):
 
     def __init__(self):
  
@@ -58,8 +59,8 @@ class Writer():
 
     @property
     def signal_progress_percent(self):
-        # convert to %
-        return self.progress*100
+        state = {'Progress [%]': self.progress*100}
+        return state
 
     @property
     def x_voxel_size_um(self):

@@ -1,6 +1,6 @@
 import logging
 import time
-from .base import BaseStage
+from exa_spim_refactor.devices.stage.base import BaseStage
 import random
 
 class Stage(BaseStage):
@@ -11,22 +11,22 @@ class Stage(BaseStage):
         self.instrument_axis = instrument_axis.lower()
         # TODO change this, but self.id for consistency in lookup
         self.id = self.instrument_axis
-        self.simulated_position = 0
-        self.simulated_speed = 0
+        self._position = 0
+        self._speed = 1.0
 
     def move_relative(self, position: float, wait: bool = True):
         w_text = "" if wait else "NOT "
         self.log.info(f"relative move by: {self.hardware_axis}={position} mm and {w_text}waiting.")
-        move_time_s = position/self.simulated_speed
-        self.simulated_position += position
+        move_time_s = position/self._speed
+        self._position += position
         if wait:
             time.sleep(move_time_s)
 
     def move_absolute(self, position: float, wait: bool = True):
         w_text = "" if wait else "NOT "
         self.log.info(f"absolute move to: {self.hardware_axis}={position} mm and {w_text}waiting.")
-        move_time_s = abs(self.simulated_position - position)/self.simulated_speed
-        self.simulated_position = position
+        move_time_s = abs(self._position - position)/self._speed
+        self._position = position
         if wait:
             time.sleep(move_time_s)
 
@@ -37,20 +37,20 @@ class Stage(BaseStage):
                                strip_count: int, pattern: str,
                                retrace_speed_percent: int):
 
-        self.simulated_position = fast_axis_start_position
+        self._position = fast_axis_start_position
 
     @property
     def position(self):
-        self.simulated_position = random.randint(0,100)
-        return {self.instrument_axis: self.simulated_position}
+        self._position = random.randint(0,100)
+        return {self.instrument_axis: self._position}
 
     @property
     def speed_mm_s(self):
-        return self.simulated_speed
+        return self._speed
 
     @speed_mm_s.setter
     def speed_mm_s(self, speed_mm_s: float):
-        self.simulated_speed = speed_mm_s
+        self._speed = speed_mm_s
 
     def zero_in_place(self):
-        self.simulated_position = 0
+        self._position = 0

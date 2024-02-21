@@ -1,7 +1,7 @@
 import logging
 import struct
 import serial
-from base import BaseTunableLens
+from exa_spim_refactor.devices.tunable_lens.base import BaseTunableLens
 
 # constants for Optotune EL-E-4i controller
 

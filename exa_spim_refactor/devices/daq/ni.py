@@ -284,7 +284,6 @@ class DAQ:
 
     def write_do_waveforms(self):
 
-
         do_voltages = numpy.array(list(self.do_waveforms.values()))
         # unreserve buffer
         self.do_task.control(TaskMode.TASK_UNRESERVE)

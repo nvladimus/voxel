@@ -1,7 +1,9 @@
 import logging
 import numpy
 from functools import wraps
-from base import BaseCamera
+from exa_spim_refactor.devices.camera.base import BaseCamera
+from exa_spim_refactor.devices.utils.singleton import Singleton
+from exa_spim_refactor.processes.gpu.downsample_2d import DownSample2D
 from egrabber import *
 
 BUFFER_SIZE_MB = 2400
@@ -36,12 +38,17 @@ TRIGGERS = {
     }
 }
 
+# singleton wrapper around EGenTL
+class EGenTLSingleton(EGenTL, metaclass=Singleton):
+    def __init__(self):
+        super(EGenTLSingleton, self).__init__()
+
 class Camera(BaseCamera):
 
     def __init__(self, id=str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = id
-        gentl = EGenTL()
+        gentl = EGenTLSingleton()
         discovery = EGrabberDiscovery(gentl)
         discovery.discover()
         # list all possible grabbers
@@ -246,11 +253,15 @@ class Camera(BaseCamera):
         valid_binning = list(BINNING.keys())
         if binning not in valid_binning:
             raise ValueError("binning must be one of %r." % valid_binning)
-        self._binning = BINNING[binning]
+        self._binning = binning
+
         # if binning is not an integer, do it in hardware
         if not isinstance(BINNING[binning], int):
             self.grabber.remote.set("BinningHorizontal", self._binning)
             self.grabber.remote.set("BinningVertical", self._binning)
+        # initialize the opencl binning program
+        else:
+            self.gpu_binning = DownSample2D(binning=self._binning)
 
     @property
     def sensor_width_px(self):
@@ -320,9 +331,7 @@ class Camera(BaseCamera):
                                                                   column_count))
         # do software binning if != 1 and not a string for setting in egrabber
         if self._binning > 1 and isinstance(self._binning, int):
-            # decimate binning
-            return image[::self._binning, ::self._binning]
-            # TODO ADD GPUTOOLS LINE HERE
+            return self.gpu_binning.run(image)
         else:
             return image
 
@@ -531,6 +540,8 @@ class Camera(BaseCamera):
                     self.log.debug(f"{binning} will be implemented through software")
                     key = int(binning.replace("X", ""))
                     BINNING[key] = key
+
+        print(BINNING)
 
         # initialize binning as 1
         self.grabber.remote.set("BinningHorizontal", BINNING[1])
