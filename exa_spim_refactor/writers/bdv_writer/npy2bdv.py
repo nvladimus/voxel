@@ -10,6 +10,7 @@ import skimage.transform
 import shutil
 from pathlib import Path
 from tqdm import trange
+from exa_spim_refactor.processes.gpu.downsample_3d import DownSample3D
 # from gputools import OCLProgram, OCLArray, get_device
 
 # class SubSample:
@@ -82,7 +83,8 @@ class BdvBase:
         self.ntimes = self.nilluminations = self.nchannels = self.ntiles = self.nangles = self.nsetups = 0
         self.compression = None
         self.compressions_supported = (None, 'gzip', 'lzf', 'b3d')
-        # self.subsample = SubSample()
+        # initialize the downsampling in 3d
+        self.gpu_binning = DownSample3D(binning=2)
 
     def _determine_setup_id(self, illumination=0, channel=0, tile=0, angle=0):
         """Takes the view attributes (illumination, channel, tile, angle) and converts them into unique setup_id.
@@ -204,6 +206,7 @@ class BdvBase:
             if level and (not elem.tail or not elem.tail.strip()):
                 elem.tail = i
 
+    # deprecate and do not use -> use GPU binning instead
     def _subsample_stack(self, stack: np.array, subsamp_level: tuple):
         """Subsampling of a 3d stack.
 
@@ -219,9 +222,7 @@ class BdvBase:
         if all(subsamp_level[:] == 1):
             stack_sub = stack
         else:
-            # stack_sub = skimage.transform.downscale_local_mean(stack, tuple(subsamp_level)).astype(np.uint16)
-            stack_sub = stack[::subsamp_level[0], ::subsamp_level[1], ::subsamp_level[2]]
-            # stack_sub = self.subsample.compute(image=stack, downsample_factor=subsamp_level)
+            stack_sub = skimage.transform.downscale_local_mean(stack, tuple(subsamp_level)).astype(np.uint16)
         return stack_sub
 
     def _write_pyramids_header(self):
@@ -279,7 +280,7 @@ class BdvBase:
                         raw_data = self._file_object_h5[full_res_group_name]['cells'][()].astype('uint16')
                         pyramid_group_name = self._fmt.format(time, isetup, ilevel)
                         grp = self._file_object_h5.create_group(pyramid_group_name)
-                        subdata = self._subsample_stack(raw_data, self.subsamp[ilevel]).astype('int16')
+                        raw_data = self.gpu_binning.run(raw_data).astype('int16')
                         grp.create_dataset('cells', data=subdata, chunks=tuple(self.chunks[ilevel]),
                                            maxshape=(None, None, None), compression=self.compression, compression_opts=self.compression_opts, dtype='int16')
 
@@ -481,13 +482,14 @@ class BdvWriter(BdvBase):
         for ilevel in range(self.nlevels):
             group_name = self._fmt.format(time, isetup, ilevel)
             dataset = self._file_object_h5[group_name]["cells"]
-            subdata = self._subsample_stack(substack, self.subsamp[ilevel]).astype('int16')
+            # change subsampling to ingest the previous pyramid and not _subsample_stack function
+            substack = self.gpu_binning.run(substack).astype('int16')
             sub_z_start = int(z_start/2**ilevel)
             sub_y_start = int(y_start/2**ilevel)
             sub_x_start = int(x_start/2**ilevel)
-            dataset[sub_z_start : sub_z_start + subdata.shape[0],
-                    sub_y_start : sub_y_start + subdata.shape[1],
-                    sub_x_start : sub_x_start + subdata.shape[2]] = subdata
+            dataset[sub_z_start : sub_z_start + substack.shape[0],
+                    sub_y_start : sub_y_start + substack.shape[1],
+                    sub_x_start : sub_x_start + substack.shape[2]] = substack
 
     def append_view(self, stack, virtual_stack_dim=None,
                     time=0, illumination=0, channel=0, tile=0, angle=0,
@@ -548,8 +550,8 @@ class BdvWriter(BdvBase):
             else:
                 grp = self._file_object_h5.create_group(group_name)
                 if stack is not None:
-                    subdata = self._subsample_stack(stack, self.subsamp[ilevel]).astype('int16')
-                    grp.create_dataset('cells', data=subdata, chunks=self.chunks[ilevel],
+                    stack = self.gpu_binning.run(stack).astype('int16')
+                    grp.create_dataset('cells', data=stack, chunks=self.chunks[ilevel],
                                        maxshape=(None, None, None), compression=self.compression, compression_opts=self.compression_opts, dtype='int16')
                 else:  # a virtual stack initialized
                     grp.create_dataset('cells', chunks=self.chunks[ilevel],
