@@ -117,9 +117,8 @@ class DAQ(BaseDAQ):
             if f"{self.id}/{trigger_port}" not in self.dio_ports:
                 raise ValueError("trigger port must be one of %r." % self.dio_ports)
 
-            for channel in task['ports']:
+            for channel_port in task['ports'].keys():
                 # add channel to task
-                channel_port = channel['port']
                 if f"{self.id}/{channel_port}" not in channel_options[task_type]:
                     raise ValueError(f"{task_type} number must be one of {channel_options[task_type]}")
                 physical_name = f"/{self.id}/{channel_port}"

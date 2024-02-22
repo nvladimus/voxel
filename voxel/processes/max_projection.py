@@ -131,7 +131,7 @@ class MaxProjection(Process):
         tifffile.imwrite(self.path / Path(f"mip_xz_{self.filename}"), self.mip_xz)
 
     def wait_to_finish(self):
-        print(f"{self.filename}: waiting to finish.")
+        self.log.info(f"max projection {self.filename}: waiting to finish.")
         self.join()
         self.log.info(f'saving {self.path}/mip_xy_{self.filename}"')
         self.log.info(f'saving {self.path}/mip_xz_{self.filename}"')

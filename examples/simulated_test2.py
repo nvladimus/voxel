@@ -22,7 +22,7 @@ if __name__ == '__main__':
     logger.addHandler(log_handler)
 
     # instrument
-    instrument = Instrument('simulated_instrument.yaml')
+    instrument = Instrument('../examples/simulated_instrument.yaml')
 
     # acquisition
     # acquisition = Acquisition(instrument, 'test_acquisition.yaml')

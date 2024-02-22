@@ -2,8 +2,8 @@ instrument:
   id: exaspim-01
   devices:
     cameras:
-      - name: Vieworks VP-151MX
-        driver: exa_spim_refactor.devices.camera.simulated
+      Vieworks VP-151MX:
+        driver: voxel.devices.camera.simulated
         module: Camera
         init:
           id: MB151BAY001
@@ -19,72 +19,65 @@ instrument:
             mode: off
             source: external
             polarity: rising
-    stages:
-      tiling:
-        - name: ASI MS-8000 y axis
-          driver: exa_spim_refactor.devices.stage.simulated
-          module: Stage
-          init:
-            port: COM3
-            hardware_axis: y
-            instrument_axis: y
-          settings:
-            speed_mm_s: 1.0
-            acceleration_ms: 100.0
-            backlash_mm: 0
-            mode: off
-            joystick_polarity: default
-            joystick_mapping: joystick y
-        - name: ASI MS-8000 z axis
-          driver: exa_spim_refactor.devices.stage.simulated
-          module: Stage
-          init:
-            port: COM3
-            hardware_axis: z
-            instrument_axis: x
-          settings:
-            speed_mm_s: 1.0
-            acceleration_ms: 100.0
-            backlash_mm: 0
-            mode: off
-            joystick_polarity: default
-            joystick_mapping: joystick x
-        - name: ASI C60-ROT theta axis
-          driver: exa_spim_refactor.devices.stage.simulated
-          module: Stage
-          init:
-            port: COM3
-            hardware_axis: t
-            instrument_axis: t
-          settings:
-            speed_mm_s: 1.0
-            acceleration_ms: 100.0
-            backlash_mm: 0
-            mode: off
-            joystick_polarity: default
-            joystick_mapping: wheel f
-      scanning:
-        - name: ASI LS-100 x axis
-          driver: exa_spim_refactor.devices.stage.simulated
-          module: Stage
-          init:
-            port: COM3
-            hardware_axis: x
-            instrument_axis: z
-          settings:
-            speed_mm_s: 1.0
-            acceleration_ms: 100.0
-            backlash_mm: 0
-            mode: step shoot
-            joystick_polarity: default
-            joystick_mapping: wheel z
+    tiling_stages:
+      ASI MS-8000 y axis:
+        driver: voxel.devices.stage.simulated
+        module: Stage
+        init:
+          hardware_axis: y
+          instrument_axis: y
+        settings:
+          speed_mm_s: 1.0
+          acceleration_ms: 100.0
+          backlash_mm: 0
+          mode: off
+          joystick_polarity: default
+          joystick_mapping: joystick y
+      ASI MS-8000 z axis:
+        driver: voxel.devices.stage.simulated
+        module: Stage
+        init:
+          hardware_axis: z
+          instrument_axis: x
+        settings:
+          speed_mm_s: 1.0
+          acceleration_ms: 100.0
+          backlash_mm: 0
+          mode: off
+          joystick_polarity: default
+          joystick_mapping: joystick x
+      ASI C60-ROT theta axis:
+        driver: voxel.devices.stage.simulated
+        module: Stage
+        init:
+          hardware_axis: t
+          instrument_axis: t
+        settings:
+          speed_mm_s: 1.0
+          acceleration_ms: 100.0
+          backlash_mm: 0
+          mode: off
+          joystick_polarity: default
+          joystick_mapping: wheel f
+    scanning_stages:
+      ASI LS-100 x axis:
+        driver: voxel.devices.stage.simulated
+        module: Stage
+        init:
+          hardware_axis: x
+          instrument_axis: z
+        settings:
+          speed_mm_s: 1.0
+          acceleration_ms: 100.0
+          backlash_mm: 0
+          mode: step shoot
+          joystick_polarity: default
+          joystick_mapping: wheel z
     filter_wheels:
-      - name: ASI FW-1000
-        driver: exa_spim_refactor.devices.filterwheel.simulated
+      ASI FW-1000:
+        driver: voxel.devices.filterwheel.simulated
         module: FilterWheel
         init:
-          port: COM3
-          id: 0
           filters:
             BP405: 0
             BP488: 1
@@ -94,8 +87,8 @@ instrument:
             Empty1: 5
             Empty2: 6
     daqs:
-      - name: PCIe-6738
-        driver: exa_spim_refactor.devices.daq.simulated
+      PCIe-6738:
+        driver: voxel.devices.daq.simulated
         module: DAQ
         init:
           dev: Dev1

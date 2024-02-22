@@ -44,6 +44,7 @@ if __name__ == '__main__':
             time.sleep(0.1)
         mip_image[:,:] = frame
         max_projection.new_image.set()
+        print(max_projection.progress.value)
 
     max_projection.wait_to_finish()
     max_projection.close()

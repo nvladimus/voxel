@@ -19,14 +19,18 @@ class Instrument:
         self.config_path = this_dir / Path(config_filename)
         #yaml = YAML(typ='safe', pure=True)    # loads yaml in as dict. May want to use in future
         self.config = YAML().load(Path(self.config_path))
+        # this device type list is hardcoded by type, perhaps another way to do this
         self.cameras = dict()
         self.tiling_stages = dict()
         self.scanning_stages = dict()
         self.lasers = dict()
         self.filter_wheels = dict()
         self.daqs = dict()
-        self.lasers = {}
-        self.combiners = {}
+        self.lasers = dict()
+        self.combiners = dict()
+        self.aotfs = dict()
+        self.tunable_lenses = dict()
+        # construct
         self.construct()
 
     def load_device(self, driver: str, module: str, kwds):
@@ -56,7 +60,6 @@ class Instrument:
         :param device_type: type of device setting up like camera. Type is specified by yaml
         :param device_dictionary: list of dictionaries describing all alike devices of an instrument
         like [{camera0}, {camera1}]"""
-
         for name, device in device_dictionary.items():
             self.log.info(f'constructing {name}')
             driver = device['driver']
