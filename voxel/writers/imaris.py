@@ -49,15 +49,15 @@ class Writer(BaseWriter):
         self._path = path
         self._data_type = DATA_TYPES['uint8']
         self._compression = COMPRESSION_TYPES["none"]
-        self._rows = None
-        self._colum_count = None
-        self._frame_count = None
+        self._row_count_px = None
+        self._colum_count_px = None
+        self._frame_count_px = None
         self._z_pos_mm = None
         self._y_pos_mm = None
         self._x_pos_mm = None
-        self._z_voxel_size = None
-        self._y_voxel_size = None
-        self._x_voxel_size = None
+        self._z_voxel_size_um = None
+        self._y_voxel_size_um = None
+        self._x_voxel_size_um = None
 
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         # Opinioated decision on chunking dimension order
