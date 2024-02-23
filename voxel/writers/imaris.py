@@ -185,13 +185,13 @@ class Writer(BaseWriter):
     def path(self):
         return self._path
 
-    @path.setter
-    def path(self, path: Path or str):
-        if os.path.isdir(path):
-                self._path = Path(path)
-        else:
-            raise ValueError("%r is not a valid path." % path)
-        self.log.info(f'setting path to: {path}')
+    # @path.setter
+    # def path(self, path: Path or str):
+    #     if os.path.isdir(path):
+    #             self._path = Path(path)
+    #     else:
+    #         raise ValueError("%r is not a valid path." % path)
+    #     self.log.info(f'setting path to: {path}')
 
     @property
     def filename(self):

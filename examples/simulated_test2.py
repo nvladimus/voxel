@@ -25,7 +25,7 @@ if __name__ == '__main__':
     instrument = Instrument('../examples/simulated_instrument.yaml')
 
     # acquisition
-    # acquisition = Acquisition(instrument, 'test_acquisition.yaml')
+    acquisition = Acquisition(instrument, '../examples/simulated_acquisition.yaml')
     # acquisition.check_disk_space()
     # #acquisition.check_system_memory()
     # acquisition.run()

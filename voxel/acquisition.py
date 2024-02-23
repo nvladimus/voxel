@@ -27,16 +27,12 @@ class Acquisition:
         self.acquisition = self.config['acquisition']
         self.instrument = instrument
         self.writers = dict()
-        self.storages = dict()
         self.transfers = dict()
-        self.pre_processes = {}
-        self.intra_processes = {}
-        self.post_processes = {}
-        # self.construct_writers(self.acquisition['writers'])
-        # self.construct_storage(self.acquisition['storage'])
+        self.pre_processes = dict()
+        self.intra_processes = dict()
+        self.post_processes = dict()
         for operation_type, operation_dict in self.config['acquisition']['operations'].items():
             self.construct_operations(operation_type, operation_dict)
-        # self.construct_processes(self.acquisition['processes'])
 
     def load_device(self, driver: str, module: str, kwds: dict = dict()):
         """Load in device based on config. Expecting driver, module, and kwds input"""

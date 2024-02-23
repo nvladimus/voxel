@@ -35,7 +35,7 @@ DATA_TYPES = {
 
 class Writer(BaseWriter):
 
-    def __init__(self):
+    def __init__(self, path):
  
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
@@ -49,6 +49,7 @@ class Writer(BaseWriter):
         # Lists for storing all datasets in a single BDV file
         self.current_tile_num = 0
         self.current_channel_num = 0
+        self._path = path
         self.tile_list = list()
         self.channel_list = list()
         self.dataset_dict = dict()
@@ -201,13 +202,13 @@ class Writer(BaseWriter):
     def path(self):
         return self._path
 
-    @path.setter
-    def path(self, path: Path or str):
-        if os.path.isdir(path):
-                self._path = Path(path)
-        else:
-            raise ValueError("%r is not a valid path." % path)
-        self.log.info(f'setting path to: {path}')
+    # @path.setter
+    # def path(self, path: Path or str):
+    #     if os.path.isdir(path):
+    #             self._path = Path(path)
+    #     else:
+    #         raise ValueError("%r is not a valid path." % path)
+    #     self.log.info(f'setting path to: {path}')
 
     @property
     def filename(self):
