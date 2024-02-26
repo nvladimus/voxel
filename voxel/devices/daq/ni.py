@@ -76,6 +76,7 @@ class DAQ(BaseDAQ):
         self.log.info('resetting nidaq')
         self.dev.reset_device()
         self.tasks = list()
+        self.task_time_s = dict()
         self.ao_waveforms = dict()
         self.do_waveforms = dict()
 
@@ -134,6 +135,9 @@ class DAQ(BaseDAQ):
             setattr(daq_task, f"{task_type}_line_states_done_state", Level.LOW)
             setattr(daq_task, f"{task_type}_line_states_paused_state", Level.LOW)
 
+            # store the total task time
+            self.task_time_s[task['name']] = total_time_ms/1000
+
         else:   # co channel
             if f"{self.id}/{ timing['output_port']}" not in self.dio_ports:
                 raise ValueError("output port must be one of %r." % self.dio_ports)
@@ -153,10 +157,16 @@ class DAQ(BaseDAQ):
                     duty_cycle=0.5)
                 co_chan.co_pulse_term = f'/{self.id}/{timing["output_port"]}'
                 pulse_count = {'samps_per_chan': pulse_count} if pulse_count else {}
+
+            if timing['trigger_mode'] == 'off':
                 daq_task.timing.cfg_implicit_timing(
                     sample_mode=AcqType.FINITE if pulse_count else AcqType.CONTINUOUS,
                     **pulse_count)
+            else:
+                raise ValueError(f'triggering not support for counter output tasks.')
 
+            # store the total task time
+            self.task_time_s[task['name']] = 1/timing['frequency_hz']
 
         setattr(self, f"{task_type}_task", daq_task)  # set task attribute
         self.tasks.append(daq_task)

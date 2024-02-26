@@ -210,6 +210,10 @@ class Camera(BaseCamera):
         return LINE_INTERVALS_US[pixel_type]
 
     @property
+    def frame_time_ms(self):
+        return (self.line_interval_us * self.roi['height_px'])/1000 + self.exposure_time_ms
+
+    @property
     def trigger(self):
         mode = self.grabber.remote.get("TriggerMode")
         source = self.grabber.remote.get("TriggerSource")

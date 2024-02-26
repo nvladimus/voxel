@@ -53,6 +53,7 @@ class Writer(BaseWriter):
         # Flow control attributes to synchronize inter-process communication.
         self.done_reading = Event()
         self.done_reading.set()  # Set after processing all data in shared mem.
+        self.deallocating = Event()
 
     @property
     def signal_progress_percent(self):
@@ -231,7 +232,6 @@ class Writer(BaseWriter):
         log_handler.setFormatter(log_formatter)
         logger.addHandler(log_handler)
         filepath = str((self._path / Path(f"{self._filename}")).absolute())
-        print(filepath)
 
         writer = tifffile.TiffWriter(filepath,
                                      bigtiff=True)
@@ -292,3 +292,7 @@ class Writer(BaseWriter):
     def wait_to_finish(self):
         self.log.info(f"{self._filename}: waiting to finish.")
         self.p.join()
+
+    def delete_files(self):
+        filepath = str((self._path / Path(f"{self._filename}")).absolute())
+        os.remove(filepath)

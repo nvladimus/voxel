@@ -8,14 +8,6 @@ acquisition:
     y_anatomical_direction: Inferior_to_superior
     z_anatomical_direction: Left_to_right
   operations:
-    transfers:
-      vp-151mx:
-        driver: voxel.processes.file_transfer.rsync
-        module: FileTransfer
-        init:
-          external_drive: './test'
-        settings:
-          protocol: robocopy
     writers:
       vp-151mx:
         driver: voxel.writers.bdv
@@ -25,6 +17,25 @@ acquisition:
         settings:
           compression: none
           data_type: uint16
+      vnp-604mx:
+        driver: voxel.writers.bdv
+        module: Writer
+        init:
+          path: '.'
+        settings:
+          compression: none
+          data_type: uint16
+    # transfers:
+    #   vp-151mx:
+    #     driver: voxel.processes.file_transfer.rsync
+    #     module: FileTransfer
+    #     init:
+    #       external_directory: './test'
+    #   vnp-604mx:
+    #     driver: voxel.processes.file_transfer.rsync
+    #     module: FileTransfer
+    #     init:
+    #       external_directory: './test'
     pre_processes:
       {}
     intra_processes:
@@ -46,8 +57,29 @@ acquisition:
         x: 0.748
         y: 0.748
         z: 1.000
+      theta_deg: 0
       filename_prefix: tile
-      frame_count: 64
+      frame_count_px: 1024
       channel: 488
       power_mw: 1000
-      filter: BP405
+      filter_index:
+        "0": BP405
+    - tile_number:
+        x: 0
+        y: 0
+        z: 1
+      position_mm:
+        x: 0
+        y: 0
+        z: 0
+      voxel_size_um:
+        x: 0.748
+        y: 0.748
+        z: 1.000
+      theta_deg: 0
+      filename_prefix: tile
+      frame_count_px: 1024
+      channel: 488
+      power_mw: 1000
+      filter_index:
+        "0": BP405

@@ -279,7 +279,8 @@ class BdvBase:
                         raw_data = self._file_object_h5[full_res_group_name]['cells'][()].astype('uint16')
                         pyramid_group_name = self._fmt.format(time, isetup, ilevel)
                         grp = self._file_object_h5.create_group(pyramid_group_name)
-                        raw_data = self.gpu_binning.run(raw_data).astype('int16')
+                        if ilevel >0:
+                            raw_data = self.gpu_binning.run(raw_data).astype('int16')
                         grp.create_dataset('cells', data=subdata, chunks=tuple(self.chunks[ilevel]),
                                            maxshape=(None, None, None), compression=self.compression, compression_opts=self.compression_opts, dtype='int16')
 
@@ -482,7 +483,8 @@ class BdvWriter(BdvBase):
             group_name = self._fmt.format(time, isetup, ilevel)
             dataset = self._file_object_h5[group_name]["cells"]
             # change subsampling to ingest the previous pyramid and not _subsample_stack function
-            substack = self.gpu_binning.run(substack).astype('int16')
+            if ilevel > 0:
+                substack = self.gpu_binning.run(substack).astype('int16')
             sub_z_start = int(z_start/2**ilevel)
             sub_y_start = int(y_start/2**ilevel)
             sub_x_start = int(x_start/2**ilevel)

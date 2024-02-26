@@ -30,10 +30,12 @@ class Instrument:
         self.combiners = dict()
         self.aotfs = dict()
         self.tunable_lenses = dict()
+        self.trigger_tree = dict()
         # construct
-        self.construct()
+        self._construct()
+        self._find_master_device()
 
-    def load_device(self, driver: str, module: str, kwds):
+    def _load_device(self, driver: str, module: str, kwds):
         """Load device based on driver, module, and kwds specified
         :param driver: driver of device
         :param module: specific class of device within driver
@@ -46,7 +48,7 @@ class Instrument:
         #         kwds[k] = getattr(arg_class, '.'.join(v.split('.')[1:]))
         return device_class(**kwds)
 
-    def setup_device(self, device: object, settings: dict):
+    def _setup_device(self, device: object, settings: dict):
         """Setup device based on settings dictionary
         :param device: device to be setup
         :param settings: dictionary of attributes, values to set according to config"""
@@ -55,7 +57,7 @@ class Instrument:
         for key, value in settings.items():
             setattr(device, key, value)
 
-    def construct_device(self, device_type, device_dictionary):
+    def _construct_device(self, device_type, device_dictionary):
         """Load, setup, and add any subdevices or tasks of a device
         :param device_type: type of device setting up like camera. Type is specified by yaml
         :param device_dictionary: list of dictionaries describing all alike devices of an instrument
@@ -65,9 +67,9 @@ class Instrument:
             driver = device['driver']
             module = device['module']
             init = device.get('init', {})
-            device_object = self.load_device(driver, module, init)
+            device_object = self._load_device(driver, module, init)
             settings = device.get('settings', {})
-            self.setup_device(device_object, settings)
+            self._setup_device(device_object, settings)
             device_dict = getattr(self, device_type)
             device_dict[name] = device_object
 
@@ -78,9 +80,9 @@ class Instrument:
 
             # Add subdevices under device and fill in any needed keywords to init
             for subdevice_type, subdevice_dictionary in device.get('subdevices', {}).items():
-                self.construct_subdevice(device_object, subdevice_type, subdevice_dictionary)
+                self._construct_subdevice(device_object, subdevice_type, subdevice_dictionary)
 
-    def construct_subdevice(self, device_object, subdevice_type, subdevice_dictionary):
+    def _construct_subdevice(self, device_object, subdevice_type, subdevice_dictionary):
         """Handle the case where devices share serial ports or device objects
         :param device_object: parent device setup before subdevice
         :param subdevice_type: device type of subdevice. Can be different from parent device
@@ -101,11 +103,45 @@ class Instrument:
 
         self.construct_device(subdevice_type, subdevice_dictionary)
 
-    def construct(self):
+    def _construct(self):
         """Construct device based on configuration yaml"""
 
         self.log.info(f'constructing instrument from {self.config_path}')
         for device_type, device_list in self.config['instrument']['devices'].items():
-            self.construct_device(device_type, device_list)
+            self._construct_device(device_type, device_list)
 
-
+    def _find_master_device(self):
+        # build the tree of device triggers
+        for device_type, device_list in self.config['instrument']['devices'].items():
+            for name, device in device_list.items():         
+                master_trigger = device['master_trigger']
+                # check if master trigger is a device
+                if master_trigger not in [None, 'None', 'none']:
+                    # if so, check if there is already a dependent device
+                    if master_trigger in self.trigger_tree.keys():
+                        # append to the list of dependent devices
+                        self.trigger_tree[master_trigger].append({name})
+                    else:
+                        self.trigger_tree[master_trigger] = [{name}]
+        # check if there is more than one master device
+        master_device = list()
+        for device in self.trigger_tree.keys():
+            master_device.append(device)
+        if len(master_device) > 1:
+            raise ValueError(f'there can only be one master device. but {master_devices} are listed.')
+        # find the master device type
+        for device_type, device_list in self.config['instrument']['devices'].items():
+            for name, device in device_list.items():
+                if name == master_device[0]:
+                    self.master_device = {'name': name, 'type': device_type}
+                    # if daq, we need to figure out the master task
+                    if device_type == 'daqs':
+                        master_task_dict = dict()
+                        for task in device['tasks']:
+                            # the master device will not have triggering enabled
+                            trigger_mode = device['tasks'][task]['timing']['trigger_mode']
+                            if trigger_mode == 'off':
+                                self.master_device['task'] = device['tasks'][task]['name']
+                                master_task_dict[device['tasks'][task]['name']] = trigger_mode
+                        if len(master_task_dict.keys()) > 1:
+                            raise ValueError(f'there can only be one master task. but {master_task_dict} are all master tasks.')

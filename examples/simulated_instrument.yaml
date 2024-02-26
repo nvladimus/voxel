@@ -1,20 +1,35 @@
 instrument:
   id: exaspim-01
+  # ADD CHANNELS HERE
+  channels: None
   devices:
     cameras:
       vp-151mx:
         driver: voxel.devices.camera.simulated
         module: Camera
+        master_trigger: PCIe-6738
         init:
           id: MB151BAY001
         settings:
-          exposure_time_ms: 200.0
+          exposure_time_ms: 10.0
           roi:
-            width_px: 14192
-            height_px: 10640
-          image_format:
-            pixel_type: mono12
-            bit_packing_mode: msb
+            width_px: 2048
+            height_px: 2048
+          trigger:
+            mode: off
+            source: external
+            polarity: rising
+      vnp-604mx:
+        driver: voxel.devices.camera.simulated
+        module: Camera
+        master_trigger: PCIe-6738
+        init:
+          id: MB151BAY001
+        settings:
+          exposure_time_ms: 10.0
+          roi:
+            width_px: 2048
+            height_px: 2048
           trigger:
             mode: off
             source: external
@@ -23,6 +38,7 @@ instrument:
       ASI MS-8000 y axis:
         driver: voxel.devices.stage.simulated
         module: Stage
+        master_trigger: None
         init:
           hardware_axis: y
           instrument_axis: y
@@ -36,6 +52,7 @@ instrument:
       ASI MS-8000 z axis:
         driver: voxel.devices.stage.simulated
         module: Stage
+        master_trigger: None
         init:
           hardware_axis: z
           instrument_axis: x
@@ -46,23 +63,11 @@ instrument:
           mode: off
           joystick_polarity: default
           joystick_mapping: joystick x
-      ASI C60-ROT theta axis:
-        driver: voxel.devices.stage.simulated
-        module: Stage
-        init:
-          hardware_axis: t
-          instrument_axis: t
-        settings:
-          speed_mm_s: 1.0
-          acceleration_ms: 100.0
-          backlash_mm: 0
-          mode: off
-          joystick_polarity: default
-          joystick_mapping: wheel f
     scanning_stages:
       ASI LS-100 x axis:
         driver: voxel.devices.stage.simulated
         module: Stage
+        master_trigger: PCIe-6738
         init:
           hardware_axis: x
           instrument_axis: z
@@ -77,7 +82,9 @@ instrument:
       ASI FW-1000:
         driver: voxel.devices.filterwheel.simulated
         module: FilterWheel
+        master_trigger: None
         init:
+          id: "0"
           filters:
             BP405: 0
             BP488: 1
@@ -90,6 +97,7 @@ instrument:
       PCIe-6738:
         driver: voxel.devices.daq.simulated
         module: DAQ
+        master_trigger: None
         init:
           dev: Dev1
         tasks:
@@ -210,6 +218,7 @@ instrument:
             co_task:
                 name: co task
                 timing:
+                    trigger_mode: off
                     output_port: PFI0
                     frequency_hz: 2.0
                 counters:

@@ -91,6 +91,7 @@ class DAQ(BaseDAQ):
         self.min_ao_volts = -10
         self.log.info('resetting nidaq')
         self.tasks = list()
+        self.task_time_s = dict()
         self.ao_waveforms = dict()
         self.do_waveforms = dict()
 
@@ -126,6 +127,9 @@ class DAQ(BaseDAQ):
             total_time_ms = timing['period_time_ms'] + timing['rest_time_ms']
             daq_samples = int(((total_time_ms)/1000)*timing['sampling_frequency_hz'])
 
+            # store the total task time
+            self.task_time_s[task['name']] = total_time_ms/1000
+
         else:   # co channel
             if f"{self.id}/{ timing['output_port']}" not in self.dio_ports:
                 raise ValueError("output port must be one of %r." % self.dio_ports)
@@ -138,6 +142,8 @@ class DAQ(BaseDAQ):
                 if f"{self.id}/{channel_number}" not in self.co_physical_chans:
                     raise ValueError("co number must be one of %r." % self.co_physical_chans)
                 physical_name = f"/{self.id}/{channel_number}"
+            # store the total task time
+            self.task_time_s[task['name']] = 1/timing['frequency_hz']
 
     def _timing_checks(self, task: dict, task_type: str):
         """Check period time, rest time, and sample frequency"""

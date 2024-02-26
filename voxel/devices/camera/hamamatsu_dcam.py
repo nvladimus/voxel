@@ -250,6 +250,13 @@ class Camera(BaseCamera):
         self._get_min_max_step_values()
 
     @property
+    def frame_time_ms(self):
+        if 'light sheet' in self.readout_mode:
+            return (self.line_interval_us * self.roi['height_px'])/1000 + self.exposure_time_ms
+        else:
+            return (self.line_interval_us * self.roi['height_px']/2)/1000 + self.exposure_time_ms
+            
+    @property
     def trigger(self):
         source = self.dcam.prop_getvalue(PROPERTIES["trigger_source"])
         if source == 3:

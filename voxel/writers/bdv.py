@@ -11,11 +11,11 @@ from multiprocessing.shared_memory import SharedMemory
 from ctypes import c_wchar
 from pathlib import Path
 from datetime import datetime
-from matplotlib.colors import hex2color
 from time import sleep, perf_counter
 from math import ceil
 
 CHUNK_COUNT_PX = 128
+DIVISIBLE_FRAME_COUNT_PX = 128
 B3D_QUANT_SIGMA = 1 # quantization step
 B3D_COMPRESSION_MODE = 1
 B3D_BACKGROUND_OFFSET = 0 # ADU
@@ -38,18 +38,38 @@ class Writer(BaseWriter):
     def __init__(self, path):
  
         super().__init__()
+
+        self._color = '#ffffff' # initialize as white
+        self._channel = None
+        self._filename = None
+        self._path = path
+        self._data_type = DATA_TYPES['uint16']
+        self._compression = COMPRESSION_TYPES["none"]
+        self.compression_opts = None
+        self._row_count_px = None
+        self._colum_count_px = None
+        self._frame_count_px = None
+        self._x_voxel_size_um = 1
+        self._y_voxel_size_um = 1
+        self._z_voxel_size_um = 1
+        self._x_position_mm = 0
+        self._y_position_mm = 0
+        self._z_position_mm = 0
+        self._theta_deg = 0
+        self._channel = None
+        self.progress = 0
+        
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         # Opinioated decision on chunking dimension order
         self.chunk_dim_order = ('z', 'y', 'x')
         # Flow control attributes to synchronize inter-process communication.
         self.done_reading = Event()
         self.done_reading.set()  # Set after processing all data in shared mem.
-        self.progress = 0
-        self.compression_opts = None
+        self.deallocating = Event()
+
         # Lists for storing all datasets in a single BDV file
         self.current_tile_num = 0
         self.current_channel_num = 0
-        self._path = path
         self.tile_list = list()
         self.channel_list = list()
         self.dataset_dict = dict()
@@ -133,6 +153,8 @@ class Writer(BaseWriter):
     @frame_count_px.setter
     def frame_count_px(self, frame_count_px: int):
         self.log.info(f'setting frame count to: {frame_count_px} [px]')
+        frame_count_px = ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
+        self.log.info(f'adjusting frame count to: {frame_count_px} [px]')
         self._frame_count_px = frame_count_px
 
     @property
@@ -167,7 +189,7 @@ class Writer(BaseWriter):
         if compression not in valid:
             raise ValueError("compression type must be one of %r." % valid)
         self.log.info(f'setting compression mode to: {compression}')
-        self._compression = compression
+        self._compression = COMPRESSION_TYPES[compression]
         # handle compresion opts for b3d
         if compression == "b3d":
             # check for windows os
@@ -201,14 +223,6 @@ class Writer(BaseWriter):
     @property
     def path(self):
         return self._path
-
-    # @path.setter
-    # def path(self, path: Path or str):
-    #     if os.path.isdir(path):
-    #             self._path = Path(path)
-    #     else:
-    #         raise ValueError("%r is not a valid path." % path)
-    #     self.log.info(f'setting path to: {path}')
 
     @property
     def filename(self):
@@ -359,7 +373,7 @@ class Writer(BaseWriter):
                                 filepath,
                                 subsamp = subsamp,
                                 blockdim = blockdim,
-                                compression = COMPRESSION_TYPES[self._compression],
+                                compression = self._compression,
                                 compression_opts = self.compression_opts,
                                 ntiles = len(self.tile_list),
                                 nchannels = len(self.channel_list),
@@ -458,3 +472,9 @@ class Writer(BaseWriter):
     def wait_to_finish(self):
         self.log.info(f"{self._filename}: waiting to finish.")
         self.p.join()
+
+    def delete_files(self):
+        filepath = str((self._path / Path(f"{self._filename}")).absolute())
+        xmlpath = str((self._path / Path(f"{self._filename}")).absolute()).replace('h5', 'xml')
+        os.remove(filepath)
+        os.remove(xmlpath)

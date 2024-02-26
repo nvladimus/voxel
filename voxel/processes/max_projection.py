@@ -59,7 +59,9 @@ class MaxProjection(Process):
     @projection_count_px.setter
     def projection_count_px(self, projection_count_px: int):
         self.log.info(f'setting projection count to: {projection_count_px} [px]')
-        self._projection_count_px = projection_count_px        
+        projection_count_px = frame_count_px / round(frame_count_px / projection_count_px)
+        self.log.info(f'adjusting projection count to: {projection_count_px} [px]')
+        self._projection_count_px = projection_count_px
 
     @property
     def data_type(self):
