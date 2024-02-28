@@ -16,7 +16,7 @@ from time import sleep, perf_counter
 from math import ceil
 
 CHUNK_COUNT_PX = 64
-DIVISIBLE_FRAME_COUNT_PX = 128
+DIVISIBLE_FRAME_COUNT_PX = 64
 
 COMPRESSION_TYPES = {
     "lz4shuffle":  pw.eCompressionAlgorithmShuffleLZ4,
@@ -40,7 +40,7 @@ class ImarisProgressChecker(pw.CallbackClass):
 
 class Writer(BaseWriter):
 
-    def __init__(self, path):
+    def __init__(self, path: str):
  
         super().__init__()
 
@@ -190,6 +190,10 @@ class Writer(BaseWriter):
     @property
     def path(self):
         return self._path
+
+    @path.setter
+    def path(self, path: str):
+        self._path = path
 
     @property
     def filename(self):

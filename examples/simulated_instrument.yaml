@@ -5,35 +5,52 @@ instrument:
   devices:
     cameras:
       vp-151mx:
-        driver: voxel.devices.camera.simulated
+        driver: voxel.devices.camera.vieworks_egrabber
         module: Camera
         master_trigger: PCIe-6738
         init:
-          id: MB151BAY001
+          id: MP151BBX050
         settings:
-          exposure_time_ms: 10.0
+          exposure_time_ms: 20.0
           roi:
-            width_px: 2048
-            height_px: 2048
+            width_px: 14192
+            height_px: 10640
+          pixel_type: mono12
+          bit_packing_mode: msb
           trigger:
             mode: off
             source: external
             polarity: rising
-      vnp-604mx:
-        driver: voxel.devices.camera.simulated
-        module: Camera
-        master_trigger: PCIe-6738
-        init:
-          id: MB151BAY001
-        settings:
-          exposure_time_ms: 10.0
-          roi:
-            width_px: 2048
-            height_px: 2048
-          trigger:
-            mode: off
-            source: external
-            polarity: rising
+      # vp-151mx:
+      #   driver: voxel.devices.camera.simulated
+      #   module: Camera
+      #   master_trigger: PCIe-6738
+      #   init:
+      #     id: MB151BAY001
+      #   settings:
+      #     exposure_time_ms: 10.0
+      #     roi:
+      #       width_px: 2048
+      #       height_px: 2048
+      #     trigger:
+      #       mode: off
+      #       source: external
+      #       polarity: rising
+      # vnp-604mx:
+      #   driver: voxel.devices.camera.simulated
+      #   module: Camera
+      #   master_trigger: PCIe-6738
+      #   init:
+      #     id: MB151BAY001
+      #   settings:
+      #     exposure_time_ms: 10.0
+      #     roi:
+      #       width_px: 2048
+      #       height_px: 2048
+      #     trigger:
+      #       mode: off
+      #       source: external
+      #       polarity: rising
     tiling_stages:
       ASI MS-8000 y axis:
         driver: voxel.devices.stage.simulated

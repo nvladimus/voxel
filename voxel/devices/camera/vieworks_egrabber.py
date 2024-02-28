@@ -423,7 +423,6 @@ class Camera(BaseCamera):
         try:
             self.min_exposure_time_ms = self.grabber.remote.get("ExposureTime.Min")/1e3
             self.log.info(f"min exposure time is: {self.min_exposure_time_ms} ms")
-            print(f"min exposure time is: {self.min_exposure_time_ms} ms")
         except:
             self.log.debug(f"min exposure time not available for camera {self.id}")
         # maximum exposure time
@@ -431,63 +430,54 @@ class Camera(BaseCamera):
         try:
             self.max_exposure_time_ms = self.grabber.remote.get("ExposureTime.Max")/1e3
             self.log.info(f"max exposure time is: {self.max_exposure_time_ms} ms")
-            print(f"max exposure time is: {self.max_exposure_time_ms} ms")
         except:
             self.log.debug(f"max exposure time not available for camera {self.id}")
         # minimum width
         try:
             self.min_width_px = self.grabber.remote.get("Width.Min")
             self.log.info(f"min width is: {self.min_width_px} px")
-            print(f"min width is: {self.min_width_px} px")
         except:
             self.log.debug(f"min width not available for camera {self.id}")
         # maximum width
         try:
             self.max_width_px = self.grabber.remote.get("Width.Max")
             self.log.info(f"max width is: {self.max_width_px} px")
-            print(f"max width is: {self.max_width_px} px")
         except:
             self.log.debug(f"max width not available for camera {self.id}")
         # minimum height
         try:
             self.min_height_px = self.grabber.remote.get("Height.Min")
             self.log.info(f"min height is: {self.min_height_px} px")
-            print(f"min height is: {self.min_height_px} px")
         except:
             self.log.debug(f"min height not available for camera {self.id}")
         # maximum height
         try:
             self.max_height_px = self.grabber.remote.get("Height.Max")
             self.log.info(f"max height is: {self.max_height_px} px")
-            print(f"max height is: {self.max_height_px} px")
         except:
             self.log.debug(f"max height not available for camera {self.id}")
         # minimum offset x
         try:
             self.min_offset_x_px = self.grabber.remote.get("OffsetX.Min")
             self.log.info(f"min offset x is: {self.min_offset_x_px} px")
-            print(f"min offset x is: {self.min_offset_x_px} px")
         except:
             self.log.debug(f"min offset x not available for camera {self.id}")
         # maximum offset x
         try:
             self.max_offset_x_px = self.grabber.remote.get("OffsetX.Max")
             self.log.info(f"max offset x is: {self.max_offset_x_px} px")
-            print(f"max offset x is: {self.max_offset_x_px} px")
         except:
             self.log.debug(f"max offset x not available for camera {self.id}")
         # minimum offset y
         try:
             self.min_offset_y_px = self.grabber.remote.get("OffsetY.Min")
             self.log.info(f"min offset y is: {self.min_offset_y_px} px")
-            print(f"min offset y is: {self.min_offset_y_px} px")
         except:
             self.log.debug(f"min offset y not available for camera {self.id}")
         # maximum offset y
         try:
             self.max_offset_y_px = self.grabber.remote.get("OffsetY.Max")
             self.log.info(f"max offset y is: {self.max_offset_y_px} px")
-            print(f"max offset y is: {self.max_offset_y_px} px")
         except:
             self.log.debug(f"max offset y not available for camera {self.id}")
         # step exposure time
@@ -495,35 +485,30 @@ class Camera(BaseCamera):
         try:
             self.step_exposure_time_ms = self.grabber.remote.get("ExposureTime.Inc")/1e3
             self.log.info(f"step exposure time is: {self.step_exposure_time_ms} ms")
-            print(f"step exposure time is: {self.step_exposure_time_ms} ms")
         except:
             self.log.debug(f"step exposure time not available for camera {self.id}")
         # step width
         try:
             self.step_width_px = self.grabber.remote.get("Width.Inc")
             self.log.info(f"step width is: {self.step_width_px} px")
-            print(f"step width is: {self.step_width_px} px")
         except:
             self.log.debug(f"step width not available for camera {self.id}")
         # step height
         try:
             self.step_height_px = self.grabber.remote.get("Height.Inc")
             self.log.info(f"step height is: {self.step_height_px} px")
-            print(f"step height is: {self.step_height_px} px")
         except:
             self.log.debug(f"step height not available for camera {self.id}")
         # step offset x
         try:
             self.step_offset_x_px = self.grabber.remote.get("OffsetX.Inc")
             self.log.info(f"step offset x is: {self.step_offset_x_px} px")
-            print(f"step offset x is: {self.step_offset_x_px} px")
         except:
             self.log.debug(f"step offset x not available for camera {self.id}")
         # step offset y
         try:
             self.step_offset_y_px = self.grabber.remote.get("OffsetY.Inc")
             self.log.info(f"step offset y is: {self.step_offset_y_px} px")
-            print(f"step offset y is: {self.step_offset_y_px} px")
         except:
             self.log.debug(f"step offset y not available for camera {self.id}")
 
@@ -544,9 +529,7 @@ class Camera(BaseCamera):
                     self.log.debug(f"{binning} will be implemented through software")
                     key = int(binning.replace("X", ""))
                     BINNING[key] = key
-
-        print(BINNING)
-
+                    
         # initialize binning as 1
         self.grabber.remote.set("BinningHorizontal", BINNING[1])
 

@@ -10,76 +10,175 @@ acquisition:
   operations:
     writers:
       vp-151mx:
-        driver: voxel.writers.bdv
+        driver: voxel.writers.imaris
         module: Writer
         init:
-          path: '.'
+          path: C:\Users\svc_aind_imaging\Desktop
         settings:
           compression: none
           data_type: uint16
-      vnp-604mx:
-        driver: voxel.writers.bdv
-        module: Writer
-        init:
-          path: '.'
+  processes:
+    pre:
+      - name: background collection
+        driver: processes.background_collection
+        module: Processor
         settings:
-          compression: none
-          data_type: uint16
-    # transfers:
-    #   vp-151mx:
-    #     driver: voxel.processes.file_transfer.rsync
-    #     module: FileTransfer
-    #     init:
-    #       external_directory: './test'
-    #   vnp-604mx:
-    #     driver: voxel.processes.file_transfer.rsync
-    #     module: FileTransfer
-    #     init:
-    #       external_directory: './test'
-    pre_processes:
-      {}
-    intra_processes:
-      max projection:
-        driver: voxel.processes.max_projection
-        module: MaxProjection
-    post_processes:
-      {}
+          frames: 10
+    intra:
+      - name: max projection
+        driver: processes.max_projection
+        module: Processor
+    post:
   tiles:
     - tile_number:
         x: 0
         y: 0
         z: 0
-      position_mm:
+      position_mm: # interactively populate from grid
         x: 0
         y: 0
         z: 0
       voxel_size_um:
-        x: 0.748
-        y: 0.748
-        z: 1.000
-      theta_deg: 0
-      filename_prefix: tile
-      frame_count_px: 1024
-      channel: 488
-      power_mw: 1000
-      filter_index:
-        "0": BP405
+        x: 0.748 # grayed out -> comes from instrument
+        y: 0.748 # grayed out -> comes from instrument
+        z: 1.000 # editable -> integer values only
+      frame_count_px: 128 # editable -> force multiple of 2048
+      binning: 1 # editable -> force power of 2
+      channel: 488 # editable -> 
+      power_mw: 1000 # editable -> range to laser device range(s)
+      filter: BP405 # editable -> limit to filter wheel device filters
+      hex_color: "#00ff92"
+      devices:
+        - name: PCIe-6738
+          ports:
+            name: tunable lens
+            parameters:
+              amplitude_volts:
+                value: 0, 1, 2, 3
+                z_position_um: 0, 1, 2, 3
+              offset_volts:
+                value: 4, 5, 6, 7
+                z_position_um: 3, 6, 9, 12
+        - name: focusing stage
+          position_mm:
+            value: 0, 1, 2, 3
+            z_position_um: 0, 1, 2, 3
     - tile_number:
-        x: 0
-        y: 0
-        z: 1
-      position_mm:
-        x: 0
+        x: 1
         y: 0
         z: 0
+      position_mm: # interactively populate from grid
+        x: 1
+        y: 1
+        z: 1
       voxel_size_um:
-        x: 0.748
-        y: 0.748
-        z: 1.000
-      theta_deg: 0
-      filename_prefix: tile
-      frame_count_px: 1024
-      channel: 488
-      power_mw: 1000
-      filter_index:
-        "0": BP405
+        x: 0.748 # grayed out -> comes from instrument
+        y: 0.748 # grayed out -> comes from instrument
+        z: 1.000 # editable -> integer values only
+      frame_count_px: 128 # editable -> force multiple of 2048
+      binning: 1 # editable -> force power of 2
+      channel: 488 # editable -> 
+      power_mw: 1000 # editable -> range to laser device range(s)
+      filter: BP405 # editable -> limit to filter wheel device filters
+      hex_color: "#00ff92"
+      devices:
+        - name: PCIe-6738
+          ports:
+            name: tunable lens
+            parameters:
+              amplitude_volts:
+                value: 0, 1, 2, 3
+                z_position_um: 0, 1, 2, 3
+              offset_volts:
+                value: 4, 5, 6, 7
+                z_position_um: 3, 6, 9, 12
+        - name: focusing stage
+          position_mm:
+            value: 0, 1, 2, 3
+            z_position_um: 0, 1, 2, 3
+
+# acquisition:
+#   metadata:
+#     subject_id: 123456
+#     experimenter_name: adam glaser
+#     immersion_medium: 0.05X SSC
+#     immersion_medium_refractive_index: 1.33
+#     x_anatomical_direction: Anterior_to_posterior
+#     y_anatomical_direction: Inferior_to_superior
+#     z_anatomical_direction: Left_to_right
+#   operations:
+#     writers:
+#       vp-151mx:
+#         driver: voxel.writers.imaris
+#         module: Writer
+#         init:
+#           path: '.'
+#         settings:
+#           compression: lz4shuffle
+#           data_type: uint16
+#       # vnp-604mx:
+#       #   driver: voxel.writers.bdv
+#       #   module: Writer
+#       #   init:
+#       #     path: '.'
+#       #   settings:
+#       #     compression: none
+#       #     data_type: uint16
+#     # transfers:
+#     #   vp-151mx:
+#     #     driver: voxel.processes.file_transfer.rsync
+#     #     module: FileTransfer
+#     #     init:
+#     #       external_directory: './test'
+#     #   vnp-604mx:
+#     #     driver: voxel.processes.file_transfer.rsync
+#     #     module: FileTransfer
+#     #     init:
+#     #       external_directory: './test'
+#     pre_processes:
+#       {}
+#     intra_processes:
+#       max projection:
+#         driver: voxel.processes.max_projection
+#         module: MaxProjection
+#     post_processes:
+#       {}
+#   tiles:
+#     - tile_number:
+#         x: 0
+#         y: 0
+#         z: 0
+#       position_mm:
+#         x: 0
+#         y: 0
+#         z: 0
+#       voxel_size_um:
+#         x: 0.748
+#         y: 0.748
+#         z: 1.000
+#       theta_deg: 0
+#       filename_prefix: tile
+#       frame_count_px: 256
+#       channel: 488
+#       power_mw: 1000
+#       filter_index:
+#         "0": BP405
+#     - tile_number:
+#         x: 0
+#         y: 0
+#         z: 1
+#       position_mm:
+#         x: 0
+#         y: 0
+#         z: 0
+#       voxel_size_um:
+#         x: 0.748
+#         y: 0.748
+#         z: 1.000
+#       theta_deg: 0
+#       filename_prefix: tile
+#       frame_count_px: 256
+#       channel: 488
+#       power_mw: 1000
+#       filter_index:
+#         "0": BP405

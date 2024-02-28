@@ -6,7 +6,7 @@ instrument:
         driver: exa_spim_refactor.devices.camera.vieworks_egrabber
         module: Camera
         init:
-          id: MB151BAY001
+          id: MP151BBX050
         settings:
           exposure_time_ms: 200.0
           roi:
