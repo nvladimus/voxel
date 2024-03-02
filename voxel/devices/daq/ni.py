@@ -12,6 +12,7 @@ from nidaqmx.constants import Edge
 from nidaqmx.constants import Slope
 from nidaqmx.constants import TaskMode
 
+
 DO_WAVEFORMS = [
     'square wave'
 ]
@@ -104,9 +105,9 @@ class DAQ(BaseDAQ):
             if f"{self.id}/{trigger_port}" not in self.dio_ports:
                 raise ValueError("trigger port must be one of %r." % self.dio_ports)
 
-            for channel_port in task['ports'].keys():
+            for channel_specs in task['ports'].values():
                 # add channel to task
-                #channel_port = channel['port']
+                channel_port = channel_specs['port']
                 if f"{self.id}/{channel_port}" not in channel_options[task_type]:
                     raise ValueError(f"{task_type} number must be one of {channel_options[task_type]}")
                 physical_name = f"/{self.id}/{channel_port}"
@@ -141,8 +142,7 @@ class DAQ(BaseDAQ):
             if timing['frequency_hz'] < 0:
                 raise ValueError(f"frequency must be >0 Hz")
 
-            for channel in task['counters']:
-                channel_number = channel['counter']
+            for channel_number in task['counters']:
                 if f"{self.id}/{channel_number}" not in self.co_physical_chans:
                     raise ValueError("co number must be one of %r." % self.co_physical_chans)
                 physical_name = f"/{self.id}/{channel_number}"
@@ -193,8 +193,7 @@ class DAQ(BaseDAQ):
         waveform_attribute = getattr(self, f"{task_type}_waveforms")
         for port, channel in task['ports'].items():
             # load waveform and variables
-            #port = channel['port']
-            name = channel['name']
+            name = channel['port']
             device_min_volts = channel.get('device_min_volts', 0)
             device_max_volts = channel.get('device_max_volts', 5)
             waveform = channel['waveform']
@@ -387,7 +386,7 @@ class DAQ(BaseDAQ):
 
         return waveform
 
-    def plot_waveforms_to_pdf(self):
+    def plot_waveforms_to_pdf(self, save=False):
 
         plt.rcParams['font.size'] = 10
         plt.rcParams['font.family'] = 'Arial'
@@ -419,7 +418,8 @@ class DAQ(BaseDAQ):
         ax.legend(loc="upper right", fontsize=10, edgecolor=None)
         ax.tick_params(which='major', direction='out', length=8, width=0.75)
         ax.tick_params(which='minor', length=4)
-        plt.savefig('waveforms.pdf', bbox_inches='tight')
+        if save:
+            plt.savefig('waveforms.pdf', bbox_inches='tight')
 
     def _rereserve_buffer(self, buf_len):
         """If tasks are already configured, the buffer needs to be cleared and rereserved to work"""
