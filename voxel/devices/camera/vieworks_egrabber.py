@@ -48,8 +48,8 @@ class Camera(BaseCamera):
     def __init__(self, id=str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = id
-        gentl = EGenTLSingleton()
-        discovery = EGrabberDiscovery(gentl)
+        self.gentl = EGenTLSingleton()
+        discovery = EGrabberDiscovery(self.gentl)
         discovery.discover()
         # list all possible grabbers
         egrabber_list = {'grabbers': []}
@@ -57,29 +57,35 @@ class Camera(BaseCamera):
         for interfaceIndex in range(interface_count):
             device_count = discovery.device_count(interfaceIndex)
             for deviceIndex in range(device_count):
-                stream_count = discovery.stream_count(interfaceIndex, deviceIndex)
-                for streamIndex in range(stream_count):
-                    info = {'interface': interfaceIndex,
-                            'device': deviceIndex,
-                            'stream': streamIndex
-                            }
-                    egrabber_list['grabbers'].append(info)
+                if discovery.device_info(interfaceIndex, deviceIndex).deviceVendorName != '':
+                    stream_count = discovery.stream_count(interfaceIndex, deviceIndex)
+                    for streamIndex in range(stream_count):
+                        info = {'interface': interfaceIndex,
+                                'device': deviceIndex,
+                                'stream': streamIndex
+                                }
+                        egrabber_list['grabbers'].append(info)
+
+        # for camera in discovery.cameras:
+
         del discovery
         # identify by serial number and return correct grabber
         if not egrabber_list['grabbers']:
             raise ValueError('no valid cameras found. check connections and close any software.')
 
-        for egrabber in egrabber_list['grabbers']:
-            try:
-                grabber = EGrabber(gentl, egrabber['interface'], egrabber['device'], egrabber['stream'],
+        try:
+            for egrabber in egrabber_list['grabbers']:
+                grabber = EGrabber(self.gentl, egrabber['interface'], egrabber['device'], egrabber['stream'],
                                    remote_required=True)
                 if grabber.remote.get('DeviceSerialNumber') == self.id:
                     self.log.info(f"grabber found for S/N: {self.id}")
                     self.grabber = grabber
+                    self.egrabber = egrabber
                     break
-            except:
-                self.log.error(f"no grabber found for S/N: {self.id}")
-                raise ValueError(f"no grabber found for S/N: {self.id}")
+        except:
+            self.log.error(f"no grabber found for S/N: {self.id}")
+            raise ValueError(f"no grabber found for S/N: {self.id}")
+
         del grabber
         # initialize binning as 1
         self._binning = 1
@@ -89,6 +95,11 @@ class Camera(BaseCamera):
         self._query_binning()
         # check pixel types options
         self._query_pixel_types()
+
+    def reset(self):
+        del self.grabber
+        self.grabber = EGrabber(self.gentl, self.egrabber['interface'], self.egrabber['device'], self.egrabber['stream'],
+                                   remote_required=True)
 
     @property
     def exposure_time_ms(self):
@@ -317,6 +328,9 @@ class Camera(BaseCamera):
     def stop(self):
         self.grabber.stop()
 
+    def close(self):
+        del self.grabber
+        
     def grab_frame(self):
         """Retrieve a frame as a 2D numpy array with shape (rows, cols)."""
         # Note: creating the buffer and then "pushing" it at the end has the

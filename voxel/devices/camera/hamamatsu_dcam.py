@@ -119,6 +119,7 @@ class Camera(BaseCamera):
                 if cam_id.replace("S/N: ","") == self.id:
                     self.log.info(f"camera found for S/N: {self.id}")
                     self.dcam = dcam
+                    self.cam_num = cam
                     # open camera
                     self.dcam.dev_open()
                     break
@@ -130,6 +131,15 @@ class Camera(BaseCamera):
             self.log.error('DcamapiSingleton.init() fails with error {}'.format(DcamapiSingleton.lasterr()))
         # grab parameter values
         self._get_min_max_step_values()
+
+    def reset(self):
+        if self.dcam.is_opened():
+            self.dcam.dev_close()
+            DcamapiSingleton.uninit()
+            del self.dcam
+            if DcamapiSingleton.init() is not False:
+                self.dcam = Dcam(self.cam_num)
+                self.dcam.dev_open()
 
     @property
     def exposure_time_ms(self):
@@ -324,7 +334,7 @@ class Camera(BaseCamera):
     def signal_sensor_temperature_c(self):
         """get the sensor temperature in degrees C."""
         state = {}
-        state['Sensor Temperature [C]'] = [self.dcam.prop_getvalue(PROPERTIES["sensor_temperature"]), 0, 50]
+        state['Sensor Temperature [C]'] = self.dcam.prop_getvalue(PROPERTIES["sensor_temperature"])
         return state
 
     @property
@@ -379,8 +389,9 @@ class Camera(BaseCamera):
         self.dcam.cap_stop()
 
     def close(self):
-        self.dcam.dev_close()
-        DcamapiSingleton.uninit()
+        if self.dcam.is_opened():
+            self.dcam.dev_close()
+            DcamapiSingleton.uninit()
 
     def grab_frame(self):
         """Retrieve a frame as a 2D numpy array with shape (rows, cols)."""
