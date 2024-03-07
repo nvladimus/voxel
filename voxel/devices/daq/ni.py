@@ -102,12 +102,12 @@ class DAQ(BaseDAQ):
             self._timing_checks(task, task_type)
 
             trigger_port = timing['trigger_port']
-            if f"{self.id}/{trigger_port}" not in self.dio_ports:
-                raise ValueError("trigger port must be one of %r." % self.dio_ports)
+            # if f"{self.id}/{trigger_port}" not in self.dio_ports:
+            #     raise ValueError("trigger port must be one of %r." % self.dio_ports)
 
-            for channel_port in task['ports'].keys():
+            for port, specs in task['ports'].items():
                 # add channel to task
-                #channel_port = channel['port']
+                channel_port = specs['port']
                 if f"{self.id}/{channel_port}" not in channel_options[task_type]:
                     raise ValueError(f"{task_type} number must be one of {channel_options[task_type]}")
                 physical_name = f"/{self.id}/{channel_port}"
@@ -139,14 +139,13 @@ class DAQ(BaseDAQ):
             self.task_time_s[task['name']] = total_time_ms/1000
 
         else:   # co channel
-            if f"{self.id}/{ timing['output_port']}" not in self.dio_ports:
-                raise ValueError("output port must be one of %r." % self.dio_ports)
+            # if f"{self.id}/{ timing['output_port']}" not in self.dio_ports:
+            #     raise ValueError("output port must be one of %r." % self.dio_ports)
 
             if timing['frequency_hz'] < 0:
                 raise ValueError(f"frequency must be >0 Hz")
 
-            for channel in task['counters']:
-                channel_number = channel['counter']
+            for channel_number in task['counters']:
                 if f"{self.id}/{channel_number}" not in self.co_physical_chans:
                     raise ValueError("co number must be one of %r." % self.co_physical_chans)
                 physical_name = f"/{self.id}/{channel_number}"
@@ -156,11 +155,11 @@ class DAQ(BaseDAQ):
                     freq=timing['frequency_hz'],
                     duty_cycle=0.5)
                 co_chan.co_pulse_term = f'/{self.id}/{timing["output_port"]}'
-                pulse_count = {'samps_per_chan': pulse_count} if pulse_count else {}
+                pulse_count = {'sample_mode': AcqType.FINITE, 'samps_per_chan': pulse_count} \
+                    if pulse_count is not None else {'sample_mode': AcqType.CONTINUOUS}
 
             if timing['trigger_mode'] == 'off':
                 daq_task.timing.cfg_implicit_timing(
-                    sample_mode=AcqType.FINITE if pulse_count else AcqType.CONTINUOUS,
                     **pulse_count)
             else:
                 raise ValueError(f'triggering not support for counter output tasks.')

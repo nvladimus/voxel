@@ -63,11 +63,11 @@ BINNING = {
 # POINT = 4
 
 TRIGGERS = {
-    "modes": {
+    "mode": {
         "on": DCAMPROP.TRIGGER_MODE.NORMAL,
         "off": DCAMPROP.TRIGGERSOURCE.SOFTWARE,
     },
-    "sources": {
+    "source": {
         "internal": DCAMPROP.TRIGGERSOURCE.INTERNAL,
         "external": DCAMPROP.TRIGGERSOURCE.EXTERNAL,
     },
@@ -265,7 +265,7 @@ class Camera(BaseCamera):
             mode = 'on'
         polarity = self.dcam.prop_getvalue(PROPERTIES["trigger_polarity"])
         return {"mode": mode,
-                "source": next(key for key, value in TRIGGERS['sources'].items() if value == source),
+                "source": next(key for key, value in TRIGGERS['source'].items() if value == source),
                 "polarity": next(key for key, value in TRIGGERS['polarity'].items() if value == polarity)}
 
     @trigger.setter
@@ -275,10 +275,10 @@ class Camera(BaseCamera):
         source = trigger['source']
         polarity = trigger['polarity']
 
-        valid_mode = list(TRIGGERS['modes'].keys())
+        valid_mode = list(TRIGGERS['mode'].keys())
         if mode not in valid_mode:
             raise ValueError("mode must be one of %r." % valid_mode)
-        valid_source = list(TRIGGERS['sources'].keys())
+        valid_source = list(TRIGGERS['source'].keys())
         if source not in valid_source:
             raise ValueError("source must be one of %r." % valid_source)
         valid_polarity = list(TRIGGERS['polarity'].keys())
@@ -286,13 +286,13 @@ class Camera(BaseCamera):
             raise ValueError("polarity must be one of %r." % valid_polarity)
 
         # TODO figure out TRIGGERACTIVE bools
-        if TRIGGERS['modes'][mode] == "on":
-            self.dcam.prop_setvalue(PROPERTIES["trigger_mode"], TRIGGERS['modes'][mode])
-            self.dcam.prop_setvalue(PROPERTIES["trigger_source"], TRIGGERS['sources'][source])
-            self.dcam.prop_setvalue(PROPERTIES["trigger_polarity"], TRIGGERS['sources'][polarity])
-        if TRIGGERS['modes'][mode] == "off":
-            self.dcam.prop_setvalue(PROPERTIES["trigger_source"], TRIGGERS['modes'][mode])
-            self.dcam.prop_setvalue(PROPERTIES["trigger_polarity"], TRIGGERS['sources'][polarity])
+        if TRIGGERS['mode'][mode] == "on":
+            self.dcam.prop_setvalue(PROPERTIES["trigger_mode"], TRIGGERS['mode'][mode])
+            self.dcam.prop_setvalue(PROPERTIES["trigger_source"], TRIGGERS['source'][source])
+            self.dcam.prop_setvalue(PROPERTIES["trigger_polarity"], TRIGGERS['source'][polarity])
+        if TRIGGERS['mode'][mode] == "off":
+            self.dcam.prop_setvalue(PROPERTIES["trigger_source"], TRIGGERS['mode'][mode])
+            self.dcam.prop_setvalue(PROPERTIES["trigger_polarity"], TRIGGERS['source'][polarity])
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
         # refresh parameter values
         self._get_min_max_step_values()
