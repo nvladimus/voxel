@@ -23,7 +23,7 @@ class FileTransfer():
         self.progress = 0
         self._output_file = None
         # print progress, delete files after transfer
-        self._flags = ['--progress', '--remove-source-files']
+        self._flags = ['--progress', '--remove-source-files', '--recursive']
 
     @property
     def filename(self):
@@ -42,6 +42,7 @@ class FileTransfer():
     def local_directory(self, local_directory: str):
         if '\\' in local_directory or '/' not in local_directory:
             assert ValueError('external_directory string should only contain / not \\')
+        # add a forward slash at end so directory name itself is not copied, contents only
         self._local_directory = Path(local_directory)
         self.log.info(f'setting local path to: {local_directory}')
 
@@ -55,19 +56,21 @@ class FileTransfer():
         return self.progress
 
     def start(self):
-        print(self._local_directory / self._filename)
         if not os.path.isfile(self._local_directory / self._filename):
             raise FileNotFoundError(f"{self._local_directory / self._filename} does not exist.")
         file_extension = Path(self._filename).suffix
         self._log_filename = self._filename.replace(file_extension, '.txt')
+        # do not move and transfer log file
+        self._exclude = ["--exclude", self._log_filename]
         # open log file for writing to pipe into stdout
         self._log_file = open(f'{self._local_directory / self._log_filename}', 'w')
         self.log.info(f"transferring from {self._local_directory} to {self._external_directory}")
-        # self.cmd = subprocess.run(cmd_with_args, check=True)
+        # add a forward slash at end so local directory itself is not copied, contents only
         cmd_with_args = self._flatten([self._protocol,
-                                       self._local_directory / self._filename,
-                                       self._external_directory,
-                                       self._flags])
+                                       self._flags,
+                                       self._exclude,
+                                       f'{self._local_directory}/',
+                                       self._external_directory])
         self.thread = threading.Thread(target=self._run,
                                        args=(list(cmd_with_args),))
         self.thread.start()

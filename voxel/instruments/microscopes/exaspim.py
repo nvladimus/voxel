@@ -38,7 +38,6 @@ class ExASPIM(Instrument):
                 'laser': channel['laser'],
                 'filter_wheel': channel['filter_wheel']
             }
-        print(self.channels)
 
     def _verify_master_device(self):
 

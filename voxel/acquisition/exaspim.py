@@ -156,7 +156,7 @@ class ExASPIMAcquisition(BaseAcquisition):
         max_projection.projection_count_px = 64
         max_projection.data_type = 'uint16'
         max_projection.filename = filename
-        max_projection.path = '.'
+        max_projection.path = './local_test'
 
         img_bytes = numpy.prod(camera.roi['height_px']*camera.roi['width_px'])*numpy.dtype('uint16').itemsize
         mip_buffer = SharedMemory(create=True, size=int(img_bytes))

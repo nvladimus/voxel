@@ -13,7 +13,7 @@ acquisition:
         driver: voxel.writers.bdv
         module: Writer
         init:
-          path: ./
+          path: ./local_test
         settings:
           compression: none
           data_type: uint16
@@ -22,7 +22,7 @@ acquisition:
         driver: voxel.processes.file_transfer.rsync
         module: FileTransfer
         init:
-          external_directory: ./test
+          external_directory: ./external_test
   processes:
     pre:
       - name: background collection
@@ -49,7 +49,7 @@ acquisition:
         y: 0.748
         z: 1.000
       prefix: tile
-      frame_count_px: 256
+      frame_count_px: 128
       binning: 1
       channel: 488
       power_mw: 1000
