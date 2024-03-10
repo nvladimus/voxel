@@ -43,11 +43,13 @@ class Writer(BaseWriter):
     def __init__(self, path: str):
  
         super().__init__()
-
+        # check path for forward slashes
+        if '\\' in path or '/' not in path:
+            assert ValueError('path string should only contain / not \\')
+        self._path = path
         self._color = '#ffffff' # initialize as white
         self._channel = None
         self._filename = None
-        self._path = path
         self._data_type = DATA_TYPES['uint16']
         self._compression = COMPRESSION_TYPES["none"]
         self._row_count_px = None
@@ -191,10 +193,13 @@ class Writer(BaseWriter):
     def path(self):
         return self._path
 
-    @path.setter
-    def path(self, path: str):
-        self._path = path
-
+    # @path.setter
+    # def path(self, path: str):
+    #     if '\\' in path or '/' not in path:
+    #         assert ValueError('path string should only contain / not \\')
+    #     self._path = Path(path)
+    #     self.log.info(f'setting path to: {path}')
+        
     @property
     def filename(self):
         return self._filename
@@ -316,7 +321,7 @@ class Writer(BaseWriter):
         log_handler = logging.StreamHandler(sys.stdout)
         log_handler.setFormatter(log_formatter)
         logger.addHandler(log_handler)
-        filepath = str((self._path / Path(f"{self._filename}")).absolute())
+        filepath = str((Path(self._path) / self._filename).absolute())
         converter = \
             pw.ImageConverter(DATA_TYPES[self._data_type], self.image_size, self.sample_size,
                               self.dimension_sequence, self.block_size, filepath, 

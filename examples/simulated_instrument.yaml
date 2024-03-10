@@ -1,61 +1,43 @@
 instrument:
   id: exaspim-01
-  # ADD CHANNELS HERE
-  channels: None
+  channels:
+    "405":
+      laser: 405nm
+      filter_wheel:
+        ASI FW-1000: BP405
+    "488":
+      laser: 488nm
+      filter_wheel:
+        ASI FW-1000: BP488
+    "561":
+      laser: 561nm
+      filter_wheel:
+        ASI FW-1000: BP561
+    "638":
+      laser: 638nm
+      filter_wheel:
+        ASI FW-1000: LP638
   devices:
     cameras:
       vp-151mx:
-        driver: voxel.devices.camera.vieworks_egrabber
+        driver: voxel.devices.camera.simulated
         module: Camera
-        master_trigger: PCIe-6738
         init:
           id: MP151BBX050
         settings:
-          exposure_time_ms: 20.0
+          exposure_time_ms: 100.0
           roi:
-            width_px: 14192
-            height_px: 10640
-          pixel_type: mono12
-          bit_packing_mode: msb
+            width_px: 2048
+            height_px: 2048
+          pixel_type: mono16
           trigger:
             mode: off
             source: external
             polarity: rising
-      # vp-151mx:
-      #   driver: voxel.devices.camera.simulated
-      #   module: Camera
-      #   master_trigger: PCIe-6738
-      #   init:
-      #     id: MB151BAY001
-      #   settings:
-      #     exposure_time_ms: 10.0
-      #     roi:
-      #       width_px: 2048
-      #       height_px: 2048
-      #     trigger:
-      #       mode: off
-      #       source: external
-      #       polarity: rising
-      # vnp-604mx:
-      #   driver: voxel.devices.camera.simulated
-      #   module: Camera
-      #   master_trigger: PCIe-6738
-      #   init:
-      #     id: MB151BAY001
-      #   settings:
-      #     exposure_time_ms: 10.0
-      #     roi:
-      #       width_px: 2048
-      #       height_px: 2048
-      #     trigger:
-      #       mode: off
-      #       source: external
-      #       polarity: rising
     tiling_stages:
       ASI MS-8000 y axis:
         driver: voxel.devices.stage.simulated
         module: Stage
-        master_trigger: None
         init:
           hardware_axis: y
           instrument_axis: y
@@ -69,7 +51,6 @@ instrument:
       ASI MS-8000 z axis:
         driver: voxel.devices.stage.simulated
         module: Stage
-        master_trigger: None
         init:
           hardware_axis: z
           instrument_axis: x
@@ -84,7 +65,6 @@ instrument:
       ASI LS-100 x axis:
         driver: voxel.devices.stage.simulated
         module: Stage
-        master_trigger: PCIe-6738
         init:
           hardware_axis: x
           instrument_axis: z
@@ -99,7 +79,6 @@ instrument:
       ASI FW-1000:
         driver: voxel.devices.filterwheel.simulated
         module: FilterWheel
-        master_trigger: None
         init:
           id: "0"
           filters:
@@ -110,11 +89,17 @@ instrument:
             MB405/488/561/638: 4
             Empty1: 5
             Empty2: 6
+    lasers:
+      488nm:
+        driver: voxel.devices.lasers.simulated
+        module: SimulatedLaser
+        init:
+          port: COM1
     daqs:
       PCIe-6738:
         driver: voxel.devices.daq.simulated
         module: DAQ
-        master_trigger: None
+        master: True
         init:
           dev: Dev1
         tasks:

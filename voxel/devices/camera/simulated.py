@@ -235,7 +235,7 @@ class Camera(BaseCamera):
         state['Output Buffer Size'] = BUFFER_SIZE_FRAMES - len(self.buffer)
          # number of underrun, i.e. dropped frames
         state['Dropped Frames'] = self.dropped_frames
-        state['Data Rate [MB/s]'] = self.frame_rate*self._width_px*self._height_px*numpy.dtype(PIXEL_TYPES[self._pixel_type]).itemsize/self._binning**2/1e6
+        state['Data Rate [MB/s]'] = self.frame_rate*self._width_px*self._height_px*numpy.dtype(self._pixel_type).itemsize/self._binning**2/1e6
         state['Frame Rate [fps]'] = self.frame_rate
         self.log.info(f"id: {self.id}, "
                       f"frame: {state['Frame Index']}, "
@@ -259,8 +259,7 @@ class Camera(BaseCamera):
             start_time = time.time()
             column_count = self._width_px
             row_count = self._height_px
-            image = numpy.random.randint(low=128, high=256, size=(row_count, column_count), dtype=PIXEL_TYPES[self._pixel_type])
-            # image = numpy.zeros(shape=(row_count, column_count), dtype=PIXEL_TYPES[self._pixel_type])
+            image = numpy.random.randint(low=128, high=256, size=(row_count, column_count), dtype=self._pixel_type)
             while (time.time() - start_time) < self.frame_time_ms/1000:
                 time.sleep(0.01)
             # commenting out queue for now

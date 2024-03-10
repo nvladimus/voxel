@@ -47,3 +47,6 @@ class FilterWheel(BaseFilterWheel):
         self.tigerbox.send(cmd_str, read_until=f"\n\r{self.id}>")
         # TODO: add "busy" check because tigerbox.is_moving() doesn't apply to filter wheels.
         time.sleep(SWITCH_TIME_S)
+
+    def close(self):
+        self.tigerbox.ser.close()

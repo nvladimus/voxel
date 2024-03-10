@@ -27,14 +27,17 @@ DATA_TYPES = {
 
 class Writer(BaseWriter):
 
-    def __init__(self, path):
+    def __init__(self, path: str):
  
         super().__init__()
 
+        # check path for forward slashes
+        if '\\' in path or '/' not in path:
+            assert ValueError('path string should only contain / not \\')
+        self._path = path
         self._color = None
         self._channel = None
         self._filename = None
-        self._path = path
         self._data_type = DATA_TYPES['uint8']
         self._compression = COMPRESSION_TYPES["none"]
         self._rows = None
@@ -159,13 +162,12 @@ class Writer(BaseWriter):
     def path(self):
         return self._path
 
-    @path.setter
-    def path(self, path: Path or str):
-        if os.path.isdir(path):
-                self._path = Path(path)
-        else:
-            raise ValueError("%r is not a valid path." % path)
-        self.log.info(f'setting path to: {path}')
+    # @path.setter
+    # def path(self, path: str):
+    #     if '\\' in path or '/' not in path:
+    #         assert ValueError('path string should only contain / not \\')
+    #     self._path = Path(path)
+    #     self.log.info(f'setting path to: {path}')
 
     @property
     def filename(self):
@@ -231,7 +233,7 @@ class Writer(BaseWriter):
         log_handler = logging.StreamHandler(sys.stdout)
         log_handler.setFormatter(log_formatter)
         logger.addHandler(log_handler)
-        filepath = str((self._path / Path(f"{self._filename}")).absolute())
+        filepath = str((Path(self._path) / self._filename).absolute())
 
         writer = tifffile.TiffWriter(filepath,
                                      bigtiff=True)

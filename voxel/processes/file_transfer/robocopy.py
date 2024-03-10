@@ -9,12 +9,15 @@ from pathlib import Path
 
 class FileTransfer():
 
-    def __init__(self, external_directory):
+    def __init__(self, external_directory: str):
         super().__init__()
+        # check path for forward slashes
+        if '\\' in external_directory or '/' not in external_directory:
+            assert ValueError('external_directory string should only contain / not \\')
+        self._external_directory = Path(external_directory)
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self._filename = None
         self._local_directory = None
-        self._external_directory = external_directory
         self._protocol = 'robocopy'
         self.progress = None
 
@@ -32,9 +35,11 @@ class FileTransfer():
         return self._local_directory
 
     @local_directory.setter
-    def local_directory(self, local_directory: Path or str):
-        self.log.info(f'setting local path to: {local_directory}')
+    def local_directory(self, local_directory: str):
+        if '\\' in local_directory or '/' not in local_directory:
+            assert ValueError('external_directory string should only contain / not \\')
         self._local_directory = Path(local_directory)
+        self.log.info(f'setting local path to: {local_directory}')
 
     @property
     def external_directory(self):

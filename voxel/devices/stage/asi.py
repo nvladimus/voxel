@@ -211,11 +211,17 @@ class Stage(BaseStage):
         else:
             raise ValueError(f'mode must be stage scan not {self.mode}')
 
-    def start_stage_scan(self):
+    def start(self):
         """initiate a finite tile scan that has already been setup with
         :meth:`setup_finite_tile_scan`."""
         # Kick off raster-style (default) scan.
-        self.tigerbox.start_scan()
+        if self.mode == 'stage scan':
+            self.tigerbox.start_scan()
+        else:
+            pass
+
+    def close(self):
+        self.tigerbox.ser.close()
 
     @property
     def position(self):

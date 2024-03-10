@@ -59,7 +59,7 @@ class MaxProjection(Process):
     @projection_count_px.setter
     def projection_count_px(self, projection_count_px: int):
         self.log.info(f'setting projection count to: {projection_count_px} [px]')
-        projection_count_px = frame_count_px / round(frame_count_px / projection_count_px)
+        projection_count_px = self.frame_count_px / round(self.frame_count_px / projection_count_px)
         self.log.info(f'adjusting projection count to: {projection_count_px} [px]')
         self._projection_count_px = projection_count_px
 
@@ -90,8 +90,8 @@ class MaxProjection(Process):
 
     @filename.setter
     def filename(self, filename: str):
-        self._filename = filename \
-            if filename.endswith(".tiff") else f"{filename}.tiff"
+        self._filename = filename.replace(".tiff","").replace(".tif", "") \
+            if filename.endswith(".tiff") or filename.endswith(".tif") else f"{filename}"
         self.log.info(f'setting filename to: {filename}')
 
     def prepare(self, shm_name):
@@ -121,16 +121,16 @@ class MaxProjection(Process):
                 self.mip_xz[frame_index, :] = np.max(self.latest_img, axis=1)
                 # if this projection thickness is complete or end of stack
                 if chunk_index == self._projection_count_px - 1 or frame_index == self._frame_count_px - 1:
-                    start_index = frame_index - self._projection_count_px + 1
-                    end_index = frame_index + 1
-                    tifffile.imwrite(self.path / Path(f"mip_xy_z_{start_index}_{end_index}_{self.filename}"), self.mip_xy)
+                    start_index = int(frame_index - self._projection_count_px + 1)
+                    end_index = int(frame_index + 1)
+                    tifffile.imwrite(self.path / Path(f"{self.filename}_mip_xy_z_{start_index:06}_{end_index:06}.tiff"), self.mip_xy)
                     # reset the xy mip
                     self.mip_xy = np.zeros((self._row_count_px, self._column_count_px), dtype=self._data_type)
                 frame_index += 1
                 self.new_image.clear()
 
-        tifffile.imwrite(self.path / Path(f"mip_yz_{self.filename}"), self.mip_yz)
-        tifffile.imwrite(self.path / Path(f"mip_xz_{self.filename}"), self.mip_xz)
+        tifffile.imwrite(self.path / Path(f"{self.filename}_mip_yz.tiff"), self.mip_yz)
+        tifffile.imwrite(self.path / Path(f"{self.filename}_mip_xz.tiff"), self.mip_xz)
 
     def wait_to_finish(self):
         self.log.info(f"max projection {self.filename}: waiting to finish.")
