@@ -69,15 +69,21 @@ acquisition:
             projection_count_px: 32
     routines:
       vp-151mx:
-        driver: voxel.routines.background_collection
-        module: BackgroundCollection
-        settings:
-          frame_count_px: 10
+        - driver: voxel.routines.background_collection
+          module: BackgroundCollection
+          init:
+            path: ./local_test
+          settings:
+            data_type: uint16
+            frame_count_px: 10
       vnp-604mx:
-        driver: voxel.routines.background_collection
-        module: BackgroundCollection
-        settings:
-          frame_count_px: 10
+        - driver: voxel.routines.background_collection
+          module: BackgroundCollection
+          init:
+            path: ./local_test
+          settings:
+            data_type: uint16
+            frame_count_px: 10
   tiles:
     - tile_number:
         x: 0

@@ -144,11 +144,10 @@ class BaseAcquisition():
             # store initial trigger mode
             initial_trigger = camera.trigger
             # turn trigger off
-            # TODO FIX THIS BY JUST REPLACING VALUE
             new_trigger = initial_trigger
             new_trigger['mode'] = 'off'
             camera.trigger = new_trigger
-
+            
             # prepare the writer
             writer.row_count_px = camera.roi['height_px']
             writer.column_count_px = camera.roi['width_px']

@@ -43,6 +43,15 @@ class ExASPIMAcquisition(BaseAcquisition):
 
         for tile in self.config['acquisition']['tiles']:
 
+            for camera_id, camera in self.instrument.cameras.items():
+                # build filenames dict
+                tile_num_x = tile['tile_number']['x']
+                tile_num_y = tile['tile_number']['y']
+                tile_num_z = tile['tile_number']['z']
+                channel = tile['channel']
+                filename_prefix = tile['prefix']
+                filenames[camera_id] = f'{filename_prefix}_x_{tile_num_x:04}_y_{tile_num_y:04}_z_{tile_num_z:04}_ch_{channel}_cam_{camera_id}'
+
             # sanity check length of scan
             for writer_id, writer in self.writers.items():
                 chunk_count_px = writer.chunk_count_px
@@ -80,17 +89,15 @@ class ExASPIMAcquisition(BaseAcquisition):
             for laser_id, laser in self.instrument.lasers.items():
                 laser.power_setpoint_mw = tile['power_mw']
 
+            # this is hardcoded per camera, but perhaps we want to break this out into per device class
+            # run any pre-routines for all cameras
+            for camera_id, camera in self.instrument.cameras.items():
+                for routine in self.routines[camera_id]:
+                    routine.filename = filenames[camera_id]
+                    routine.start(camera=camera)
+
             # setup camera, data writing engines, and processes
             for camera_id, camera in self.instrument.cameras.items():
-
-                # filename
-                tile_num_x = tile['tile_number']['x']
-                tile_num_y = tile['tile_number']['y']
-                tile_num_z = tile['tile_number']['z']
-                channel = tile['channel']
-                filename_prefix = tile['prefix']
-                filenames[camera_id] = f'{filename_prefix}_x_{tile_num_x:04}_y_{tile_num_y:04}_z_{tile_num_z:04}_ch_{channel}_cam_{camera_id}'
-
                 # pass in camera specific camera, writer, and processes
                 thread = threading.Thread(target=self.engine,
                     args=(tile, filenames[camera_id],
@@ -118,7 +125,7 @@ class ExASPIMAcquisition(BaseAcquisition):
                     transfer_threads[camera_id] = self.transfers[camera_id]
                     transfer_threads[camera_id].local_directory = writer.path
                     transfer_threads[camera_id].filename = filenames[camera_id]
-                    self.log.info(f"starting file transfer of for {camera_id}")
+                    self.log.info(f"starting file transfer for {camera_id}")
                     transfer_threads[camera_id].start()
 
         # wait for last tiles file transfer
