@@ -34,6 +34,21 @@ instrument:
             mode: off
             source: external
             polarity: rising
+      vnp-604mx:
+        driver: voxel.devices.camera.simulated
+        module: Camera
+        init:
+          id: MP151BBX051
+        settings:
+          exposure_time_ms: 100.0
+          roi:
+            width_px: 2048
+            height_px: 2048
+          pixel_type: mono16
+          trigger:
+            mode: off
+            source: external
+            polarity: rising
     tiling_stages:
       ASI MS-8000 y axis:
         driver: voxel.devices.stage.simulated

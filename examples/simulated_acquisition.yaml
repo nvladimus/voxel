@@ -17,8 +17,21 @@ acquisition:
         settings:
           compression: none
           data_type: uint16
+      vnp-604mx:
+        driver: voxel.writers.bdv
+        module: Writer
+        init:
+          path: ./local_test
+        settings:
+          compression: none
+          data_type: uint16
     transfers:
       vp-151mx:
+        driver: voxel.processes.file_transfer.rsync
+        module: FileTransfer
+        init:
+          external_directory: ./external_test
+      vnp-604mx:
         driver: voxel.processes.file_transfer.rsync
         module: FileTransfer
         init:
@@ -39,8 +52,28 @@ acquisition:
           settings:
             data_type: uint16
             projection_count_px: 32
+      vnp-604mx:
+        - driver: voxel.processes.max_projection
+          module: MaxProjection
+          init:
+            path: ./local_test
+          settings:
+            data_type: uint16
+            projection_count_px: 32
+        - driver: voxel.processes.mean_projection
+          module: MeanProjection
+          init:
+            path: ./local_test
+          settings:
+            data_type: uint16
+            projection_count_px: 32
     routines:
       vp-151mx:
+        driver: voxel.routines.background_collection
+        module: BackgroundCollection
+        settings:
+          frame_count_px: 10
+      vnp-604mx:
         driver: voxel.routines.background_collection
         module: BackgroundCollection
         settings:

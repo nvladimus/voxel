@@ -89,11 +89,11 @@ class ExASPIMAcquisition(BaseAcquisition):
                 tile_num_z = tile['tile_number']['z']
                 channel = tile['channel']
                 filename_prefix = tile['prefix']
-                filename = f'{filename_prefix}_x_{tile_num_x:04}_y_{tile_num_y:04}_z_{tile_num_z:04}_ch_{channel}_cam_{camera_id}'
+                filenames[camera_id] = f'{filename_prefix}_x_{tile_num_x:04}_y_{tile_num_y:04}_z_{tile_num_z:04}_ch_{channel}_cam_{camera_id}'
 
                 # pass in camera specific camera, writer, and processes
                 thread = threading.Thread(target=self.engine,
-                    args=(tile, filename,
+                    args=(tile, filenames[camera_id],
                             camera,
                             self.writers[camera_id],
                             self.processes[camera_id],
@@ -114,12 +114,12 @@ class ExASPIMAcquisition(BaseAcquisition):
                     if transfer_thread.is_alive():
                         self.log.info(f"waiting on file transfer for {transfer_id}")
                         transfer_thread.wait_until_finished()
-                for writer_id, writer in self.writers.items():
-                    transfer_threads[writer_id] = self.transfers[writer_id]
-                    transfer_threads[writer_id].local_directory = writer.path
-                    transfer_threads[writer_id].filename = writer.filename
-                    self.log.info(f"starting file transfer of {writer.filename} for {writer_id}")
-                    transfer_threads[writer_id].start()
+                for camera_id, camera in self.instrument.cameras.items():
+                    transfer_threads[camera_id] = self.transfers[camera_id]
+                    transfer_threads[camera_id].local_directory = writer.path
+                    transfer_threads[camera_id].filename = filenames[camera_id]
+                    self.log.info(f"starting file transfer of for {camera_id}")
+                    transfer_threads[camera_id].start()
 
         # wait for last tiles file transfer
         if self.transfers:

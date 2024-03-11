@@ -56,18 +56,27 @@ class FileTransfer():
         return self.progress
 
     def start(self):
-        if not os.path.isfile(self._local_directory / self._filename):
-            raise FileNotFoundError(f"{self._local_directory / self._filename} does not exist.")
         file_extension = Path(self._filename).suffix
         self._log_filename = self._filename.replace(file_extension, '.txt')
         # do not move and transfer log file
-        self._exclude = ["--exclude", self._log_filename]
+        # order of arguments matters here... --exclude='*' first excludes all files
+        # then we include only files from above
+        self._exclude = ["--exclude", '*']
+        # only include files including the filename
+        # **/ sets to include anything in the local working directory
+        # * at end regex includes anything with the filename prefix
+        # example: --include='**/tile_X_0000_Y_0000_Z_0000*'
+        self._include = ["--include", f"**/{self._filename}*"]
+        # finally we exclude the log file from the included files
+        self._exclude_log = ["--exclude", self._log_filename]
         # open log file for writing to pipe into stdout
         self._log_file = open(f'{self._local_directory / self._log_filename}', 'w')
         self.log.info(f"transferring from {self._local_directory} to {self._external_directory}")
         # add a forward slash at end so local directory itself is not copied, contents only
         cmd_with_args = self._flatten([self._protocol,
                                        self._flags,
+                                       self._exclude_log,
+                                       self._include,
                                        self._exclude,
                                        f'{self._local_directory}/',
                                        self._external_directory])
