@@ -41,16 +41,31 @@ class BaseAcquisition():
         like {writer0:{}, writer1:{}}"""
 
         for name, operation in operation_dict.items():
-            # name = operation.get('camera_name', 'name') # Get either camera_name or name
-            self.log.info(f'constructing {name}')
-            driver = operation['driver']
-            module = operation['module']
-            init = operation.get('init', {})
-            operation_object = self._load_device(driver, module, init)
-            settings = operation.get('settings', {})
-            self._setup_device(operation_object, settings)
-            operation_dict = getattr(self, operation_type)
-            operation_dict[name] = operation_object
+            # list of operation dictionaries
+            if isinstance(operation,list):
+                operation_list = list()
+                for single_operation in operation:
+                    driver = single_operation['driver']
+                    module = single_operation['module']
+                    self.log.info(f'constructing {driver}')
+                    init = single_operation.get('init', {})
+                    operation_object = self._load_device(driver, module, init)
+                    settings = single_operation.get('settings', {})
+                    self._setup_device(operation_object, settings)
+                    operation_dict = getattr(self, operation_type)
+                    operation_list.append(operation_object)
+                operation_dict[name] = operation_list
+            else:
+                # single operation dictionary
+                driver = operation['driver']
+                module = operation['module']
+                init = operation.get('init', {})
+                operation_object = self._load_device(driver, module, init)
+                settings = operation.get('settings', {})
+                self.log.info(f'constructing {driver}')
+                self._setup_device(operation_object, settings)
+                operation_dict = getattr(self, operation_type)
+                operation_dict[name] = operation_object
 
     def _verify_directories(self):
         self.log.info(f'verifying local and external directories')

@@ -29,4 +29,4 @@ if __name__ == '__main__':
     # acquisition.check_external_acquisition_disk_space()
     # acquisition.check_system_memory()
     # acquisition.check_write_speed()
-    acquisition.run()
+    # acquisition.run()

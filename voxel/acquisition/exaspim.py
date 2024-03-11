@@ -8,6 +8,7 @@ import shutil
 import os
 import subprocess
 import platform
+import inspect
 from ruamel.yaml import YAML
 from pathlib import Path
 from psutil import virtual_memory
@@ -90,10 +91,12 @@ class ExASPIMAcquisition(BaseAcquisition):
                 filename_prefix = tile['prefix']
                 filename = f'{filename_prefix}_x_{tile_num_x:04}_y_{tile_num_y:04}_z_{tile_num_z:04}_ch_{channel}_cam_{camera_id}'
 
+                # pass in camera specific camera, writer, and processes
                 thread = threading.Thread(target=self.engine,
                     args=(tile, filename,
                             camera,
                             self.writers[camera_id],
+                            self.processes[camera_id],
                             ))
                 acquisition_threads[camera_id] = thread 
 
@@ -126,7 +129,7 @@ class ExASPIMAcquisition(BaseAcquisition):
                     self.log.info(f"waiting on file transfer for {thread_id}")
                     transfer_thread.wait_until_finished()
 
-    def engine(self, tile, filename, camera, writer):
+    def engine(self, tile, filename, camera, writer, processes):
 
         # setup writer
         writer.row_count_px = camera.roi['height_px']

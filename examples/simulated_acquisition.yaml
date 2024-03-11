@@ -23,18 +23,24 @@ acquisition:
         module: FileTransfer
         init:
           external_directory: ./external_test
-  processes:
-    pre:
-      - name: background collection
-        driver: processes.background_collection
-        module: Processor
+    processes:
+      vp-151mx:
+        - driver: voxel.processes.max_projection
+          module: MaxProjection
+          settings:
+            data_type: uint16
+            projection_count_px: 32
+        - driver: voxel.processes.mean_projection
+          module: MeanProjection
+          settings:
+            data_type: uint16
+            projection_count_px: 32
+    routines:
+      vp-151mx:
+        driver: voxel.routines.background_collection
+        module: BackgroundCollection
         settings:
-          frames: 10
-    intra:
-      - name: max projection
-        driver: processes.max_projection
-        module: Processor
-    post:
+          frame_count_px: 10
   tiles:
     - tile_number:
         x: 0
