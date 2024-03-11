@@ -10,17 +10,19 @@ from pathlib import Path
 
 class MeanProjection(Process):
 
-    def __init__(self):
+    def __init__(self, path: str):
 
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        if '\\' in path or '/' not in path:
+            assert ValueError('path string should only contain / not \\')
+        self._path = path
         self.new_image = Event()
         self.new_image.clear()
         self._column_count_px = None
         self._row_count_px = None
         self._frame_count_px = None
         self._projection_count_px = None
-        self._path = None
         self._filename = None
         self._data_type = None
 
@@ -75,14 +77,6 @@ class MeanProjection(Process):
     def path(self):
         return self._path
 
-    @path.setter
-    def path(self, path: Path):
-        if os.path.isdir(path):
-                self._path = path
-        else:
-            raise ValueError("%r is not a valid path." % path)
-        self.log.info(f'setting path to: {path}')
-
     @property
     def filename(self):
         return self._filename
@@ -94,12 +88,17 @@ class MeanProjection(Process):
         self.log.info(f'setting filename to: {filename}')
 
     def prepare(self, shm_name):
+        self.p = Process(target=self._run)
         self.shm_shape = (self._row_count_px, self._column_count_px)
         # Create attributes to open shared memory in run function
         self.shm = SharedMemory(shm_name, create=False)
         self.latest_img = np.ndarray(self.shm_shape, self._data_type, buffer=self.shm.buf)
 
-    def run(self):
+    def start(self):
+        self.log.info(f"{self._filename}: starting writer.")
+        self.p.start()
+
+    def _run(self):
         frame_index = 0
         # Build mips. Assume frames increment sequentially in z.
 
@@ -112,28 +111,28 @@ class MeanProjection(Process):
 
         while frame_index < self._frame_count_px:
             chunk_index = frame_index % self._projection_count_px
-            # mean project latest image
+            # minumum project latest image
             if self.new_image.is_set():
                 self.latest_img = np.ndarray(self.shm_shape, self._data_type, buffer=self.shm.buf)
-                self.mip_xy = np.mean(self.mip_xy, self.latest_img).astype(np.uint16)
-                self.mip_yz[:, frame_index] = np.mean(self.latest_img, axis=0)
-                self.mip_xz[frame_index, :] = np.mean(self.latest_img, axis=1)
+                self.mip_xy = np.minimum(self.mip_xy, self.latest_img).astype(np.uint16)
+                self.mip_yz[:, frame_index] = np.min(self.latest_img, axis=0)
+                self.mip_xz[frame_index, :] = np.min(self.latest_img, axis=1)
                 # if this projection thickness is complete or end of stack
                 if chunk_index == self._projection_count_px - 1 or frame_index == self._frame_count_px - 1:
                     start_index = int(frame_index - self._projection_count_px + 1)
                     end_index = int(frame_index + 1)
-                    tifffile.imwrite(self.path / Path(f"{self.filename}_mean_projection_xy_z_{start_index:06}_{end_index:06}.tiff"), self.mip_xy)
+                    tifffile.imwrite(self.path / Path(f"{self.filename}_minumum_projection_xy_z_{start_index:06}_{end_index:06}.tiff"), self.mip_xy)
                     # reset the xy mip
                     self.mip_xy = np.zeros((self._row_count_px, self._column_count_px), dtype=self._data_type)
                 frame_index += 1
                 self.new_image.clear()
 
-        tifffile.imwrite(self.path / Path(f"{self.filename}_mean_projection_yz.tiff"), self.mip_yz)
-        tifffile.imwrite(self.path / Path(f"{self.filename}_mean_projection_xz.tiff"), self.mip_xz)
+        tifffile.imwrite(self.path / Path(f"{self.filename}_minumum_projection_yz.tiff"), self.mip_yz)
+        tifffile.imwrite(self.path / Path(f"{self.filename}_minumum_projection_xz.tiff"), self.mip_xz)
 
     def wait_to_finish(self):
-        self.log.info(f"mean projection {self.filename}: waiting to finish.")
-        self.join()
-        self.log.info(f'saving {self.path}/mean_projection_xy_{self.filename}"')
-        self.log.info(f'saving {self.path}/mean_projection_xz_{self.filename}"')
-        self.log.info(f'saving {self.path}/mean_projection_yz_{self.filename}"')
+        self.log.info(f"minumum projection {self.filename}: waiting to finish.")
+        self.p.join()
+        self.log.info(f'saving {self.path}/minumum_projection_xy_{self.filename}"')
+        self.log.info(f'saving {self.path}/minumum_projection_xz_{self.filename}"')
+        self.log.info(f'saving {self.path}/minumum_projection_yz_{self.filename}"')

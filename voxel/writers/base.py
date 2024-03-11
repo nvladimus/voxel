@@ -139,11 +139,6 @@ class BaseWriter():
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    @path.setter
-    def path(self, path: Path or str):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
     @property
     def filename(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
@@ -183,7 +178,7 @@ class BaseWriter():
     def shm_name(self, name: str):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
-
+        
     def prepare(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass

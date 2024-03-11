@@ -226,13 +226,6 @@ class Writer(BaseWriter):
     def path(self):
         return self._path
 
-    # @path.setter
-    # def path(self, path: str):
-    #     if '\\' in path or '/' not in path:
-    #         assert ValueError('path string should only contain / not \\')
-    #     self._path = Path(path)
-    #     self.log.info(f'setting path to: {path}')
-
     @property
     def filename(self):
         return self._filename
@@ -265,7 +258,7 @@ class Writer(BaseWriter):
             self._shm_name[i] = c
         self._shm_name[len(name)] = '\x00'  # Null terminate the string.
         self.log.info(f'setting shared memory to: {name}')
-
+        
     def prepare(self):
         self.p = Process(target=self._run)
         # Specs for reconstructing the shared memory object.

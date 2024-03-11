@@ -8,19 +8,21 @@ from multiprocessing import Process, Value, Event, Array
 from multiprocessing.shared_memory import SharedMemory
 from pathlib import Path
 
-class MaxProjection(Process):
+class MaxProjection:
 
-    def __init__(self):
+    def __init__(self, path: str):
 
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        if '\\' in path or '/' not in path:
+            assert ValueError('path string should only contain / not \\')
+        self._path = path
         self.new_image = Event()
         self.new_image.clear()
         self._column_count_px = None
         self._row_count_px = None
         self._frame_count_px = None
         self._projection_count_px = None
-        self._path = None
         self._filename = None
         self._data_type = None
 
@@ -75,14 +77,6 @@ class MaxProjection(Process):
     def path(self):
         return self._path
 
-    @path.setter
-    def path(self, path: Path):
-        if os.path.isdir(path):
-                self._path = path
-        else:
-            raise ValueError("%r is not a valid path." % path)
-        self.log.info(f'setting path to: {path}')
-
     @property
     def filename(self):
         return self._filename
@@ -93,13 +87,26 @@ class MaxProjection(Process):
             if filename.endswith(".tiff") or filename.endswith(".tif") else f"{filename}"
         self.log.info(f'setting filename to: {filename}')
 
+    @property
+    def buffer_image(self):
+        return self._buffer_image
+
+    @buffer_image.setter
+    def buffer_image(self, buffer_image: np.ndarray):
+        self._buffer_image = buffer_image
+
     def prepare(self, shm_name):
+        self.p = Process(target=self._run)
         self.shm_shape = (self._row_count_px, self._column_count_px)
         # Create attributes to open shared memory in run function
         self.shm = SharedMemory(shm_name, create=False)
         self.latest_img = np.ndarray(self.shm_shape, self._data_type, buffer=self.shm.buf)
 
-    def run(self):
+    def start(self):
+        self.log.info(f"{self._filename}: starting writer.")
+        self.p.start()
+
+    def _run(self):
         frame_index = 0
         # Build mips. Assume frames increment sequentially in z.
 
@@ -133,7 +140,7 @@ class MaxProjection(Process):
 
     def wait_to_finish(self):
         self.log.info(f"max projection {self.filename}: waiting to finish.")
-        self.join()
+        self.p.join()
         self.log.info(f'saving {self.path}/max_projection_xy_{self.filename}"')
         self.log.info(f'saving {self.path}/max_projection_xz_{self.filename}"')
         self.log.info(f'saving {self.path}/max_projection_yz_{self.filename}"')

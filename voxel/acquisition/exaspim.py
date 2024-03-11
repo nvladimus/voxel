@@ -80,7 +80,7 @@ class ExASPIMAcquisition(BaseAcquisition):
             for laser_id, laser in self.instrument.lasers.items():
                 laser.power_setpoint_mw = tile['power_mw']
 
-            # setup cameram, data writing engines, and processes
+            # setup camera, data writing engines, and processes
             for camera_id, camera in self.instrument.cameras.items():
 
                 # filename
@@ -149,29 +149,27 @@ class ExASPIMAcquisition(BaseAcquisition):
         img_buffer = SharedDoubleBuffer((chunk_size, camera.roi['height_px'], camera.roi['width_px']),
                                         dtype=writer.data_type)
 
-        # TODO CLEAN THIS UP JUST A TEST FOR NOW
-
         # setup processes
-        max_projection = MaxProjection()
-        max_projection.row_count_px = camera.roi['height_px']
-        max_projection.column_count_px = camera.roi['width_px']
-        max_projection.frame_count_px = tile['frame_count_px']
-        max_projection.projection_count_px = 64
-        max_projection.data_type = 'uint16'
-        max_projection.filename = filename
-        max_projection.path = './local_test'
-
-        img_bytes = numpy.prod(camera.roi['height_px']*camera.roi['width_px'])*numpy.dtype('uint16').itemsize
-        mip_buffer = SharedMemory(create=True, size=int(img_bytes))
-        mip_image = numpy.ndarray((camera.roi['height_px'], camera.roi['width_px']), dtype='uint16', buffer=mip_buffer.buf)
-        max_projection.prepare(mip_buffer.name)
+        process_buffers = list()
+        process_images = list()
+        for process in processes:
+            process.row_count_px = camera.roi['height_px']
+            process.column_count_px = camera.roi['width_px']
+            process.frame_count_px = tile['frame_count_px']
+            process.filename = filename
+            img_bytes = numpy.prod(camera.roi['height_px']*camera.roi['width_px'])*numpy.dtype(process.data_type).itemsize
+            buffer = SharedMemory(create=True, size=int(img_bytes))
+            process_buffers.append(buffer)
+            process.buffer_image = numpy.ndarray((camera.roi['height_px'], camera.roi['width_px']), dtype=process.data_type, buffer=buffer.buf)
+            process.prepare(buffer.name)
 
         # set up writer and camera
         writer.prepare()
         camera.prepare()
         writer.start()
         camera.start()
-        max_projection.start()
+        for process in processes:
+            process.start()
 
         frame_index = 0
         chunk_count = math.ceil(tile['frame_count_px'] / chunk_size)
@@ -211,22 +209,25 @@ class ExASPIMAcquisition(BaseAcquisition):
                         writer.done_reading.clear()
 
             # max projection test
-            while max_projection.new_image.is_set():
-                time.sleep(0.1)
-            mip_image[:,:] = current_frame
-            max_projection.new_image.set()
+            for process in processes:
+                while process.new_image.is_set():
+                    time.sleep(0.1)
+                process.buffer_image[:,:] = current_frame
+                process.new_image.set()
 
             frame_index += 1
             
         writer.wait_to_finish()
-        max_projection.wait_to_finish()
-        max_projection.close()
+        for process in processes:
+            process.wait_to_finish()
+            # process.close()
         camera.stop()
 
         # clean up the image buffer
         self.log.debug(f"deallocating shared double buffer.")
         img_buffer.close_and_unlink()
         del img_buffer
-        mip_buffer.close()
-        mip_buffer.unlink()
-        del mip_buffer
+        for buffer in process_buffers:
+            buffer.close()
+            buffer.unlink()
+            del buffer

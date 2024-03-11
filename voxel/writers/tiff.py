@@ -162,13 +162,6 @@ class Writer(BaseWriter):
     def path(self):
         return self._path
 
-    # @path.setter
-    # def path(self, path: str):
-    #     if '\\' in path or '/' not in path:
-    #         assert ValueError('path string should only contain / not \\')
-    #     self._path = Path(path)
-    #     self.log.info(f'setting path to: {path}')
-
     @property
     def filename(self):
         return self._filename

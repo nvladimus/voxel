@@ -27,11 +27,15 @@ acquisition:
       vp-151mx:
         - driver: voxel.processes.max_projection
           module: MaxProjection
+          init:
+            path: ./local_test
           settings:
             data_type: uint16
             projection_count_px: 32
         - driver: voxel.processes.mean_projection
           module: MeanProjection
+          init:
+            path: ./local_test
           settings:
             data_type: uint16
             projection_count_px: 32
