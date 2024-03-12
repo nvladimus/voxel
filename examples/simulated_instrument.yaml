@@ -105,11 +105,26 @@ instrument:
             Empty1: 5
             Empty2: 6
     lasers:
-      488nm:
+      405nm:
         driver: voxel.devices.lasers.simulated
         module: SimulatedLaser
         init:
           port: COM1
+      488nm:
+        driver: voxel.devices.lasers.simulated
+        module: SimulatedLaser
+        init:
+          port: COM2
+      561nm:
+        driver: voxel.devices.lasers.simulated
+        module: SimulatedLaser
+        init:
+          port: COM3
+      638nm:
+        driver: voxel.devices.lasers.simulated
+        module: SimulatedLaser
+        init:
+          port: COM4
     daqs:
       PCIe-6738:
         driver: voxel.devices.daq.simulated

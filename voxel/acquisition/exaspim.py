@@ -194,6 +194,7 @@ class ExASPIMAcquisition(BaseAcquisition):
             # Grab camera frame
             current_frame = camera.grab_frame()
             camera.signal_acquisition_state()
+            writer.signal_progress_percent
             img_buffer.add_image(current_frame)
 
             # Dispatch either a full chunk of frames or the last chunk,

@@ -112,6 +112,7 @@ class FileTransfer():
                     value = line[index-4:index]
                     # strip and convert to float
                     self.progress = float(value.rstrip())
+                    self.log.info(f'file transfer is {self.progress} % complete.')
                 # we must be at the last line of the file
                 else:
                     # go back to beginning of file

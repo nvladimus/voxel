@@ -93,7 +93,7 @@ class FileTransfer():
             # line did not contain %
             except:
                 self.progress = 0
-            print(self.signal_progress_percent)
+            self.log.info(f'file transfer is {self.progress} % complete.')
             # pause for 1 sec
             time.sleep(1)
         # cleanup the subprocess
