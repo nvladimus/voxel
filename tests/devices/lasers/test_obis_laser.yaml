@@ -5,7 +5,7 @@ channel_specs:
     module : "LaserLSObis"
     color : "orange"
     kwds:
-      port: 'COM4'
+      port: 'COM11'
     setup:
       cdrh: "OFF"
       modulation_mode: 'digital'

@@ -86,6 +86,10 @@ class DAQ(BaseDAQ):
         if task_type not in ['ao', 'co', 'do']:
             raise ValueError(f"{task_type} must be one of {['ao', 'co', 'do']}")
 
+        if old_task := getattr(self, f"{task_type}_task", False):
+            old_task.close()    # close old task
+            self.tasks.remove(old_task) # remove from tasks
+            delattr(self, f"{task_type}_task")  # Delete previously configured tasks
         daq_task = nidaqmx.Task(task['name'])
         timing = task['timing']
 
@@ -200,10 +204,9 @@ class DAQ(BaseDAQ):
         timing = task['timing']
 
         waveform_attribute = getattr(self, f"{task_type}_waveforms")
-        for port, channel in task['ports'].items():
+        for name, channel in task['ports'].items():
             # load waveform and variables
-            #port = channel['port']
-            name = channel['name']
+            port = channel['port']
             device_min_volts = channel.get('device_min_volts', 0)
             device_max_volts = channel.get('device_max_volts', 5)
             waveform = channel['waveform']
@@ -441,7 +444,7 @@ class DAQ(BaseDAQ):
         self.do_task.control(TaskMode.TASK_COMMIT)
 
     def start_all(self):
-
+        print(self.tasks)
         for task in self.tasks:
             task.start()
 

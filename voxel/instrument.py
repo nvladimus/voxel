@@ -75,9 +75,7 @@ class Instrument:
 
             if 'tasks' in device.keys() and device_type == 'daqs':
                 for task_type, task_dict in device['tasks'].items():
-                    #TODO: how to deal with pulse count?
-                    pulse_count = None if 'pulse_count' not in task_dict['timing'].keys() \
-                        else task_dict['timing']['pulse_count']
+                    pulse_count = task_dict['timing'].get('pulse_count', None)
                     device_object.add_task(task_dict, task_type[:2], pulse_count)
 
             # Add subdevices under device and fill in any needed keywords to init
@@ -113,8 +111,7 @@ class Instrument:
             self._construct_device(device_type, device_list)
 
     def _find_master_device(self):
-        
-        # build the tree of device triggers
+        # # build the tree of device triggers
         for device_type, device_list in self.config['instrument']['devices'].items():
             for name, device in device_list.items():
                 master_trigger = device['master_trigger']
