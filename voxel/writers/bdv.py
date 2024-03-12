@@ -338,7 +338,7 @@ class Writer(BaseWriter):
         self.log.info(f"{self._filename}: starting writer.")
         self.p.start()
 
-    def _run(self, shared_value):
+    def _run(self, shared_progress):
         """Loop to wait for data from a specified location and write it to disk
         as an Imaris file. Close up the file afterwards.
 
@@ -436,18 +436,18 @@ class Writer(BaseWriter):
             shm.close()
             self.done_reading.set()
             # NEED TO USE SHARED VALUE HERE
-            shared_value.value = (chunk_num+1)/chunk_total
+            shared_progress.value = (chunk_num+1)/chunk_total
 
         # Wait for file writing to finish.
-        if shared_value.value < 1.0:
+        if shared_progress.value < 1.0:
             logger.warning(f"{self._filename}: waiting for data writing to complete for "
                   f"{self._filename}. "
-                  f"current progress is {100*shared_value.value:.1f}%.")
-        while shared_value.value < 1.0:
+                  f"current progress is {100*shared_progress.value:.1f}%.")
+        while shared_progress.value < 1.0:
             sleep(0.5)
             logger.warning(f"{self._filename}: waiting for data writing to complete for "
                   f"{self._filename}. "
-                  f"current progress is {100*shared_value.value:.1f}%.")
+                  f"current progress is {100*shared_progress.value:.1f}%.")
 
         ### write xml file
         bdv_writer.write_xml()

@@ -239,8 +239,7 @@ class Writer(BaseWriter):
         self.log.info(f'setting shared memory to: {name}')
 
     def prepare(self):
-        self.shared_progress = multiprocessing.Value('d', 0.0)
-        self.p = Process(target=self._run, args=(self.shared_progress,))
+        self.p = Process(target=self._run)
         # Specs for reconstructing the shared memory object.
         self._shm_name = Array(c_wchar, 32)  # hidden and exposed via property.
         # This is almost always going to be: (chunk_size, rows, columns).
@@ -301,7 +300,7 @@ class Writer(BaseWriter):
         self.log.info(f"{self._filename}: starting writer.")
         self.p.start()
 
-    def _run(self, shared_value):
+    def _run(self):
         """Loop to wait for data from a specified location and write it to disk
         as an Imaris file. Close up the file afterwards.
 
@@ -341,7 +340,6 @@ class Writer(BaseWriter):
                   f"{perf_counter() - start_time:.3f} [s]")
             shm.close()
             self.done_reading.set()
-            shared_value.value = chunk_num/chunk_total
 
         # Wait for file writing to finish.
         if self.callback_class.progress < 1.0:
@@ -361,6 +359,8 @@ class Writer(BaseWriter):
     def wait_to_finish(self):
         self.log.info(f"{self._filename}: waiting to finish.")
         self.p.join()
+        # log the finished writer %
+        self.signal_progress_percent
 
     def delete_files(self):
         filepath = str((self._path / Path(f"{self._filename}")).absolute())
