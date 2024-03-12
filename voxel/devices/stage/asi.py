@@ -186,27 +186,30 @@ class Stage(BaseStage):
         # TODO: if position is unspecified, we should set is as
         #  "current position" from hardware.
         # Get the axis id in machine coordinate frame.
-        valid_pattern = list(SCAN_PATTERN.keys())
-        if pattern not in valid_pattern:
-            raise ValueError("pattern must be one of %r." % valid_pattern)
-        assert retrace_speed_percent <= 100 and retrace_speed_percent > 0
-        fast_axis = self.hardware_axis
-        axis_to_card = self.tigerbox.axis_to_card
-        fast_card = axis_to_card[fast_axis][0]
-        fast_position = axis_to_card[fast_axis][1]
-        slow_axis = next(key for key, value in axis_to_card.items() if value[0] == fast_card and value[1] != fast_position)
-        # Stop any existing scan. Apply machine coordinate frame scan params.
-        self.log.debug(f"fast axis start: {fast_axis_start_position},"
-                       f"slow axis start: {slow_axis_start_position}")
-        self.tigerbox.setup_scan(fast_axis, slow_axis,
-                                 pattern=SCAN_PATTERN[pattern],)
-        self.tigerbox.scanr(scan_start_mm=fast_axis_start_position,
-                            pulse_interval_um=frame_interval_um,
-                            num_pixels=frame_count,
-                            retrace_speed_percent=retrace_speed_percent)
-        self.tigerbox.scanv(scan_start_mm=slow_axis_start_position,
-                            scan_stop_mm=slow_axis_stop_position,
-                            line_count=strip_count)
+        if self.mode == 'stage scan':            
+            valid_pattern = list(SCAN_PATTERN.keys())
+            if pattern not in valid_pattern:
+                raise ValueError("pattern must be one of %r." % valid_pattern)
+            assert retrace_speed_percent <= 100 and retrace_speed_percent > 0
+            fast_axis = self.hardware_axis
+            axis_to_card = self.tigerbox.axis_to_card
+            fast_card = axis_to_card[fast_axis][0]
+            fast_position = axis_to_card[fast_axis][1]
+            slow_axis = next(key for key, value in axis_to_card.items() if value[0] == fast_card and value[1] != fast_position)
+            # Stop any existing scan. Apply machine coordinate frame scan params.
+            self.log.debug(f"fast axis start: {fast_axis_start_position},"
+                           f"slow axis start: {slow_axis_start_position}")
+            self.tigerbox.setup_scan(fast_axis, slow_axis,
+                                     pattern=SCAN_PATTERN[pattern],)
+            self.tigerbox.scanr(scan_start_mm=fast_axis_start_position,
+                                pulse_interval_um=frame_interval_um,
+                                num_pixels=frame_count,
+                                retrace_speed_percent=retrace_speed_percent)
+            self.tigerbox.scanv(scan_start_mm=slow_axis_start_position,
+                                scan_stop_mm=slow_axis_stop_position,
+                                line_count=strip_count)
+        else:
+            raise ValueError(f'mode must be stage scan not {self.mode}')
 
     def start_stage_scan(self):
         """initiate a finite tile scan that has already been setup with

@@ -4,7 +4,7 @@ channel_specs:
     driver : "oxxius_laser"
     module : "L6CCCombiner"
     kwds:
-      port: "COM3"
+      port: "COM11"
     setup:
       {}
     '405':

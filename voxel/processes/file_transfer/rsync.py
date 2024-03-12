@@ -6,19 +6,21 @@ import sys
 import threading
 from subprocess import Popen, PIPE, STDOUT
 from pathlib import Path
+from typing import List, Any, Iterable
 
 class FileTransfer():
 
-    def __init__(self, external_drive):
+    def __init__(self, external_directory):
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self._filename = None
-        self._local_drive = None
-        self._external_drive = external_drive
+        self._local_directory = None
+        self._external_directory = external_directory
         self._protocol = 'rsync'
         self.progress = 0
         self._output_file = None
-        self._flags = '--progress'
+        # print progress, delete files after transfer
+        self._flags = ['--progress', '--remove-source-files']
 
     @property
     def filename(self):
@@ -30,17 +32,17 @@ class FileTransfer():
         self._filename = filename
 
     @property
-    def local_drive(self):
-        return self._local_drive
+    def local_directory(self):
+        return self._local_directory
 
-    @local_drive.setter
-    def local_drive(self, local_drive: Path or str):
-        self.log.info(f'setting local path to: {local_drive}')
-        self._local_drive = Path(local_drive)
+    @local_directory.setter
+    def local_directory(self, local_directory: Path or str):
+        self.log.info(f'setting local path to: {local_directory}')
+        self._local_directory = Path(local_directory)
 
     @property
-    def external_drive(self):
-        return self._external_drive
+    def external_directory(self):
+        return self._external_directory
 
     @property
     def signal_progress_percent(self):
@@ -48,19 +50,21 @@ class FileTransfer():
         return self.progress
 
     def start(self):
-        if not os.path.isfile(self._local_drive / self._filename):
-            raise FileNotFoundError(f"{self._local_drive / self._filename} does not exist.")
+        print(self._local_directory / self._filename)
+        if not os.path.isfile(self._local_directory / self._filename):
+            raise FileNotFoundError(f"{self._local_directory / self._filename} does not exist.")
         file_extension = Path(self._filename).suffix
         self._log_filename = self._filename.replace(file_extension, '.txt')
         # open log file for writing to pipe into stdout
-        self._log_file = open(f'{self._local_drive / self._log_filename}', 'w')
-        self.log.info(f"transferring from {self._local_drive} to {self._external_drive}")
+        self._log_file = open(f'{self._local_directory / self._log_filename}', 'w')
+        self.log.info(f"transferring from {self._local_directory} to {self._external_directory}")
         # self.cmd = subprocess.run(cmd_with_args, check=True)
+        cmd_with_args = self._flatten([self._protocol,
+                                       self._local_directory / self._filename,
+                                       self._external_directory,
+                                       self._flags])
         self.thread = threading.Thread(target=self._run,
-                                       args=([self._protocol,
-                                              self._local_drive / self._filename,
-                                              self._external_drive,
-                                              self._flags],))
+                                       args=(list(cmd_with_args),))
         self.thread.start()
 
     def wait_until_finished(self):
@@ -78,7 +82,7 @@ class FileTransfer():
         self.progress = 0
         while self.progress < 100:
             # open the stdout file in a temporary handle with r+ mode
-            f = open(f'{self._local_drive / self._log_filename}', 'r+')
+            f = open(f'{self._local_directory / self._log_filename}', 'r+')
             # read the last line
             line = f.readlines()[-1]
             # try to find if there is a % in the last line
@@ -103,6 +107,7 @@ class FileTransfer():
                     value = line[index-4:index]
                     # strip and convert to float
                     self.progress = float(value.rstrip())
+                    self.log.info(f'file transfer is {self.progress} % complete.')
             # no lines in the file yet          
             except:
                 self.progress = 0
@@ -114,5 +119,16 @@ class FileTransfer():
         subprocess.kill()
         subprocess.wait()
         # remove the log file
-        os.remove(f'{self._local_drive / self._log_filename}')
+        os.remove(f'{self._local_directory / self._log_filename}')
         self.log.info(f"transfer finished")
+
+    def _flatten(self, lst: List[Any]) -> Iterable[Any]:
+        """Flatten a list using generators comprehensions.
+            Returns a flattened version of list lst.
+        """
+        for sublist in lst:
+             if isinstance(sublist, list):
+                 for item in sublist:
+                     yield item
+             else:
+                 yield sublist

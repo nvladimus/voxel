@@ -70,6 +70,16 @@ class BaseWriter():
         pass
 
     @property
+    def theta_deg(self):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @theta_deg.setter
+    def theta_deg(self, theta_deg: float):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+        
+    @property
     def frame_count_px(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass

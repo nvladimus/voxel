@@ -77,6 +77,7 @@ class DAQ(BaseDAQ):
         self.log.info('resetting nidaq')
         self.dev.reset_device()
         self.tasks = list()
+        self.task_time_s = dict()
         self.ao_waveforms = dict()
         self.do_waveforms = dict()
 
@@ -86,6 +87,10 @@ class DAQ(BaseDAQ):
         if task_type not in ['ao', 'co', 'do']:
             raise ValueError(f"{task_type} must be one of {['ao', 'co', 'do']}")
 
+        if old_task := getattr(self, f"{task_type}_task", False):
+            old_task.close()    # close old task
+            self.tasks.remove(old_task) # remove from tasks
+            delattr(self, f"{task_type}_task")  # Delete previously configured tasks
         daq_task = nidaqmx.Task(task['name'])
         timing = task['timing']
 
@@ -102,12 +107,12 @@ class DAQ(BaseDAQ):
             self._timing_checks(task, task_type)
 
             trigger_port = timing['trigger_port']
-            if f"{self.id}/{trigger_port}" not in self.dio_ports:
-                raise ValueError("trigger port must be one of %r." % self.dio_ports)
+            # if f"{self.id}/{trigger_port}" not in self.dio_ports:
+            #     raise ValueError("trigger port must be one of %r." % self.dio_ports)
 
-            for channel_specs in task['ports'].values():
+            for port, specs in task['ports'].items():
                 # add channel to task
-                channel_port = channel_specs['port']
+                channel_port = specs['port']
                 if f"{self.id}/{channel_port}" not in channel_options[task_type]:
                     raise ValueError(f"{task_type} number must be one of {channel_options[task_type]}")
                 physical_name = f"/{self.id}/{channel_port}"
@@ -135,9 +140,12 @@ class DAQ(BaseDAQ):
             setattr(daq_task, f"{task_type}_line_states_done_state", Level.LOW)
             setattr(daq_task, f"{task_type}_line_states_paused_state", Level.LOW)
 
+            # store the total task time
+            self.task_time_s[task['name']] = total_time_ms/1000
+
         else:   # co channel
-            if f"{self.id}/{ timing['output_port']}" not in self.dio_ports:
-                raise ValueError("output port must be one of %r." % self.dio_ports)
+            # if f"{self.id}/{ timing['output_port']}" not in self.dio_ports:
+            #     raise ValueError("output port must be one of %r." % self.dio_ports)
 
             if timing['frequency_hz'] < 0:
                 raise ValueError(f"frequency must be >0 Hz")
@@ -152,11 +160,17 @@ class DAQ(BaseDAQ):
                     freq=timing['frequency_hz'],
                     duty_cycle=0.5)
                 co_chan.co_pulse_term = f'/{self.id}/{timing["output_port"]}'
-                pulse_count = {'samps_per_chan': pulse_count} if pulse_count else {}
-                daq_task.timing.cfg_implicit_timing(
-                    sample_mode=AcqType.FINITE if pulse_count else AcqType.CONTINUOUS,
-                    **pulse_count)
+                pulse_count = {'sample_mode': AcqType.FINITE, 'samps_per_chan': pulse_count} \
+                    if pulse_count is not None else {'sample_mode': AcqType.CONTINUOUS}
 
+            if timing['trigger_mode'] == 'off':
+                daq_task.timing.cfg_implicit_timing(
+                    **pulse_count)
+            else:
+                raise ValueError(f'triggering not support for counter output tasks.')
+
+            # store the total task time
+            self.task_time_s[task['name']] = 1/timing['frequency_hz']
 
         setattr(self, f"{task_type}_task", daq_task)  # set task attribute
         self.tasks.append(daq_task)
@@ -191,9 +205,9 @@ class DAQ(BaseDAQ):
         timing = task['timing']
 
         waveform_attribute = getattr(self, f"{task_type}_waveforms")
-        for port, channel in task['ports'].items():
+        for name, channel in task['ports'].items():
             # load waveform and variables
-            name = channel['port']
+            port = channel['port']
             device_min_volts = channel.get('device_min_volts', 0)
             device_max_volts = channel.get('device_max_volts', 5)
             waveform = channel['waveform']

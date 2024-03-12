@@ -9,12 +9,12 @@ from pathlib import Path
 
 class FileTransfer():
 
-    def __init__(self, external_drive):
+    def __init__(self, external_directory):
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self._filename = None
-        self._local_drive = None
-        self._external_drive = external_drive
+        self._local_directory = None
+        self._external_directory = external_directory
         self._protocol = 'robocopy'
         self.progress = None
 
@@ -28,17 +28,17 @@ class FileTransfer():
         self._filename = filename
 
     @property
-    def local_drive(self):
-        return self._local_drive
+    def local_directory(self):
+        return self._local_directory
 
-    @local_drive.setter
-    def local_drive(self, local_drive: Path or str):
-        self.log.info(f'setting local path to: {local_drive}')
-        self._local_drive = Path(local_drive)
+    @local_directory.setter
+    def local_directory(self, local_directory: Path or str):
+        self.log.info(f'setting local path to: {local_directory}')
+        self._local_directory = Path(local_directory)
 
     @property
-    def external_drive(self):
-        return self._external_drive
+    def external_directory(self):
+        return self._external_directory
 
     @property
     def signal_progress_percent(self):
@@ -46,19 +46,19 @@ class FileTransfer():
         return self.progress
 
     def start(self):
-        if not os.path.isfile(self._local_drive.absolute() / self._filename):
-            raise FileNotFoundError(f"{self._local_drive} does not exist.")
+        if not os.path.isfile(self._local_directory.absolute() / self._filename):
+            raise FileNotFoundError(f"{self._local_directory} does not exist.")
         # xcopy requires an asterisk to indicate source and destination are
         # files, not directories.
         # TODO: identify if xcopy src/dest are files or directories, and
         #   annotate them as such.
-        # flags = f'/j /mov /log:{self.local_drive.absolute()}\\log.txt /njh /njs'
+        # flags = f'/j /mov /log:{self.local_directory.absolute()}\\log.txt /njh /njs'
         file_extension = Path(self._filename).suffix
         self._log_name = self._filename.replace(file_extension, 'txt')
-        flags = f'/j /mov /njh /njs /log:{self._local_drive.absolute()}\\{self._log_name}'
-        cmd_with_args = f'{self.protocol} {self._local_drive.absolute()} {self._external_drive.absolute()} \
+        flags = f'/j /mov /njh /njs /log:{self._local_directory.absolute()}\\{self._log_name}'
+        cmd_with_args = f'{self.protocol} {self._local_directory.absolute()} {self._external_directory.absolute()} \
             {self._filename} {flags}'
-        self.log.info(f"transferring from {self._local_drive} to {self._external_drive}")
+        self.log.info(f"transferring from {self._local_directory} to {self._external_directory}")
         # self.cmd = subprocess.run(cmd_with_args, check=True)
         self.thread = threading.Thread(target=self._run, args=(cmd_with_args,))
         self.thread.start()
@@ -76,7 +76,7 @@ class FileTransfer():
         self.progress = 0
         while self.progress < 100:
             # open log file
-            f = open(f'{self._local_drive.absolute()}\\{self.log_name}', 'r')
+            f = open(f'{self._local_directory.absolute()}\\{self.log_name}', 'r')
             # read the last line
             line = f.readlines()[-1]
             # close the log file
@@ -95,5 +95,5 @@ class FileTransfer():
         subprocess.kill()
         subprocess.wait()
         # remove the log file
-        os.remove(f'{self._local_drive.absolute()}\\{self._log_name}')
+        os.remove(f'{self._local_directory.absolute()}\\{self._log_name}')
         self.log.info(f"transfer finished")

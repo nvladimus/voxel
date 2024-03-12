@@ -16,6 +16,7 @@ from time import sleep, perf_counter
 from math import ceil
 
 CHUNK_COUNT_PX = 64
+DIVISIBLE_FRAME_COUNT_PX = 128
 
 COMPRESSION_TYPES = {
     "lz4shuffle":  pw.eCompressionAlgorithmShuffleLZ4,
@@ -43,21 +44,24 @@ class Writer(BaseWriter):
  
         super().__init__()
 
-        self._color = None
+        self._color = '#ffffff' # initialize as white
         self._channel = None
         self._filename = None
         self._path = path
-        self._data_type = DATA_TYPES['uint8']
+        self._data_type = DATA_TYPES['uint16']
         self._compression = COMPRESSION_TYPES["none"]
         self._row_count_px = None
         self._colum_count_px = None
         self._frame_count_px = None
-        self._z_pos_mm = None
-        self._y_pos_mm = None
-        self._x_pos_mm = None
-        self._z_voxel_size_um = None
-        self._y_voxel_size_um = None
-        self._x_voxel_size_um = None
+        self._x_voxel_size_um = 1
+        self._y_voxel_size_um = 1
+        self._z_voxel_size_um = 1
+        self._x_position_mm = 0
+        self._y_position_mm = 0
+        self._z_position_mm = 0
+        self._theta_deg = 0
+        self._channel = None
+        self.progress = 0
 
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         # Opinioated decision on chunking dimension order
@@ -136,6 +140,8 @@ class Writer(BaseWriter):
     @frame_count_px.setter
     def frame_count_px(self, frame_count_px: int):
         self.log.info(f'setting frame count to: {frame_count_px} [px]')
+        frame_count_px = ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
+        self.log.info(f'adjusting frame count to: {frame_count_px} [px]')
         self._frame_count_px = frame_count_px
 
     @property
@@ -184,14 +190,6 @@ class Writer(BaseWriter):
     @property
     def path(self):
         return self._path
-
-    @path.setter
-    def path(self, path: Path or str):
-        if os.path.isdir(path):
-                self._path = Path(path)
-        else:
-            raise ValueError("%r is not a valid path." % path)
-        self.log.info(f'setting path to: {path}')
 
     @property
     def filename(self):
@@ -352,13 +350,6 @@ class Writer(BaseWriter):
                   f"{self._filename}. "
                   f"current progress is {100*self.callback_class.progress:.1f}%.")
 
-        self.deallocating.set()
-        for ch in list(self.img_buffers.keys()):
-            self.log.debug(f"Deallocating {ch}[nm] stack shared double buffer.")
-            self.img_buffers[ch].close_and_unlink()
-            del self.img_buffers[ch]
-        self.deallocating.clear()
-
         converter.Finish(self.image_extents, self.parameters, self.time_infos,
                               self.color_infos, self.adjust_color_range)
         converter.Destroy()
@@ -366,3 +357,7 @@ class Writer(BaseWriter):
     def wait_to_finish(self):
         self.log.info(f"{self._filename}: waiting to finish.")
         self.p.join()
+
+    def delete_files(self):
+        filepath = str((self._path / Path(f"{self._filename}")).absolute())
+        os.remove(filepath)
