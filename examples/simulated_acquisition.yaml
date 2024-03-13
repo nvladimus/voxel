@@ -27,12 +27,12 @@ acquisition:
           data_type: uint16
     transfers:
       vp-151mx:
-        driver: voxel.processes.file_transfer.rsync
+        driver: voxel.processes.file_transfer.robocopy
         module: FileTransfer
         init:
           external_directory: ./external_test
       vnp-604mx:
-        driver: voxel.processes.file_transfer.rsync
+        driver: voxel.processes.file_transfer.robocopy
         module: FileTransfer
         init:
           external_directory: ./external_test
