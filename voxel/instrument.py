@@ -19,17 +19,11 @@ class Instrument:
         self.config_path = this_dir / Path(config_filename)
         #yaml = YAML(typ='safe', pure=True)    # loads yaml in as dict. May want to use in future
         self.config = YAML().load(Path(self.config_path))
-        # this device type list is hardcoded by type, perhaps another way to do this
-        self.cameras = dict()
-        self.tiling_stages = dict()
-        self.scanning_stages = dict()
-        self.lasers = dict()
-        self.filter_wheels = dict()
-        self.daqs = dict()
-        self.lasers = dict()
-        self.combiners = dict()
-        self.aotfs = dict()
-        self.tunable_lenses = dict()
+
+        for device_type in self.config['instrument']['devices'].keys():
+            # automatically create classes for instrument kinds
+            setattr(self, device_type, {})
+
         self.trigger_tree = dict()
         # construct
         self._construct()
@@ -111,7 +105,7 @@ class Instrument:
             self._construct_device(device_type, device_list)
 
     def _find_master_device(self):
-        pass
+        return
         # # build the tree of device triggers
         for device_type, device_list in self.config['instrument']['devices'].items():
             for name, device in device_list.items():
