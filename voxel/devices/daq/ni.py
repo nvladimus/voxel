@@ -63,19 +63,18 @@ class DAQ(BaseDAQ):
             raise ValueError("dev name must be one of %r." % self.devs)        
         self.id = dev
         self.dev = nidaqmx.system.device.Device(self.id)
+        self.log.info('resetting nidaq')
+        self.dev.reset_device()
         self.ao_physical_chans = self.dev.ao_physical_chans.channel_names
         self.co_physical_chans = self.dev.co_physical_chans.channel_names
         self.do_physical_chans = self.dev.do_ports.channel_names
         self.dio_ports = [channel.replace(f'port', "PFI") for channel in self.dev.do_ports.channel_names]
-
         self.dio_lines = self.dev.do_lines.channel_names
         self.max_ao_rate = self.dev.ao_max_rate
         self.min_ao_rate = self.dev.ao_min_rate
         self.max_do_rate = self.dev.do_max_rate
         self.max_ao_volts = self.dev.ao_voltage_rngs[1]
         self.min_ao_volts = self.dev.ao_voltage_rngs[0]
-        self.log.info('resetting nidaq')
-        self.dev.reset_device()
         self.tasks = list()
         self.task_time_s = dict()
         self.ao_waveforms = dict()

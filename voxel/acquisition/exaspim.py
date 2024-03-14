@@ -80,7 +80,7 @@ class ExASPIMAcquisition(BaseAcquisition):
             # prepare the scanning stage for step and shoot behavior
             for scanning_stage_id, scanning_stage in self.instrument.scanning_stages.items():
                 scanning_stage.start()
-                
+
             # setup channel i.e. laser and filter wheels
             self.log.info(f'setting up channel: {tile_channel}')
             channel = self.instrument.channels[tile_channel]
@@ -125,7 +125,8 @@ class ExASPIMAcquisition(BaseAcquisition):
                 acquisition_threads[camera_id].join()
 
             # stop the daq
-            self.instruments.daqs.stop()
+            for daq_id, daq in self.instrument.daqs.items():
+                daq.stop()
 
             # handle starting and waiting for file transfers
             if self.transfers:
