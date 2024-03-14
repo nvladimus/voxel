@@ -12,6 +12,7 @@ from nidaqmx.constants import Edge
 from nidaqmx.constants import Slope
 from nidaqmx.constants import TaskMode
 
+
 DO_WAVEFORMS = [
     'square wave'
 ]
@@ -86,6 +87,10 @@ class DAQ(BaseDAQ):
         if task_type not in ['ao', 'co', 'do']:
             raise ValueError(f"{task_type} must be one of {['ao', 'co', 'do']}")
 
+        if old_task := getattr(self, f"{task_type}_task", False):
+            old_task.close()    # close old task
+            self.tasks.remove(old_task) # remove from tasks
+            delattr(self, f"{task_type}_task")  # Delete previously configured tasks
         daq_task = nidaqmx.Task(task['name'])
         timing = task['timing']
 
@@ -102,12 +107,12 @@ class DAQ(BaseDAQ):
             self._timing_checks(task, task_type)
 
             trigger_port = timing['trigger_port']
-            if f"{self.id}/{trigger_port}" not in self.dio_ports:
-                raise ValueError("trigger port must be one of %r." % self.dio_ports)
+            # if f"{self.id}/{trigger_port}" not in self.dio_ports:
+            #     raise ValueError("trigger port must be one of %r." % self.dio_ports)
 
-            for channel_port in task['ports'].keys():
+            for port, specs in task['ports'].items():
                 # add channel to task
-                #channel_port = channel['port']
+                channel_port = specs['port']
                 if f"{self.id}/{channel_port}" not in channel_options[task_type]:
                     raise ValueError(f"{task_type} number must be one of {channel_options[task_type]}")
                 physical_name = f"/{self.id}/{channel_port}"
@@ -139,14 +144,13 @@ class DAQ(BaseDAQ):
             self.task_time_s[task['name']] = total_time_ms/1000
 
         else:   # co channel
-            if f"{self.id}/{ timing['output_port']}" not in self.dio_ports:
-                raise ValueError("output port must be one of %r." % self.dio_ports)
+            # if f"{self.id}/{ timing['output_port']}" not in self.dio_ports:
+            #     raise ValueError("output port must be one of %r." % self.dio_ports)
 
             if timing['frequency_hz'] < 0:
                 raise ValueError(f"frequency must be >0 Hz")
 
-            for channel in task['counters']:
-                channel_number = channel['counter']
+            for channel_number in task['counters']:
                 if f"{self.id}/{channel_number}" not in self.co_physical_chans:
                     raise ValueError("co number must be one of %r." % self.co_physical_chans)
                 physical_name = f"/{self.id}/{channel_number}"
@@ -156,11 +160,11 @@ class DAQ(BaseDAQ):
                     freq=timing['frequency_hz'],
                     duty_cycle=0.5)
                 co_chan.co_pulse_term = f'/{self.id}/{timing["output_port"]}'
-                pulse_count = {'samps_per_chan': pulse_count} if pulse_count else {}
+                pulse_count = {'sample_mode': AcqType.FINITE, 'samps_per_chan': pulse_count} \
+                    if pulse_count is not None else {'sample_mode': AcqType.CONTINUOUS}
 
             if timing['trigger_mode'] == 'off':
                 daq_task.timing.cfg_implicit_timing(
-                    sample_mode=AcqType.FINITE if pulse_count else AcqType.CONTINUOUS,
                     **pulse_count)
             else:
                 raise ValueError(f'triggering not support for counter output tasks.')
@@ -201,10 +205,9 @@ class DAQ(BaseDAQ):
         timing = task['timing']
 
         waveform_attribute = getattr(self, f"{task_type}_waveforms")
-        for port, channel in task['ports'].items():
+        for name, channel in task['ports'].items():
             # load waveform and variables
-            #port = channel['port']
-            name = channel['name']
+            port = channel['port']
             device_min_volts = channel.get('device_min_volts', 0)
             device_max_volts = channel.get('device_max_volts', 5)
             waveform = channel['waveform']
@@ -397,7 +400,7 @@ class DAQ(BaseDAQ):
 
         return waveform
 
-    def plot_waveforms_to_pdf(self):
+    def plot_waveforms_to_pdf(self, save=False):
 
         plt.rcParams['font.size'] = 10
         plt.rcParams['font.family'] = 'Arial'
@@ -429,7 +432,8 @@ class DAQ(BaseDAQ):
         ax.legend(loc="upper right", fontsize=10, edgecolor=None)
         ax.tick_params(which='major', direction='out', length=8, width=0.75)
         ax.tick_params(which='minor', length=4)
-        plt.savefig('waveforms.pdf', bbox_inches='tight')
+        if save:
+            plt.savefig('waveforms.pdf', bbox_inches='tight')
 
     def _rereserve_buffer(self, buf_len):
         """If tasks are already configured, the buffer needs to be cleared and rereserved to work"""
