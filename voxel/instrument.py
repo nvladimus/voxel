@@ -111,6 +111,7 @@ class Instrument:
             self._construct_device(device_type, device_list)
 
     def _find_master_device(self):
+        pass
         # # build the tree of device triggers
         for device_type, device_list in self.config['instrument']['devices'].items():
             for name, device in device_list.items():
