@@ -259,7 +259,7 @@ class Camera(BaseCamera):
             start_time = time.time()
             column_count = self._width_px
             row_count = self._height_px
-            image = numpy.random.randint(low=128, high=256, size=(row_count, column_count), dtype=PIXEL_TYPES[self._pixel_type])
+            image = numpy.random.randint(low=128, high=256, size=(row_count, column_count), dtype=self._pixel_type)
             # image = numpy.zeros(shape=(row_count, column_count), dtype=PIXEL_TYPES[self._pixel_type])
             while (time.time() - start_time) < self.frame_time_ms/1000:
                 time.sleep(0.01)
@@ -273,3 +273,8 @@ class Camera(BaseCamera):
             i = i if frame_count is None else i+1
             end_time = time.time()
             self.frame_rate = 1/(end_time - start_time)
+
+    def abort(self):
+        self.terminate_frame_grab.set()
+        self.thread.join()
+        self.terminate_frame_grab.clear()

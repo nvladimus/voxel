@@ -101,7 +101,7 @@ class Instrument:
                 elif parameter.annotation == type(device_object):
                     subdevice['init'][name] = device_object
 
-        self.construct_device(subdevice_type, subdevice_dictionary)
+        self._construct_device(subdevice_type, subdevice_dictionary)
 
     def _construct(self):
         """Construct device based on configuration yaml"""

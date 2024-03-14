@@ -34,13 +34,13 @@ class FilterWheel(BaseFilterWheel):
 
     @property
     def filter(self):
-        return next(key for key, value in self.filters.items() if value == self._filter)
+        return self._filter
 
     @filter.setter
     def filter(self, filter_name: str):
         """Set the filterwheel index."""
-        self._filter = self.filters[filter_name]
-        cmd_str = f"MP {self._filter}\r\n"
+        self._filter = filter_name
+        cmd_str = f"MP {self.filters[filter_name]}\r\n"
         self.log.info(f'setting filter to {filter_name}')
         # Note: the filter wheel has slightly different reply line termination.
         self.tigerbox.send(f"FW {self.id}\r\n", read_until=f"\n\r{self.id}>")
