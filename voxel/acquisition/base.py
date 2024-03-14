@@ -3,236 +3,458 @@ import time
 import math
 import threading
 import logging
+import sys
 import shutil
+import os
+import subprocess
+import platform
+from ruamel.yaml import YAML
 from pathlib import Path
 from psutil import virtual_memory
-from spim_core.config_base import Config
-from voxel.instrument import Instrument
+from threading import Event, Thread
+from multiprocessing.shared_memory import SharedMemory
+from voxel.instruments.instrument import Instrument
 from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
 
+class BaseAcquisition():
 
-class AcquisitionBase:
+    def _load_device(self, driver: str, module: str, kwds: dict = dict()):
+        """Load in device based on config. Expecting driver, module, and kwds input"""
+        self.log.info(f'loading {driver}.{module}')
+        __import__(driver)
+        device_class = getattr(sys.modules[driver], module)
+        return device_class(**kwds)
 
-    def __init__(self, instrument: Instrument, config_filename: str):
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        # current working directory
-        this_dir = Path(__file__).parent.resolve()
-        self.config_path = this_dir / Path(config_filename)
-        self.config = Config(str(self.config_path))
-        self.instrument = instrument
+    def _setup_device(self, device: object, settings: dict):
+        """Setup device based on settings dictionary
+        :param device: device to be setup
+        :param settings: dictionary of attributes, values to set according to config"""
+        self.log.info(f'setting up {device}')
+        # successively iterate through settings keys
+        for key, value in settings.items():
+            setattr(device, key, value)
 
-        @check_disk_space
-        @check_system_memory
-        def run(self):
+    def _construct_operations(self, operation_type, operation_dict):
+        """Load and setup operations of an acquisition
+        :param operation_type: type of operation like writer. Type is specified by yaml
+        :param operation_dict: list of dictionaries describing all alike operations of an acquisition
+        like {writer0:{}, writer1:{}}"""
 
-            acquisition = self.config.cfg['acquisition']
-            # storage
-            storage = acquisition['storage']
-            filename_prefix = storage['filename_prefix']
-            local_drive = storage['local_drive']
-            external_drive = storage['external_drive']
+        for name, operation in operation_dict.items():
+            # list of operation dictionaries
+            if isinstance(operation,list):
+                operation_list = list()
+                for single_operation in operation:
+                    driver = single_operation['driver']
+                    module = single_operation['module']
+                    self.log.info(f'constructing {driver}')
+                    init = single_operation.get('init', {})
+                    operation_object = self._load_device(driver, module, init)
+                    settings = single_operation.get('settings', {})
+                    self._setup_device(operation_object, settings)
+                    operation_dict = getattr(self, operation_type)
+                    operation_list.append(operation_object)
+                operation_dict[name] = operation_list
+            else:
+                # single operation dictionary
+                driver = operation['driver']
+                module = operation['module']
+                init = operation.get('init', {})
+                operation_object = self._load_device(driver, module, init)
+                settings = operation.get('settings', {})
+                self.log.info(f'constructing {driver}')
+                self._setup_device(operation_object, settings)
+                operation_dict = getattr(self, operation_type)
+                operation_dict[name] = operation_object
 
-            # transfer
-            transfer = acquisition['transfer']
-            protocol = transfer['protocol']
-            flags = transfer['flags']
+    def _verify_directories(self):
+        self.log.info(f'verifying local and external directories')
+        # check if local directories exist
+        for writer_id, writer in self.writers.items():
+            local_directory = writer.path
+            if not os.path.isdir(local_directory):
+                os.mkdir(local_directory)
+        # check if external directories exist
+        if self.transfers:
+            for transfer_id, transfer in self.transfers.items():
+                external_directory = transfer.external_directory
+                if not os.path.isdir(external_directory):
+                    os.mkdir(external_directory)
 
-            for tile in acquisition['tiles']:
+    def _verify_acquisition(self):
+        self.log.info(f'verifying acquisition configuration')
+        # check that writers correspond to camera devices
+        for camera_id, camera in self.instrument.cameras.items():
+            # check that there is an associated writer.
+            if camera_id not in self.writers.keys():
+                raise ValueError(f'no writer found for camera {camera_id}. check yaml files.')
+            # if transfers
+            if self.transfers:
+                if camera_id not in self.transfers.keys():
+                    raise ValueError(f'no transfer found for camera {camera_id}. check yaml files.')
+                # if transfers do exist. check that transfers and writers
+                # are not the same directory. this would not make sense.
+                local_directory = self.writers[camera_id].path
+                external_directory = self.transfers[camera_id].external_directory
+                if local_directory == external_directory:
+                    raise ValueError(f'local and external directory are the same for camera {camera_id}.')               
 
-                # filename
-                tile_num_x = tile['tile_number']['x']
-                tile_num_y = tile['tile_number']['y']
-                tile_num_z = tile['tile_number']['z']
-                channel = tile['channel']
+    def _frame_size_mb(self, camera_id: str):
+        row_count_px = self.instrument.cameras[camera_id].roi['height_px']
+        column_count_px = self.instrument.cameras[camera_id].roi['width_px']
+        data_type = self.writers[camera_id].data_type
+        frame_size_mb = row_count_px*column_count_px*numpy.dtype(data_type).itemsize/1e6
+        return frame_size_mb
 
-                # stages
-                x_position_mm = tile['position_mm']['x']
-                y_position_mm = tile['position_mm']['y']
-                z_position_mm = tile['position_mm']['z']
-                self.instrument.tiling_stages['ASI MS-8000 x axis']['object'].move_absolute(x_position_mm)
-                self.instrument.tiling_stages['ASI MS-8000 y axis']['object'].move_absolute(y_position_mm)
-                self.instrument.tiling_stages['ASI MS-8000 z axis']['object'].move_absolute(z_position_mm)
+    def _pyramid_factor(self, levels: int):
+        pyramid_factor = 0
+        for level in range(levels):
+            pyramid_factor += (1/(2**level))**3
+        return pyramid_factor
 
-                # filter wheel
-                filter_name = tile['filter']
-                self.instrument.filter_wheels['ASI FW-1000']['object'].set_filter(filter_name)
+    @property
+    def _acquisition_rate_hz(self):
+        # use master device to determine theoretical instrument speed.
+        # master device is last device in trigger tree
+        master_device_name = self.instrument.master_device['name']
+        master_device_type = self.instrument.master_device['type']
+        # if camera, calculate acquisition rate based on frame time
+        if master_device_type == 'cameras':
+            acquisition_rate_hz = 1.0 / (self.instrument.cameras[master_device_name].frame_time_ms / 1000)
+        # if scanning stage, calculate acquisition rate based on speed and voxel size
+        elif master_device_type == 'scanning stages':
+            speed_mm_s = self.instrument.scanning_stages[master_device_name].speed_mm_s
+            voxel_size_um = tile['voxel_size_um']
+            acquisition_rate_hz = speed_mm_s / (voxel_size_um / 1000)
+        # if daq, calculate based on task interval time
+        elif master_device_type == 'daqs':
+            master_task = self.instrument.master_device['task']
+            acquisition_rate_hz = 1.0 / self.instrument.daqs[master_device_name].task_time_s[master_task]
+        # otherwise assertion, these are the only three supported master devices
+        else:
+            raise ValueError(f'master device type {master_device_type} is not supported.')
+        return acquisition_rate_hz
 
-                # laser
-                laser_power = tile['power_mw']
+    def _check_compression_ratio(self, camera_id: str):
+        self.log.info(f'estimating acquisition compression ratio')
+        # get the correct camera and writer
+        camera = self.instrument.cameras[camera_id]
+        writer = self.writers[camera_id]
+        if writer.compression != 'none':
+            # store initial trigger mode
+            initial_trigger = camera.trigger
+            # turn trigger off
+            new_trigger = initial_trigger
+            new_trigger['mode'] = 'off'
+            camera.trigger = new_trigger
+            
+            # prepare the writer
+            writer.row_count_px = camera.roi['height_px']
+            writer.column_count_px = camera.roi['width_px']
+            writer.frame_count_px = writer.chunk_count_px
+            writer.filename = 'compression_ratio_test'
 
-                # writer
-                stack_writer_workers = dict()
-                chunk_lock = dict()
-                img_buffer = dict()
+            chunk_size = writer.chunk_count_px
+            chunk_lock = threading.Lock()
+            img_buffer = SharedDoubleBuffer((chunk_size, camera.roi['height_px'], camera.roi['width_px']),
+                                            dtype=writer.data_type)
 
-                for camera_id in self.instrument.cameras:
-                    filename = f'{filename_prefix}_x_{tile_num_x:04}_y_{tile_num_y:04}_z_{tile_num_z:04}_ch_{channel}_cam_{camera_id}.ims'
-                    row_count = self.instrument.cameras[camera_id]['object'].roi['height_px']
-                    column_count = self.instrument.cameras[camera_id]['object'].roi['width_px']
-                    stack_writer_workers[camera_id] = self.instrument.cameras[camera_id]['writer']['object']
-                    stack_writer_workers[camera_id].row_count = row_count
-                    stack_writer_workers[camera_id].column_count = column_count
-                    stack_writer_workers[camera_id].frame_count = tile['frame_count']
-                    stack_writer_workers[camera_id].x_pos = x_position_mm
-                    stack_writer_workers[camera_id].y_pos = y_position_mm
-                    stack_writer_workers[camera_id].z_pos = z_position_mm
-                    stack_writer_workers[camera_id].x_voxel_size = tile['voxel_size_um']['x']
-                    stack_writer_workers[camera_id].y_voxel_size = tile['voxel_size_um']['x']
-                    stack_writer_workers[camera_id].z_voxel_size = tile['voxel_size_um']['x']
-                    stack_writer_workers[camera_id].path = local_drive
-                    stack_writer_workers[camera_id].filename = filename
-                    stack_writer_workers[camera_id].channel = channel
-                    stack_writer_workers[camera_id].color = tile['hex_color']
+            # set up and start writer and camera
+            writer.prepare()
+            camera.prepare()
+            writer.start()
+            camera.start()
 
-                    chunk_size = stack_writer_workers[camera_id].chunk_count
-                    chunk_lock[camera_id] = threading.Lock()
-                    img_buffer[camera_id] = SharedDoubleBuffer((chunk_size, row_count, column_count),
-                                                    dtype=stack_writer_workers[camera_id].data_type)
+            frame_index = 0
+            for frame_index in range(writer.chunk_count_px):
+                # grab camera frame
+                current_frame = camera.grab_frame()
+                # put into image buffer
+                img_buffer.write_buf[frame_index] = current_frame
+                frame_index += 1
 
-                    # set up writer and camera
-                    stack_writer_workers[camera_id].prepare()
-                    instrument.cameras[camera_id]['object'].prepare()
-                    stack_writer_workers[camera_id].start()
-                    self.instrument.cameras[camera_id]['object'].start(tile['frame_count'])
+            while not writer.done_reading.is_set():
+                time.sleep(0.001)
 
-                frame_index = 0
-                chunk_count = math.ceil(tile['frame_count'] / chunk_size)
-                remainder = tile['frame_count'] % chunk_size
-                last_chunk_size = chunk_size if not remainder else remainder
-                last_frame_index = tile['frame_count'] - 1
+            with chunk_lock:
+                img_buffer.toggle_buffers()
+                if writer.path is not None:
+                    writer.shm_name = \
+                        img_buffer.read_buf_mem_name
+                    writer.done_reading.clear()            
 
-                # Images arrive serialized in repeating channel order.
-                for stack_index in range(tile['frame_count']):
-                    chunk_index = stack_index % chunk_size
-                    # Start a batch of pulses to generate more frames and movements.
-                    if chunk_index == 0:
-                        chunks_filled = math.floor(stack_index / chunk_size)
-                        remaining_chunks = chunk_count - chunks_filled
-                    # Grab camera frame
-                    for camera_id in instrument.cameras:
-                        current_frame = self.instrument.cameras[camera_id]['object'].grab_frame()
-                        self.instrument.cameras[camera_id]['object'].get_camera_acquisition_state()
-                        img_buffer[camera_id].write_buf[chunk_index] = current_frame
+            # close writer and camera
+            writer.wait_to_finish()
+            camera.stop()
 
-                    frame_index += 1
-                    # Dispatch either a full chunk of frames or the last chunk,
-                    # which may not be a multiple of the chunk size.
-                    if chunk_index == chunk_size - 1 or stack_index == last_frame_index:
-                        while not all([w.done_reading.is_set()
-                            for _, w in stack_writer_workers.items()]):
-                       #  while not instrument.cameras[camera_id]['writer']['object'].done_reading.is_set():
-                            time.sleep(0.001)
-                        # Dispatch chunk to each StackWriter compression process.
-                        # Toggle double buffer to continue writing images.
-                        # To read the new data, the StackWriter needs the name of
-                        # the current read memory location and a trigger to start.
-                        # Lock out the buffer before toggling it such that we
-                        # don't provide an image from a place that hasn't been
-                        # written yet.
-                        for camera_id in instrument.cameras:
-                            with chunk_lock[camera_id]:
-                                img_buffer[camera_id].toggle_buffers()
-                                if stack_writer_workers[camera_id].path is not None:
-                                    stack_writer_workers[camera_id].shm_name = \
-                                        img_buffer[camera_id].read_buf_mem_name
-                                    stack_writer_workers[camera_id].done_reading.clear()
+            # reset the trigger
+            camera.trigger = initial_trigger
 
-                for camera_id in instrument.cameras:
-                    stack_writer_workers[camera_id].wait_to_finish()
-                    self.instrument.cameras[camera_id]['object'].stop()
+            # clean up the image buffer
+            img_buffer.close_and_unlink()
+            del img_buffer
 
-        def check_disk_space(self):
-            """Checks ext disk space before scan to see if disk has enough space scan
-            """
-            local_drive = self.config.cfg['acquisition']['storage']['local_drive']
-            external_drive = self.config.cfg['acquisition']['storage']['external_drive']
+            # check the compressed file size
+            filepath = str((writer.path/Path(f"{writer.filename}")).absolute())
+            compressed_file_size_mb = os.stat(filepath).st_size / (1024**2)
+            # calculate the raw file size
+            frame_size_mb = self._frame_size_mb(camera_id)
+            # get pyramid factor
+            pyramid_factor = self._pyramid_factor(levels=3)
+            raw_file_size_mb = frame_size_mb * writer.frame_count_px * pyramid_factor
+            # calculate the compression ratio
+            compression_ratio = raw_file_size_mb / compressed_file_size_mb
+            # delete the files
+            writer.delete_files()
+        else:
+            compression_ratio = 1.0
+        self.log.info(f'compression ratio for camera: {camera_id} ~ {compression_ratio:.1f}')
+        return compression_ratio
 
+    def check_local_acquisition_disk_space(self):
+        """Checks local and ext disk space before scan to see if disk has enough space scan
+        """
+        self.log.info(f"checking total local storage directory space")
+        drives = dict()
+        for camera_id, camera in self.instrument.cameras.items():
             data_size_gb = 0
-            for camera in self.instrument.cameras:
-                for tile in self.config.cfg['acquisition']['tiles']:
-                    row_count = camera['object'].roi['height_px']
-                    column_count = camera['object'].roi['width_px']
-                    data_type = camera['writer']['object']['data_type']
-                    frame_count = tile['frame_count']
-                    data_size_gb += row_count*column_count*frames*numpy.dtype(data_type).itemsize/1e9
+            # if windows
+            if platform.system() == 'Windows':
+                local_drive = os.path.splitdrive(self.writers[camera_id].path)[0]
+            # if unix
+            else:
+                abs_path = os.path.abspath(self.writers[camera_id].path)
+                local_drive = '/'
+            for tile in self.config['acquisition']['tiles']:
+                frame_size_mb = self._frame_size_mb(camera_id)
+                frame_count_px = tile['frame_count_px']
+                data_size_gb += frame_count_px*frame_size_mb / 1024
+            drives.setdefault(local_drive, []).append(data_size_gb)
 
-            self.log.info(f'dataset size = {data_size_gb} [GB]')
+        for drive in drives:
+            required_size_gb = sum(drives[drive])
+            self.log.info(f'required disk space = {required_size_gb:.1f} [GB] on drive {drive}')
+            free_size_gb = shutil.disk_usage(drive).free / 1024**3
+            if data_size_gb >= free_size_gb:
+                self.log.error(f"only {free_size_gb:.1f} available on drive: {drive}")
+                raise ValueError(f"only {free_size_gb:.1f} available on drive: {drive}")
+            else:
+                self.log.info(f'available disk space = {free_size_gb:.1f} [GB] on drive {drive}')
 
-            if est_scan_filesize >= shutil.disk_usage(external_drive).free:
-                self.log.error(f"not enough space in local directory: {local_drive}")
-                raise
+    def check_external_acquisition_disk_space(self):
+        """Checks local and ext disk space before scan to see if disk has enough space scan
+        """
+        self.log.info(f"checking total external storage directory space")
+        if self.transfers:
+            drives = dict()
+            for camera_id, camera in self.instrument.cameras.items():
+                data_size_gb = 0
+                # if windows
+                if platform.system() == 'Windows':
+                    external_drive = os.path.splitdrive(self.transfers[camera_id].external_directory)[0]
+                # if unix
+                else:
+                    abs_path = os.path.abspath(self.transfers[camera_id].external_directory)
+                    # TODO FIX THIS
+                    external_drive = '/'
+                for tile in self.config['acquisition']['tiles']:
+                    frame_size_mb = self._frame_size_mb(camera_id)
+                    frame_count_px = tile['frame_count_px']
+                    data_size_gb += frame_count_px*frame_size_mb / 1024
+                drives.setdefault(external_drive, []).append(data_size_gb)
+            for drive in drives:
+                required_size_gb = sum(drives[drive])
+                self.log.info(f'required disk space = {required_size_gb:.1f} [GB] on drive {drive}')
+                free_size_gb = shutil.disk_usage(drive).free/ 1024**3
+                if data_size_gb >= free_size_gb:
+                    self.log.error(f"only {free_size_gb:.1f} available on drive: {drive}")
+                    raise ValueError(f"only {free_size_gb:.1f} available on drive: {drive}")
+                else:
+                    self.log.info(f'available disk space = {free_size_gb:.1f} [GB] on drive {drive}')
+        else:
+            raise ValueError(f'no transfers configured. check yaml files.')
 
-            if est_scan_filesize >= shutil.disk_usage(local_drive).free:
-                self.log.error(f"not enough space in external directory: {external_drive}")
-                raise
+    def check_local_tile_disk_space(self, tile: dict):
+        """Checks local and ext disk space before scan to see if disk has enough space scan
+        """
+        self.log.info(f"checking local storage directory space for next tile")
+        drives = dict()
+        for camera_id, camera in self.instrument.cameras.items():
+            data_size_gb = 0
+            # if windows
+            if platform.system() == 'Windows':
+                local_drive = os.path.splitdrive(self.writers[camera_id].path)[0]
+            # if unix
+            else:
+                abs_path = os.path.abspath(self.writers[camera_id].path)
+                local_drive = '/'
 
-        def check_read_write_speeds(self, size='16Gb', bs='1M', direct=1, numjobs=1, ioengine= 'windowsaio',
-                                    iodepth=1, runtime=0):
-            """Check local read/write speeds to make sure it can keep up with acquisition
+            frame_size_mb = self._frame_size_mb(camera_id)
+            frame_count_px = tile['frame_count_px']
+            data_size_gb += frame_count_px*frame_size_mb / 1024
 
-            :param size: Size of test file
-            :param bs: Block size in bytes used for I/O units
-            :param direct: Specifying buffered (0) or unbuffered (1) operation
-            :param numjobs: Number of clones of this job. Each clone of job is spawned as an independent thread or process
-            :param ioengine: Defines how the job issues I/O to the file
-            :param iodepth: Number of I/O units to keep in flight against the file.
-            :param runtime: Limit runtime. The test will run until it completes the configured I/O workload or until it has
-                            run for this specified amount of time, whichever occurs first
-            """
+            drives.setdefault(local_drive, []).append(data_size_gb)
 
-            local_drive = self.config.cfg['acquisition']['storage']['local_drive']
-            external_drive = self.config.cfg['acquisition']['storage']['external_drive']
+        for drive in drives:
+            required_size_gb = sum(drives[drive])
+            self.log.info(f'required disk space = {required_size_gb:.1f} [GB] on drive {drive}')
+            free_size_gb = shutil.disk_usage(drive).free/ 1024**3
+            if data_size_gb >= free_size_gb:
+                self.log.error(f"only {free_size_gb:.1f} available on drive: {drive}")
+                raise ValueError(f"only {free_size_gb:.1f} available on drive: {drive}")
+            else:
+                self.log.info(f'available disk space = {free_size_gb:.1f} [GB] on drive {drive}')
 
-            for drive in [local_drive, external_drive]:
-                test_filename = fr"{drive}\test.txt"
-                f = open(test_filename, 'a')  # Create empty file to check reading/writing speed
-                f.close()
-                try:
-                    speed_MB_s = {}
-                    for check in ['read', 'write']:
-                        output = subprocess.check_output(
-                            fr'fio --name=test --filename={test_filename} --size={size} --rw={check} --bs={bs} '
-                            fr'--direct={direct} --numjobs={numjobs} --ioengine={ioengine} --iodepth={iodepth} '
-                            fr'--runtime={runtime} --startdelay=0 --thread --group_reporting', shell=True)
-                        out = str(output)
-                        # Converting MiB to MB = (10**6/2**20)
-                        speed_MB_s[check] = round(
-                            float(out[out.find('BW=') + len('BW='):out.find('MiB/s')]) / (10 ** 6 / 2 ** 20))
+    def check_external_tile_disk_space(self, tile: dict):
+        """Checks local and ext disk space before scan to see if disk has enough space scan
+        """
+        self.log.info(f"checking external storage directory space for next tile")
+        if self.transfers:
+            drives = dict()
+            for camera_id, camera in self.instrument.cameras.items():
+                data_size_gb = 0
+                # if windows
+                if platform.system() == 'Windows':
+                    external_drive = os.path.splitdrive(self.transfers[camera_id].external_directory)[0]
+                # if unix
+                else:
+                    abs_path = os.path.abspath(self.transfers[camera_id].external_directory)
+                    # TODO FIX THIS
+                    external_drive = '/'
+                frame_size_mb = self._frame_size_mb(camera_id)
+                frame_count_px = tile['frame_count_px']
+                data_size_gb += frame_count_px*frame_size_mb / 1024
+                drives.setdefault(external_drive, []).append(data_size_gb)
+            for drive in drives:
+                required_size_gb = sum(drives[drive])
+                self.log.info(f'required disk space = {required_size_gb:.1f} [GB] on drive {drive}')
+                free_size_gb = shutil.disk_usage(drive).free/ 1024**3
+                if data_size_gb >= free_size_gb:
+                    self.log.error(f"only {free_size_gb:.1f} available on drive: {drive}")
+                    raise ValueError(f"only {free_size_gb:.1f} available on drive: {drive}")
+                else:
+                    self.log.info(f'available disk space = {free_size_gb:.1f} [GB] on drive {drive}')
+        else:
+            raise ValueError(f'no transfers configured. check yaml files.')
 
-                    # converting B/s to MB/s
-                    acq_speed_MB_s = (self.cfg.bytes_per_image * (1 / 1000000)) * (1 / self.cfg.get_period_time())
+    def check_write_speed(self, size='16Gb', bs='1M', direct=1, numjobs=1,
+                          iodepth=1, runtime=0):
+        """Check local read/write speeds to make sure it can keep up with acquisition
 
-                    if speed_MB_s['write'] <= acq_speed_MB_s:
-                        write_too_slow = True
-                        self.log.warning(f'{drive} write speed too slow')
-                        raise
+        :param size: Size of test file
+        :param bs: Block size in bytes used for I/O units
+        :param direct: Specifying buffered (0) or unbuffered (1) operation
+        :param numjobs: Number of clones of this job. Each clone of job is spawned as an independent thread or process
+        :param ioengine: Defines how the job issues I/O to the file
+        :param iodepth: Number of I/O units to keep in flight against the file.
+        :param runtime: Limit runtime. The test will run until it completes the configured I/O workload or until it has
+                        run for this specified amount of time, whichever occurs first
+        """
+        self.log.info(f"checking write speed to local and external directories")
+        # windows ioengine
+        if platform.system() == 'Windows':
+            ioengine = 'windowsaio'
+        # unix ioengine
+        else:
+            ioengine = 'posixaio'
 
-                except subprocess.CalledProcessError:
-                    self.log.warning('fios not installed on computer. Cannot verify read/write speed')
-                finally:
-                    # Delete test file
-                    os.remove(test_filename)
+        drives = dict()
+        camera_speed_mb_s = dict()
 
-        def check_system_memory(self):
-            """Make sure this machine can image under the specified configuration.
+        # loop over cameras and see where they are acquiring data
+        for camera_id, camera in self.instrument.cameras.items():
+            # check the compression ratio for this camera
+            compression_ratio = self._check_compression_ratio(camera_id)
+            # grab the frame size and acquisition rate
+            frame_size_mb = self._frame_size_mb(camera_id)
+            acquisition_rate_hz = self._acquisition_rate_hz
+            local_directory = self.writers[camera_id].path
+            # strip drive letters from paths so that we can combine
+            # cameras acquiring to the same drives
+            if platform.system() == 'Windows':
+                local_drive_letter = os.path.splitdrive(local_directory)[0]
+            # if unix
+            else:
+                # TODO FIX THIS -> what is syntax for unix drives?
+                local_abs_path = os.path.abspath(local_directory)
+                local_drive_letter = '/'
+            # add into drives dictionary append to list if same drive letter
+            drives.setdefault(local_drive_letter, []).append(local_directory)
+            camera_speed_mb_s.setdefault(local_drive_letter, []).append(acquisition_rate_hz * frame_size_mb / compression_ratio)
+            if self.transfers:
+                external_directory = self.transfers[camera_id].external_directory
+                # strip drive letters from paths so that we can combine
+                # cameras acquiring to the same drives
+                if platform.system() == 'Windows':
+                    external_drive_letter = os.path.splitdrive(local_directory)[0]
+                # if unix
+                else:
+                    # TODO FIX THIS -> what is syntax for unix drives?
+                    external_abs_path = os.path.abspath(local_directory)
+                    external_drive_letter = '/'
+                # add into drives dictionary append to list if same drive letter
+                drives.setdefault(external_drive_letter, []).append(external_directory)
+                camera_speed_mb_s.setdefault(external_drive_letter, []).append(acquisition_rate_hz * frame_size_mb)              
 
-            :param channel_count: the number of channels we want to image with.
-            :param mem_chunk: the number of images to hold in one chunk for
-                compression
-            :raises MemoryError:
-            """
-            # Calculate double buffer size for all channels.
-            memory_gb = 0
-            for camera in self.instrument.cameras:
-                row_count = camera['object'].roi['height_px']
-                column_count = camera['object'].roi['width_px']
-                data_type = camera['writer']['object']['data_type']
-                chunk_size = camera['writer']['object'].CHUNK_SIZE
-                # factor of 2 for concurrent chunks being written/read
-                memory_gb += 2*row_count*column_count*chunk_size*numpy.dtype(data_type).itemsize/1e9
+        for drive in drives:
+            # if more than one stream on this drive, just test the first directory location
+            local_directory = drives[drive][0]
+            test_filename = Path(f'{local_directory}/iotest')
+            f = open(test_filename, 'a')  # Create empty file to check reading/writing speed
+            f.close()
+            try:
+                output = subprocess.check_output(
+                    fr'fio --name=test --filename={test_filename} --size={size} --rw=write --bs={bs} '
+                    fr'--direct={direct} --numjobs={numjobs} --ioengine={ioengine} --iodepth={iodepth} '
+                    fr'--runtime={runtime} --startdelay=0 --thread --group_reporting', shell=True)
+                out = str(output)
+                # Converting MiB to MB = (10**6/2**20)
+                write_speed_mb_s = round(
+                    float(out[out.find('BW=') + len('BW='):out.find('MiB/s')]) / (10 ** 6 / 2 ** 20))
 
-            free_memory_gb = virtual_memory()[1] / 1e9
-            if free_memory_gb < memory_gb:
-                raise MemoryError("system does not have enough memory to run."
-                                  f"{memory_gb:.1f}[GB] are required but "
-                                  f"{free_memory_gb:.1f}[GB] are available.")
+                total_speed_mb_s = sum(camera_speed_mb_s[drive])
+                # check if drive write speed exceeds the sum of all cameras streaming to this drive
+                if write_speed_mb_s < total_speed_mb_s:
+                    self.log.warning(f'write speed too slow on drive {drive}')
+                    raise ValueError(f'write speed too slow on drive {drive}')
+
+                self.log.info(f'available write speed = {write_speed_mb_s:.1f} [MB/sec] to directory {drive}')
+                self.log.info(f'required write speed = {total_speed_mb_s:.1f} [MB/sec] to directory {drive}')
+
+            except subprocess.CalledProcessError:
+                self.log.warning('fios not installed on computer. Cannot verify read/write speed')
+            finally:
+                # Delete test file
+                os.remove(test_filename)
+
+    def check_system_memory(self):
+        """Make sure this machine can image under the specified configuration.
+
+        :param channel_count: the number of channels we want to image with.
+        :param mem_chunk: the number of images to hold in one chunk for
+            compression
+        :raises MemoryError:
+        """
+        self.log.info(f"checking available system memory")
+        # Calculate double buffer size for all channels.
+        memory_gb = 0
+        for camera_id, camera in self.instrument.cameras.items():
+            row_count_px = camera.roi['height_px']
+            column_count_px = camera.roi['width_px']
+            # grab the correct writer, name of writer must match name of camera
+            try:
+                data_type = self.writers[camera_id].data_type
+                chunk_count_px = self.writers[camera_id].chunk_count_px
+            except:
+                raise ValueError(f'no writer found for camera {camera_id}. check yaml files.')
+            # factor of 2 for concurrent chunks being written/read
+            frame_size_mb = self._frame_size_mb(camera_id)
+            memory_gb += 2 * chunk_count_px * frame_size_mb / 1024
+
+        free_memory_gb = virtual_memory()[1] / 1024**3
+
+        self.log.info(f'required RAM = {memory_gb:.1f} [GB]')
+        self.log.info(f'available RAM = {free_memory_gb:.1f} [GB]')
+
+        if free_memory_gb < memory_gb:
+            raise MemoryError('system does not have enough memory to run')

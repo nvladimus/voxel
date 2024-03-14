@@ -9,12 +9,15 @@ from pathlib import Path
 
 class FileTransfer():
 
-    def __init__(self, external_directory):
+    def __init__(self, external_directory: str):
         super().__init__()
+        # check path for forward slashes
+        if '\\' in external_directory or '/' not in external_directory:
+            assert ValueError('external_directory string should only contain / not \\')
+        self._external_directory = Path(external_directory)
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self._filename = None
         self._local_directory = None
-        self._external_directory = external_directory
         self._protocol = 'robocopy'
         self.progress = None
 
@@ -32,9 +35,11 @@ class FileTransfer():
         return self._local_directory
 
     @local_directory.setter
-    def local_directory(self, local_directory: Path or str):
-        self.log.info(f'setting local path to: {local_directory}')
+    def local_directory(self, local_directory: str):
+        if '\\' in local_directory or '/' not in local_directory:
+            assert ValueError('external_directory string should only contain / not \\')
         self._local_directory = Path(local_directory)
+        self.log.info(f'setting local path to: {local_directory}')
 
     @property
     def external_directory(self):
@@ -46,18 +51,20 @@ class FileTransfer():
         return self.progress
 
     def start(self):
-        if not os.path.isfile(self._local_directory.absolute() / self._filename):
-            raise FileNotFoundError(f"{self._local_directory} does not exist.")
+        # if not os.path.isfile(self._local_directory.absolute() / self._filename):
+        #     raise FileNotFoundError(f"{self._local_directory} does not exist.")
         # xcopy requires an asterisk to indicate source and destination are
         # files, not directories.
         # TODO: identify if xcopy src/dest are files or directories, and
         #   annotate them as such.
         # flags = f'/j /mov /log:{self.local_directory.absolute()}\\log.txt /njh /njs'
-        file_extension = Path(self._filename).suffix
-        self._log_name = self._filename.replace(file_extension, 'txt')
+        self._log_name = f'{self._filename}.txt'
+        self._exclude_log = f'/xf {self._log_name}'
+        self._include = f'/if {self._filename}*'
         flags = f'/j /mov /njh /njs /log:{self._local_directory.absolute()}\\{self._log_name}'
-        cmd_with_args = f'{self.protocol} {self._local_directory.absolute()} {self._external_directory.absolute()} \
-            {self._filename} {flags}'
+        cmd_with_args = f'{self._protocol} {self._local_directory.absolute()} {self._external_directory.absolute()} \
+            {self._include} {self._exclude_log} {flags}'
+        print(cmd_with_args)
         self.log.info(f"transferring from {self._local_directory} to {self._external_directory}")
         # self.cmd = subprocess.run(cmd_with_args, check=True)
         self.thread = threading.Thread(target=self._run, args=(cmd_with_args,))
@@ -76,7 +83,7 @@ class FileTransfer():
         self.progress = 0
         while self.progress < 100:
             # open log file
-            f = open(f'{self._local_directory.absolute()}\\{self.log_name}', 'r')
+            f = open(f'{self._local_directory.absolute()}\\{self._log_name}', 'r')
             # read the last line
             line = f.readlines()[-1]
             # close the log file
@@ -88,7 +95,7 @@ class FileTransfer():
             # line did not contain %
             except:
                 self.progress = 0
-            print(self.signal_progress_percent)
+            self.log.info(f'file transfer is {self.progress} % complete.')
             # pause for 1 sec
             time.sleep(1)
         # cleanup the subprocess

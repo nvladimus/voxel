@@ -26,19 +26,19 @@ class BaseDAQ:
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    def start_all(self):
+    def start(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    def stop_all(self):
+    def stop(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    def close_all(self):
+    def close(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    def restart_all(self):
+    def restart(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 

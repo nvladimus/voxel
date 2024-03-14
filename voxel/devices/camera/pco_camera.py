@@ -46,6 +46,12 @@ class Camera(BaseCamera):
         # check valid readout modes
         self._query_readout_modes()
 
+    def reset(self):
+        if self.pco:
+            self.pco.close()
+            del self.pco
+        self.pco = pcoSingleton.Camera(id=self.id)
+
     @property
     def exposure_time_ms(self):
         # convert from s units to ms

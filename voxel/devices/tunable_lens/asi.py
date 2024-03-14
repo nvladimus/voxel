@@ -63,3 +63,6 @@ class TunableLens(BaseTunableLens):
                        f"{self.sample_to_tiger_axis_map}.")
         for setting in axis_settings:
             self.log.info(f'{self.hardware_axis} axis, {setting}, {axis_settings[setting]}')
+
+    def close(self):
+        self.tigerbox.ser.close()

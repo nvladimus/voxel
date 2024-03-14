@@ -16,7 +16,7 @@ from time import sleep, perf_counter
 from math import ceil
 
 CHUNK_COUNT_PX = 64
-DIVISIBLE_FRAME_COUNT_PX = 128
+DIVISIBLE_FRAME_COUNT_PX = 64
 
 COMPRESSION_TYPES = {
     "lz4shuffle":  pw.eCompressionAlgorithmShuffleLZ4,
@@ -40,14 +40,16 @@ class ImarisProgressChecker(pw.CallbackClass):
 
 class Writer(BaseWriter):
 
-    def __init__(self, path):
+    def __init__(self, path: str):
  
         super().__init__()
-
+        # check path for forward slashes
+        if '\\' in path or '/' not in path:
+            assert ValueError('path string should only contain / not \\')
+        self._path = path
         self._color = '#ffffff' # initialize as white
         self._channel = None
         self._filename = None
-        self._path = path
         self._data_type = DATA_TYPES['uint16']
         self._compression = COMPRESSION_TYPES["none"]
         self._row_count_px = None
@@ -190,7 +192,7 @@ class Writer(BaseWriter):
     @property
     def path(self):
         return self._path
-
+        
     @property
     def filename(self):
         return self._filename
@@ -312,7 +314,7 @@ class Writer(BaseWriter):
         log_handler = logging.StreamHandler(sys.stdout)
         log_handler.setFormatter(log_formatter)
         logger.addHandler(log_handler)
-        filepath = str((self._path / Path(f"{self._filename}")).absolute())
+        filepath = str((Path(self._path) / self._filename).absolute())
         converter = \
             pw.ImageConverter(DATA_TYPES[self._data_type], self.image_size, self.sample_size,
                               self.dimension_sequence, self.block_size, filepath, 
@@ -357,6 +359,8 @@ class Writer(BaseWriter):
     def wait_to_finish(self):
         self.log.info(f"{self._filename}: waiting to finish.")
         self.p.join()
+        # log the finished writer %
+        self.signal_progress_percent
 
     def delete_files(self):
         filepath = str((self._path / Path(f"{self._filename}")).absolute())

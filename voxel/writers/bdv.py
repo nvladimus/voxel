@@ -35,14 +35,16 @@ DATA_TYPES = {
 
 class Writer(BaseWriter):
 
-    def __init__(self, path):
+    def __init__(self, path: str):
  
         super().__init__()
-
+        # check path for forward slashes
+        if '\\' in path or '/' not in path:
+            assert ValueError('path string should only contain / not \\')
+        self._path = path
         self._color = '#ffffff' # initialize as white
         self._channel = None
         self._filename = None
-        self._path = path
         self._data_type = DATA_TYPES['uint16']
         self._compression = COMPRESSION_TYPES["none"]
         self.compression_opts = None
@@ -57,7 +59,6 @@ class Writer(BaseWriter):
         self._z_position_mm = 0
         self._theta_deg = 0
         self._channel = None
-        self.progress = 0
         
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         # Opinioated decision on chunking dimension order
@@ -80,7 +81,8 @@ class Writer(BaseWriter):
 
     @property
     def signal_progress_percent(self):
-        state = {'Progress [%]': self.progress*100}
+        state = {'Progress [%]': self.progress.value*100}
+        self.log.info(f'Progress [%]: {self.progress.value*100}')
         return state
 
     @property
@@ -256,9 +258,10 @@ class Writer(BaseWriter):
             self._shm_name[i] = c
         self._shm_name[len(name)] = '\x00'  # Null terminate the string.
         self.log.info(f'setting shared memory to: {name}')
-
+        
     def prepare(self):
-        self.p = Process(target=self._run)
+        self.progress = multiprocessing.Value('d', 0.0)
+        self.p = Process(target=self._run, args=(self.progress,))
         # Specs for reconstructing the shared memory object.
         self._shm_name = Array(c_wchar, 32)  # hidden and exposed via property.
         # This is almost always going to be: (chunk_size, rows, columns).
@@ -335,7 +338,7 @@ class Writer(BaseWriter):
         self.log.info(f"{self._filename}: starting writer.")
         self.p.start()
 
-    def _run(self):
+    def _run(self, shared_progress):
         """Loop to wait for data from a specified location and write it to disk
         as an Imaris file. Close up the file afterwards.
 
@@ -365,8 +368,7 @@ class Writer(BaseWriter):
                     (4, 256, 256),
                     (4, 256, 256)
                   )
-
-        filepath = str((self._path/Path(f"{self._filename}")).absolute())
+        filepath = str((Path(self._path) / self._filename).absolute())
         # re-initialize bdv writer for tile/channel list
         # required to dump all datasets in a single bdv file
         bdv_writer = npy2bdv.BdvWriter(
@@ -434,18 +436,18 @@ class Writer(BaseWriter):
             shm.close()
             self.done_reading.set()
             # NEED TO USE SHARED VALUE HERE
-            self.progress = (chunk_num+1)/chunk_total
+            shared_progress.value = (chunk_num+1)/chunk_total
 
         # Wait for file writing to finish.
-        if self.progress < 1.0:
+        if shared_progress.value < 1.0:
             logger.warning(f"{self._filename}: waiting for data writing to complete for "
                   f"{self._filename}. "
-                  f"current progress is {100*self.progress:.1f}%.")
-        while self.progress < 1.0:
+                  f"current progress is {100*shared_progress.value:.1f}%.")
+        while shared_progress.value < 1.0:
             sleep(0.5)
             logger.warning(f"{self._filename}: waiting for data writing to complete for "
                   f"{self._filename}. "
-                  f"current progress is {100*self.progress:.1f}%.")
+                  f"current progress is {100*shared_progress.value:.1f}%.")
 
         ### write xml file
         bdv_writer.write_xml()
@@ -472,6 +474,8 @@ class Writer(BaseWriter):
     def wait_to_finish(self):
         self.log.info(f"{self._filename}: waiting to finish.")
         self.p.join()
+        # log the finished writer %
+        self.signal_progress_percent
 
     def delete_files(self):
         filepath = str((self._path / Path(f"{self._filename}")).absolute())

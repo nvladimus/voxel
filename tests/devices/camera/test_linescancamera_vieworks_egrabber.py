@@ -2,7 +2,7 @@ from pathlib import Path
 from ruamel.yaml import YAML
 
 this_dir = Path(__file__).parent.resolve() # directory of this test file.
-config_path = this_dir / Path("test_camera_vieworks_egrabber.yaml")
+config_path = this_dir / Path("test_linescancamera_vieworks_egrabber.yaml")
 config = YAML().load(Path(config_path))
 
 # ugly constructor and init for config values...
@@ -47,6 +47,3 @@ for i in range(frames):
 	print(cameras[-1].signal_acquisition_state())
 
 cameras[-1].stop()
-
-cameras[-1].reset()
-print(cameras[-1].pixel_type)

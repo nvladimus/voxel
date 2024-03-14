@@ -46,3 +46,6 @@ class TunableLens(BaseTunableLens):
     def temperature(self):
         """Get the temperature in deg C."""
         return self.tunable_lens.TemperatureManager.GetDeviceTemperature()[self.channel]
+
+    def close(self):
+        self.icc4c.close()

@@ -444,22 +444,22 @@ class DAQ(BaseDAQ):
         self.do_task.out_stream.output_buf_size = buf_len
         self.do_task.control(TaskMode.TASK_COMMIT)
 
-    def start_all(self):
+    def start(self):
 
         for task in self.tasks:
             task.start()
 
-    def stop_all(self):
+    def stop(self):
 
         for task in self.tasks:
             task.stop()
 
-    def close_all(self):
+    def close(self):
         
         for task in self.tasks:
             task.close()
 
-    def restart_all(self):
+    def restart(self):
 
         for task in self.tasks:
             task.stop()

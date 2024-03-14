@@ -10,17 +10,20 @@ from typing import List, Any, Iterable
 
 class FileTransfer():
 
-    def __init__(self, external_directory):
+    def __init__(self, external_directory: str):
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        # check path for forward slashes
+        if '\\' in external_directory or '/' not in external_directory:
+            assert ValueError('external_directory string should only contain / not \\')
+        self._external_directory = Path(external_directory)
         self._filename = None
         self._local_directory = None
-        self._external_directory = external_directory
         self._protocol = 'rsync'
         self.progress = 0
         self._output_file = None
         # print progress, delete files after transfer
-        self._flags = ['--progress', '--remove-source-files']
+        self._flags = ['--progress', '--remove-source-files', '--recursive']
 
     @property
     def filename(self):
@@ -36,9 +39,12 @@ class FileTransfer():
         return self._local_directory
 
     @local_directory.setter
-    def local_directory(self, local_directory: Path or str):
-        self.log.info(f'setting local path to: {local_directory}')
+    def local_directory(self, local_directory: str):
+        if '\\' in local_directory or '/' not in local_directory:
+            assert ValueError('external_directory string should only contain / not \\')
+        # add a forward slash at end so directory name itself is not copied, contents only
         self._local_directory = Path(local_directory)
+        self.log.info(f'setting local path to: {local_directory}')
 
     @property
     def external_directory(self):
@@ -50,19 +56,30 @@ class FileTransfer():
         return self.progress
 
     def start(self):
-        print(self._local_directory / self._filename)
-        if not os.path.isfile(self._local_directory / self._filename):
-            raise FileNotFoundError(f"{self._local_directory / self._filename} does not exist.")
         file_extension = Path(self._filename).suffix
         self._log_filename = self._filename.replace(file_extension, '.txt')
+        # do not move and transfer log file
+        # order of arguments matters here... --exclude='*' first excludes all files
+        # then we include only files from above
+        self._exclude = ["--exclude", '*']
+        # only include files including the filename
+        # **/ sets to include anything in the local working directory
+        # * at end regex includes anything with the filename prefix
+        # example: --include='**/tile_X_0000_Y_0000_Z_0000*'
+        self._include = ["--include", f"**/{self._filename}*"]
+        # finally we exclude the log file from the included files
+        self._exclude_log = ["--exclude", self._log_filename]
         # open log file for writing to pipe into stdout
         self._log_file = open(f'{self._local_directory / self._log_filename}', 'w')
         self.log.info(f"transferring from {self._local_directory} to {self._external_directory}")
-        # self.cmd = subprocess.run(cmd_with_args, check=True)
+        # add a forward slash at end so local directory itself is not copied, contents only
         cmd_with_args = self._flatten([self._protocol,
-                                       self._local_directory / self._filename,
-                                       self._external_directory,
-                                       self._flags])
+                                       self._flags,
+                                       self._exclude_log,
+                                       self._include,
+                                       self._exclude,
+                                       f'{self._local_directory}/',
+                                       self._external_directory])
         self.thread = threading.Thread(target=self._run,
                                        args=(list(cmd_with_args),))
         self.thread.start()
@@ -95,6 +112,7 @@ class FileTransfer():
                     value = line[index-4:index]
                     # strip and convert to float
                     self.progress = float(value.rstrip())
+                    self.log.info(f'file transfer is {self.progress} % complete.')
                 # we must be at the last line of the file
                 else:
                     # go back to beginning of file

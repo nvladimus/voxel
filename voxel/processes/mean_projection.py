@@ -8,7 +8,7 @@ from multiprocessing import Process, Value, Event, Array
 from multiprocessing.shared_memory import SharedMemory
 from pathlib import Path
 
-class MaxProjection:
+class MeanProjection(Process):
 
     def __init__(self, path: str):
 
@@ -87,14 +87,6 @@ class MaxProjection:
             if filename.endswith(".tiff") or filename.endswith(".tif") else f"{filename}"
         self.log.info(f'setting filename to: {filename}')
 
-    @property
-    def buffer_image(self):
-        return self._buffer_image
-
-    @buffer_image.setter
-    def buffer_image(self, buffer_image: np.ndarray):
-        self._buffer_image = buffer_image
-
     def prepare(self, shm_name):
         self.p = Process(target=self._run)
         self.shm_shape = (self._row_count_px, self._column_count_px)
@@ -119,28 +111,28 @@ class MaxProjection:
 
         while frame_index < self._frame_count_px:
             chunk_index = frame_index % self._projection_count_px
-            # max project latest image
+            # minumum project latest image
             if self.new_image.is_set():
                 self.latest_img = np.ndarray(self.shm_shape, self._data_type, buffer=self.shm.buf)
-                self.mip_xy = np.maximum(self.mip_xy, self.latest_img).astype(np.uint16)
-                self.mip_yz[:, frame_index] = np.max(self.latest_img, axis=0)
-                self.mip_xz[frame_index, :] = np.max(self.latest_img, axis=1)
+                self.mip_xy = np.minimum(self.mip_xy, self.latest_img).astype(np.uint16)
+                self.mip_yz[:, frame_index] = np.min(self.latest_img, axis=0)
+                self.mip_xz[frame_index, :] = np.min(self.latest_img, axis=1)
                 # if this projection thickness is complete or end of stack
                 if chunk_index == self._projection_count_px - 1 or frame_index == self._frame_count_px - 1:
                     start_index = int(frame_index - self._projection_count_px + 1)
                     end_index = int(frame_index + 1)
-                    tifffile.imwrite(self.path / Path(f"{self.filename}_max_projection_xy_z_{start_index:06}_{end_index:06}.tiff"), self.mip_xy)
+                    tifffile.imwrite(self.path / Path(f"{self.filename}_minumum_projection_xy_z_{start_index:06}_{end_index:06}.tiff"), self.mip_xy)
                     # reset the xy mip
                     self.mip_xy = np.zeros((self._row_count_px, self._column_count_px), dtype=self._data_type)
                 frame_index += 1
                 self.new_image.clear()
 
-        tifffile.imwrite(self.path / Path(f"{self.filename}_max_projection_yz.tiff"), self.mip_yz)
-        tifffile.imwrite(self.path / Path(f"{self.filename}_max_projection_xz.tiff"), self.mip_xz)
+        tifffile.imwrite(self.path / Path(f"{self.filename}_minumum_projection_yz.tiff"), self.mip_yz)
+        tifffile.imwrite(self.path / Path(f"{self.filename}_minumum_projection_xz.tiff"), self.mip_xz)
 
     def wait_to_finish(self):
-        self.log.info(f"max projection {self.filename}: waiting to finish.")
+        self.log.info(f"minumum projection {self.filename}: waiting to finish.")
         self.p.join()
-        self.log.info(f'saving {self.path}/max_projection_xy_{self.filename}"')
-        self.log.info(f'saving {self.path}/max_projection_xz_{self.filename}"')
-        self.log.info(f'saving {self.path}/max_projection_yz_{self.filename}"')
+        self.log.info(f'saving {self.path}/minumum_projection_xy_{self.filename}"')
+        self.log.info(f'saving {self.path}/minumum_projection_xz_{self.filename}"')
+        self.log.info(f'saving {self.path}/minumum_projection_yz_{self.filename}"')

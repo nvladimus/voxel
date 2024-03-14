@@ -107,6 +107,10 @@ class BaseCamera:
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
+    def reset(self):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
     def prepare(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
