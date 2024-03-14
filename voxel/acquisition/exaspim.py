@@ -43,14 +43,15 @@ class ExASPIMAcquisition(BaseAcquisition):
 
         for tile in self.config['acquisition']['tiles']:
 
+            tile_num_x = tile['tile_number']['x']
+            tile_num_y = tile['tile_number']['y']
+            tile_num_z = tile['tile_number']['z']
+            tile_channel = tile['channel']
+            filename_prefix = tile['prefix']
+
+            # build filenames dict
             for camera_id, camera in self.instrument.cameras.items():
-                # build filenames dict
-                tile_num_x = tile['tile_number']['x']
-                tile_num_y = tile['tile_number']['y']
-                tile_num_z = tile['tile_number']['z']
-                channel = tile['channel']
-                filename_prefix = tile['prefix']
-                filenames[camera_id] = f'{filename_prefix}_x_{tile_num_x:04}_y_{tile_num_y:04}_z_{tile_num_z:04}_ch_{channel}_cam_{camera_id}'
+                filenames[camera_id] = f'{filename_prefix}_x_{tile_num_x:04}_y_{tile_num_y:04}_z_{tile_num_z:04}_ch_{tile_channel}_cam_{camera_id}'
 
             # sanity check length of scan
             for writer_id, writer in self.writers.items():
@@ -76,18 +77,17 @@ class ExASPIMAcquisition(BaseAcquisition):
                     self.log.info(f'waiting for stage {tiling_stage_id}: {instrument_axis} = {tiling_stage.position} -> {tile_position} mm')
                     time.sleep(0.01)
 
-            # TODO WE NEED TO DO BELOW BY REFERENCING TO CHANNEL IN INSTRUMENT CLASS
-            
-            # move filter wheels to correct postions
-            for filter_wheel_id, filter_wheel in self.instrument.filter_wheels.items():
-                filter_wheel_id = filter_wheel.id
-                filter_name = tile['filter'][filter_wheel_id]
-                self.log.info(f'moving filter wheel {filter_wheel_id} to {filter_name}')
-                filter_wheel.filter = filter_name
-
-            # adjust lasers to correct powers
-            for laser_id, laser in self.instrument.lasers.items():
-                laser.power_setpoint_mw = tile['power_mw']
+            # setup channel i.e. laser and filter wheels
+            self.log.info(f'setting up channel: {tile_channel}')
+            channel = self.instrument.channels[tile_channel]
+            laser_id = channel['laser']
+            laser = self.instrument.lasers[laser_id]
+            power_mw = tile['power_mw']
+            laser.power_setpoint_mw = power_mw
+            self.log.info(f'setting laser power for {laser_id} to {power_mw} [mW]')
+            for filter_wheel_id, filter_id in channel['filter_wheel'].items():
+                filter_wheel = self.instrument.filter_wheels[filter_wheel_id]
+                filter_wheel.filter = filter_id
 
             # this is hardcoded per camera, but perhaps we want to break this out into per device class
             # run any pre-routines for all cameras

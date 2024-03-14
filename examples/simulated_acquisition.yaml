@@ -102,10 +102,8 @@ acquisition:
       prefix: tile
       frame_count_px: 128
       binning: 1
-      channel: 488
+      channel: "488"
       power_mw: 1000
-      filter:
-        "0": BP405
     - tile_number:
         x: 1
         y: 0
@@ -123,7 +121,5 @@ acquisition:
       prefix: tile
       frame_count_px: 256
       binning: 1
-      channel: 488
+      channel: "488"
       power_mw: 1000
-      filter:
-        "0": BP405
