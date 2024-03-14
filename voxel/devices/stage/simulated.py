@@ -62,3 +62,6 @@ class Stage(BaseStage):
 
     def zero_in_place(self):
         self._position = 0
+
+    def close(self):
+        pass

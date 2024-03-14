@@ -14,7 +14,6 @@ class Instrument:
 
     def _construct(self):
         """Construct device based on configuration yaml"""
-
         self.log.info(f'constructing instrument from {self.config_path}')
         # grab instrument id
         try:
@@ -73,8 +72,7 @@ class Instrument:
                 # If subdevice init needs parent object type, add device object to init arguments
                 elif parameter.annotation == type(device_object):
                     subdevice['init'][name] = device_object
-
-        self.construct_device(subdevice_type, subdevice_dictionary)
+        self._construct_device(subdevice_type, subdevice_dictionary)
         
     def _load_device(self, driver: str, module: str, kwds):
         """Load device based on driver, module, and kwds specified
@@ -93,22 +91,3 @@ class Instrument:
         # successively iterate through settings keys
         for key, value in settings.items():
             setattr(device, key, value)
-
-    def _verify_instrument(self):
-        # assert that only one scanning stage is allowed
-        self.log.info(f'verifying instrument configuration')
-        num_scanning_stages = len(self.scanning_stages)
-        if num_scanning_stages > 1:
-            raise ValueError(f'only one scanning stage is allowed but {num_scanning_stages} detected')
-        # assert that a NIDAQ must be present
-        num_daqs = len(self.daqs)
-        if num_daqs < 1:
-            raise ValueError(f'at least one daq is required but {num_daqs} detected')
-        # assert that a camera must be present
-        num_cameras = len(self.cameras)
-        if num_cameras < 1:
-            raise ValueError(f'at least one camera is required but {num_cameras} detected')
-        # # assert that a laser must be present
-        # num_lasers = len(self.lasers)
-        # if num_lasers < 1:
-        #     raise ValueError(f'at least one laser is required but {num_lasers} detected')

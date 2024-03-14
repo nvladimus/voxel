@@ -162,7 +162,6 @@ class DAQ(BaseDAQ):
                 co_chan.co_pulse_term = f'/{self.id}/{timing["output_port"]}'
                 pulse_count = {'sample_mode': AcqType.FINITE, 'samps_per_chan': pulse_count} \
                     if pulse_count is not None else {'sample_mode': AcqType.CONTINUOUS}
-
             if timing['trigger_mode'] == 'off':
                 daq_task.timing.cfg_implicit_timing(
                     **pulse_count)
@@ -480,3 +479,6 @@ class DAQ(BaseDAQ):
             else:
                 pass
         return True
+
+    def close(self):
+        pass

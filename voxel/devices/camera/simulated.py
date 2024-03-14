@@ -272,3 +272,8 @@ class Camera(BaseCamera):
             i = i if frame_count is None else i+1
             end_time = time.time()
             self.frame_rate = 1/(end_time - start_time)
+
+    def abort(self):
+        self.terminate_frame_grab.set()
+        self.thread.join()
+        self.terminate_frame_grab.clear()
