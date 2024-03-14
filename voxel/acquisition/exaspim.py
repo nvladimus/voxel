@@ -79,6 +79,7 @@ class ExASPIMAcquisition(BaseAcquisition):
 
             # prepare the scanning stage for step and shoot behavior
             for scanning_stage_id, scanning_stage in self.instrument.scanning_stages.items():
+                self.log.info(f'setting up scanning stage: {scanning_stage_id}')
                 scanning_stage.start()
 
             # setup channel i.e. laser and filter wheels
@@ -97,11 +98,13 @@ class ExASPIMAcquisition(BaseAcquisition):
             # run any pre-routines for all cameras
             for camera_id, camera in self.instrument.cameras.items():
                 for routine in self.routines[camera_id]:
+                    self.log.info(f'running routine {routine} for camera {camera_id}')
                     routine.filename = filenames[camera_id]
                     routine.start(camera=camera)
 
             # setup camera, data writing engines, and processes
             for camera_id, camera in self.instrument.cameras.items():
+                self.log.info(f'arming camera and writer for {camera_id}')
                 # pass in camera specific camera, writer, and processes
                 thread = threading.Thread(target=self.engine,
                     args=(tile, filenames[camera_id],
@@ -113,19 +116,23 @@ class ExASPIMAcquisition(BaseAcquisition):
 
             # start and arm the slaved cameras/writers
             for camera_id in acquisition_threads:
+                self.log.info(f'starting camera and writer for {camera_id}')
                 acquisition_threads[camera_id].start()
 
             #################### IMPORTANT ####################
             # for the exaspim, the NIDAQ is the master, so we start this last
             for daq_id, daq in self.instrument.daqs.items():
+                self.log.info(f'starting daq {daq_id}')
                 daq.start()
 
             # wait for the cameras/writers to finish
             for camera_id in acquisition_threads:
+                self.log.info(f'waiting for camera {camera_id} to finish')
                 acquisition_threads[camera_id].join()
 
             # stop the daq
             for daq_id, daq in self.instrument.daqs.items():
+                self.log.info(f'stopping daq {daq_id}')
                 daq.stop()
 
             # handle starting and waiting for file transfers
