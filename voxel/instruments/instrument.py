@@ -20,9 +20,21 @@ class Instrument:
             self.id = self.config['instrument']['id']
         except:
             raise ValueError('no instrument id defined. check yaml file.')
+        # construct devices
         for device_type, device_list in self.config['instrument']['devices'].items():
             setattr(self, device_type, dict())
             self._construct_device(device_type, device_list)
+        # construct and verify channels
+        for channel_name, channel in self.config['instrument']['channels'].items():
+            laser_name = channel['laser']
+            if laser_name not in self.lasers.keys():
+                raise ValueError(f'laser {laser_name} not in {self.lasers.keys()}')
+            for filter_wheel_name, filter_name in channel['filter_wheel'].items():
+                if filter_wheel_name not in self.filter_wheels.keys():
+                    raise ValueError(f'filter wheel {filter_wheel_name} not in {self.filter_wheels.keys()}')
+                if filter_name not in self.filter_wheels[filter_wheel_name].filters:
+                    raise ValueError(f'filter {filter_name} not in {self.filter_wheels[filter_wheel_name].filters}')
+            self.channels[channel_name] = channel
 
     def _construct_device(self, device_type, device_dictionary):
         """Load, setup, and add any subdevices or tasks of a device

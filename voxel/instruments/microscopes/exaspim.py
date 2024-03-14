@@ -24,6 +24,8 @@ class ExASPIM(Instrument):
         self.device_list = dict()
         # store a list of stage axes
         self.stage_axes = list()
+        # store a dict of instrument channels
+        self.channels = dict()
         # construct microscope
         self._construct()
         # verify constructed microscope
@@ -87,51 +89,3 @@ class ExASPIM(Instrument):
         num_lasers = len(self.lasers)
         if num_lasers < 1:
             raise ValueError(f'at least one laser is required but {num_lasers} detected')
-
-    # def _build_trigger_list(self, trigger_dict: dict):
-    #     # add all keys first
-    #     for device in trigger_dict.keys():
-    #         self.trigger_tree[device] = self.device_list[device]
-    #     # add values, if value is a dict, recursively start over
-    #     for device, subdevice in trigger_dict.items():
-    #         if isinstance(subdevice, dict):
-    #             self._build_trigger_list(subdevice)
-    #         else:
-    #             if subdevice != None:
-    #                 self.trigger_tree[subdevice] = self.device_list[subdevice]
-    #
-    # def _verify_triggers(self):
-    #
-    #     # load the trigger dict
-    #     if self.config['instrument']['triggers']:
-    #         self.log.info('triggers found. building the trigger tree.')
-    #         trigger_list = self.config['instrument']['triggers']
-    #         # check that there is only one key i.e. one master device...
-    #         if len(trigger_list.keys()) > 1:
-    #             raise ValueError(f'more than one master trigger device. check yaml files.')
-    #         # build a flat list of devices starting from the master device
-    #         self.trigger_tree = dict()
-    #         self._build_trigger_list(trigger_list)
-    #         self.acquisition_trigger_order = list()
-    #         for device in self.trigger_tree:
-    #             # check that all trigger devices are valid
-    #             if device not in self.device_list.keys():
-    #                 raise ValueError(f'{device} is not a defined device. check yaml files.')
-    #         # reverse the order so the master device is last
-    #         self.trigger_tree = dict(reversed(list(self.trigger_tree.items())))
-    #     else:
-    #         raise ValueError(f'trigger tree is not a defined device. check yaml files.')
-    #
-    # TODO. figure out which task is the master task if DAQ.
-    # if list(self.trigger_tree.values())[-1] == 'daqs':
-    #     daq_name = list(self.trigger_tree.keys())[-1]
-    #     master_task_dict = dict()
-    #     for task in self.config['instrument']['devices']['daqs'][daq_name]['tasks']:
-    #         print(task)
-    #         # the master device will not have triggering enabled
-    #         trigger_mode = self.config['instrument']['devices']['daqs'][daq_name]['tasks'][task]['timing']['trigger_mode']
-    #         if trigger_mode == 'off':
-    #             self.trigger_tree[daq_name]['task'] = self.config['instrument']['devices']['daqs'][daq_name]['tasks'][task]['name']
-    #             master_task_dict[device['tasks'][task]['name']] = trigger_mode
-    #     if len(master_task_dict.keys()) > 1:
-    #         raise ValueError(f'there can only be one master task. but {master_task_dict} are all master tasks.')
