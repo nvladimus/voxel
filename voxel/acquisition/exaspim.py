@@ -77,6 +77,10 @@ class ExASPIMAcquisition(BaseAcquisition):
                     self.log.info(f'waiting for stage {tiling_stage_id}: {instrument_axis} = {tiling_stage.position} -> {tile_position} mm')
                     time.sleep(0.01)
 
+            # prepare the scanning stage for step and shoot behavior
+            for scanning_stage_id, scanning_stage in self.instrument.scanning_stages.items():
+                scanning_stage.start()
+                
             # setup channel i.e. laser and filter wheels
             self.log.info(f'setting up channel: {tile_channel}')
             channel = self.instrument.channels[tile_channel]
@@ -107,12 +111,21 @@ class ExASPIMAcquisition(BaseAcquisition):
                             ))
                 acquisition_threads[camera_id] = thread 
 
-            # collect time sensitive hardware components
+            # start and arm the slaved cameras/writers
             for camera_id in acquisition_threads:
                 acquisition_threads[camera_id].start()
 
+            #################### IMPORTANT ####################
+            # for the exaspim, the NIDAQ is the master, so we start this last
+            for daq_id, daq in self.instrument.daqs.items():
+                daq.start()
+
+            # wait for the cameras/writers to finish
             for camera_id in acquisition_threads:
                 acquisition_threads[camera_id].join()
+
+            # stop the daq
+            self.instruments.daqs.stop()
 
             # handle starting and waiting for file transfers
             if self.transfers:

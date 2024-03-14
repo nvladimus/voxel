@@ -205,7 +205,8 @@ class Stage(BaseStage):
         # Kick off raster-style (default) scan.
         if self.mode == 'stage scan':
             self.tigerbox.start_scan()
-        else:
+        elif self.mode == 'step shoot':
+            # LOOK AT SPIM CORE TO GRAB SETUP LINES HERE
             pass
 
     def close(self):
