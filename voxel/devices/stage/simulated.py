@@ -1,7 +1,28 @@
 import logging
 import time
-from voxel.devices.stage.base import BaseStage
 import random
+from voxel.devices.stage.base import BaseStage
+from voxel.devices.joystick.base import BaseJoystick
+from voxel.devices.joystick.axes_mapping import AxesMapping
+from voxel.devices.utils.singleton import Singleton
+
+JOYSTICK_AXES = {
+    "joystick_x": 0,
+    "joystick_y": 1,
+    "wheel_z":    2,
+    "wheel_f":    3,
+}
+
+JOYSTICK_POLARITY = {
+    "inverted": 0,
+    "default": 1,
+}
+
+# singleton wrapper around AxesMapping
+# TODO: this seems like a roundabout way of getting this to work...
+class AxesMappingSingleton(AxesMapping, metaclass=Singleton):
+    def __init__(self):
+        super(AxesMappingSingleton, self).__init__()
 
 class Stage(BaseStage):
 
@@ -9,6 +30,9 @@ class Stage(BaseStage):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.hardware_axis = hardware_axis.upper()
         self.instrument_axis = instrument_axis.lower()
+        # store the instrument to hardware axis mapping for the joystick device
+        self.axes_mapping = AxesMappingSingleton()
+        self.axes_mapping.axis_map[instrument_axis] = hardware_axis
         # TODO change this, but self.id for consistency in lookup
         self.id = self.instrument_axis
         self._position = 0
@@ -65,3 +89,62 @@ class Stage(BaseStage):
 
     def close(self):
         pass
+
+class Joystick(BaseJoystick):
+
+    def __init__(self, joystick_mapping: dict):
+        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self._joystick_mapping = joystick_mapping if joystick_mapping is not None else \
+        {"joystick_x": {"instrument_axis": "x", "polarity": "default"},
+         "joystick_y": {"instrument_axis": "y", "polarity": "default"},
+         "wheel_z"   : {"instrument_axis": "z", "polarity": "default"},
+         "wheel_f"   : {"instrument_axis": "w", "polarity": "default"},
+        }
+        self._stage_axes = ['x', 'y', 'z', 'w', 'm']
+        # TODO IS THIS NECESSARY?
+        self._joystick_axes = JOYSTICK_AXES.keys()
+        # grab the instrument to hardware axis mapping for the joystick device
+        self.axes_mapping = AxesMappingSingleton()
+        for joystick_id, joystick_dict in self.joystick_mapping.items():
+            # check that the joystick ids are valid
+            if joystick_id not in JOYSTICK_AXES.keys():
+                raise ValueError(f"{joystick_id} must be in {JOYSTICK_AXES.keys()}")
+            # check that ther polarities are valid
+            joystick_polarity = joystick_dict["polarity"]
+            if joystick_polarity not in JOYSTICK_POLARITY.keys():
+                raise ValueError(f"{joystick_polarity} must be in {JOYSTICK_POLARITY.keys()}")
+            instrument_axis = joystick_dict["instrument_axis"]
+            hardware_axis = self.axes_mapping.axis_map[instrument_axis]
+            # check that the axes are valid
+            if hardware_axis not in self._stage_axes:
+                raise ValueError(f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis.")
+
+    @property
+    def stage_axes(self):
+        return self._stage_axes
+
+    @property
+    def joystick_mapping(self):
+        return self._joystick_mapping
+
+    @joystick_mapping.setter
+    def joystick_mapping(self, joystick_mapping):
+        for joystick_id, joystick_dict in joystick_mapping.items():
+            # check that the joystick ids are valid
+            if joystick_id not in JOYSTICK_AXES.keys():
+                raise ValueError(f"{joystick_id} must be in {JOYSTICK_AXES.keys()}")
+            # check that ther polarities are valid
+            joystick_polarity = joystick_dict["polarity"]
+            if joystick_polarity not in JOYSTICK_POLARITY.keys():
+                raise ValueError(f"{joystick_polarity} must be in {JOYSTICK_POLARITY.keys()}")
+            instrument_axis = joystick_dict["instrument_axis"]
+            hardware_axis = self.axes_mapping.axis_map[instrument_axis]
+            # check that the axes are valid
+            if hardware_axis not in self._stage_axes:
+                raise ValueError(f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis.")
+        self._joystick_mapping = joystick_mapping
+
+    # TODO IS THIS NECESSARY?
+    @property
+    def joystick_axes(self):
+        return self._joystick_axes

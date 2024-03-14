@@ -61,8 +61,6 @@ instrument:
           acceleration_ms: 100.0
           backlash_mm: 0
           mode: off
-          joystick_polarity: default
-          joystick_mapping: joystick y
       ASI MS-8000 z axis:
         driver: voxel.devices.stage.simulated
         module: Stage
@@ -74,8 +72,17 @@ instrument:
           acceleration_ms: 100.0
           backlash_mm: 0
           mode: off
-          joystick_polarity: default
-          joystick_mapping: joystick x
+      ASI MS-8000 w axis:
+        driver: voxel.devices.stage.simulated
+        module: Stage
+        init:
+          hardware_axis: w
+          instrument_axis: w
+        settings:
+          speed_mm_s: 1.0
+          acceleration_ms: 100.0
+          backlash_mm: 0
+          mode: off
     scanning_stages:
       ASI LS-100 x axis:
         driver: voxel.devices.stage.simulated
@@ -88,8 +95,6 @@ instrument:
           acceleration_ms: 100.0
           backlash_mm: 0
           mode: step shoot
-          joystick_polarity: default
-          joystick_mapping: wheel z
     filter_wheels:
       ASI FW-1000:
         driver: voxel.devices.filterwheel.simulated
@@ -104,6 +109,24 @@ instrument:
             MB405/488/561/638: 4
             Empty1: 5
             Empty2: 6
+    joysticks:
+      ASI joystick:
+        driver: voxel.devices.stage.simulated
+        module: Joystick
+        init:
+          joystick_mapping:
+            joystick_x:
+              polarity: default
+              instrument_axis: x
+            joystick_y:
+              polarity: default
+              instrument_axis: z
+            wheel_z:
+              polarity: inverted
+              instrument_axis: y
+            wheel_f:
+              polarity: default
+              instrument_axis: w
     lasers:
       405nm:
         driver: voxel.devices.lasers.simulated

@@ -6,18 +6,6 @@ from tigerasi.device_codes import *
 
 # constants for Tiger ASI hardware
 
-JOYSTICK_MAPPING = {
-    "joystick x": JoystickInput.JOYSTICK_X,
-    "joystick y": JoystickInput.JOYSTICK_Y,
-    "wheel z":    JoystickInput.Z_WHEEL,
-    "wheel f":    JoystickInput.F_WHEEL,
-}
-
-JOYSTICK_POLARITY = {
-    "inverted": JoystickPolarity.INVERTED,
-    "default": JoystickPolarity.DEFAULT,
-}
-
 MODES = {
     "step shoot": TTLIn0Mode.REPEAT_LAST_REL_MOVE,
     "off": TTLIn0Mode.OFF,
@@ -296,49 +284,6 @@ class Stage(BaseStage):
 
         card_address = self.tigerbox.axis_to_card[self.hardware_axis][0]
         self.tigerbox.set_ttl_pin_modes(in0_mode = MODES[mode], card_address = card_address)
-                
-    @property
-    def joystick_mapping(self):
-        """Get the tiger joystick axis."""
-        joystick_value = self.tigerbox.get_joystick_axis_mapping(self.hardware_axis)[self.hardware_axis]
-        converted_value = next(key for key, value in JOYSTICK_MAPPING.items() if value == joystick_value)
-        return converted_value
-
-    @joystick_mapping.setter
-    def joystick_mapping(self, mapping: str):
-        """Set the tiger joystick axis."""
-        valid = list(JOYSTICK_MAPPING.keys())
-        if mapping not in valid:
-            raise ValueError("joystick mapping must be one of %r." % valid)
-        self.tigerbox.bind_axis_to_joystick_input(**{self.hardware_axis: JOYSTICK_MAPPING[mapping]})
-
-    @property
-    def joystick_polarity(self):
-        """Get the tiger joystick axis polarity."""
-        # TODO: not yet implemented in TigerASI
-        pass
-
-    @joystick_polarity.setter
-    def joystick_polarity(self, polarity: str):
-        """Set the tiger joystick axis polarity."""
-        valid = list(JOYSTICK_POLARITY.keys())
-        if polarity not in valid:
-            raise ValueError("joystick polarity must be one of %r." % valid)
-
-        self.tigerbox.set_joystick_axis_polarity(**{self.hardware_axis: JOYSTICK_POLARITY[polarity]})
-
-    def lock_external_user_input(self):
-        self.log.info("Locking joystick control.")
-        # Save current joystick axis map, since enabling it will restore
-        # a "default" axis map, which isn't necessarily what we want.
-        self.tiger_joystick_mapping = self.tigerbox.get_joystick_axis_mapping()
-        self.tigerbox.disable_joystick_inputs()
-
-    def unlock_external_user_input(self):
-        self.log.info("Releasing joystick control.")
-        self.tigerbox.enable_joystick_inputs()
-        # Re-apply our joystick axis map to restore joystick state correctly.
-        self.tigerbox.bind_axis_to_joystick_input(**self.tiger_joystick_mapping)
 
     def is_axis_moving(self):
         return self.tigerbox.is_axis_moving(self.hardware_axis)

@@ -22,6 +22,8 @@ class ExASPIM(Instrument):
         self.config = YAML().load(Path(self.config_path))
         # store a dict of {device name: device type} for convenience
         self.device_list = dict()
+        # store a list of stage axes
+        self.stage_axes = list()
         # construct microscope
         self._construct()
         # verify constructed microscope

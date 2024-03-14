@@ -48,6 +48,13 @@ class Instrument:
                     pulse_count = task_dict['timing'].get('pulse_count', None)
                     device_object.add_task(task_dict, task_type[:2], pulse_count)
 
+            # added logic for stages to store and check stage axes
+            if device_type == 'tiling_stages' or device_type == 'scanning_stages':
+                instrument_axis = device['init']['instrument_axis']
+                if instrument_axis in self.stage_axes:
+                    raise ValueError(f'{instrument_axis} is duplicated and already exists!')
+                else:
+                    self.stage_axes.append(instrument_axis)
             # Add subdevices under device and fill in any needed keywords to init
             for subdevice_type, subdevice_dictionary in device.get('subdevices', {}).items():
                 self._construct_subdevice(device_object, subdevice_type, subdevice_dictionary)

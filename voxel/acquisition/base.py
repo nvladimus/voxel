@@ -97,7 +97,15 @@ class BaseAcquisition():
                 local_directory = self.writers[camera_id].path
                 external_directory = self.transfers[camera_id].external_directory
                 if local_directory == external_directory:
-                    raise ValueError(f'local and external directory are the same for camera {camera_id}.')               
+                    raise ValueError(f'local and external directory are the same for camera {camera_id}.')
+        # check that tile number and positions are defined all stage axes
+        for tile in self.config['acquisition']['tiles']:
+            number_axes = list(tile['tile_number'].keys())
+            if number_axes.sort() != self.instrument.stage_axes.sort():
+                raise ValueError(f'not all stage axes are defined for tile numbers')
+            position_axes = list(tile['position_mm'].keys())
+            if position_axes.sort() != self.instrument.stage_axes.sort():
+                raise ValueError(f'not all stage axes are defined for tile positions')
 
     def _frame_size_mb(self, camera_id: str):
         row_count_px = self.instrument.cameras[camera_id].roi['height_px']
