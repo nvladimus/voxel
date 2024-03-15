@@ -4,7 +4,7 @@ import numpy
 import tifffile
 
 this_dir = Path(__file__).parent.resolve() # directory of this test file.
-config_path = this_dir / Path("test_dsnu_vieworks_egrabber.yaml")
+config_path = this_dir / Path("dsnu_vieworks_egrabber.yaml")
 config = YAML().load(Path(config_path))
 
 # ugly constructor and init for config values...
@@ -30,7 +30,7 @@ camera.trigger = {
 	'polarity': camera_config['trigger']['polarity']
 }
 
-pixel_types = ['mono16']
+pixel_types = ['mono10']
 
 for pixel_type in pixel_types:
 
