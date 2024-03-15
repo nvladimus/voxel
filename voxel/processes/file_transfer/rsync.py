@@ -23,7 +23,15 @@ class FileTransfer():
         self.progress = 0
         self._output_file = None
         # print progress, delete files after transfer
-        self._flags = ['--progress', '--remove-source-files', '--recursive']
+        # check version of rsync
+        # tested with v2.6.9
+        # --info=progress2 is not available for rsync v2.x.x
+        # self._flags = ['--progress', '--remove-source-files', '--recursive']
+        # tested with v3.2.7
+        # --progress outputs progress which is piped to log file
+        # --recursive transfers all files in directory sequentially
+        # --info=progress2 outputs % progress for all files not sequentially for each file
+        self._flags = ['--progress', '--remove-source-files', '--recursive', '--info=progress2']
 
     @property
     def filename(self):
@@ -56,8 +64,7 @@ class FileTransfer():
         return self.progress
 
     def start(self):
-        file_extension = Path(self._filename).suffix
-        self._log_filename = self._filename.replace(file_extension, '.txt')
+        self._log_filename = f'{self._filename}.txt'
         # do not move and transfer log file
         # order of arguments matters here... --exclude='*' first excludes all files
         # then we include only files from above
@@ -112,7 +119,7 @@ class FileTransfer():
                     value = line[index-4:index]
                     # strip and convert to float
                     self.progress = float(value.rstrip())
-                    self.log.info(f'file transfer is {self.progress} % complete.')
+                    self.log.info(f'a file transfer is {self.progress} % complete.')
                 # we must be at the last line of the file
                 else:
                     # go back to beginning of file
@@ -125,7 +132,7 @@ class FileTransfer():
                     value = line[index-4:index]
                     # strip and convert to float
                     self.progress = float(value.rstrip())
-                    self.log.info(f'file transfer is {self.progress} % complete.')
+                    self.log.info(f'b file transfer is {self.progress} % complete.')
             # no lines in the file yet          
             except:
                 self.progress = 0
