@@ -33,6 +33,8 @@ DATA_TYPES = [
     "uint16"
 ]
 
+# TODO ADD DOWNSAMPLE METHOD TO GET PASSED INTO NPY2BDV
+
 class Writer(BaseWriter):
 
     def __init__(self, path: str):
@@ -355,6 +357,7 @@ class Writer(BaseWriter):
 
         # compute necessary inputs to BDV/XML files
         # pyramid subsampling factors xyz
+        # TODO CALCULATE THESE AS WITH ZARRV3 WRITER
         subsamp = (
                     (1, 1, 1),
                     (2, 2, 2),
@@ -401,10 +404,11 @@ class Writer(BaseWriter):
         # append all views based to bdv writer
         # this is necessary for bdv writer to have the metadata to write the xml at the end
         # if a view already exists in the bdv file, it will be skipped and not overwritten
+        image_size_z = int(ceil(self._frame_count_px/CHUNK_COUNT_PX)*CHUNK_COUNT_PX)
         for append_tile, append_channel in self.dataset_dict:
             bdv_writer.append_view(
                                     stack = None,
-                                    virtual_stack_dim = (self._frame_count_px,
+                                    virtual_stack_dim = (image_size_z,
                                                          self._row_count_px,
                                                          self._column_count_px),
                                     tile = append_tile,

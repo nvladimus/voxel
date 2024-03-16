@@ -18,6 +18,8 @@ from math import ceil, log2
 from sympy import divisors
 
 CHUNK_COUNT_PX = 32
+DIVISIBLE_FRAME_COUNT_PX = 32
+
 CHUNK_SIZE_X = 256
 CHUNK_SIZE_Y = 256
 
@@ -44,6 +46,8 @@ DATA_TYPES = [
     "uint16"
 ]
 
+# tensorstore currently doesn't natively do multi-scale generation
+# we have to do it ourselves, can choose from these implemented methods
 DOWNSAMPLE_METHOD = [
     "cpu",
     "gpu_tools",
@@ -153,6 +157,8 @@ class Writer(BaseWriter):
     @frame_count_px.setter
     def frame_count_px(self, frame_count_px: int):
         self.log.info(f'setting frame count to: {frame_count_px} [px]')
+        frame_count_px = ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
+        self.log.info(f'adjusting frame count to: {frame_count_px} [px]')
         self._frame_count_px = frame_count_px
 
     @property

@@ -253,7 +253,8 @@ class Writer(BaseWriter):
         self.application_name = 'PyImarisWriter'
         self.application_version = '1.0.0'
         # voxel size metadata to create the converter
-        self.image_size = pw.ImageSize(x=self._column_count_px, y=self._row_count_px, z=self._frame_count_px,
+        image_size_z = int(ceil(self._frame_count_px/CHUNK_COUNT_PX)*CHUNK_COUNT_PX)
+        self.image_size = pw.ImageSize(x=self._column_count_px, y=self._row_count_px, z=image_size_z,
                           c=1, t=1)
         self.block_size = pw.ImageSize(x=self._column_count_px, y=self._row_count_px, z=CHUNK_COUNT_PX,
                                   c=1, t=1)

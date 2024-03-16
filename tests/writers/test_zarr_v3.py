@@ -26,8 +26,8 @@ if __name__ == '__main__':
     for tile_index in range(num_tiles):
         
         stack_writer_worker = Writer(config['writer']['path'])
-        stack_writer_worker.row_count_px = 10640
-        stack_writer_worker.column_count_px = 14192
+        stack_writer_worker.row_count_px = 2304
+        stack_writer_worker.column_count_px = 2304
         stack_writer_worker.x_voxel_size_um = 0.748
         stack_writer_worker.y_voxel_size_um = 0.748
         stack_writer_worker.z_voxel_size_um = 1

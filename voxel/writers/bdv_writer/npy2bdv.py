@@ -10,7 +10,7 @@ import skimage.transform
 import shutil
 from pathlib import Path
 from tqdm import trange
-from voxel.processes.gpu.downsample_3d import DownSample3D
+from voxel.processes.gpu.gputools.downsample_3d import DownSample3D
 
 # class SubSample:
 #     def __init__(self):

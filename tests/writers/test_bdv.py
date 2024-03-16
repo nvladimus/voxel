@@ -20,7 +20,7 @@ if __name__ == '__main__':
     num_frames = 256
     num_tiles = 1
 
-    stack_writer_worker = Writer()
+    stack_writer_worker = Writer(config['writer']['path'])
     stack_writer_worker.row_count_px = 2048
     stack_writer_worker.column_count_px = 2048
     stack_writer_worker.x_voxel_size_um = 0.748
@@ -30,7 +30,6 @@ if __name__ == '__main__':
     stack_writer_worker.frame_count_px = num_frames
     stack_writer_worker.compression = config['writer']['compression']
     stack_writer_worker.data_type = config['writer']['data_type']
-    stack_writer_worker.path = config['writer']['path']
     stack_writer_worker.channel = '488'
     frame_index = 0
     tile_index = 0
