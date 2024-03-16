@@ -4,6 +4,7 @@ import numpy as np
 import os
 import tifffile
 import math
+import time
 from multiprocessing import Process, Value, Event, Array
 from multiprocessing.shared_memory import SharedMemory
 from pathlib import Path
@@ -17,14 +18,14 @@ class MaxProjection:
         if '\\' in path or '/' not in path:
             assert ValueError('path string should only contain / not \\')
         self._path = path
-        self.new_image = Event()
-        self.new_image.clear()
         self._column_count_px = None
         self._row_count_px = None
         self._frame_count_px = None
         self._projection_count_px = None
         self._filename = None
         self._data_type = None
+        self.new_image = Event()
+        self.new_image.clear()
 
     @property
     def column_count_px(self):
@@ -107,6 +108,9 @@ class MaxProjection:
         self.p.start()
 
     def _run(self):
+        # cannot pickle cle so import within run function()
+        import pyclesperanto as cle
+
         frame_index = 0
         # Build mips. Assume frames increment sequentially in z.
 
@@ -122,9 +126,21 @@ class MaxProjection:
             # max project latest image
             if self.new_image.is_set():
                 self.latest_img = np.ndarray(self.shm_shape, self._data_type, buffer=self.shm.buf)
-                self.mip_xy = np.maximum(self.mip_xy, self.latest_img).astype(np.uint16)
-                self.mip_yz[:, frame_index] = np.max(self.latest_img, axis=0)
-                self.mip_xz[frame_index, :] = np.max(self.latest_img, axis=1)
+                start_time = time.time()
+                # move images to gpu
+                latest_img = cle.push(self.latest_img)
+                mip_xy = cle.push(self.mip_xy)
+                # run operation
+                new_mip_xy = cle.maximum_images(latest_img,
+                                            mip_xy)
+                # move image off gpu
+                self.mip_xy = cle.pull(new_mip_xy)
+                self.mip_yz[:, frame_index] = cle.pull(cle.maximum_y_projection(cle.push(self.latest_img)))
+                # maximum_x_projection returns (N,1) array so index [0] to put into self.mip_xz
+                self.mip_xz[frame_index, :] = cle.pull(cle.maximum_x_projection(cle.push(self.latest_img)))[0]
+                end_time = time.time()
+                run_time = end_time - start_time
+                print(f'run time = {run_time} [sec]')
                 # if this projection thickness is complete or end of stack
                 if chunk_index == self._projection_count_px - 1 or frame_index == self._frame_count_px - 1:
                     start_index = int(frame_index - self._projection_count_px + 1)

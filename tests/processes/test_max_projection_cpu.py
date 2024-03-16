@@ -6,11 +6,10 @@ from voxel.processes.max_projection import MaxProjection
 
 if __name__ == '__main__':
 
-    chunk_size_frames = 64
     num_frames = 256
-    img_shape = (2048, 2048)
+    img_shape = (14192, 10640)
         
-    max_projection = MaxProjection()
+    max_projection = MaxProjection(path='.')
 
     max_projection.row_count_px = img_shape[0]
     max_projection.column_count_px = img_shape[1]
@@ -18,7 +17,6 @@ if __name__ == '__main__':
     max_projection.projection_count_px = 64
     max_projection.data_type = 'uint16'
     max_projection.filename = 'test'
-    max_projection.path = '.'
 
     img_bytes = numpy.prod(img_shape)*numpy.dtype('uint16').itemsize
 
@@ -44,10 +42,8 @@ if __name__ == '__main__':
             time.sleep(0.1)
         mip_image[:,:] = frame
         max_projection.new_image.set()
-        print(max_projection.progress.value)
 
     max_projection.wait_to_finish()
-    max_projection.close()
     mip_buffer.close()
     mip_buffer.unlink()
     del mip_buffer
