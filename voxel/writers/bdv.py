@@ -29,9 +29,9 @@ COMPRESSION_TYPES = {
     "b3d": "b3d"
 }
 
-DATA_TYPES = {
-    "uint16": "uint16",
-}
+DATA_TYPES = [
+    "uint16"
+]
 
 class Writer(BaseWriter):
 
@@ -45,7 +45,7 @@ class Writer(BaseWriter):
         self._color = '#ffffff' # initialize as white
         self._channel = None
         self._filename = None
-        self._data_type = DATA_TYPES['uint16']
+        self._data_type = "uint16"
         self._compression = COMPRESSION_TYPES["none"]
         self.compression_opts = None
         self._row_count_px = None
@@ -270,7 +270,7 @@ class Writer(BaseWriter):
            'z': CHUNK_COUNT_PX}
         self.shm_shape = [chunk_shape_map[x] for x in self.chunk_dim_order]
         self.shm_nbytes = \
-            int(np.prod(self.shm_shape, dtype=np.int64)*np.dtype(DATA_TYPES[self._data_type]).itemsize)
+            int(np.prod(self.shm_shape, dtype=np.int64)*np.dtype(self._data_type).itemsize)
         
         # Check if tile position already exists
         tile_position = (self._x_position_mm, self._y_position_mm, self._z_position_mm)
@@ -419,7 +419,7 @@ class Writer(BaseWriter):
                 sleep(0.001)
             # Attach a reference to the data from shared memory.
             shm = SharedMemory(self.shm_name, create=False, size=self.shm_nbytes)
-            frames = np.ndarray(self.shm_shape, DATA_TYPES[self._data_type], buffer=shm.buf)
+            frames = np.ndarray(self.shm_shape, self._data_type, buffer=shm.buf)
             logger.warning(f"{self._filename}: writing chunk "
                   f"{chunk_num+1}/{chunk_total} of size {frames.shape}.")
             start_time = perf_counter()

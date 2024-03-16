@@ -33,16 +33,18 @@ PROPERTIES = {
     "sensor_temperature": 2097936  # 0x00200310, R/O, celsius,"SENSOR TEMPERATURE"
 }
 
+# TODO BUILD BY QUERYING DCAM
 PIXEL_TYPES = {
     "mono8": DCAM_PIXELTYPE.MONO8,
     "mono16": DCAM_PIXELTYPE.MONO16
 }
 
-BINNING = {
-    1: 1,
-    2: 2,
-    4: 4
-}
+# TODO BUILD BY QUERYING DCAM
+BINNING = [
+    1,
+    2,
+    4
+]
 
 # full dcam trigger modes mapping
 # NORMAL = 1
@@ -62,6 +64,7 @@ BINNING = {
 # SYNCREADOUT = 3
 # POINT = 4
 
+# TODO BUILD BY QUERYING DCAM
 TRIGGERS = {
     "mode": {
         "on": DCAMPROP.TRIGGER_MODE.NORMAL,
@@ -95,6 +98,7 @@ TRIGGERS = {
 # FORWARDBIDIRECTION = 6
 # REVERSEBIDIRECTION = 7
 
+# TODO BUILD BY QUERYING DCAM
 READOUT_MODES = {
     "rolling": DCAMPROP.SENSORMODE.AREA,
     "light sheet forward": DCAMPROP.READOUT_DIRECTION.FORWARD,
@@ -322,14 +326,13 @@ class Camera(BaseCamera):
     @property
     def binning(self):
         binning = self.dcam.prop_getvalue(PROPERTIES["binning"])
-        return next(key for key, value in BINNING.items() if value == binning)
+        return binning
 
     @binning.setter
     def binning(self, binning: str):
-        valid_binning = list(BINNING.keys())
-        if binning not in valid_binning:
-            raise ValueError("binning must be one of %r." % valid_binning)
-        self.dcam.prop_setvalue(PROPERTIES["binning"], BINNING[binning])
+        if binning not in BINNING:
+            raise ValueError("binning must be one of %r." % BINNING)
+        self.dcam.prop_setvalue(PROPERTIES["binning"], binning)
         self.log.info(f"binning set to: {binning}")
         # refresh parameter values
         self._get_min_max_step_values()
@@ -383,7 +386,7 @@ class Camera(BaseCamera):
             bit_to_byte = 1
         else:
             bit_to_byte = 2
-        frame_size_mb = self.roi['width_px']*self.roi['height_px']/BINNING[self.binning]**2*bit_to_byte/1e6
+        frame_size_mb = self.roi['width_px']*self.roi['height_px']/self.binning**2*bit_to_byte/1e6
         self.buffer_size_frames = round(BUFFER_SIZE_MB / frame_size_mb)
         # realloc buffers appears to be allocating ram on the pc side, not camera side.
         self.dcam.buf_alloc(self.buffer_size_frames)
@@ -439,7 +442,7 @@ class Camera(BaseCamera):
             bit_to_byte = 1
         else:
             bit_to_byte = 2
-        data_rate = frame_rate*self.roi['width_px']*self.roi['height_px']/BINNING[self.binning]**2*bit_to_byte/1e6
+        data_rate = frame_rate*self.roi['width_px']*self.roi['height_px']/self.binning**2*bit_to_byte/1e6
         state = {}
         state['Frame Index'] = frame_index
         state['Input Buffer Size'] = in_buffer_size

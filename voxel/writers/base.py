@@ -125,6 +125,36 @@ class BaseWriter():
         pass
 
     @property
+    def shuffle(self):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @shuffle.setter
+    def shuffle(self, shuffle: str):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @property
+    def compression_level(self):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @compression_level.setter
+    def compression_level(self, compression_level: int):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @property
+    def downsample_method(self):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @downsample_method.setter
+    def downsample_method(self, downsample_method: str):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+        
+    @property
     def data_type(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass

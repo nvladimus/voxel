@@ -16,11 +16,11 @@ DIVISIBLE_HEIGHT_PX = 1
 MIN_EXPOSURE_TIME_MS = 0.001
 MAX_EXPOSURE_TIME_MS = 6e4
 
-BINNING = {
-    1: 1,
-    2: 2,
-    4: 4
-}
+BINNING = [
+    1,
+    2,
+    4
+]
 
 PIXEL_TYPES = {
     "mono8":  "uint8",
@@ -157,13 +157,12 @@ class Camera(BaseCamera):
 
     @property
     def binning(self):
-        return next(key for key, value in BINNING.items() if value == self._binning)
+        return self._binning
 
     @binning.setter
     def binning(self, binning: str):
-        valid_binning = list(BINNING.keys())
-        if binning not in valid_binning:
-            raise ValueError("binning must be one of %r." % valid_binning)
+        if binning not in BINNING:
+            raise ValueError("binning must be one of %r." % BINNING)
         self._binning = binning
         # initialize the downsampling in 2d
         self.gpu_binning = DownSample2D(binning=self._binning)

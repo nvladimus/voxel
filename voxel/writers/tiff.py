@@ -21,8 +21,8 @@ COMPRESSION_TYPES = {
 }
 
 DATA_TYPES = {
-    "uint8":  "uint8",
-    "uint16": "uint16",
+    "uint8",
+    "uint16"
 }
 
 class Writer(BaseWriter):
@@ -38,7 +38,7 @@ class Writer(BaseWriter):
         self._color = None
         self._channel = None
         self._filename = None
-        self._data_type = DATA_TYPES['uint8']
+        self._data_type = 'uint16'
         self._compression = COMPRESSION_TYPES["none"]
         self._rows = None
         self._colum_count = None
@@ -206,7 +206,7 @@ class Writer(BaseWriter):
            'z': CHUNK_COUNT_PX}
         self.shm_shape = [chunk_shape_map[x] for x in self.chunk_dim_order]
         self.shm_nbytes = \
-            int(np.prod(self.shm_shape, dtype=np.int64)*np.dtype(DATA_TYPES[self._data_type]).itemsize)
+            int(np.prod(self.shm_shape, dtype=np.int64)*np.dtype(self._data_type).itemsize)
         self.log.info(f"{self._filename}: intializing writer.")
 
     def start(self):
@@ -259,7 +259,7 @@ class Writer(BaseWriter):
                 sleep(0.001)
             # Attach a reference to the data from shared memory.
             shm = SharedMemory(self.shm_name, create=False, size=self.shm_nbytes)
-            frames = np.ndarray(self.shm_shape, DATA_TYPES[self._data_type], buffer=shm.buf)
+            frames = np.ndarray(self.shm_shape, self._data_type, buffer=shm.buf)
             logger.warning(f"{self._filename}: writing chunk "
                   f"{chunk_num+1}/{chunk_total} of size {frames.shape}.")
             start_time = perf_counter()

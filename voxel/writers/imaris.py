@@ -23,10 +23,10 @@ COMPRESSION_TYPES = {
     "none": pw.eCompressionAlgorithmNone,
 }
 
-DATA_TYPES = {
-    "uint8":  "uint8",
-    "uint16": "uint16",
-}
+DATA_TYPES = [
+    "uint8",
+    "uint16"
+]
 
 class ImarisProgressChecker(pw.CallbackClass):
     """Class for tracking progress of an active ImarisWriter disk-writing
@@ -50,7 +50,7 @@ class Writer(BaseWriter):
         self._color = '#ffffff' # initialize as white
         self._channel = None
         self._filename = None
-        self._data_type = DATA_TYPES['uint16']
+        self._data_type = 'uint16'
         self._compression = COMPRESSION_TYPES["none"]
         self._row_count_px = None
         self._colum_count_px = None
@@ -248,7 +248,7 @@ class Writer(BaseWriter):
            'z': CHUNK_COUNT_PX}
         self.shm_shape = [chunk_shape_map[x] for x in self.chunk_dim_order]
         self.shm_nbytes = \
-            int(np.prod(self.shm_shape, dtype=np.int64)*np.dtype(DATA_TYPES[self._data_type]).itemsize)
+            int(np.prod(self.shm_shape, dtype=np.int64)*np.dtype(self._data_type).itemsize)
         self.log.info(f"{self._filename}: intializing writer.")
         self.application_name = 'PyImarisWriter'
         self.application_version = '1.0.0'
@@ -316,7 +316,7 @@ class Writer(BaseWriter):
         logger.addHandler(log_handler)
         filepath = str((Path(self._path) / self._filename).absolute())
         converter = \
-            pw.ImageConverter(DATA_TYPES[self._data_type], self.image_size, self.sample_size,
+            pw.ImageConverter(self._data_type, self.image_size, self.sample_size,
                               self.dimension_sequence, self.block_size, filepath, 
                               self.opts, self.application_name,
                               self.application_version, self.callback_class)
@@ -328,7 +328,7 @@ class Writer(BaseWriter):
                 sleep(0.001)
             # Attach a reference to the data from shared memory.
             shm = SharedMemory(self.shm_name, create=False, size=self.shm_nbytes)
-            frames = np.ndarray(self.shm_shape, DATA_TYPES[self._data_type], buffer=shm.buf)
+            frames = np.ndarray(self.shm_shape, self._data_type, buffer=shm.buf)
             logger.warning(f"{self._filename}: writing chunk "
                   f"{chunk_num+1}/{chunk_total} of size {frames.shape}.")
             start_time = perf_counter()
