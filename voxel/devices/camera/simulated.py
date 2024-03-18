@@ -3,7 +3,7 @@ import numpy
 import time
 from multiprocessing import Process, Queue, Event
 from voxel.devices.camera.base import BaseCamera
-from voxel.processes.gpu.downsample_2d import DownSample2D
+from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
 from threading import Thread
 
 BUFFER_SIZE_FRAMES = 8
@@ -276,3 +276,6 @@ class Camera(BaseCamera):
         self.terminate_frame_grab.set()
         self.thread.join()
         self.terminate_frame_grab.clear()
+
+    def close(self):
+        pass
