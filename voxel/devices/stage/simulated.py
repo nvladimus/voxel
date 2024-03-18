@@ -11,9 +11,10 @@ JOYSTICK_AXES = {
     "joystick_y": 1,
     "wheel_z": 2,
     "wheel_f": 3,
+    "None":4
 }
 
-JOYSTICK_POLARITY = {
+POLARITY = {
     "inverted": 0,
     "default": 1,
 }
@@ -106,7 +107,6 @@ class Joystick(BaseJoystick):
         for axis in self._stage_axes:
             if axis not in self.axes_mapping.keys():
                 self.axes_mapping[axis] = axis
-        print(self.axes_mapping)
         # grab the instrument to hardware axis mapping for the joystick device
         for joystick_id, joystick_dict in self.joystick_mapping.items():
             # check that the joystick ids are valid
@@ -114,8 +114,8 @@ class Joystick(BaseJoystick):
                 raise ValueError(f"{joystick_id} must be in {JOYSTICK_AXES.keys()}")
             # check that ther polarities are valid
             joystick_polarity = joystick_dict["polarity"]
-            if joystick_polarity not in JOYSTICK_POLARITY.keys():
-                raise ValueError(f"{joystick_polarity} must be in {JOYSTICK_POLARITY.keys()}")
+            if joystick_polarity not in POLARITY.keys():
+                raise ValueError(f"{joystick_polarity} must be in {POLARITY.keys()}")
             instrument_axis = joystick_dict["instrument_axis"]
             hardware_axis = self.axes_mapping[instrument_axis]
             # check that the axes are valid
@@ -139,8 +139,8 @@ class Joystick(BaseJoystick):
                 raise ValueError(f"{joystick_id} must be in {JOYSTICK_AXES.keys()}")
             # check that ther polarities are valid
             joystick_polarity = joystick_dict["polarity"]
-            if joystick_polarity not in JOYSTICK_POLARITY.keys():
-                raise ValueError(f"{joystick_polarity} must be in {JOYSTICK_POLARITY.keys()}")
+            if joystick_polarity not in POLARITY.keys():
+                raise ValueError(f"{joystick_polarity} must be in {POLARITY.keys()}")
             instrument_axis = joystick_dict["instrument_axis"]
             hardware_axis = self.axes_mapping[instrument_axis]
             # check that the axes are valid
