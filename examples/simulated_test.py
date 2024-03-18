@@ -1,7 +1,7 @@
 import logging
 import sys
-from voxel.instrument import Instrument
-from voxel.acquisition import Acquisition
+from voxel.instruments.microscopes.exaspim import ExASPIM
+from voxel.acquisition.exaspim import ExASPIMAcquisition
 
 if __name__ == '__main__':
 
@@ -22,11 +22,11 @@ if __name__ == '__main__':
     logger.addHandler(log_handler)
 
     # instrument
-    instrument = Instrument('../examples/simulated_instrument.yaml')
+    microscope = ExASPIM('../../../examples/simulated_instrument.yaml')
     # acquisition
-    acquisition = Acquisition(instrument, '../examples/simulated_acquisition.yaml')
+    acquisition = ExASPIMAcquisition(microscope, '../../examples/simulated_acquisition.yaml')
     # acquisition.check_local_acquisition_disk_space()
     # acquisition.check_external_acquisition_disk_space()
     # acquisition.check_system_memory()
-    acquisition.check_write_speed()
-    # acquisition.run()
+    # acquisition.check_write_speed()
+    acquisition.run()

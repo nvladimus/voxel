@@ -1,20 +1,35 @@
 instrument:
   id: exaspim-01
-  # ADD CHANNELS HERE
-  channels: None
+  channels:
+    "405":
+      laser: 405nm
+      filter_wheel:
+        ASI FW-1000: BP405
+    "488":
+      laser: 488nm
+      filter_wheel:
+        ASI FW-1000: BP488
+    "561":
+      laser: 561nm
+      filter_wheel:
+        ASI FW-1000: BP561
+    "638":
+      laser: 638nm
+      filter_wheel:
+        ASI FW-1000: LP638
   devices:
     cameras:
       vp-151mx:
         driver: voxel.devices.camera.simulated
         module: Camera
-        master_trigger: PCIe-6738
         init:
-          id: MB151BAY001
+          id: MP151BBX050
         settings:
-          exposure_time_ms: 10.0
+          exposure_time_ms: 100.0
           roi:
             width_px: 2048
             height_px: 2048
+          pixel_type: mono16
           trigger:
             mode: off
             source: external
@@ -22,14 +37,14 @@ instrument:
       vnp-604mx:
         driver: voxel.devices.camera.simulated
         module: Camera
-        master_trigger: PCIe-6738
         init:
-          id: MB151BAY001
+          id: MP151BBX051
         settings:
-          exposure_time_ms: 10.0
+          exposure_time_ms: 100.0
           roi:
             width_px: 2048
             height_px: 2048
+          pixel_type: mono16
           trigger:
             mode: off
             source: external
@@ -38,7 +53,6 @@ instrument:
       ASI MS-8000 y axis:
         driver: voxel.devices.stage.simulated
         module: Stage
-        master_trigger: None
         init:
           hardware_axis: y
           instrument_axis: y
@@ -47,12 +61,9 @@ instrument:
           acceleration_ms: 100.0
           backlash_mm: 0
           mode: off
-          joystick_polarity: default
-          joystick_mapping: joystick y
       ASI MS-8000 z axis:
         driver: voxel.devices.stage.simulated
         module: Stage
-        master_trigger: None
         init:
           hardware_axis: z
           instrument_axis: x
@@ -61,13 +72,21 @@ instrument:
           acceleration_ms: 100.0
           backlash_mm: 0
           mode: off
-          joystick_polarity: default
-          joystick_mapping: joystick x
+      ASI MS-8000 w axis:
+        driver: voxel.devices.stage.simulated
+        module: Stage
+        init:
+          hardware_axis: w
+          instrument_axis: w
+        settings:
+          speed_mm_s: 1.0
+          acceleration_ms: 100.0
+          backlash_mm: 0
+          mode: off
     scanning_stages:
       ASI LS-100 x axis:
         driver: voxel.devices.stage.simulated
         module: Stage
-        master_trigger: PCIe-6738
         init:
           hardware_axis: x
           instrument_axis: z
@@ -76,13 +95,10 @@ instrument:
           acceleration_ms: 100.0
           backlash_mm: 0
           mode: step shoot
-          joystick_polarity: default
-          joystick_mapping: wheel z
     filter_wheels:
       ASI FW-1000:
         driver: voxel.devices.filterwheel.simulated
         module: FilterWheel
-        master_trigger: None
         init:
           id: "0"
           filters:
@@ -93,11 +109,50 @@ instrument:
             MB405/488/561/638: 4
             Empty1: 5
             Empty2: 6
+    joysticks:
+      ASI joystick:
+        driver: voxel.devices.stage.simulated
+        module: Joystick
+        init:
+          joystick_mapping:
+            joystick_x:
+              polarity: default
+              instrument_axis: x
+            joystick_y:
+              polarity: default
+              instrument_axis: z
+            wheel_z:
+              polarity: inverted
+              instrument_axis: y
+            wheel_f:
+              polarity: default
+              instrument_axis: w
+    lasers:
+      405nm:
+        driver: voxel.devices.lasers.simulated
+        module: SimulatedLaser
+        init:
+          port: COM1
+      488nm:
+        driver: voxel.devices.lasers.simulated
+        module: SimulatedLaser
+        init:
+          port: COM2
+      561nm:
+        driver: voxel.devices.lasers.simulated
+        module: SimulatedLaser
+        init:
+          port: COM3
+      638nm:
+        driver: voxel.devices.lasers.simulated
+        module: SimulatedLaser
+        init:
+          port: COM4
     daqs:
       PCIe-6738:
         driver: voxel.devices.daq.simulated
         module: DAQ
-        master_trigger: None
+        master: True
         init:
           dev: Dev1
         tasks:

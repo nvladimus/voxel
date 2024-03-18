@@ -7,11 +7,14 @@ from sdks import pco
 
 BUFFER_SIZE_MB = 2400
 
-BINNING = {
-    1: 1,
-    2: 2,
-    4: 4
-}
+BINNING = [
+    1,
+    2,
+    4
+]
+
+# PIXEL TYPE
+# only uint16 easily supported for pco sdk
 
 # generate modes by querying pco sdk
 TRIGGERS = {
@@ -45,6 +48,12 @@ class Camera(BaseCamera):
         self._query_trigger_modes()
         # check valid readout modes
         self._query_readout_modes()
+
+    def reset(self):
+        if self.pco:
+            self.pco.close()
+            del self.pco
+        self.pco = pcoSingleton.Camera(id=self.id)
 
     @property
     def exposure_time_ms(self):
@@ -186,12 +195,14 @@ class Camera(BaseCamera):
     def binning(self):
         # pco binning can be different in x, y. take x value.
         binning = self.pco.sdk.get_binning()['binning x']
-        return next(key for key, value in BINNING.items() if value == binning)
+        return binning
 
     @binning.setter
     def binning(self, binning: str):
         # pco binning can be different in x, y. set same for both,
-        self.pco.sdk.set_binning(BINNING[binning], BINNING[binning])
+        if binning not in BINNING:
+            raise ValueError("binning must be one of %r." % BINNING)
+        self.pco.sdk.set_binning(binning, binning)
         self.log.info(f"binning set to: {binning}")
         # refresh parameter values
         self._get_min_max_step_values()
@@ -249,7 +260,7 @@ class Camera(BaseCamera):
         # pco api prepares buffer and autostarts. api call is in start()
         # pco only 16-bit A/D
         bit_to_byte = 2
-        frame_size_mb = self.roi['width_px']*self.roi['height_px']/BINNING[self.binning]**2*bit_to_byte/1e6
+        frame_size_mb = self.roi['width_px']*self.roi['height_px']/self.binning**2*bit_to_byte/1e6
         self.buffer_size_frames = round(BUFFER_SIZE_MB / frame_size_mb)
         self.log.info(f"buffer set to: {self.buffer_size_frames} frames")
         self.pco.record(number_of_images=self.buffer_size_frames, mode='fifo')
@@ -277,9 +288,9 @@ class Camera(BaseCamera):
     def signal_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""
         self.post_frame_time = time.time()
-        # NEED TO CHECK THE WAIT FOR NEW IMAGE FUNCTION
         frame_index = self.pco.rec.get_status()["dwProcImgCount"]
         print(frame_index)
+        # TODO FINISH THIS
         # out_buffer_size = frame_index - self.pre_frame_count
         # in_buffer_size = self.buffer_size_frames - out_buffer_size
         # dropped_frames = self.pco.rec.get_status()["bFIFOOverflow"]
@@ -368,7 +379,6 @@ class Camera(BaseCamera):
         #             min_line_interval_us = line_interval_us
         #     except:
         #         min_line_interval_us = 0
-
         #     line_interval_us += 1.0
         # # reset line interval via api
         # self.pco.sdk.set_cmos_line_timing("on", current_line_interval_us/1e6)

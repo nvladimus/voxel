@@ -393,16 +393,16 @@ class DAQ(BaseDAQ):
     def _rereserve_buffer(self, buf_len):
         pass
 
-    def start_all(self):
+    def start(self):
         pass
 
-    def stop_all(self):
+    def stop(self):
         pass
 
-    def close_all(self):
+    def close(self):
         pass
 
-    def restart_all(self):
+    def restart(self):
         pass
 
     def wait_until_done_all(self, timeout=1.0):

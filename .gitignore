@@ -10,6 +10,8 @@ __pycache__/
 *.bdv
 *.tiff
 *.xml
+*.zarr
+*.json
 
 # C extensions
 *.so

@@ -32,6 +32,9 @@ class SimulatedCombiner:
             return
         self._PercentageSplitStatus = value
 
+    def close(self):
+        pass
+
 class SimulatedLaser(BaseLaser):
 
     def __init__(self, port: Serial or str, prefix: str = '', coefficients: dict = {}):
@@ -91,4 +94,7 @@ class SimulatedLaser(BaseLaser):
         pass
 
     def disable(self):
+        pass
+
+    def close(self):
         pass

@@ -48,8 +48,8 @@ class Camera(BaseCamera):
     def __init__(self, id=str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = id
-        gentl = EGenTLSingleton()
-        discovery = EGrabberDiscovery(gentl)
+        self.gentl = EGenTLSingleton()
+        discovery = EGrabberDiscovery(self.gentl)
         discovery.discover()
         # list all possible grabbers
         egrabber_list = {'grabbers': []}
@@ -57,29 +57,35 @@ class Camera(BaseCamera):
         for interfaceIndex in range(interface_count):
             device_count = discovery.device_count(interfaceIndex)
             for deviceIndex in range(device_count):
-                stream_count = discovery.stream_count(interfaceIndex, deviceIndex)
-                for streamIndex in range(stream_count):
-                    info = {'interface': interfaceIndex,
-                            'device': deviceIndex,
-                            'stream': streamIndex
-                            }
-                    egrabber_list['grabbers'].append(info)
+                if discovery.device_info(interfaceIndex, deviceIndex).deviceVendorName != '':
+                    stream_count = discovery.stream_count(interfaceIndex, deviceIndex)
+                    for streamIndex in range(stream_count):
+                        info = {'interface': interfaceIndex,
+                                'device': deviceIndex,
+                                'stream': streamIndex
+                                }
+                        egrabber_list['grabbers'].append(info)
+
+        # for camera in discovery.cameras:
+
         del discovery
         # identify by serial number and return correct grabber
         if not egrabber_list['grabbers']:
             raise ValueError('no valid cameras found. check connections and close any software.')
 
-        for egrabber in egrabber_list['grabbers']:
-            try:
-                grabber = EGrabber(gentl, egrabber['interface'], egrabber['device'], egrabber['stream'],
+        try:
+            for egrabber in egrabber_list['grabbers']:
+                grabber = EGrabber(self.gentl, egrabber['interface'], egrabber['device'], egrabber['stream'],
                                    remote_required=True)
                 if grabber.remote.get('DeviceSerialNumber') == self.id:
                     self.log.info(f"grabber found for S/N: {self.id}")
                     self.grabber = grabber
+                    self.egrabber = egrabber
                     break
-            except:
-                self.log.error(f"no grabber found for S/N: {self.id}")
-                raise ValueError(f"no grabber found for S/N: {self.id}")
+        except:
+            self.log.error(f"no grabber found for S/N: {self.id}")
+            raise ValueError(f"no grabber found for S/N: {self.id}")
+
         del grabber
         # initialize binning as 1
         self._binning = 1
@@ -89,6 +95,11 @@ class Camera(BaseCamera):
         self._query_binning()
         # check pixel types options
         self._query_pixel_types()
+
+    def reset(self):
+        del self.grabber
+        self.grabber = EGrabber(self.gentl, self.egrabber['interface'], self.egrabber['device'], self.egrabber['stream'],
+                                   remote_required=True)
 
     @property
     def exposure_time_ms(self):
@@ -317,6 +328,9 @@ class Camera(BaseCamera):
     def stop(self):
         self.grabber.stop()
 
+    def close(self):
+        del self.grabber
+        
     def grab_frame(self):
         """Retrieve a frame as a 2D numpy array with shape (rows, cols)."""
         # Note: creating the buffer and then "pushing" it at the end has the
@@ -423,7 +437,6 @@ class Camera(BaseCamera):
         try:
             self.min_exposure_time_ms = self.grabber.remote.get("ExposureTime.Min")/1e3
             self.log.info(f"min exposure time is: {self.min_exposure_time_ms} ms")
-            print(f"min exposure time is: {self.min_exposure_time_ms} ms")
         except:
             self.log.debug(f"min exposure time not available for camera {self.id}")
         # maximum exposure time
@@ -431,63 +444,54 @@ class Camera(BaseCamera):
         try:
             self.max_exposure_time_ms = self.grabber.remote.get("ExposureTime.Max")/1e3
             self.log.info(f"max exposure time is: {self.max_exposure_time_ms} ms")
-            print(f"max exposure time is: {self.max_exposure_time_ms} ms")
         except:
             self.log.debug(f"max exposure time not available for camera {self.id}")
         # minimum width
         try:
             self.min_width_px = self.grabber.remote.get("Width.Min")
             self.log.info(f"min width is: {self.min_width_px} px")
-            print(f"min width is: {self.min_width_px} px")
         except:
             self.log.debug(f"min width not available for camera {self.id}")
         # maximum width
         try:
             self.max_width_px = self.grabber.remote.get("Width.Max")
             self.log.info(f"max width is: {self.max_width_px} px")
-            print(f"max width is: {self.max_width_px} px")
         except:
             self.log.debug(f"max width not available for camera {self.id}")
         # minimum height
         try:
             self.min_height_px = self.grabber.remote.get("Height.Min")
             self.log.info(f"min height is: {self.min_height_px} px")
-            print(f"min height is: {self.min_height_px} px")
         except:
             self.log.debug(f"min height not available for camera {self.id}")
         # maximum height
         try:
             self.max_height_px = self.grabber.remote.get("Height.Max")
             self.log.info(f"max height is: {self.max_height_px} px")
-            print(f"max height is: {self.max_height_px} px")
         except:
             self.log.debug(f"max height not available for camera {self.id}")
         # minimum offset x
         try:
             self.min_offset_x_px = self.grabber.remote.get("OffsetX.Min")
             self.log.info(f"min offset x is: {self.min_offset_x_px} px")
-            print(f"min offset x is: {self.min_offset_x_px} px")
         except:
             self.log.debug(f"min offset x not available for camera {self.id}")
         # maximum offset x
         try:
             self.max_offset_x_px = self.grabber.remote.get("OffsetX.Max")
             self.log.info(f"max offset x is: {self.max_offset_x_px} px")
-            print(f"max offset x is: {self.max_offset_x_px} px")
         except:
             self.log.debug(f"max offset x not available for camera {self.id}")
         # minimum offset y
         try:
             self.min_offset_y_px = self.grabber.remote.get("OffsetY.Min")
             self.log.info(f"min offset y is: {self.min_offset_y_px} px")
-            print(f"min offset y is: {self.min_offset_y_px} px")
         except:
             self.log.debug(f"min offset y not available for camera {self.id}")
         # maximum offset y
         try:
             self.max_offset_y_px = self.grabber.remote.get("OffsetY.Max")
             self.log.info(f"max offset y is: {self.max_offset_y_px} px")
-            print(f"max offset y is: {self.max_offset_y_px} px")
         except:
             self.log.debug(f"max offset y not available for camera {self.id}")
         # step exposure time
@@ -495,35 +499,30 @@ class Camera(BaseCamera):
         try:
             self.step_exposure_time_ms = self.grabber.remote.get("ExposureTime.Inc")/1e3
             self.log.info(f"step exposure time is: {self.step_exposure_time_ms} ms")
-            print(f"step exposure time is: {self.step_exposure_time_ms} ms")
         except:
             self.log.debug(f"step exposure time not available for camera {self.id}")
         # step width
         try:
             self.step_width_px = self.grabber.remote.get("Width.Inc")
             self.log.info(f"step width is: {self.step_width_px} px")
-            print(f"step width is: {self.step_width_px} px")
         except:
             self.log.debug(f"step width not available for camera {self.id}")
         # step height
         try:
             self.step_height_px = self.grabber.remote.get("Height.Inc")
             self.log.info(f"step height is: {self.step_height_px} px")
-            print(f"step height is: {self.step_height_px} px")
         except:
             self.log.debug(f"step height not available for camera {self.id}")
         # step offset x
         try:
             self.step_offset_x_px = self.grabber.remote.get("OffsetX.Inc")
             self.log.info(f"step offset x is: {self.step_offset_x_px} px")
-            print(f"step offset x is: {self.step_offset_x_px} px")
         except:
             self.log.debug(f"step offset x not available for camera {self.id}")
         # step offset y
         try:
             self.step_offset_y_px = self.grabber.remote.get("OffsetY.Inc")
             self.log.info(f"step offset y is: {self.step_offset_y_px} px")
-            print(f"step offset y is: {self.step_offset_y_px} px")
         except:
             self.log.debug(f"step offset y not available for camera {self.id}")
 
@@ -544,9 +543,7 @@ class Camera(BaseCamera):
                     self.log.debug(f"{binning} will be implemented through software")
                     key = int(binning.replace("X", ""))
                     BINNING[key] = key
-
-        print(BINNING)
-
+                    
         # initialize binning as 1
         self.grabber.remote.set("BinningHorizontal", BINNING[1])
 

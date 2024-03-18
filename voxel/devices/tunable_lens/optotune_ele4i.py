@@ -82,3 +82,6 @@ class TunableLens(BaseTunableLens):
                 raise Exception('Response CRC not correct')
 
             return struct.unpack(reply_fmt, data)
+
+    def close(self):
+        self.tunable_lens.close()

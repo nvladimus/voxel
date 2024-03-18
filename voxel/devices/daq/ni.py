@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from voxel.devices.daq.base import BaseDAQ
 from matplotlib.ticker import AutoMinorLocator
 from scipy import signal
-from nidaqmx.constants import FrequencyUnits as Freq
+from nidaqmx.constants import FrequencyUnits
 from nidaqmx.constants import Level
 from nidaqmx.constants import AcquisitionType as AcqType
 from nidaqmx.constants import Edge
@@ -63,19 +63,18 @@ class DAQ(BaseDAQ):
             raise ValueError("dev name must be one of %r." % self.devs)        
         self.id = dev
         self.dev = nidaqmx.system.device.Device(self.id)
+        self.log.info('resetting nidaq')
+        self.dev.reset_device()
         self.ao_physical_chans = self.dev.ao_physical_chans.channel_names
         self.co_physical_chans = self.dev.co_physical_chans.channel_names
         self.do_physical_chans = self.dev.do_ports.channel_names
         self.dio_ports = [channel.replace(f'port', "PFI") for channel in self.dev.do_ports.channel_names]
-
         self.dio_lines = self.dev.do_lines.channel_names
         self.max_ao_rate = self.dev.ao_max_rate
         self.min_ao_rate = self.dev.ao_min_rate
         self.max_do_rate = self.dev.do_max_rate
         self.max_ao_volts = self.dev.ao_voltage_rngs[1]
         self.min_ao_volts = self.dev.ao_voltage_rngs[0]
-        self.log.info('resetting nidaq')
-        self.dev.reset_device()
         self.tasks = list()
         self.task_time_s = dict()
         self.ao_waveforms = dict()
@@ -156,13 +155,12 @@ class DAQ(BaseDAQ):
                 physical_name = f"/{self.id}/{channel_number}"
                 co_chan = daq_task.co_channels.add_co_pulse_chan_freq(
                     counter=physical_name,
-                    units=Freq.HZ,
+                    units=FrequencyUnits.HZ,
                     freq=timing['frequency_hz'],
                     duty_cycle=0.5)
                 co_chan.co_pulse_term = f'/{self.id}/{timing["output_port"]}'
                 pulse_count = {'sample_mode': AcqType.FINITE, 'samps_per_chan': pulse_count} \
                     if pulse_count is not None else {'sample_mode': AcqType.CONTINUOUS}
-
             if timing['trigger_mode'] == 'off':
                 daq_task.timing.cfg_implicit_timing(
                     **pulse_count)
@@ -445,22 +443,22 @@ class DAQ(BaseDAQ):
         self.do_task.out_stream.output_buf_size = buf_len
         self.do_task.control(TaskMode.TASK_COMMIT)
 
-    def start_all(self):
+    def start(self):
 
         for task in self.tasks:
             task.start()
 
-    def stop_all(self):
+    def stop(self):
 
         for task in self.tasks:
             task.stop()
 
-    def close_all(self):
+    def close(self):
         
         for task in self.tasks:
             task.close()
 
-    def restart_all(self):
+    def restart(self):
 
         for task in self.tasks:
             task.stop()
@@ -480,3 +478,6 @@ class DAQ(BaseDAQ):
             else:
                 pass
         return True
+
+    def close(self):
+        pass

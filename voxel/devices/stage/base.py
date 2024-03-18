@@ -19,7 +19,7 @@ class BaseStage:
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    def start_stage_scan(self):
+    def start(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -111,4 +111,7 @@ class BaseStage:
 
     def log_metadata(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    def close(self):
         pass

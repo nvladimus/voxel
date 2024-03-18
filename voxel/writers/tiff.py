@@ -21,21 +21,24 @@ COMPRESSION_TYPES = {
 }
 
 DATA_TYPES = {
-    "uint8":  "uint8",
-    "uint16": "uint16",
+    "uint8",
+    "uint16"
 }
 
 class Writer(BaseWriter):
 
-    def __init__(self, path):
+    def __init__(self, path: str):
  
         super().__init__()
 
+        # check path for forward slashes
+        if '\\' in path or '/' not in path:
+            assert ValueError('path string should only contain / not \\')
+        self._path = path
         self._color = None
         self._channel = None
         self._filename = None
-        self._path = path
-        self._data_type = DATA_TYPES['uint8']
+        self._data_type = 'uint16'
         self._compression = COMPRESSION_TYPES["none"]
         self._rows = None
         self._colum_count = None
@@ -58,7 +61,7 @@ class Writer(BaseWriter):
     @property
     def signal_progress_percent(self):
         # convert to %
-        state = {'Progress [%]': self.progress*100}
+        state = {'Progress [%]': self.progress.value*100}
         return state
 
     @property
@@ -159,14 +162,6 @@ class Writer(BaseWriter):
     def path(self):
         return self._path
 
-    @path.setter
-    def path(self, path: Path or str):
-        if os.path.isdir(path):
-                self._path = Path(path)
-        else:
-            raise ValueError("%r is not a valid path." % path)
-        self.log.info(f'setting path to: {path}')
-
     @property
     def filename(self):
         return self._filename
@@ -201,7 +196,8 @@ class Writer(BaseWriter):
         self.log.info(f'setting shared memory to: {name}')
 
     def prepare(self):
-        self.p = Process(target=self._run)
+        self.progress = multiprocessing.Value('d', 0.0)
+        self.p = Process(target=self._run, args=(self.progress,))
         # Specs for reconstructing the shared memory object.
         self._shm_name = Array(c_wchar, 32)  # hidden and exposed via property.
         # This is almost always going to be: (chunk_size, rows, columns).
@@ -210,14 +206,14 @@ class Writer(BaseWriter):
            'z': CHUNK_COUNT_PX}
         self.shm_shape = [chunk_shape_map[x] for x in self.chunk_dim_order]
         self.shm_nbytes = \
-            int(np.prod(self.shm_shape, dtype=np.int64)*np.dtype(DATA_TYPES[self._data_type]).itemsize)
+            int(np.prod(self.shm_shape, dtype=np.int64)*np.dtype(self._data_type).itemsize)
         self.log.info(f"{self._filename}: intializing writer.")
 
     def start(self):
         self.log.info(f"{self._filename}: starting writer.")
         self.p.start()
 
-    def _run(self):
+    def _run(self, shared_progress):
         """Loop to wait for data from a specified location and write it to disk
         as an Imaris file. Close up the file afterwards.
 
@@ -231,7 +227,7 @@ class Writer(BaseWriter):
         log_handler = logging.StreamHandler(sys.stdout)
         log_handler.setFormatter(log_formatter)
         logger.addHandler(log_handler)
-        filepath = str((self._path / Path(f"{self._filename}")).absolute())
+        filepath = str((Path(self._path) / self._filename).absolute())
 
         writer = tifffile.TiffWriter(filepath,
                                      bigtiff=True)
@@ -263,7 +259,7 @@ class Writer(BaseWriter):
                 sleep(0.001)
             # Attach a reference to the data from shared memory.
             shm = SharedMemory(self.shm_name, create=False, size=self.shm_nbytes)
-            frames = np.ndarray(self.shm_shape, DATA_TYPES[self._data_type], buffer=shm.buf)
+            frames = np.ndarray(self.shm_shape, self._data_type, buffer=shm.buf)
             logger.warning(f"{self._filename}: writing chunk "
                   f"{chunk_num+1}/{chunk_total} of size {frames.shape}.")
             start_time = perf_counter()
@@ -273,25 +269,26 @@ class Writer(BaseWriter):
                   f"{perf_counter() - start_time:.3f} [s]")
             shm.close()
             self.done_reading.set()
-            # NEED TO USE SHARED VALUE HERE
-            self.progress = (chunk_num+1)/chunk_total
+            shared_progress.value = (chunk_num+1)/chunk_total
 
         # Wait for file writing to finish.
-        if self.progress < 1.0:
+        if shared_progress.value < 1.0:
             logger.warning(f"{self._filename}: waiting for data writing to complete for "
                   f"{self._filename}. "
-                  f"current progress is {100*self.progress:.1f}%.")
-        while self.progress < 1.0:
+                  f"current progress is {100*shared_progress.value:.1f}%.")
+        while shared_progress.value < 1.0:
             sleep(0.5)
             logger.warning(f"{self._filename}: waiting for data writing to complete for "
                   f"{self._filename}. "
-                  f"current progress is {100*self.progress:.1f}%.")
+                  f"current progress is {100*shared_progress.value:.1f}%.")
 
         writer.close()
 
     def wait_to_finish(self):
         self.log.info(f"{self._filename}: waiting to finish.")
         self.p.join()
+        # log the finished writer %
+        self.signal_progress_percent
 
     def delete_files(self):
         filepath = str((self._path / Path(f"{self._filename}")).absolute())

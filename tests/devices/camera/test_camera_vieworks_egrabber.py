@@ -15,7 +15,7 @@ for camera in config['devices']['cameras']:
 	driver = camera['driver']
 	camera_id = camera['id']
 	# create camera object
-    exec(f"from voxel.devices.camera import {driver}")
+	exec(f"from voxel.devices.camera import {driver}")
 	exec(f"cameras.append({driver}.Camera('{camera_id}'))")
 	# init values from config
 	cameras[-1].roi = {
@@ -47,3 +47,6 @@ for i in range(frames):
 	print(cameras[-1].signal_acquisition_state())
 
 cameras[-1].stop()
+
+cameras[-1].reset()
+print(cameras[-1].pixel_type)

@@ -125,6 +125,36 @@ class BaseWriter():
         pass
 
     @property
+    def shuffle(self):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @shuffle.setter
+    def shuffle(self, shuffle: str):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @property
+    def compression_level(self):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @compression_level.setter
+    def compression_level(self, compression_level: int):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @property
+    def downsample_method(self):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @downsample_method.setter
+    def downsample_method(self, downsample_method: str):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+        
+    @property
     def data_type(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
@@ -136,11 +166,6 @@ class BaseWriter():
 
     @property
     def path(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    @path.setter
-    def path(self, path: Path or str):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -183,7 +208,7 @@ class BaseWriter():
     def shm_name(self, name: str):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
-
+        
     def prepare(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass

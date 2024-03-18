@@ -28,6 +28,8 @@ for camera in config['devices']['cameras']:
         'polarity': camera['trigger']['polarity']
     }
 
+print(cameras[-1].pixel_type)
+
 frames = 100
 cameras[-1].prepare()
 cameras[-1].start()
@@ -35,7 +37,9 @@ cameras[-1].start()
 for i in range(frames):
     cameras[-1].grab_frame()
     print(cameras[-1].signal_acquisition_state())
+    print(cameras[-1].signal_sensor_temperature_c)
 
 cameras[-1].log_metadata()
 cameras[-1].stop()
-cameras[-1].close()
+cameras[-1].reset()
+print(cameras[-1].pixel_type)
