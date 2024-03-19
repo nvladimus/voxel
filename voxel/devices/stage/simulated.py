@@ -148,8 +148,5 @@ class Joystick(BaseJoystick):
                 raise ValueError(
                     f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis.")
         self._joystick_mapping = joystick_mapping
-
-    # TODO IS THIS NECESSARY?
-    @property
-    def joystick_axes(self):
-        return self._joystick_axes
+    def close(self):
+        pass

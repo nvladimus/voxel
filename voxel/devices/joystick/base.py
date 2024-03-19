@@ -7,5 +7,5 @@ class BaseJoystick:
     def joystick_mapping(self):
         pass
 
-    def joystick_axes(self):
+    def close(self):
         pass
