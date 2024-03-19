@@ -3,6 +3,6 @@ writer:
   compression: lz4
   compression_level: 0
   shuffle: shuffle
-  downsample_method: cpu
+  downsample_method: tensorstore
   data_type: uint16
   path: .
