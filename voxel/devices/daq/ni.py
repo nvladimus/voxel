@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from voxel.devices.daq.base import BaseDAQ
 from matplotlib.ticker import AutoMinorLocator
 from scipy import signal
-from nidaqmx.constants import FrequencyUnits as Freq
+from nidaqmx.constants import FrequencyUnits
 from nidaqmx.constants import Level
 from nidaqmx.constants import AcquisitionType as AcqType
 from nidaqmx.constants import Edge
@@ -155,7 +155,7 @@ class DAQ(BaseDAQ):
                 physical_name = f"/{self.id}/{channel_number}"
                 co_chan = daq_task.co_channels.add_co_pulse_chan_freq(
                     counter=physical_name,
-                    units=Freq.HZ,
+                    units=FrequencyUnits.HZ,
                     freq=timing['frequency_hz'],
                     duty_cycle=0.5)
                 co_chan.co_pulse_term = f'/{self.id}/{timing["output_port"]}'

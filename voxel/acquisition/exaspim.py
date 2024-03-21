@@ -17,6 +17,7 @@ from multiprocessing.shared_memory import SharedMemory
 from voxel.instruments.instrument import Instrument
 from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
 from voxel.acquisition.base import BaseAcquisition
+from voxel.processes.cpu.max_projection import MaxProjection
 
 class ExASPIMAcquisition(BaseAcquisition):
 

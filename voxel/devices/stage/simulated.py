@@ -9,11 +9,12 @@ from voxel.devices.utils.singleton import Singleton
 JOYSTICK_AXES = {
     "joystick_x": 0,
     "joystick_y": 1,
-    "wheel_z":    2,
-    "wheel_f":    3,
+    "wheel_z": 2,
+    "wheel_f": 3,
+    "None":4
 }
 
-JOYSTICK_POLARITY = {
+POLARITY = {
     "inverted": 0,
     "default": 1,
 }
@@ -30,7 +31,6 @@ class Stage(BaseStage):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.hardware_axis = hardware_axis.upper()
         self.instrument_axis = instrument_axis.lower()
-        # store the instrument to hardware axis mapping for the joystick device
         self.axes_mapping = AxesMappingSingleton()
         self.axes_mapping.axis_map[instrument_axis] = hardware_axis
         # TODO change this, but self.id for consistency in lookup
@@ -41,7 +41,7 @@ class Stage(BaseStage):
     def move_relative(self, position: float, wait: bool = True):
         w_text = "" if wait else "NOT "
         self.log.info(f"relative move by: {self.hardware_axis}={position} mm and {w_text}waiting.")
-        move_time_s = position/self._speed
+        move_time_s = position / self._speed
         self.move_end_time_s = time.time() + move_time_s
         self._position += position
         while time.time() < self.move_end_time_s:
@@ -50,24 +50,24 @@ class Stage(BaseStage):
     def move_absolute(self, position: float, wait: bool = True):
         w_text = "" if wait else "NOT "
         self.log.info(f"absolute move to: {self.hardware_axis}={position} mm and {w_text}waiting.")
-        move_time_s = abs(self._position - position)/self._speed
+        move_time_s = abs(self._position - position) / self._speed
         self.move_end_time_s = time.time() + move_time_s
         self._position = position
         while time.time() < self.move_end_time_s:
             time.sleep(0.01)
 
     def setup_stage_scan(self, fast_axis_start_position: float,
-                               slow_axis_start_position: float,
-                               slow_axis_stop_position: float,
-                               frame_count: int, frame_interval_um: float,
-                               strip_count: int, pattern: str,
-                               retrace_speed_percent: int):
+                         slow_axis_start_position: float,
+                         slow_axis_stop_position: float,
+                         frame_count: int, frame_interval_um: float,
+                         strip_count: int, pattern: str,
+                         retrace_speed_percent: int):
 
         self._position = fast_axis_start_position
 
     @property
     def position(self):
-        self._position = random.randint(0,100)
+        self._position = random.randint(0, 100)
         return {self.instrument_axis: self._position}
 
     @property
@@ -90,34 +90,38 @@ class Stage(BaseStage):
     def close(self):
         pass
 
+
 class Joystick(BaseJoystick):
 
-    def __init__(self, joystick_mapping: dict):
+    def __init__(self, joystick_mapping: dict = None):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._joystick_mapping = joystick_mapping if joystick_mapping is not None else \
-        {"joystick_x": {"instrument_axis": "x", "polarity": "default"},
-         "joystick_y": {"instrument_axis": "y", "polarity": "default"},
-         "wheel_z"   : {"instrument_axis": "z", "polarity": "default"},
-         "wheel_f"   : {"instrument_axis": "w", "polarity": "default"},
-        }
+            {"joystick_x": {"instrument_axis": "x", "polarity": "default"},
+             "joystick_y": {"instrument_axis": "y", "polarity": "default"},
+             "wheel_z": {"instrument_axis": "z", "polarity": "default"},
+             "wheel_f": {"instrument_axis": "w", "polarity": "default"},
+             }
         self._stage_axes = ['x', 'y', 'z', 'w', 'm']
-        # TODO IS THIS NECESSARY?
         self._joystick_axes = JOYSTICK_AXES.keys()
+        self.axes_mapping = AxesMappingSingleton().axis_map
+        for axis in self._stage_axes:
+            if axis not in self.axes_mapping.keys():
+                self.axes_mapping[axis] = axis
         # grab the instrument to hardware axis mapping for the joystick device
-        self.axes_mapping = AxesMappingSingleton()
         for joystick_id, joystick_dict in self.joystick_mapping.items():
             # check that the joystick ids are valid
             if joystick_id not in JOYSTICK_AXES.keys():
                 raise ValueError(f"{joystick_id} must be in {JOYSTICK_AXES.keys()}")
             # check that ther polarities are valid
             joystick_polarity = joystick_dict["polarity"]
-            if joystick_polarity not in JOYSTICK_POLARITY.keys():
-                raise ValueError(f"{joystick_polarity} must be in {JOYSTICK_POLARITY.keys()}")
+            if joystick_polarity not in POLARITY.keys():
+                raise ValueError(f"{joystick_polarity} must be in {POLARITY.keys()}")
             instrument_axis = joystick_dict["instrument_axis"]
-            hardware_axis = self.axes_mapping.axis_map[instrument_axis]
+            hardware_axis = self.axes_mapping[instrument_axis]
             # check that the axes are valid
             if hardware_axis not in self._stage_axes:
-                raise ValueError(f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis.")
+                raise ValueError(
+                    f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis.")
 
     @property
     def stage_axes(self):
@@ -135,13 +139,14 @@ class Joystick(BaseJoystick):
                 raise ValueError(f"{joystick_id} must be in {JOYSTICK_AXES.keys()}")
             # check that ther polarities are valid
             joystick_polarity = joystick_dict["polarity"]
-            if joystick_polarity not in JOYSTICK_POLARITY.keys():
-                raise ValueError(f"{joystick_polarity} must be in {JOYSTICK_POLARITY.keys()}")
+            if joystick_polarity not in POLARITY.keys():
+                raise ValueError(f"{joystick_polarity} must be in {POLARITY.keys()}")
             instrument_axis = joystick_dict["instrument_axis"]
-            hardware_axis = self.axes_mapping.axis_map[instrument_axis]
+            hardware_axis = self.axes_mapping[instrument_axis]
             # check that the axes are valid
             if hardware_axis not in self._stage_axes:
-                raise ValueError(f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis.")
+                raise ValueError(
+                    f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis.")
         self._joystick_mapping = joystick_mapping
 
     # TODO IS THIS NECESSARY?

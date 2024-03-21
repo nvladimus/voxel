@@ -276,3 +276,6 @@ class Camera(BaseCamera):
         self.terminate_frame_grab.set()
         self.thread.join()
         self.terminate_frame_grab.clear()
+
+    def close(self):
+        pass

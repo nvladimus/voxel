@@ -49,6 +49,7 @@ DATA_TYPES = [
 # tensorstore currently doesn't natively do multi-scale generation
 # we have to do it ourselves, can choose from these implemented methods
 DOWNSAMPLE_METHOD = [
+    "tensorstore",
     "cpu",
     "gpu_tools",
     "gpu_clesperanto",
