@@ -123,13 +123,9 @@ class MaxProjection:
             # max project latest image
             if self.new_image.is_set():
                 self.latest_img = np.ndarray(self.shm_shape, self._data_type, buffer=self.shm.buf)
-                start_time = time.time()
                 self.mip_xy = np.maximum(self.mip_xy, self.latest_img).astype(np.uint16)
                 self.mip_yz[:, frame_index] = np.max(self.latest_img, axis=0)
                 self.mip_xz[frame_index, :] = np.max(self.latest_img, axis=1)
-                end_time = time.time()
-                run_time = end_time - start_time
-                print(f'run time = {run_time} [sec]')
                 # if this projection thickness is complete or end of stack
                 if chunk_index == self._projection_count_px - 1 or frame_index == self._frame_count_px - 1:
                     start_index = int(frame_index - self._projection_count_px + 1)

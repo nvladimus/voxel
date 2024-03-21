@@ -4,6 +4,8 @@ import time
 import logging
 import sys
 import threading
+import glob
+import shutil
 from subprocess import Popen, PIPE, STDOUT
 from pathlib import Path
 
@@ -47,27 +49,14 @@ class FileTransfer():
 
     @property
     def signal_progress_percent(self):
-        self.log.info(f'{self._filename} transfer progress: {self.progress} [%]')
-        return self.progress
+        state = {}
+        state['Transfer Progress [%]'] = self.progress
+        self.log.info(f'{self._filename} transfer progress: {self.progress:.2f} [%]')
+        return state
 
     def start(self):
-        # if not os.path.isfile(self._local_directory.absolute() / self._filename):
-        #     raise FileNotFoundError(f"{self._local_directory} does not exist.")
-        # xcopy requires an asterisk to indicate source and destination are
-        # files, not directories.
-        # TODO: identify if xcopy src/dest are files or directories, and
-        #   annotate them as such.
-        # flags = f'/j /mov /log:{self.local_directory.absolute()}\\log.txt /njh /njs'
-        self._log_name = f'{self._filename}.txt'
-        self._exclude_log = f'/xf {self._log_name}'
-        self._include = f'/if {self._filename}*'
-        flags = f'/j /mov /njh /njs /log:{self._local_directory.absolute()}\\{self._log_name}'
-        cmd_with_args = f'{self._protocol} {self._local_directory.absolute()} {self._external_directory.absolute()} \
-            {self._include} {self._exclude_log} {flags}'
-        print(cmd_with_args)
         self.log.info(f"transferring from {self._local_directory} to {self._external_directory}")
-        # self.cmd = subprocess.run(cmd_with_args, check=True)
-        self.thread = threading.Thread(target=self._run, args=(cmd_with_args,))
+        self.thread = threading.Thread(target=self._run)
         self.thread.start()
 
     def wait_until_finished(self):
@@ -76,31 +65,78 @@ class FileTransfer():
     def is_alive(self):
         return self.thread.is_alive()
 
-    def _run(self, cmd_with_args: str):
-        subprocess = Popen(cmd_with_args, stdout=PIPE, stderr=STDOUT)
-        # pause for 1 sec for log file first line write
-        time.sleep(1)
-        self.progress = 0
-        while self.progress < 100:
-            # open log file
-            f = open(f'{self._local_directory.absolute()}\\{self._log_name}', 'r')
-            # read the last line
-            line = f.readlines()[-1]
-            # close the log file
-            f.close()
-            # try to find if there is a % in the last line
-            try:
-                # conver the string to a float
-                self.progress = float(line.replace('%',''))
-            # line did not contain %
-            except:
-                self.progress = 0
-            self.log.info(f'file transfer is {self.progress} % complete.')
-            # pause for 1 sec
-            time.sleep(1)
-        # cleanup the subprocess
-        subprocess.kill()
-        subprocess.wait()
-        # remove the log file
-        os.remove(f'{self._local_directory.absolute()}\\{self._log_name}')
+    def _run(self):
+        # generate a list of subdirs and files in the parent local dir to delete at the end
+        delete_list = os.listdir(self._local_directory.absolute())
+        # generate a list of files to copy
+        # path is the entire experiment path
+        # subdirs is any tile specific subdir i.e. zarr store
+        # files are any tile specific files
+        file_list = dict()
+        for path, subdirs, files in os.walk(self._local_directory.absolute()):
+            for name in files:
+                file_list[os.path.join(path, name)] = os.path.getsize(os.path.join(path, name))/1024**2
+        total_size_mb = sum(file_list.values())
+        # sort the file list based on the file sizes and create a list for transfers
+        sorted_file_list = dict(sorted(file_list.items(), key = lambda item: item[1]))
+        total_transferred_mb = 0
+        for file_path, file_size_mb in sorted_file_list.items():
+            # transfer just one file and iterate
+            # split filename and path
+            [local_dir, filename] = os.path.split(file_path)
+            # specify external directory
+            # need to change directories to str because they are Path objects
+            external_dir = local_dir.replace(str(self._local_directory), str(self._external_directory))
+            # robocopy flags
+            # /j unbuffered copy for transfer speed stability
+            # /mov deletes local files after transfer
+            # /if move only the specified filename
+            # /njh no job header in log file
+            # /njs no job summary in log file
+            log_path = Path(f'{self._local_directory.absolute()}/{self._filename}.txt')
+            cmd_with_args = f'{self._protocol} {local_dir} {external_dir} \
+                /j /if {filename} /njh /njs /log:{log_path}'
+            subprocess = Popen(cmd_with_args, stdout=PIPE, stderr=STDOUT)
+            time.sleep(0.01)
+            # lets monitor the progress of the individual file if size > 1 GB
+            if file_size_mb > 1024:
+                file_progress = 0
+                while file_progress < 100:
+                    # open log file
+                    f = open(f'{log_path}', 'r')
+                    # read the last line
+                    line = f.readlines()[-1]
+                    # close the log file
+                    f.close()
+                    # try to find if there is a % in the last line
+                    try:
+                        # conver the string to a float
+                        file_progress = float(line.replace('%',''))
+                    # line did not contain %
+                    except:
+                        file_progress = 0
+                    # sum to transferred amount to track progress
+                    self.progress = (total_transferred_mb +
+                                    file_size_mb * file_progress / 100) / total_size_mb * 100
+                    # pause for 1 sec
+                    time.sleep(0.001)
+                # clean up and remove the temporary log file
+                os.remove(log_path)
+            else:
+                subprocess.wait()
+                self.progress = (total_transferred_mb + file_size_mb) / total_size_mb * 100
+            # update the total transfered amount
+            total_transferred_mb += file_size_mb
+            self.log.info(f'file transfer is {self.progress:.2f} % complete.')
+        # clean up the local subdirs and files
+        for f in delete_list:
+            # f is a relative path, convert to absolute
+            f = os.path.join(self._local_directory.absolute(), f)
+            # .zarr is directory but os.path.isdir will return False
+            if os.path.isdir(f) or ".zarr" in f:
+                shutil.rmtree(os.path.join(self._local_directory.absolute(), f))
+            elif os.path.isfile(f):
+                os.remove(os.path.join(self._local_directory.absolute(), f))
+            else:
+                raise ValueError(f'{f} is not a file or directory.')
         self.log.info(f"transfer finished")

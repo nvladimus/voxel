@@ -17,7 +17,6 @@ from multiprocessing.shared_memory import SharedMemory
 from voxel.instruments.instrument import Instrument
 from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
 from voxel.acquisition.base import BaseAcquisition
-from voxel.processes.max_projection import MaxProjection
 
 class ExASPIMAcquisition(BaseAcquisition):
 
@@ -97,10 +96,11 @@ class ExASPIMAcquisition(BaseAcquisition):
             # this is hardcoded per camera, but perhaps we want to break this out into per device class
             # run any pre-routines for all cameras
             for camera_id, camera in self.instrument.cameras.items():
-                for routine in self.routines[camera_id]:
-                    self.log.info(f'running routine {routine} for camera {camera_id}')
-                    routine.filename = filenames[camera_id]
-                    routine.start(camera=camera)
+                if self.routines:
+                    self.log.info(f'running routines for camera {camera_id}')
+                    for routine in self.routines[camera_id]:
+                        routine.filename = filenames[camera_id]
+                        routine.start(camera=camera)
 
             # setup camera, data writing engines, and processes
             for camera_id, camera in self.instrument.cameras.items():
