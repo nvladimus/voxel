@@ -4,6 +4,7 @@ import time
 import logging
 import sys
 import threading
+import shutil
 from subprocess import Popen, PIPE, STDOUT
 from pathlib import Path
 from typing import List, Any, Iterable
@@ -31,7 +32,7 @@ class FileTransfer():
         # --progress outputs progress which is piped to log file
         # --recursive transfers all files in directory sequentially
         # --info=progress2 outputs % progress for all files not sequentially for each file
-        self._flags = ['--progress', '--remove-source-files', '--recursive', '--info=progress2']
+        self._flags = ['--progress', '--recursive', '--info=progress2']
 
     @property
     def filename(self):
@@ -98,37 +99,18 @@ class FileTransfer():
             # specify external directory
             # need to change directories to str because they are Path objects
             external_dir = local_dir.replace(str(self._local_directory), str(self._external_directory))
-            # robocopy flags
-            # /j unbuffered copy for transfer speed stability
-            # /mov deletes local files after transfer
-            # /if move only the specified filename
-            # /njh no job header in log file
-            # /njs no job summary in log file
+            # make external directory tree if needed
+            if not os.path.isdir(external_dir):
+                os.makedirs(external_dir)
+            # setup log file
             log_path = Path(f'{self._local_directory.absolute()}/{self._filename}.txt')
-
-            # do not move and transfer log file
-            # order of arguments matters here... --exclude='*' first excludes all files
-            # then we include only files from above
-            self._exclude = ["--exclude", '*']
-            # only include files including the filename
-            # **/ sets to include anything in the local working directory
-            # * at end regex includes anything with the filename prefix
-            # example: --include='**/tile_X_0000_Y_0000_Z_0000.tiff'
-            self._include = ["--include", f"**/{filename}"]
-            # finally we exclude the log file from the included files
-            self._exclude_log = ["--exclude", log_path]
-            # open log file for writing to pipe into stdout
             self._log_file = open(log_path, 'w')
             self.log.info(f"transferring from {self._local_directory} to {self._external_directory}")
-            # add a forward slash at end so local directory itself is not copied, contents only
+            # generate rsync command with args
             cmd_with_args = self._flatten([self._protocol,
                                            self._flags,
-                                           self._exclude_log,
-                                           self._include,
-                                           self._exclude,
-                                           f'{self._local_directory}/',
-                                           self._external_directory])
-
+                                           file_path,
+                                           Path(external_dir) / Path(filename)])
             subprocess = Popen(cmd_with_args, stdout=self._log_file)
             self._log_file.close()
             time.sleep(0.01)
@@ -172,14 +154,14 @@ class FileTransfer():
                     f.close()
                     # pause for 1 sec
                     time.sleep(0.001)
-                # clean up and remove the temporary log file
-                os.remove(log_path)
             else:
                 subprocess.wait()
                 self.progress = (total_transferred_mb + file_size_mb) / total_size_mb * 100
+            # clean up and remove the temporary log file
+            os.remove(log_path)
             # update the total transfered amount
             total_transferred_mb += file_size_mb
-            self.log.info(f'file transfer is {self.progress:.2f} % complete.')                
+            self.log.info(f'file transfer is {self.progress:.2f} % complete.')         
         # clean up the local subdirs and files
         for f in delete_list:
             # f is a relative path, convert to absolute
