@@ -38,18 +38,18 @@ class LaserLBXOxxius(LBX, BaseLaser):
     @property
     def power_setpoint_mw(self):
         if self.constant_current == 'ON':
-            return float(round(self.func.subs(symbols('x'), self.current_setpoint), 3))
+            print('from laser', float(round(self.func.subs(symbols('x'), self.current_setpoint), 3)),  self.current_setpoint)
+            return int(round(self.func.subs(symbols('x'), self.current_setpoint)))
         else:
-            return float(self.power_setpoint)
+            return int(self.power_setpoint)
 
     @power_setpoint_mw.setter
     def power_setpoint_mw(self, value: float or int):
-
         if self.constant_current == 'ON':
             solutions = solve(self.func - value)  # solutions for laser value
             for sol in solutions:
                 if round(sol) in range(0, 101):
-                    self.current_setpoint = round(sol, 3)
+                    self.current_setpoint = int(round(sol))     # setpoint must be integer
                     return
             # If no value exists, alert user
             self.log.error(f"Cannot set laser to {value}mW because "
@@ -60,9 +60,9 @@ class LaserLBXOxxius(LBX, BaseLaser):
     @property
     def max_power_mw(self):
         if self.constant_current == 'ON':
-            return float(round(self.func.subs(symbols('x'), 100), 1))
+            return int((round(self.func.subs(symbols('x'), 100), 1)))
         else:
-            return float(self.max_power)
+            return int((self.max_power))
 
     @property
     def modulation_mode(self):
