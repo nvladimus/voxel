@@ -10,7 +10,20 @@ import importlib
 from serial import Serial
 from ruamel.yaml import YAML
 
+
 class Instrument:
+
+    def __init__(self, config_filename: str):
+        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        # current working directory
+        this_dir = Path(__file__).parent.resolve()
+        self.config_path = this_dir / Path(config_filename)
+        # yaml = YAML(typ='safe', pure=True)    # loads yaml in as dict. May want to use in future
+        self.config = YAML().load(Path(self.config_path))
+        # store a dict of {device name: device type} for convenience
+        self.channels = {}
+        # construct microscope
+        self._construct()
 
     def _construct(self):
         """Construct device based on configuration yaml"""
@@ -24,6 +37,7 @@ class Instrument:
         for device_type, device_list in self.config['instrument']['devices'].items():
             setattr(self, device_type, dict())
             self._construct_device(device_type, device_list)
+
         # construct and verify channels
         for channel_name, channel in self.config['instrument']['channels'].items():
             laser_name = channel['laser']
@@ -41,18 +55,19 @@ class Instrument:
         :param device_type: type of device setting up like camera. Type is specified by yaml
         :param device_dictionary: list of dictionaries describing all alike devices of an instrument
         like [{camera0}, {camera1}]"""
+
         for name, device in device_dictionary.items():
             self.log.info(f'constructing {name}')
-            # add to the master list of devices
-            self.device_list[name] = device_type
             driver = device['driver']
             module = device['module']
             init = device.get('init', {})
             device_object = self._load_device(driver, module, init)
             settings = device.get('settings', {})
             self._setup_device(device_object, settings)
-            device_dict = getattr(self, device_type)
-            device_dict[name] = device_object
+            # create device dictionary if it doesn't already exist and add device to dictionary
+            if not hasattr(self, device_type):
+                setattr(self, device_type, {})
+            getattr(self, device_type)[name] = device_object
 
             # added logic for daqs
             if 'tasks' in device.keys() and device_type == 'daqs':
@@ -60,13 +75,14 @@ class Instrument:
                     pulse_count = task_dict['timing'].get('pulse_count', None)
                     device_object.add_task(task_dict, task_type[:2], pulse_count)
 
-            # added logic for stages to store and check stage axes
-            if device_type == 'tiling_stages' or device_type == 'scanning_stages':
-                instrument_axis = device['init']['instrument_axis']
-                if instrument_axis in self.stage_axes:
-                    raise ValueError(f'{instrument_axis} is duplicated and already exists!')
-                else:
-                    self.stage_axes.append(instrument_axis)
+            # # added logic for stages to store and check stage axes
+            # if device_type == 'tiling_stages' or device_type == 'scanning_stages':
+            #     instrument_axis = device['init']['instrument_axis']
+            #     if instrument_axis in self.stage_axes:
+            #         raise ValueError(f'{instrument_axis} is duplicated and already exists!')
+            #     else:
+            #         self.stage_axes.append(instrument_axis)
+
             # Add subdevices under device and fill in any needed keywords to init
             for subdevice_type, subdevice_dictionary in device.get('subdevices', {}).items():
                 self._construct_subdevice(device_object, subdevice_type, subdevice_dictionary)
@@ -82,17 +98,15 @@ class Instrument:
             subdevice_class = getattr(importlib.import_module(subdevice['driver']), subdevice['module'])
             subdevice_needs = inspect.signature(subdevice_class.__init__).parameters
             for name, parameter in subdevice_needs.items():
-                # add to the master list of devices
-                self.device_list[name] = subdevice_type
                 # If subdevice init needs a serial port, add device's serial port to init arguments
-                if parameter.annotation == Serial and Serial in device_object.__dict__.values():
-                    device_port_name = [k for k, v in device_object.__dict__.items() if v == Serial]
-                    subdevice['init'][name] = getattr(device_object, *device_port_name)
+                if parameter.annotation == Serial and Serial in [type(v) for v in device_object.__dict__.values()]:
+                    # assuming only one relevant serial port in parent
+                    subdevice['init'][name] = [v for v in device_object.__dict__.values() if type(v) == Serial][0]
                 # If subdevice init needs parent object type, add device object to init arguments
                 elif parameter.annotation == type(device_object):
                     subdevice['init'][name] = device_object
         self._construct_device(subdevice_type, subdevice_dictionary)
-        
+
     def _load_device(self, driver: str, module: str, kwds):
         """Load device based on driver, module, and kwds specified
         :param driver: driver of device

@@ -102,7 +102,6 @@ class Joystick(BaseJoystick):
              "wheel_f": {"instrument_axis": "w", "polarity": "default"},
              }
         self._stage_axes = ['x', 'y', 'z', 'w', 'm']
-        self._joystick_axes = JOYSTICK_AXES.keys()
         self.axes_mapping = AxesMappingSingleton().axis_map
         for axis in self._stage_axes:
             if axis not in self.axes_mapping.keys():
@@ -148,8 +147,3 @@ class Joystick(BaseJoystick):
                 raise ValueError(
                     f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis.")
         self._joystick_mapping = joystick_mapping
-
-    # TODO IS THIS NECESSARY?
-    @property
-    def joystick_axes(self):
-        return self._joystick_axes

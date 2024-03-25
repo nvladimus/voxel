@@ -405,7 +405,7 @@ class Camera(BaseCamera):
         timeout_ms = 1000
         if self.dcam.wait_capevent_frameready(timeout_ms) is not False:
             image = self.dcam.buf_getlastframedata()
-        return image
+            return image
 
     def signal_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""

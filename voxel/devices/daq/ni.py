@@ -283,25 +283,27 @@ class DAQ(BaseDAQ):
         setattr(self, f"{task_type}_total_time_ms", timing['period_time_ms'] + timing['rest_time_ms'])
 
 
-    def write_ao_waveforms(self):
+    def write_ao_waveforms(self, rereserve_buffer=True):
 
         ao_voltages = numpy.array(list(self.ao_waveforms.values()))
 
-        # unreserve buffer
-        self.ao_task.control(TaskMode.TASK_UNRESERVE)
-        # sets buffer to length of voltages
-        self.ao_task.out_stream.output_buf_size = len(ao_voltages[0])
-        self.ao_task.control(TaskMode.TASK_COMMIT)
+        if rereserve_buffer:    # don't need to rereseve when rewriting already running tasks
+            # unreserve buffer
+            self.ao_task.control(TaskMode.TASK_UNRESERVE)
+            # sets buffer to length of voltages
+            self.ao_task.out_stream.output_buf_size = len(ao_voltages[0])
+            self.ao_task.control(TaskMode.TASK_COMMIT)
         self.ao_task.write(numpy.array(ao_voltages))
 
-    def write_do_waveforms(self):
+    def write_do_waveforms(self, rereserve_buffer=True):
 
         do_voltages = numpy.array(list(self.do_waveforms.values()))
-        # unreserve buffer
-        self.do_task.control(TaskMode.TASK_UNRESERVE)
-        # sets buffer to length of voltages
-        self.do_task.out_stream.output_buf_size = len(do_voltages[0])
-        #FIXME: Really weird quirk on Micah's computer. Check if actually real
+        if rereserve_buffer: # don't need to rereseve when rewriting already running tasks
+            # unreserve buffer
+            self.do_task.control(TaskMode.TASK_UNRESERVE)
+            # sets buffer to length of voltages
+            self.do_task.out_stream.output_buf_size = len(do_voltages[0])
+            #FIXME: Really weird quirk on Micah's computer. Check if actually real
         do_voltages = do_voltages.astype("uint32")[0] if len(do_voltages) == 1 else do_voltages.astype("uint32")
         self.do_task.write(do_voltages)
     def sawtooth(self,

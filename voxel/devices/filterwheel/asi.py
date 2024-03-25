@@ -8,6 +8,7 @@ from voxel.devices.filterwheel.base import BaseFilterWheel
 
 SWITCH_TIME_S = 0.1 # estimated timing
 
+#TODO: I can't get this working?
 # singleton wrapper around TigerController
 class TigerControllerSingleton(TigerController, metaclass=Singleton):
     def __init__(self, com_port):
@@ -17,14 +18,14 @@ class FilterWheel(BaseFilterWheel):
 
     """Filter Wheel Abstraction from an ASI Tiger Controller."""
 
-    def __init__(self, port: str, id, filters: dict):
+    def __init__(self, tigerbox: TigerController, id, filters: dict):
         """Connect to hardware.
       
         :param filterwheel_cfg: cfg for filterwheel
         :param tigerbox: TigerController instance.
         """
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.tigerbox = TigerControllerSingleton(port)
+        self.tigerbox = tigerbox
         self.id = id
         self.filters = filters
         # force homing of the wheel
