@@ -50,13 +50,12 @@ RETRIGGERABLE = {
 
 class DAQ(BaseDAQ):
 
-    def __init__(self, dev: str, tasks:dict):
-
-        self._tasks = tasks
+    def __init__(self, dev: str):
 
         self.do_task = None
         self.ao_task = None
         self.co_task = None
+        self._tasks = None
 
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.devs = list()
@@ -88,6 +87,10 @@ class DAQ(BaseDAQ):
 
     @tasks.setter
     def tasks(self, tasks_dict: dict):
+        # # Add waveforms to check if task is configured correctly
+        # for task_type, task_dict in tasks_dict.items():
+        #     pulse_count = task_dict['timing'].get('pulse_count', None)
+        #     self.add_task(task_type[:2], pulse_count)
         self._tasks = tasks_dict
 
     def add_task(self, task_type: str, pulse_count=None):

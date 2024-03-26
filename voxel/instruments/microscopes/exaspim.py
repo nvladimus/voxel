@@ -19,7 +19,8 @@ class ExASPIM(Instrument):
         this_dir = Path(__file__).parent.resolve()
         self.config_path = this_dir / Path(config_filename)
         #yaml = YAML(typ='safe', pure=True)    # loads yaml in as dict. May want to use in future
-        self.config = YAML().load(Path(self.config_path))
+        self.config = YAML(typ='safe', pure=True).load(self.config_path)
+
         # store a dict of {device name: device type} for convenience
         self.device_list = dict()
         # store a list of stage axes
