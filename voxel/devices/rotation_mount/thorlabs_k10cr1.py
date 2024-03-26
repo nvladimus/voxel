@@ -23,7 +23,7 @@ class RotationMount:
                 # devices/Thorlabs/kinesis of pylablib
                 rotation_mount = Thorlabs.Kinesis(conn=device[0], scale=model)
                 info = rotation_mount.get_device_info()
-                if info['serial'] == id:
+                if info.serial_no == id:
                     self.rotation_mount = rotation_mount
                     break
         except:

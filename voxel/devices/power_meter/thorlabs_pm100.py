@@ -15,7 +15,7 @@ class PowerMeter:
                 # uses the PM160 class within devices/Thorlabs/misc of pylablib
                 power_meter = Thorlabs.PM160(resource)
                 info = power_meter.get_device_info()
-                if info['serial'] == id:
+                if info.serial == id:
                     self.power_meter = power_meter
                     break
         except:
@@ -41,8 +41,8 @@ class PowerMeter:
     
     @wavelength_nm.setter
     def wavelength_nm(self, wavelength_nm: float):
-        # convert from nanometer to meter
-        wavelength_range_nm = self.power_meter.get_wavelength_range() * 1e9
+        # convert from meter to nanometer
+        wavelength_range_nm = tuple([x * 1e9 for x in self.power_meter.get_wavelength_range()])
         if wavelength_nm < wavelength_range_nm[0] or wavelength_nm > wavelength_range_nm[1]:
             raise ValueError(f'wavelength must be between {wavelength_range_nm[0]}'
                              f'and {wavelength_range_nm[1]} nm')
@@ -52,7 +52,7 @@ class PowerMeter:
     @property
     def power_mw(self):
         # convert from watt to milliwatt
-        return self.power_meter.get_power(sensor_mode='power') * 1e3
+        return self.power_meter.get_power() * 1e3
 
     def close(self):
         # inherited close property from core/devio/SCPI in pylablib

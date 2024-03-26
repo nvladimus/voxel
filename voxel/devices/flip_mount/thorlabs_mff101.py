@@ -1,4 +1,5 @@
 import logging
+import time
 from pylablib.devices import Thorlabs
 
 MIN_SWITCH_TIME_S = 0.3
@@ -24,22 +25,22 @@ class FlipMount:
                 # devices/Thorlabs/kinesis of pylablib
                 flip_mount = Thorlabs.MFF(conn=device[0])
                 info = flip_mount.get_device_info()
-                if info['serial'] == id:
+                if info.serial_no == id:
                     self.flip_mount = flip_mount
                     break
         except:
             self.log.debug(f'{id} is not a valid thorabs flip mount')
-            raise ValueError(f'could not find power meter with id {id}')
+            raise ValueError(f'could not find flip mount with id {id}')
 
     @property
     def position(self):
         # returns 0 or 1 for position of flip mount
         position = self.flip_mount.get_state()
         return next(key for key, value in
-                    self.filters.items() if value == position)
+                    self.positions.items() if value == position)
 
     @position.setter
-    def position(self, position_name: str):
+    def position(self, position_name: str, wait = False):
         # returns 0 or 1 for position of flip mount
         if position_name not in self.positions.keys():
             raise ValueError(f'position {position_name}'
@@ -47,6 +48,8 @@ class FlipMount:
         self.flip_mount.move_to_state(self.positions[position_name])
         self.log.info(f'flip mount {self.id}'
                       f'moved to position {position_name}')
+        if wait:
+            time.sleep(self.switch_time_ms)
     
     @property
     def switch_time_ms(self):
