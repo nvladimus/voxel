@@ -22,7 +22,7 @@ class FlipMount:
             for device in devices:
                 # uses the MFF class within
                 # devices/Thorlabs/kinesis of pylablib
-                flip_mount = Thorlabs.MFF(device[0])
+                flip_mount = Thorlabs.MFF(conn=device[0])
                 info = flip_mount.get_device_info()
                 if info['serial'] == id:
                     self.flip_mount = flip_mount
@@ -74,6 +74,6 @@ class FlipMount:
         self.log.info(f'flip mount {self.id} switch time set to {time_ms} ms')
 
     def close(self):
-        # inherited close property from core/devio/SCPI in pylablib
+        # inherited close property from kinesis in pylablib
         self.close()
         self.log.info(f'power meter {self.id} closed')
