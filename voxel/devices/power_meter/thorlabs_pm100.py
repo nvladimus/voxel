@@ -28,15 +28,31 @@ class PowerMeter:
 
     @sensor_mode.setter
     def sensor_mode(self, mode: str):
-        """Set the filterwheel index."""
         supported_modes = self.power_meter.get_supported_sensor_modes()
         if mode not in supported_modes:
             raise ValueError(f'Sensor mode {mode} must be one of '
                             f'{supported_modes}')
+        self.log.info(f'sensor mode set to {mode}')
+
+    @property
+    def wavelength_nm(self):
+        # convert from meter to nanometer
+        return self.power_meter.get_wavelength() * 1e9
+    
+    @wavelength_nm.setter
+    def wavelength_nm(self, wavelength_nm: float):
+        # convert from nanometer to meter
+        wavelength_range_nm = self.power_meter.get_wavelength_range() * 1e9
+        if wavelength_nm < wavelength_range_nm[0] or wavelength_nm > wavelength_range_nm[1]:
+            raise ValueError(f'wavelength must be between {wavelength_range_nm[0]}'
+                             f'and {wavelength_range_nm[1]} nm')
+        self.power_meter.set_wavelength(wavelength_nm / 1e9)
+        self.log.info(f'wavelength set to {wavelength_nm} nm')
 
     @property
     def power_mw(self):
-        return self.power_meter.get_power(sensor_mode='power')
+        # convert from watt to milliwatt
+        return self.power_meter.get_power(sensor_mode='power') * 1e3
 
     def close(self):
         # inherited close property from core/devio/SCPI in pylablib
