@@ -75,6 +75,7 @@ class SimulatedLaser(BaseLaser):
             raise ValueError("mode must be one of %r." % MODULATION_MODES.keys())
         for attribute, state in MODULATION_MODES[value].items():
             setattr(self, attribute, state)
+            self._modulation_mode = value
     @property
     def signal_temperature_c(self):
         return self._temperature

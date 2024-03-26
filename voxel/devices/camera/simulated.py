@@ -7,7 +7,7 @@ from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
 from threading import Thread
 
 BUFFER_SIZE_FRAMES = 8
-MIN_WIDTH_PX = 64    
+MIN_WIDTH_PX = 64
 MAX_WIDTH_PX = 14192
 DIVISIBLE_WIDTH_PX = 16
 MIN_HEIGHT_PX = 2
@@ -66,6 +66,9 @@ class Camera(BaseCamera):
         self._trigger = {'mode':'on',
                          'source': 'internal',
                          'polarity':'rising'}
+
+        # grab parameter values
+        self._get_min_max_step_values()
 
     @property
     def exposure_time_ms(self):
@@ -279,3 +282,25 @@ class Camera(BaseCamera):
 
     def close(self):
         pass
+
+    def _get_min_max_step_values(self):
+
+
+        # gather min max values
+        # convert from s to ms
+        self.min_exposure_time_ms = 0.001
+        self.max_exposure_time_ms = 6e4
+
+        self.min_width_px = 64
+        self.max_width_px = 14192
+        self.min_height_px = 2
+        self.max_height_px = 10640
+        self.min_offset_x_px = 0
+        self.max_offset_x_px = 14192
+        self.min_offset_y_px = 0
+        self.max_offset_y_px = 10640
+        self.step_width_px = 16
+        self.step_height_px = 1
+        self.step_offset_x_px = 1
+        self.step_offset_y_px = 1
+
