@@ -38,7 +38,6 @@ class LaserLBXOxxius(LBX, BaseLaser):
     @property
     def power_setpoint_mw(self):
         if self.constant_current == 'ON':
-            print('from laser', float(round(self.func.subs(symbols('x'), self.current_setpoint), 3)),  self.current_setpoint)
             return int(round(self.func.subs(symbols('x'), self.current_setpoint)))
         else:
             return int(self.power_setpoint)

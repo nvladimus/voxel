@@ -4,12 +4,12 @@ channel_specs:
     driver : "oxxius_laser"
     module : "L6CCCombiner"
     kwds:
-      port: "COM11"
+      port: "COM5"
     setup:
       {}
     '405':
       type : "laser"
-      driver : "oxxius_laser"
+      driver : "voxel.devices.lasers.oxxius.laser_lbx_oxxius"
       module : "LaserLBXOxxius"
       color : "purple"
       disable_voltage : 0.0
@@ -26,7 +26,7 @@ channel_specs:
 
     '561':
       type: "laser"
-      driver: "oxxius_laser"
+      driver: "voxel.devices.lasers.oxxius.laser_lcx_oxxius"
       module: "LaserLCXOxxius"
       color: "greenyellow"
       disable_voltage: 0.0

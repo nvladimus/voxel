@@ -13,16 +13,15 @@ from ruamel.yaml import YAML
 
 class Instrument:
 
-    def __init__(self, config_filename: str):
+    def __init__(self, config_path: str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        # current working directory
-        this_dir = Path(__file__).parent.resolve()
-        self.config_path = this_dir / Path(config_filename)
+
+        self.config_path = Path(config_path)
         # yaml = YAML(typ='safe', pure=True)    # loads yaml in as dict. May want to use in future
-        self.config = YAML().load(Path(self.config_path))
+        self.config = YAML(typ='safe', pure=True).load(self.config_path)
         # store a dict of {device name: device type} for convenience
         self.channels = {}
-        self.stage_axes = {}
+        self.stage_axes = []
         # construct microscope
         self._construct()
 
@@ -74,7 +73,7 @@ class Instrument:
             if 'tasks' in device.keys() and device_type == 'daqs':
                 for task_type, task_dict in device['tasks'].items():
                     pulse_count = task_dict['timing'].get('pulse_count', None)
-                    device_object.add_task(task_dict, task_type[:2], pulse_count)
+                    device_object.add_task(task_type[:2], pulse_count)
 
             # added logic for stages to store and check stage axes
             if device_type == 'tiling_stages' or device_type == 'scanning_stages':

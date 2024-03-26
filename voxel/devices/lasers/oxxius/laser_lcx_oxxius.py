@@ -23,7 +23,9 @@ class LaserLCXOxxius(LCX, BaseLaser):
 
     @power_setpoint_mw.setter
     def power_setpoint_mw(self, value: float or int):
+        print('power setting to ', value)
         self.power_setpoint = value
+        print('power set to ', self.power_setpoint)
 
     @property
     def max_power_mw(self):
