@@ -6,7 +6,7 @@ from pylablib.devices import Thorlabs
 class PowerMeter:
     def __init__(self, id: str):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.id = id
+        self.id = id # serial number of power meter
         # lets find the device using pyvisa
         resource_manger = visa.ResourceManager()
         resources = resource_manger.list_resources()
@@ -19,7 +19,7 @@ class PowerMeter:
                     self.power_meter = power_meter
                     break
         except:
-            self.log.debug(f'{resource} is not a valid thorabs power meter')
+            self.log.debug(f'{id} is not a valid thorabs power meter')
             raise ValueError(f'could not find power meter with id {id}')
   
     @property
@@ -57,3 +57,4 @@ class PowerMeter:
     def close(self):
         # inherited close property from core/devio/SCPI in pylablib
         self.close()
+        self.log.info(f'power meter {self.id} closed')
