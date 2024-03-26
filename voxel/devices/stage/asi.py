@@ -3,7 +3,7 @@ from voxel.devices.utils.singleton import Singleton
 from voxel.devices.stage.base import BaseStage
 from tigerasi.tiger_controller import TigerController, STEPS_PER_UM
 from tigerasi.device_codes import *
-
+from time import sleep
 # constants for Tiger ASI hardware
 
 MODES = {
@@ -24,7 +24,7 @@ class TigerControllerSingleton(TigerController, metaclass=Singleton):
 
 class Stage(BaseStage):
 
-    def __init__(self, port: str, hardware_axis: str, instrument_axis: str):
+    def __init__(self, port: str, hardware_axis: str, instrument_axis: str, tigerbox: TigerController = None):
         """Connect to hardware.
 
         :param tigerbox: TigerController instance.
@@ -32,7 +32,7 @@ class Stage(BaseStage):
         :param instrument_axis: instrument hardware axis.
         """
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.tigerbox = TigerControllerSingleton(com_port = port)
+        self.tigerbox = TigerControllerSingleton(com_port = port) if tigerbox is None else tigerbox
         self.hardware_axis = hardware_axis.upper()
         self.instrument_axis = instrument_axis.lower()
         # TODO change this, but self.id for consistency in lookup
@@ -234,16 +234,16 @@ class Stage(BaseStage):
         limits[self.instrument_axis] = sorted([sample_limit_lower, sample_limit_upper])
         return limits
 
-    @property
-    def backlash_mm(self):
-        """Get the axis backlash compensation."""
-        tiger_backlash = self.tigerbox.get_axis_backlash(self.hardware_axis)
-        return self._tiger_to_sample(tiger_backlash)
-
-    @backlash_mm.setter
-    def backlash_mm(self, backlash: float):
-        """Set the axis backlash compensation to a set value (0 to disable)."""
-        self.tigerbox.set_axis_backlash(**{self.hardware_axis: backlash})
+    # @property
+    # def backlash_mm(self):
+    #     """Get the axis backlash compensation."""
+    #     tiger_backlash = self.tigerbox.get_axis_backlash(self.hardware_axis)
+    #     return self._tiger_to_sample(tiger_backlash)
+    #
+    # @backlash_mm.setter
+    # def backlash_mm(self, backlash: float):
+    #     """Set the axis backlash compensation to a set value (0 to disable)."""
+    #     self.tigerbox.set_axis_backlash(**{self.hardware_axis: backlash})
 
     @property
     def speed_mm_s(self):
@@ -255,16 +255,16 @@ class Stage(BaseStage):
     def speed_mm_s(self, speed: float):
         self.tigerbox.set_speed(**{self.hardware_axis: speed})
 
-    @property
-    def acceleration_ms(self):
-        """Get the tiger axis acceleration."""
-        tiger_speed = self.tigerbox.get_acceleration(self.hardware_axis)
-        return self._tiger_to_sample(tiger_speed)
-
-    @acceleration_ms.setter
-    def acceleration_ms(self, acceleration: float):
-        """Set the tiger axis acceleration."""
-        self.tigerbox.set_acceleration(**{self.hardware_axis: acceleration})
+    # @property
+    # def acceleration_ms(self):
+    #     """Get the tiger axis acceleration."""
+    #     tiger_speed = self.tigerbox.get_acceleration(self.hardware_axis)
+    #     return self._tiger_to_sample(tiger_speed)
+    #
+    # @acceleration_ms.setter
+    # def acceleration_ms(self, acceleration: float):
+    #     """Set the tiger axis acceleration."""
+    #     self.tigerbox.set_acceleration(**{self.hardware_axis: acceleration})
 
     @property
     def mode(self):

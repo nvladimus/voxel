@@ -49,6 +49,7 @@ DATA_TYPES = [
 # tensorstore currently doesn't natively do multi-scale generation
 # we have to do it ourselves, can choose from these implemented methods
 DOWNSAMPLE_METHOD = [
+    "tensorstore",
     "cpu",
     "gpu_tools",
     "gpu_clesperanto",
@@ -350,7 +351,7 @@ class Writer(BaseWriter):
                 codec = {"driver": "zarr3", "codecs": [{"name": "blosc",
                                                 "configuration": {"cname": self._compression, "clevel": self._compression_level,
                                                 "shuffle": self._shuffle}}]}
-                writers.append(ts.open({"driver": "zarr3", "kvstore": f"file://{filepath}", "create": True, "delete_existing": True},
+                writers.append(ts.open({"driver": "zarr3", "kvstore": f"file://{filepath}/res{level}", "create": True, "delete_existing": True},
                         chunk_layout = ts.ChunkLayout(read_chunk_shape=[CHUNK_COUNT_PX // 2**level, chunk_size_y[level], chunk_size_x[level]],
                                                       write_chunk_shape=[CHUNK_COUNT_PX // 2**level, store_size_y // 2**level, store_size_x // 2**level]),
                         dtype=ts.uint16,

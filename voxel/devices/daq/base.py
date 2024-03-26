@@ -2,15 +2,15 @@ import inspect
 
 class BaseDAQ:
 
-    def add_task(self, task: dict, task_type: str, pulse_count = None):
+    def add_task(self, task_type: str, pulse_count = None):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    def timing_checks(self, task: dict, task_type: str):
+    def timing_checks(self, task_type: str):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    def generate_waveforms(self, task: dict, task_type: str, wavelength: str):
+    def generate_waveforms(self, task_type: str, wavelength: str):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -48,7 +48,4 @@ class BaseDAQ:
 
     def is_finished_all(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    def close(self):
         pass

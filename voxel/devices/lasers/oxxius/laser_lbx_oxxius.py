@@ -25,6 +25,7 @@ class LaserLBXOxxius(LBX, BaseLaser):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.prefix = prefix
         super(LBX, self).__init__(port, self.prefix)
+        self.port = port
         # inherit from laser device_widgets class
 
         # Setup curve to map power input to current percentage
@@ -36,19 +37,18 @@ class LaserLBXOxxius(LBX, BaseLaser):
 
     @property
     def power_setpoint_mw(self):
-        if self.constant_current == BoolVal.ON:
-            return round(self.func.subs(symbols('x'), self.current_setpoint), 1)
+        if self.constant_current == 'ON':
+            return int(round(self.func.subs(symbols('x'), self.current_setpoint)))
         else:
-            return self.power_setpoint
+            return int(self.power_setpoint)
 
     @power_setpoint_mw.setter
     def power_setpoint_mw(self, value: float or int):
-
-        if self.constant_current == BoolVal.ON:
+        if self.constant_current == 'ON':
             solutions = solve(self.func - value)  # solutions for laser value
             for sol in solutions:
                 if round(sol) in range(0, 101):
-                    self.current_setpoint = round(sol, 1)
+                    self.current_setpoint = int(round(sol))     # setpoint must be integer
                     return
             # If no value exists, alert user
             self.log.error(f"Cannot set laser to {value}mW because "
@@ -58,16 +58,16 @@ class LaserLBXOxxius(LBX, BaseLaser):
 
     @property
     def max_power_mw(self):
-        if self.constant_current == BoolVal.ON:
-            return round(self.func.subs(symbols('x'), 100), 1)
+        if self.constant_current == 'ON':
+            return int((round(self.func.subs(symbols('x'), 100), 1)))
         else:
-            return self.max_power
+            return int((self.max_power))
 
     @property
     def modulation_mode(self):
-        if self.external_control_mode == BoolVal.ON:
+        if self.external_control_mode == 'ON':
             return 'analog'
-        elif self.digital_modulation == BoolVal.ON:
+        elif self.digital_modulation == 'ON':
             return 'digital'
         else:
             return 'off'
@@ -81,6 +81,12 @@ class LaserLBXOxxius(LBX, BaseLaser):
 
     def status(self):
         return self.faults()
+
+    def close(self):
+        print('closing and calling disable')
+        self.disable()
+        if self.port.is_open:
+            self.port.close()
 
 
 

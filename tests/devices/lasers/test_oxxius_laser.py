@@ -3,6 +3,7 @@ from ruamel.yaml import YAML
 from pathlib import Path
 from oxxius_laser import BoolVal
 import inspect
+from time import sleep
 
 def get_dict_attr(class_def, attr):
     # for obj in [obj] + obj.__class__.mro():
@@ -58,36 +59,35 @@ for name, specs in cfg['channel_specs'].items():
 
 print(lasers)
 print(combiners)
-
 # Test functionality of lasers
-discrepancies = {}
-for name, laser in lasers.items():
-    discrepancies[name] = {}
-    for attr in dir(type(laser)):
-        try:
-            if isinstance(getattr(type(laser), attr), property):
-                prop_obj = get_dict_attr(laser, attr)
-                if prop_obj.fset is not None and prop_obj.fget is not None:
-                    get_value = getattr(laser, attr)
-                    set_value = getattr(laser, attr) if (type(getattr(laser, attr)) == float
-                                         or type(getattr(laser, attr)) == str) \
-                                        else BoolVal.OFF
-                    setattr(laser, attr, set_value)
-                    get_value = getattr(laser, attr)
-                    print(name, ' ', attr, 'set: ', set_value, 'get: ', get_value)
-                    if set_value != get_value:
-                        print(f"Laser {name} {attr} property may be having problems. "
-                              f"Tried to set to {set_value} and got back {get_value}")
-                        discrepancies[name][attr] = f"set: {set_value}, get: {get_value}"
-
-                elif prop_obj.fget is not None:
-                    get_value = getattr(laser, attr)
-                    print(name, ' ', attr, 'get: ', get_value)
-                    if get_value == '????' or get_value == 'Bad query' or get_value == 'timeout10':
-                        print(f"Laser {name} {attr} property may be having problems. "
-                              f"Tried to get {attr} and got back {get_value}")
-
-        except AttributeError:
-            print(f"Laser {name} {attr} property may be having problems. "
-                  f"Property raises an AttributeError")
-            discrepancies[name][attr] = "AttributeError"
+# discrepancies = {}
+# for name, laser in lasers.items():
+#     discrepancies[name] = {}
+#     for attr in dir(type(laser)):
+#         try:
+#             if isinstance(getattr(type(laser), attr), property):
+#                 prop_obj = get_dict_attr(laser, attr)
+#                 if prop_obj.fset is not None and prop_obj.fget is not None:
+#                     get_value = getattr(laser, attr)
+#                     set_value = getattr(laser, attr) if (type(getattr(laser, attr)) == float
+#                                          or type(getattr(laser, attr)) == str) \
+#                                         else BoolVal.OFF
+#                     setattr(laser, attr, set_value)
+#                     get_value = getattr(laser, attr)
+#                     print(name, ' ', attr, 'set: ', set_value, 'get: ', get_value)
+#                     if set_value != get_value:
+#                         print(f"Laser {name} {attr} property may be having problems. "
+#                               f"Tried to set to {set_value} and got back {get_value}")
+#                         discrepancies[name][attr] = f"set: {set_value}, get: {get_value}"
+#
+#                 elif prop_obj.fget is not None:
+#                     get_value = getattr(laser, attr)
+#                     print(name, ' ', attr, 'get: ', get_value)
+#                     if get_value == '????' or get_value == 'Bad query' or get_value == 'timeout10':
+#                         print(f"Laser {name} {attr} property may be having problems. "
+#                               f"Tried to get {attr} and got back {get_value}")
+#
+#         except AttributeError:
+#             print(f"Laser {name} {attr} property may be having problems. "
+#                   f"Property raises an AttributeError")
+#             discrepancies[name][attr] = "AttributeError"

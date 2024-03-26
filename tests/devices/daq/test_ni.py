@@ -10,12 +10,12 @@ ao_task = config['daq']['tasks']['ao_task']
 do_task = config['daq']['tasks']['do_task']
 co_task = config['daq']['tasks']['co_task']
 
-daq = DAQ("Dev1")
-daq.add_task(ao_task, 'ao')
-daq.add_task(do_task, 'do')
-daq.add_task(co_task, 'co')
-daq.generate_waveforms(ao_task, 'ao', '488')
-daq.generate_waveforms(do_task, 'do',  '488')
+daq = DAQ("Dev1", config['daq']['tasks'])
+daq.add_task('ao')
+daq.add_task('do')
+daq.add_task('co')
+daq.generate_waveforms('ao', '488')
+daq.generate_waveforms('do',  '488')
 daq.write_ao_waveforms()
 daq.write_do_waveforms()
 #daq.plot_waveforms_to_pdf()

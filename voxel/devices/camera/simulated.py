@@ -28,8 +28,8 @@ PIXEL_TYPES = {
 }
 
 LINE_INTERVALS_US = {
-    "mono8":  5.00,
-    "mono16": 5.00
+    "mono8":  200.00,
+    "mono16": 200.00
 }
 
 TRIGGERS = {

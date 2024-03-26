@@ -12,6 +12,7 @@ from ruamel.yaml import YAML
 from pathlib import Path
 from psutil import virtual_memory
 from threading import Event, Thread
+from gputools import get_device, init_device
 from multiprocessing.shared_memory import SharedMemory
 from voxel.instruments.instrument import Instrument
 from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
@@ -114,7 +115,7 @@ class BaseAcquisition():
         row_count_px = self.instrument.cameras[camera_id].roi['height_px']
         column_count_px = self.instrument.cameras[camera_id].roi['width_px']
         data_type = self.writers[camera_id].data_type
-        frame_size_mb = row_count_px*column_count_px*numpy.dtype(data_type).itemsize/1e6
+        frame_size_mb = row_count_px*column_count_px*numpy.dtype(data_type).itemsize / 1024**2
         return frame_size_mb
 
     def _pyramid_factor(self, levels: int):
@@ -469,3 +470,26 @@ class BaseAcquisition():
 
         if free_memory_gb < memory_gb:
             raise MemoryError('system does not have enough memory to run')
+
+    def check_gpu_memory(self):
+
+        # check GPU resources for downscaling
+        for camera_id, camera in self.instrument.cameras.items():
+            row_count_px = camera.roi['height_px']
+            column_count_px = camera.roi['width_px']  
+            # grab the correct writer, name of writer must match name of camera
+            try:
+                data_type = self.writers[camera_id].data_type
+                chunk_count_px = self.writers[camera_id].chunk_count_px
+            except:
+                raise ValueError(f'no writer found for camera {camera_id}. check yaml files.')
+            # factor of 2 for concurrent chunks being written/read
+            frame_size_mb = self._frame_size_mb(camera_id) 
+            memory_gb = chunk_count_px * frame_size_mb / 1024
+            total_gpu_memory_gb = get_device().get_info('MAX_MEM_ALLOC_SIZE') / 1024**3
+            self.log.info(f"{total_gpu_memory_gb} RAM available")
+            self.log.info(f"{memory_gb} RAM requested")
+            if memory_gb >= total_gpu_memory_gb:
+                raise ValueError(f'{memory_gb} [GB] \
+                                    GPU RAM requested but only \
+                                    {total_gpu_memory_gb} [GB] available')

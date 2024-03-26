@@ -118,7 +118,8 @@ class DAQ(BaseDAQ):
             if f"{self.id}/{trigger_port}" not in self.dio_ports:
                 raise ValueError("trigger port must be one of %r." % self.dio_ports)
 
-            for channel_port in task['ports'].keys():
+            for channel_name, channel_info in task['ports'].items():
+                channel_port = channel_info['port']
                 # add channel to task
                 if f"{self.id}/{channel_port}" not in channel_options[task_type]:
                     raise ValueError(f"{task_type} number must be one of {channel_options[task_type]}")
@@ -137,8 +138,7 @@ class DAQ(BaseDAQ):
             if timing['frequency_hz'] < 0:
                 raise ValueError(f"frequency must be >0 Hz")
 
-            for channel in task['counters']:
-                channel_number = channel['counter']
+            for channel_number in task['counters']:
                 if f"{self.id}/{channel_number}" not in self.co_physical_chans:
                     raise ValueError("co number must be one of %r." % self.co_physical_chans)
                 physical_name = f"/{self.id}/{channel_number}"

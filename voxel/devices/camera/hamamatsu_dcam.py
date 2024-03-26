@@ -67,8 +67,8 @@ BINNING = [
 # TODO BUILD BY QUERYING DCAM
 TRIGGERS = {
     "mode": {
-        "on": DCAMPROP.TRIGGER_MODE.NORMAL,
-        "off": DCAMPROP.TRIGGERSOURCE.SOFTWARE,
+        "on": DCAMPROP.TRIGGER_MODE.NORMAL, #in synchronous readout trigger mode (normal?), the camera ends each exposure, starts the readout and also, at the same time, starts the next exposure at the edge of the input trigger signal (rising / falling edge)
+        "off": DCAMPROP.TRIGGER_MODE.START, # Start trigger mode, the camera starts exposure and switches to internal trigger mode by the edge of an external trigger signal
     },
     "source": {
         "internal": DCAMPROP.TRIGGERSOURCE.INTERNAL,
@@ -274,14 +274,9 @@ class Camera(BaseCamera):
     def trigger(self):
 
         source = self.dcam.prop_getvalue(PROPERTIES["trigger_source"])
-
-        mode = 'off' if source == 3 else 'on'
-
+        mode = self.dcam.prop_getvalue(PROPERTIES["trigger_mode"])
         polarity = self.dcam.prop_getvalue(PROPERTIES["trigger_polarity"])
-        print({v.value: k for k, v in TRIGGERS['source'].items()})
-        print({v.value: k for k, v in TRIGGERS['polarity'].items()})
-        print(source, polarity)
-        return {"mode": mode,
+        return {"mode": {v.value:k for k, v in TRIGGERS['mode'].items()}[mode],
                 "source": {v.value:k for k, v in TRIGGERS['source'].items()}[source],
                 "polarity": {v.value: k for k, v in TRIGGERS['polarity'].items()}[polarity]}
 
@@ -302,22 +297,10 @@ class Camera(BaseCamera):
         if polarity not in valid_polarity:
             raise ValueError("polarity must be one of %r." % valid_polarity)
 
-        print('before', self.dcam.prop_getvalue(PROPERTIES["trigger_source"]),
-              self.dcam.prop_getvalue(PROPERTIES["trigger_polarity"]))
-
-        # TODO figure out TRIGGERACTIVE bools
-        print('what we"re setting', TRIGGERS['mode'][mode], TRIGGERS['source'][source], TRIGGERS['polarity'][polarity],
-              PROPERTIES["trigger_mode"], type(PROPERTIES["trigger_mode"]))
-        print(TRIGGERS['mode'][mode], mode)
-        if mode == "on":
-            self.dcam.prop_setvalue(PROPERTIES["trigger_mode"], TRIGGERS['mode'][mode])
-            self.dcam.prop_setvalue(PROPERTIES["trigger_source"], TRIGGERS['source'][source])
-            self.dcam.prop_setvalue(PROPERTIES["trigger_polarity"], TRIGGERS['polarity'][polarity])
-        if mode == "off":
-            self.dcam.prop_setvalue(PROPERTIES["trigger_source"], TRIGGERS['mode'][mode])
-            self.dcam.prop_setvalue(PROPERTIES["trigger_polarity"], TRIGGERS['polarity'][polarity])
-        print('after', self.dcam.prop_getvalue(PROPERTIES["trigger_source"]),
-              self.dcam.prop_getvalue(PROPERTIES["trigger_polarity"]))
+        # TODO figure out TRIGGERACTIVE bool
+        self.dcam.prop_setvalue(PROPERTIES["trigger_mode"], TRIGGERS['mode'][mode])
+        self.dcam.prop_setvalue(PROPERTIES["trigger_source"], TRIGGERS['source'][source])
+        self.dcam.prop_setvalue(PROPERTIES["trigger_polarity"], TRIGGERS['polarity'][polarity])
 
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
         # refresh parameter values
@@ -422,7 +405,7 @@ class Camera(BaseCamera):
         timeout_ms = 1000
         if self.dcam.wait_capevent_frameready(timeout_ms) is not False:
             image = self.dcam.buf_getlastframedata()
-        return image
+            return image
 
     def signal_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""
@@ -497,21 +480,21 @@ class Camera(BaseCamera):
         self.step_offset_x_px = self.dcam.prop_getattr(PROPERTIES["subarray_hpos"]).valuestep
         self.step_offset_y_px = self.dcam.prop_getattr(PROPERTIES["subarray_vpos"]).valuestep
 
-        self.log.info(f"min exposure time is: {self.min_exposure_time_ms} ms")
-        self.log.info(f"max exposure time is: {self.max_exposure_time_ms} ms")
-        self.log.info(f"min line interval is: {self.min_line_interval_us} us")
-        self.log.info(f"max line interval is: {self.max_line_interval_us} us")
-        self.log.info(f"min width is: {self.min_width_px} px")
-        self.log.info(f"max width is: {self.max_width_px} px")
-        self.log.info(f"min height is: {self.min_height_px} px")
-        self.log.info(f"max height is: {self.max_height_px} px")
-        self.log.info(f"min offset x is: {self.min_offset_x_px} px")
-        self.log.info(f"max offset x is: {self.max_offset_x_px} px")
-        self.log.info(f"min offset y is: {self.min_offset_y_px} px")
-        self.log.info(f"max offset y is: {self.max_offset_y_px} px")
-        self.log.info(f"step exposure time is: {self.step_exposure_time_ms} ms")
-        self.log.info(f"step line interval is: {self.step_line_interval_us} us")
-        self.log.info(f"step width is: {self.step_width_px} px")
-        self.log.info(f"step height is: {self.step_height_px} px")
-        self.log.info(f"step offset x is: {self.step_offset_x_px} px")
-        self.log.info(f"step offset y is: {self.step_offset_y_px} px")
+        self.log.debug(f"min exposure time is: {self.min_exposure_time_ms} ms")
+        self.log.debug(f"max exposure time is: {self.max_exposure_time_ms} ms")
+        self.log.debug(f"min line interval is: {self.min_line_interval_us} us")
+        self.log.debug(f"max line interval is: {self.max_line_interval_us} us")
+        self.log.debug(f"min width is: {self.min_width_px} px")
+        self.log.debug(f"max width is: {self.max_width_px} px")
+        self.log.debug(f"min height is: {self.min_height_px} px")
+        self.log.debug(f"max height is: {self.max_height_px} px")
+        self.log.debug(f"min offset x is: {self.min_offset_x_px} px")
+        self.log.debug(f"max offset x is: {self.max_offset_x_px} px")
+        self.log.debug(f"min offset y is: {self.min_offset_y_px} px")
+        self.log.debug(f"max offset y is: {self.max_offset_y_px} px")
+        self.log.debug(f"step exposure time is: {self.step_exposure_time_ms} ms")
+        self.log.debug(f"step line interval is: {self.step_line_interval_us} us")
+        self.log.debug(f"step width is: {self.step_width_px} px")
+        self.log.debug(f"step height is: {self.step_height_px} px")
+        self.log.debug(f"step offset x is: {self.step_offset_x_px} px")
+        self.log.debug(f"step offset y is: {self.step_offset_y_px} px")

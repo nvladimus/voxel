@@ -12,21 +12,24 @@ class LaserLCXOxxius(LCX, BaseLaser):
                 :param prefix: prefix specic to laser.
                 """
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.port = port
         self.prefix = prefix
         super(LCX, self).__init__(port, self.prefix)
         # inherit from laser device_widgets class
 
     @property
     def power_setpoint_mw(self):
-        return self.power_setpoint
+        return float(self.power_setpoint)
 
     @power_setpoint_mw.setter
     def power_setpoint_mw(self, value: float or int):
+        print('power setting to ', value)
         self.power_setpoint = value
+        print('power set to ', self.power_setpoint)
 
     @property
     def max_power_mw(self):
-        return self.max_power
+        return float(self.max_power)
 
     @property
     def modulation_mode(self):
@@ -37,5 +40,10 @@ class LaserLCXOxxius(LCX, BaseLaser):
 
     def cdrh(self):
         raise AttributeError
+
+    def close(self):
+        self.disable()
+        if self.port.is_open:
+            self.port.close()
 
 
