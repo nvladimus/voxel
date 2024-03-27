@@ -40,7 +40,7 @@ class FlipMount:
                     self.positions.items() if value == position)
 
     @position.setter
-    def position(self, position_name: str, wait = False):
+    def position(self, position_name: str, wait=False):
         # returns 0 or 1 for position of flip mount
         if position_name not in self.positions.keys():
             raise ValueError(f'position {position_name}'
