@@ -34,8 +34,8 @@ class Instrument:
         except:
             raise ValueError('no instrument id defined. check yaml file.')
         # construct devices
-        for device_type, device_list in self.config['instrument']['devices'].items():
-            self._construct_device(device_type, device_list)
+        for device_name, device_specs in self.config['instrument']['devices'].items():
+            self._construct_device(device_name, device_specs)
 
         # construct and verify channels
         for channel_name, channel in self.config['instrument']['channels'].items():
@@ -49,55 +49,54 @@ class Instrument:
                     raise ValueError(f'filter {filter_name} not in {self.filter_wheels[filter_wheel_name].filters}')
             self.channels[channel_name] = channel
 
-    def _construct_device(self, device_type, device_dictionary):
+    def _construct_device(self, device_name, device_specs):
         """Load, setup, and add any subdevices or tasks of a device
-        :param device_type: type of device setting up like camera. Type is specified by yaml
-        :param device_dictionary: list of dictionaries describing all alike devices of an instrument
-        like [{camera0}, {camera1}]"""
+        :param device_name: name of device
+        :param device_specs: dictionary dictating how device should be set up"""
 
-        for name, device in device_dictionary.items():
-            self.log.info(f'constructing {name}')
-            driver = device['driver']
-            module = device['module']
-            init = device.get('init', {})
-            device_object = self._load_device(driver, module, init)
-            settings = device.get('settings', {})
-            self._setup_device(device_object, settings)
-            # create device dictionary if it doesn't already exist and add device to dictionary
-            if not hasattr(self, device_type):
-                setattr(self, device_type, {})
-            getattr(self, device_type)[name] = device_object
+        self.log.info(f'constructing {device_name}')
+        device_type = device_specs['type'] + 's' # TODO: What todo when ends in ies or es?
+        driver = device_specs['driver']
+        module = device_specs['module']
+        init = device_specs.get('init', {})
+        device_object = self._load_device(driver, module, init)
+        settings = device_specs.get('settings', {})
+        self._setup_device(device_object, settings)
+        # create device dictionary if it doesn't already exist and add device to dictionary
+        if not hasattr(self, device_type):
+            setattr(self, device_type, {})
+        getattr(self, device_type)[device_name] = device_object
 
-            # added logic for stages to store and check stage axes
-            if device_type == 'tiling_stages' or device_type == 'scanning_stages':
-                instrument_axis = device['init']['instrument_axis']
-                if instrument_axis in self.stage_axes:
-                    raise ValueError(f'{instrument_axis} is duplicated and already exists!')
-                else:
-                    self.stage_axes.append(instrument_axis)
-            # Add subdevices under device and fill in any needed keywords to init
-            for subdevice_type, subdevice_dictionary in device.get('subdevices', {}).items():
-                self._construct_subdevice(device_object, subdevice_type, subdevice_dictionary)
+        # added logic for stages to store and check stage axes
+        if device_type == 'tiling_stages' or device_type == 'scanning_stages':
+            instrument_axis = device_specs['init']['instrument_axis']
+            if instrument_axis in self.stage_axes:
+                raise ValueError(f'{instrument_axis} is duplicated and already exists!')
+            else:
+                self.stage_axes.append(instrument_axis)
 
-    def _construct_subdevice(self, device_object, subdevice_type, subdevice_dictionary):
+        # Add subdevices under device and fill in any needed keywords to init
+        for subdevice_name, subdevice_specs in device_specs.get('subdevices', {}).items():
+            self._construct_subdevice(device_object, subdevice_name, subdevice_specs)
+
+    def _construct_subdevice(self, device_object, subdevice_name, subdevice_specs):
         """Handle the case where devices share serial ports or device objects
         :param device_object: parent device setup before subdevice
-        :param subdevice_type: device type of subdevice. Can be different from parent device
-        :param subdevice_dictionary: dictionary of all subdevices"""
+        :param subdevice_name: name of subdevice
+        :param subdevice_specs: dictionary dictating how subdevice should be set up"""
 
-        for subdevice in subdevice_dictionary.values():
-            # Import subdevice class in order to access keyword argument required in the init of the device
-            subdevice_class = getattr(importlib.import_module(subdevice['driver']), subdevice['module'])
-            subdevice_needs = inspect.signature(subdevice_class.__init__).parameters
-            for name, parameter in subdevice_needs.items():
-                # If subdevice init needs a serial port, add device's serial port to init arguments
-                if parameter.annotation == Serial and Serial in [type(v) for v in device_object.__dict__.values()]:
-                    # assuming only one relevant serial port in parent
-                    subdevice['init'][name] = [v for v in device_object.__dict__.values() if type(v) == Serial][0]
-                # If subdevice init needs parent object type, add device object to init arguments
-                elif parameter.annotation == type(device_object):
-                    subdevice['init'][name] = device_object
-        self._construct_device(subdevice_type, subdevice_dictionary)
+        # Import subdevice class in order to access keyword argument required in the init of the device
+        subdevice_class = getattr(importlib.import_module(subdevice_specs['driver']), subdevice_specs['module'])
+        subdevice_needs = inspect.signature(subdevice_class.__init__).parameters
+        for name, parameter in subdevice_needs.items():
+            # If subdevice init needs a serial port, add device's serial port to init arguments
+            if parameter.annotation == Serial and Serial in [type(v) for v in device_object.__dict__.values()]:
+                # assuming only one relevant serial port in parent
+                subdevice_specs['init'][name] = [v for v in device_object.__dict__.values() if type(v) == Serial][0]
+            # If subdevice init needs parent object type, add device object to init arguments
+            elif parameter.annotation == type(device_object):
+                subdevice_specs['init'][name] = device_object
+        self._construct_device(subdevice_name, subdevice_specs)
 
     def _load_device(self, driver: str, module: str, kwds):
         """Load device based on driver, module, and kwds specified

@@ -26,7 +26,7 @@ class ExASPIMAcquisition(BaseAcquisition):
         # current working directory
         this_dir = Path(__file__).parent.resolve()
         self.config_path = this_dir / Path(config_filename)
-        self.config = YAML().load(Path(self.config_path))
+        self.config = YAML(typ='safe', pure=True).load(Path(self.config_path))
         self.acquisition = self.config['acquisition']
         self.instrument = instrument
         for operation_type, operation_dict in self.config['acquisition']['operations'].items():

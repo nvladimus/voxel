@@ -208,7 +208,7 @@ class Writer(BaseWriter):
 
     @property
     def compression_level(self):
-        return self.compression_level
+        return self._compression_level
 
     @compression_level.setter
     def compression_level(self, compression_level: int):
