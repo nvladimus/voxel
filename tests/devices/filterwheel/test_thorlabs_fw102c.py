@@ -37,10 +37,11 @@ class FilterWheel(BaseFilterWheel):
         return next(key for key, value in self.filters.items() if value == filter_positin)
 
     @filter.setter
-    def filter(self, filter_name: str):
+    def filter(self, filter_name: str, wait=False):
         self.filter_wheel.set_position(self.filters[filter_name])
+        if wait:
+            time.sleep(SWITCH_TIME_S)
         self.log.info(f'filter wheel moved to filter {filter_name}')
-        time.sleep(SWITCH_TIME_S)
 
     def close(self):
         self.filter_wheel.close()
