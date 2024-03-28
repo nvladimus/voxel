@@ -4,7 +4,7 @@ import os
 import shutil
 import time
 from pathlib import Path
-from voxel.processes.file_transfer.robocopy import FileTransfer
+from voxel.transfers.robocopy import FileTransfer
 
 temp_dir = Path('temp')
 temp_filename = 'temp.tiff'

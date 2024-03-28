@@ -18,8 +18,8 @@ instrument:
       filter_wheel:
         ASI FW-1000: LP638
   devices:
-    cameras:
       vp-151mx:
+        type: camera
         driver: voxel.devices.camera.simulated
         module: Camera
         init:
@@ -34,8 +34,8 @@ instrument:
             mode: off
             source: external
             polarity: rising
-    tiling_stages:
       ASI MS-8000 y axis:
+        type: tiling_stage
         driver: voxel.devices.stage.simulated
         module: Stage
         init:
@@ -47,6 +47,7 @@ instrument:
           backlash_mm: 0
           mode: off
       ASI MS-8000 z axis:
+        type: tiling_stage
         driver: voxel.devices.stage.simulated
         module: Stage
         init:
@@ -58,6 +59,7 @@ instrument:
           backlash_mm: 0
           mode: off
       ASI MS-8000 w axis:
+        type: tiling_stage
         driver: voxel.devices.stage.simulated
         module: Stage
         init:
@@ -68,8 +70,8 @@ instrument:
           acceleration_ms: 100.0
           backlash_mm: 0
           mode: off
-    scanning_stages:
       ASI LS-100 x axis:
+        type: scanning_stage
         driver: voxel.devices.stage.simulated
         module: Stage
         init:
@@ -80,8 +82,8 @@ instrument:
           acceleration_ms: 100.0
           backlash_mm: 0
           mode: step shoot
-    filter_wheels:
       ASI FW-1000:
+        type: filter_wheel
         driver: voxel.devices.filterwheel.simulated
         module: FilterWheel
         init:
@@ -94,8 +96,8 @@ instrument:
             MB405/488/561/638: 4
             Empty1: 5
             Empty2: 6
-    joysticks:
       ASI joystick:
+        type: joystick
         driver: voxel.devices.stage.simulated
         module: Joystick
         init:
@@ -112,29 +114,32 @@ instrument:
             wheel_f:
               polarity: default
               instrument_axis: w
-    lasers:
       405nm:
+        type: laser
         driver: voxel.devices.lasers.simulated
         module: SimulatedLaser
         init:
           port: COM1
       488nm:
+        type: laser
         driver: voxel.devices.lasers.simulated
         module: SimulatedLaser
         init:
           port: COM2
       561nm:
+        type: laser
         driver: voxel.devices.lasers.simulated
         module: SimulatedLaser
         init:
           port: COM3
       638nm:
+        type: laser
         driver: voxel.devices.lasers.simulated
         module: SimulatedLaser
         init:
           port: COM4
-    daqs:
       PCIe-6738:
+        type: daq
         driver: voxel.devices.daq.simulated
         module: DAQ
         init:

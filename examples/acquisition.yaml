@@ -8,8 +8,9 @@ acquisition:
     y_anatomical_direction: Inferior_to_superior
     z_anatomical_direction: Left_to_right
   operations:
-    writers:
-      vp-151mx:
+    vp-151mx:
+      zarr_v3:
+        type: writer
         driver: voxel.writers.zarr_v3
         module: Writer
         init:
@@ -20,30 +21,30 @@ acquisition:
           shuffle: shuffle
           downsampling_method: cpu
           data_type: uint16
-    transfers:
-      vp-151mx:
+      rsync:
+        type: transfer
         driver: voxel.processes.file_transfer.rsync
         module: FileTransfer
         init:
           external_directory: ./external_test
-    processes:
-      vp-151mx:
-        - driver: voxel.processes.cpu.max_projection
-          module: MaxProjection
-          init:
-            path: ./local_test
-          settings:
-            data_type: uint16
-            projection_count_px: 32
-    routines:
-      vp-151mx:
-        - driver: voxel.routines.background_collection
-          module: BackgroundCollection
-          init:
-            path: ./local_test
-          settings:
-            data_type: uint16
-            frame_count_px: 10
+      max_projection:
+        type: process
+        driver: voxel.processes.cpu.max_projection
+        module: MaxProjection
+        init:
+          path: ./local_test
+        settings:
+          data_type: uint16
+          projection_count_px: 32
+      background_collection:
+        type: routine
+        driver: voxel.routines.background_collection
+        module: BackgroundCollection
+        init:
+          path: ./local_test
+        settings:
+          data_type: uint16
+          frame_count_px: 10
   tiles:
     - tile_number:
         x: 0

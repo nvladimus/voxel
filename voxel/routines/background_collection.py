@@ -51,7 +51,8 @@ class BackgroundCollection:
             if filename.endswith(".tiff") or filename.endswith(".tif") else f"{filename}"
         self.log.info(f'setting filename to: {filename}')
 
-    def start(self, camera: BaseCamera):
+    def start(self, device: BaseCamera):    #TODO: Change to device so routine set up can be more routine hehe
+        camera = device
         # store initial trigger mode
         initial_trigger = camera.trigger
         # turn trigger off

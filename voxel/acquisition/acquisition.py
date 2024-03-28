@@ -16,8 +16,20 @@ from gputools import get_device, init_device
 from multiprocessing.shared_memory import SharedMemory
 from voxel.instruments.instrument import Instrument
 from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
+import inflection
 
-class BaseAcquisition():
+
+class Acquisition:
+
+    def __init__(self, instrument: Instrument, config_filename: str):
+        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+
+        self.config_path = Path(config_filename)
+        self.config = YAML(typ='safe', pure=True).load(Path(self.config_path))
+        self.acquisition = self.config['acquisition']
+        self.instrument = instrument
+        for device_name, operation_dictionary in self.config['acquisition']['operations'].items():
+            self._construct_operations(device_name, operation_dictionary)
 
     def _load_device(self, driver: str, module: str, kwds: dict = dict()):
         """Load in device based on config. Expecting driver, module, and kwds input"""
@@ -35,54 +47,65 @@ class BaseAcquisition():
         for key, value in settings.items():
             setattr(device, key, value)
 
-    def _construct_operations(self, operation_type, operation_dict):
+    def _construct_operations(self, device_name, operation_dictionary):
         """Load and setup operations of an acquisition
-        :param operation_type: type of operation like writer. Type is specified by yaml
-        :param operation_dict: list of dictionaries describing all alike operations of an acquisition
-        like {writer0:{}, writer1:{}}"""
+        :param device_name: name of device which operation pertain to
+        :param operation_dictionary: dictionary of operation pertaining to device"""
 
-        for name, operation in operation_dict.items():
-            driver = operation['driver']
-            module = operation['module']
-            init = operation.get('init', {})
+        for operation_name, operation_specs in operation_dictionary.items():
+            operation_type = inflection.pluralize(operation_specs['type'])
+            driver = operation_specs['driver']
+            module = operation_specs['module']
+            init = operation_specs.get('init', {})
             operation_object = self._load_device(driver, module, init)
-            settings = operation.get('settings', {})
+            settings = operation_specs.get('settings', {})
             self.log.info(f'constructing {driver}')
             self._setup_device(operation_object, settings)
-            operation_dict = getattr(self, operation_type)
-            operation_dict[name] = operation_object
+
+            # create operation dictionary if it doesn't already exist and add operation to dictionary
+            if not hasattr(self, operation_type):
+                setattr(self, operation_type, {})
+            getattr(self, operation_type)[device_name] = {operation_name: operation_object}
 
     def _verify_directories(self):
         self.log.info(f'verifying local and external directories')
         # check if local directories exist
-        for writer_id, writer in self.writers.items():
-            local_directory = writer.path
-            if not os.path.isdir(local_directory):
-                os.mkdir(local_directory)
+        for writer_dictionary in self.writers.values():
+            print(writer_dictionary)
+            for writer in writer_dictionary.values():
+                local_directory = writer.path
+                if not os.path.isdir(local_directory):
+                    os.mkdir(local_directory)
         # check if external directories exist
-        if self.transfers:
-            for transfer_id, transfer in self.transfers.items():
-                external_directory = transfer.external_directory
-                if not os.path.isdir(external_directory):
-                    os.mkdir(external_directory)
+        if hasattr(self, 'transfers'):
+            for transfer_dictionary in self.transfers.values():
+                for transfer in transfer_dictionary.values():
+                    external_directory = transfer.external_directory
+                    if not os.path.isdir(external_directory):
+                        os.mkdir(external_directory)
 
     def _verify_acquisition(self):
+
         self.log.info(f'verifying acquisition configuration')
-        # check that writers correspond to camera devices
+
+        # check that there is an associated writer for each camera
         for camera_id, camera in self.instrument.cameras.items():
-            # check that there is an associated writer.
             if camera_id not in self.writers.keys():
                 raise ValueError(f'no writer found for camera {camera_id}. check yaml files.')
-            # if transfers
-            if self.transfers:
-                if camera_id not in self.transfers.keys():
-                    raise ValueError(f'no transfer found for camera {camera_id}. check yaml files.')
-                # if transfers do exist. check that transfers and writers
-                # are not the same directory. this would not make sense.
-                local_directory = self.writers[camera_id].path
-                external_directory = self.transfers[camera_id].external_directory
-                if local_directory == external_directory:
-                    raise ValueError(f'local and external directory are the same for camera {camera_id}.')
+
+        # check that files won't be overwritten if multiple writers/transfers per device
+        for device_name, writers in self.writers.items():
+            paths = [write.path for write in writers.values()]
+            if len(paths) != len(set(paths)):
+                raise ValueError(f'More than one operation for device {device_name} is writing to the same folder. '
+                                 f'This will cause data to be overwritten.')
+        # check that files won't be overwritten if multiple writers/transfers per device
+        for device_name, transfers in getattr(self, 'transfers', {}).items():
+            external_directories = [transfer.external_directory for transfer in transfers.values()]
+            if len(external_directories) != len(set(external_directories)):
+                raise ValueError(f'More than one operation for device {device_name} is transferring to the same folder.'
+                                 f' This will cause data to be overwritten.')
+
         # check tile parameters
         for tile in self.config['acquisition']['tiles']:
             number_axes = list(tile['tile_number'].keys())
@@ -99,13 +122,13 @@ class BaseAcquisition():
         row_count_px = self.instrument.cameras[camera_id].roi['height_px']
         column_count_px = self.instrument.cameras[camera_id].roi['width_px']
         data_type = self.writers[camera_id].data_type
-        frame_size_mb = row_count_px*column_count_px*numpy.dtype(data_type).itemsize / 1024**2
+        frame_size_mb = row_count_px * column_count_px * numpy.dtype(data_type).itemsize / 1024 ** 2
         return frame_size_mb
 
     def _pyramid_factor(self, levels: int):
         pyramid_factor = 0
         for level in range(levels):
-            pyramid_factor += (1/(2**level))**3
+            pyramid_factor += (1 / (2 ** level)) ** 3
         return pyramid_factor
 
     @property
@@ -143,7 +166,7 @@ class BaseAcquisition():
             new_trigger = initial_trigger
             new_trigger['mode'] = 'off'
             camera.trigger = new_trigger
-            
+
             # prepare the writer
             writer.row_count_px = camera.roi['height_px']
             writer.column_count_px = camera.roi['width_px']
@@ -177,9 +200,9 @@ class BaseAcquisition():
                 if writer.path is not None:
                     writer.shm_name = \
                         img_buffer.read_buf_mem_name
-                    writer.done_reading.clear()            
+                    writer.done_reading.clear()
 
-            # close writer and camera
+                    # close writer and camera
             writer.wait_to_finish()
             camera.stop()
 
@@ -191,8 +214,8 @@ class BaseAcquisition():
             del img_buffer
 
             # check the compressed file size
-            filepath = str((writer.path/Path(f"{writer.filename}")).absolute())
-            compressed_file_size_mb = os.stat(filepath).st_size / (1024**2)
+            filepath = str((writer.path / Path(f"{writer.filename}")).absolute())
+            compressed_file_size_mb = os.stat(filepath).st_size / (1024 ** 2)
             # calculate the raw file size
             frame_size_mb = self._frame_size_mb(camera_id)
             # get pyramid factor
@@ -224,13 +247,13 @@ class BaseAcquisition():
             for tile in self.config['acquisition']['tiles']:
                 frame_size_mb = self._frame_size_mb(camera_id)
                 frame_count_px = tile['frame_count_px']
-                data_size_gb += frame_count_px*frame_size_mb / 1024
+                data_size_gb += frame_count_px * frame_size_mb / 1024
             drives.setdefault(local_drive, []).append(data_size_gb)
 
         for drive in drives:
             required_size_gb = sum(drives[drive])
             self.log.info(f'required disk space = {required_size_gb:.1f} [GB] on drive {drive}')
-            free_size_gb = shutil.disk_usage(drive).free / 1024**3
+            free_size_gb = shutil.disk_usage(drive).free / 1024 ** 3
             if data_size_gb >= free_size_gb:
                 self.log.error(f"only {free_size_gb:.1f} available on drive: {drive}")
                 raise ValueError(f"only {free_size_gb:.1f} available on drive: {drive}")
@@ -256,12 +279,12 @@ class BaseAcquisition():
                 for tile in self.config['acquisition']['tiles']:
                     frame_size_mb = self._frame_size_mb(camera_id)
                     frame_count_px = tile['frame_count_px']
-                    data_size_gb += frame_count_px*frame_size_mb / 1024
+                    data_size_gb += frame_count_px * frame_size_mb / 1024
                 drives.setdefault(external_drive, []).append(data_size_gb)
             for drive in drives:
                 required_size_gb = sum(drives[drive])
                 self.log.info(f'required disk space = {required_size_gb:.1f} [GB] on drive {drive}')
-                free_size_gb = shutil.disk_usage(drive).free/ 1024**3
+                free_size_gb = shutil.disk_usage(drive).free / 1024 ** 3
                 if data_size_gb >= free_size_gb:
                     self.log.error(f"only {free_size_gb:.1f} available on drive: {drive}")
                     raise ValueError(f"only {free_size_gb:.1f} available on drive: {drive}")
@@ -287,14 +310,14 @@ class BaseAcquisition():
 
             frame_size_mb = self._frame_size_mb(camera_id)
             frame_count_px = tile['frame_count_px']
-            data_size_gb += frame_count_px*frame_size_mb / 1024
+            data_size_gb += frame_count_px * frame_size_mb / 1024
 
             drives.setdefault(local_drive, []).append(data_size_gb)
 
         for drive in drives:
             required_size_gb = sum(drives[drive])
             self.log.info(f'required disk space = {required_size_gb:.1f} [GB] on drive {drive}')
-            free_size_gb = shutil.disk_usage(drive).free/ 1024**3
+            free_size_gb = shutil.disk_usage(drive).free / 1024 ** 3
             if data_size_gb >= free_size_gb:
                 self.log.error(f"only {free_size_gb:.1f} available on drive: {drive}")
                 raise ValueError(f"only {free_size_gb:.1f} available on drive: {drive}")
@@ -319,12 +342,12 @@ class BaseAcquisition():
                     external_drive = '/'
                 frame_size_mb = self._frame_size_mb(camera_id)
                 frame_count_px = tile['frame_count_px']
-                data_size_gb += frame_count_px*frame_size_mb / 1024
+                data_size_gb += frame_count_px * frame_size_mb / 1024
                 drives.setdefault(external_drive, []).append(data_size_gb)
             for drive in drives:
                 required_size_gb = sum(drives[drive])
                 self.log.info(f'required disk space = {required_size_gb:.1f} [GB] on drive {drive}')
-                free_size_gb = shutil.disk_usage(drive).free/ 1024**3
+                free_size_gb = shutil.disk_usage(drive).free / 1024 ** 3
                 if data_size_gb >= free_size_gb:
                     self.log.error(f"only {free_size_gb:.1f} available on drive: {drive}")
                     raise ValueError(f"only {free_size_gb:.1f} available on drive: {drive}")
@@ -376,7 +399,8 @@ class BaseAcquisition():
                 local_drive_letter = '/'
             # add into drives dictionary append to list if same drive letter
             drives.setdefault(local_drive_letter, []).append(local_directory)
-            camera_speed_mb_s.setdefault(local_drive_letter, []).append(acquisition_rate_hz * frame_size_mb / compression_ratio)
+            camera_speed_mb_s.setdefault(local_drive_letter, []).append(
+                acquisition_rate_hz * frame_size_mb / compression_ratio)
             if self.transfers:
                 external_directory = self.transfers[camera_id].external_directory
                 # strip drive letters from paths so that we can combine
@@ -390,7 +414,7 @@ class BaseAcquisition():
                     external_drive_letter = '/'
                 # add into drives dictionary append to list if same drive letter
                 drives.setdefault(external_drive_letter, []).append(external_directory)
-                camera_speed_mb_s.setdefault(external_drive_letter, []).append(acquisition_rate_hz * frame_size_mb)              
+                camera_speed_mb_s.setdefault(external_drive_letter, []).append(acquisition_rate_hz * frame_size_mb)
 
         for drive in drives:
             # if more than one stream on this drive, just test the first directory location
@@ -447,7 +471,7 @@ class BaseAcquisition():
             frame_size_mb = self._frame_size_mb(camera_id)
             memory_gb += 2 * chunk_count_px * frame_size_mb / 1024
 
-        free_memory_gb = virtual_memory()[1] / 1024**3
+        free_memory_gb = virtual_memory()[1] / 1024 ** 3
 
         self.log.info(f'required RAM = {memory_gb:.1f} [GB]')
         self.log.info(f'available RAM = {free_memory_gb:.1f} [GB]')
@@ -460,7 +484,7 @@ class BaseAcquisition():
         # check GPU resources for downscaling
         for camera_id, camera in self.instrument.cameras.items():
             row_count_px = camera.roi['height_px']
-            column_count_px = camera.roi['width_px']  
+            column_count_px = camera.roi['width_px']
             # grab the correct writer, name of writer must match name of camera
             try:
                 data_type = self.writers[camera_id].data_type
@@ -468,9 +492,9 @@ class BaseAcquisition():
             except:
                 raise ValueError(f'no writer found for camera {camera_id}. check yaml files.')
             # factor of 2 for concurrent chunks being written/read
-            frame_size_mb = self._frame_size_mb(camera_id) 
+            frame_size_mb = self._frame_size_mb(camera_id)
             memory_gb = chunk_count_px * frame_size_mb / 1024
-            total_gpu_memory_gb = get_device().get_info('MAX_MEM_ALLOC_SIZE') / 1024**3
+            total_gpu_memory_gb = get_device().get_info('MAX_MEM_ALLOC_SIZE') / 1024 ** 3
             self.log.info(f"{total_gpu_memory_gb} RAM available")
             self.log.info(f"{memory_gb} RAM requested")
             if memory_gb >= total_gpu_memory_gb:

@@ -1,15 +1,10 @@
 import logging
-import shutil
-import datetime
-import subprocess
-import os
-import sys
 from pathlib import Path
 import inspect
 import importlib
 from serial import Serial
 from ruamel.yaml import YAML
-
+import inflection
 
 class Instrument:
 
@@ -55,7 +50,7 @@ class Instrument:
         :param device_specs: dictionary dictating how device should be set up"""
 
         self.log.info(f'constructing {device_name}')
-        device_type = device_specs['type'] + 's' # TODO: What todo when ends in ies or es?
+        device_type = inflection.pluralize(device_specs['type'])
         driver = device_specs['driver']
         module = device_specs['module']
         init = device_specs.get('init', {})
