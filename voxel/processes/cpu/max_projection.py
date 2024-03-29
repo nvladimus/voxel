@@ -9,6 +9,7 @@ from multiprocessing import Process, Value, Event, Array
 from multiprocessing.shared_memory import SharedMemory
 from pathlib import Path
 
+
 class MaxProjection:
 
     def __init__(self, path: str):
@@ -78,13 +79,20 @@ class MaxProjection:
     def path(self):
         return self._path
 
+    @path.setter
+    def path(self, path: str or path):
+        if '\\' in str(path) or '/' not in str(path):
+            self.log.error('path string should only contain / not \\')
+        else:
+            self._path = str(path)
+
     @property
     def filename(self):
         return self._filename
 
     @filename.setter
     def filename(self, filename: str):
-        self._filename = filename.replace(".tiff","").replace(".tif", "") \
+        self._filename = filename.replace(".tiff", "").replace(".tif", "") \
             if filename.endswith(".tiff") or filename.endswith(".tif") else f"{filename}"
         self.log.info(f'setting filename to: {filename}')
 
@@ -130,7 +138,9 @@ class MaxProjection:
                 if chunk_index == self._projection_count_px - 1 or frame_index == self._frame_count_px - 1:
                     start_index = int(frame_index - self._projection_count_px + 1)
                     end_index = int(frame_index + 1)
-                    tifffile.imwrite(self.path / Path(f"{self.filename}_max_projection_xy_z_{start_index:06}_{end_index:06}.tiff"), self.mip_xy)
+                    tifffile.imwrite(
+                        self.path / Path(f"{self.filename}_max_projection_xy_z_{start_index:06}_{end_index:06}.tiff"),
+                        self.mip_xy)
                     # reset the xy mip
                     self.mip_xy = np.zeros((self._row_count_px, self._column_count_px), dtype=self._data_type)
                 frame_index += 1

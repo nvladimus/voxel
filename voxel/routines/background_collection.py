@@ -41,6 +41,13 @@ class BackgroundCollection:
     def path(self):
         return self._path
 
+    @path.setter
+    def path(self, path: str or path):
+        if '\\' in str(path) or '/' not in str(path):
+            self.log.error('path string should only contain / not \\')
+        else:
+            self._path = str(path)
+
     @property
     def filename(self):
         return self._filename

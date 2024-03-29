@@ -155,7 +155,6 @@ class ExASPIMAcquisition(Acquisition):
 
             # create and start transfer threads from previous tile
             for device_name, transfer_dict in getattr(self, 'transfers', {}).items():
-                print(device_name)
                 transfer_threads[device_name] = {}
                 for transfer_name, transfer in transfer_dict.items():
                     transfer_threads[device_name][transfer_name] = transfer

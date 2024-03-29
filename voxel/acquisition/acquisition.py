@@ -64,14 +64,15 @@ class Acquisition:
 
             # create operation dictionary if it doesn't already exist and add operation to dictionary
             if not hasattr(self, operation_type):
-                setattr(self, operation_type, {})
-            getattr(self, operation_type)[device_name] = {operation_name: operation_object}
+                setattr(self, operation_type, {device_name: {}})
+            elif not getattr(self, operation_type).get(device_name, False):
+                getattr(self, operation_type)[device_name] = {}
+            getattr(self, operation_type)[device_name][operation_name] = operation_object
 
     def _verify_directories(self):
         self.log.info(f'verifying local and external directories')
         # check if local directories exist
         for writer_dictionary in self.writers.values():
-            print(writer_dictionary)
             for writer in writer_dictionary.values():
                 local_directory = writer.path
                 if not os.path.isdir(local_directory):

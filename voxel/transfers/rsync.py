@@ -17,8 +17,8 @@ class FileTransfer():
         # check path for forward slashes
         if '\\' in external_directory or '/' not in external_directory:
             assert ValueError('external_directory string should only contain / not \\')
-        self._external_directory = Path(external_directory)
-        self._local_directory = Path(local_directory)
+        self._external_directory = str(external_directory)
+        self._local_directory = str(local_directory)
         if self._external_directory == self._local_directory:
             raise ValueError('External directory and local directory cannot be the same')
         self._filename = None
@@ -50,16 +50,24 @@ class FileTransfer():
         return self._local_directory
 
     @local_directory.setter
-    def local_directory(self, local_directory: str):
-        if '\\' in local_directory or '/' not in local_directory:
+    def local_directory(self, local_directory: str or Path):
+        if '\\' in str(local_directory) or '/' not in str(local_directory):
             assert ValueError('external_directory string should only contain / not \\')
         # add a forward slash at end so directory name itself is not copied, contents only
-        self._local_directory = Path(local_directory)
+        self._local_directory = str(local_directory)
         self.log.info(f'setting local path to: {local_directory}')
 
     @property
     def external_directory(self):
         return self._external_directory
+
+    @external_directory.setter
+    def external_directory(self, external_directory: str or Path):
+        if '\\' in str(external_directory) or '/' not in str(external_directory):
+            assert ValueError('external_directory string should only contain / not \\')
+        # add a forward slash at end so directory name itself is not copied, contents only
+        self._external_directory = str(external_directory)
+        self.log.info(f'setting local path to: {external_directory}')
 
     @property
     def signal_progress_percent(self):
@@ -107,8 +115,7 @@ class FileTransfer():
             # setup log file
             log_path = Path(f'{self._local_directory.absolute()}/{self._filename}.txt')
             self._log_file = open(log_path, 'w')
-            self.log.info(f"transferring from {self._local_directory} to {self._external_directory}")
-            print(file_path, Path(external_dir) / Path(filename))
+            self.log.info(f"transferring {file_path} from {self._local_directory} to {self._external_directory}")
             # generate rsync command with args
             cmd_with_args = self._flatten([self._protocol,
                                            self._flags,
@@ -122,7 +129,7 @@ class FileTransfer():
                 file_progress = 0
                 while file_progress < 100:
                     # open the stdout file in a temporary handle with r+ mode
-                    f = open(f'{self._local_directory / self._log_filename}', 'r+')
+                    f = open(f'{self._local_directory / self._log_file}', 'r+')
                     # read the last line
                     line = f.readlines()[-1]
                     # try to find if there is a % in the last line

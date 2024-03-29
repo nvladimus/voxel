@@ -16,8 +16,8 @@ class FileTransfer():
         # check path for forward slashes
         if '\\' in external_directory or '/' not in external_directory:
             assert ValueError('external_directory string should only contain / not \\')
-        self._external_directory = Path(external_directory)
-        self._local_directory = Path(local_directory)
+        self._external_directory = str(external_directory)
+        self._local_directory = str(local_directory)
         if self._external_directory == self._local_directory:
             raise ValueError('External directory and local directory cannot be the same')
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
@@ -39,15 +39,24 @@ class FileTransfer():
         return self._local_directory
 
     @local_directory.setter
-    def local_directory(self, local_directory: str):
-        if '\\' in local_directory or '/' not in local_directory:
+    def local_directory(self, local_directory: str or Path):
+        if '\\' in str(local_directory) or '/' not in str(local_directory):
             assert ValueError('external_directory string should only contain / not \\')
-        self._local_directory = Path(local_directory)
+        # add a forward slash at end so directory name itself is not copied, contents only
+        self._local_directory = local_directory
         self.log.info(f'setting local path to: {local_directory}')
 
     @property
     def external_directory(self):
         return self._external_directory
+
+    @external_directory.setter
+    def external_directory(self, external_directory: str or Path):
+        if '\\' in str(external_directory) or '/' not in str(external_directory):
+            assert ValueError('external_directory string should only contain / not \\')
+        # add a forward slash at end so directory name itself is not copied, contents only
+        self._external_directory = external_directory
+        self.log.info(f'setting local path to: {external_directory}')
 
     @property
     def signal_progress_percent(self):
