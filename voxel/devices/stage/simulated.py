@@ -37,6 +37,8 @@ class Stage(BaseStage):
         self.id = self.instrument_axis
         self._position = 0
         self._speed = 1.0
+        self._limits = [-10000, 10000]
+
 
     def move_relative(self, position: float, wait: bool = True):
         w_text = "" if wait else "NOT "
@@ -64,6 +66,16 @@ class Stage(BaseStage):
                          retrace_speed_percent: int):
 
         self._position = fast_axis_start_position
+
+    @property
+    def limits(self):
+        """ Get the travel limits for the specified axes.
+
+        :return: a dict of 2-value lists, where the first element is the lower
+            travel limit and the second element is the upper travel limit.
+        """
+
+        return self._limits
 
     @property
     def position(self):

@@ -221,17 +221,17 @@ class Stage(BaseStage):
     def limits(self):
         """ Get the travel limits for the specified axes.
 
-        :return: a dict of 2-value lists, where the first element is the lower
+        :return: 2-value lists, where the first element is the lower
             travel limit and the second element is the upper travel limit.
         """
-        limits = {}
+
         # Get lower/upper limit in tigerbox frame.
         tiger_limit_lower = self.tigerbox.get_lower_travel_limit(self.hardware_axis)
         tiger_limit_upper = self.tigerbox.get_upper_travel_limit(self.hardware_axis)
         # Convert to sample frame before returning.
         sample_limit_lower = list(self._tiger_to_sample(tiger_limit_lower).values())[0]
         sample_limit_upper = list(self._tiger_to_sample(tiger_limit_upper).values())[0]
-        limits[self.instrument_axis] = sorted([sample_limit_lower, sample_limit_upper])
+        limits = sorted([sample_limit_lower, sample_limit_upper])
         return limits
 
     # @property
