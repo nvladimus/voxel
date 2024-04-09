@@ -40,7 +40,7 @@ class Stage(BaseStage):
         self._limits = [-10000, 10000]
 
 
-    def move_relative(self, position: float, wait: bool = True):
+    def move_relative_mm(self, position: float, wait: bool = True):
         w_text = "" if wait else "NOT "
         self.log.info(f"relative move by: {self.hardware_axis}={position} mm and {w_text}waiting.")
         move_time_s = position / self._speed
@@ -49,7 +49,7 @@ class Stage(BaseStage):
         while time.time() < self.move_end_time_s:
             time.sleep(0.01)
 
-    def move_absolute(self, position: float, wait: bool = True):
+    def move_absolute_mm(self, position: float, wait: bool = True):
         w_text = "" if wait else "NOT "
         self.log.info(f"absolute move to: {self.hardware_axis}={position} mm and {w_text}waiting.")
         move_time_s = abs(self._position - position) / self._speed
@@ -67,8 +67,12 @@ class Stage(BaseStage):
 
         self._position = fast_axis_start_position
 
+    def halts(self):
+        """Simulates stopping stage"""
+        pass
+
     @property
-    def limits(self):
+    def limits_mm(self):
         """ Get the travel limits for the specified axes.
 
         :return: a dict of 2-value lists, where the first element is the lower
@@ -78,7 +82,7 @@ class Stage(BaseStage):
         return self._limits
 
     @property
-    def position(self):
+    def position_mm(self):
         self._position = random.randint(0, 100)
         return {self.instrument_axis: self._position}
 

@@ -21,9 +21,9 @@ class FileTransfer():
         if self._external_directory == self._local_directory:
             raise ValueError('External directory and local directory cannot be the same')
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self._filename = None
+        self._filename = ''
         self._protocol = 'robocopy'
-        self.progress = None
+        self.progress = 0
 
     @property
     def filename(self):

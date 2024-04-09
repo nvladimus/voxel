@@ -127,15 +127,16 @@ class Stage(BaseStage):
         """
         return self._remap(axes, self.tiger_to_sample_axis_map)
 
-    def move_relative(self, position: float, wait: bool = True):
+    def move_relative_mm(self, position: float, wait: bool = True):
         w_text = "" if wait else "NOT "
         self.log.info(f"Relative move by: {self.hardware_axis}={position} mm and {w_text}waiting.")
-        self.tigerbox.move_relative(**{self.hardware_axis: position}, wait=wait)
+        # convert from mm to 1/10um
+        self.tigerbox.move_relative(**{self.hardware_axis: round(position*10000, 1)}, wait=wait)
         if wait:
-            while self.is_moving():
+            while self.tigerbox.is_moving():
                 sleep(0.001)
 
-    def move_absolute(self, position: float, wait: bool = True):
+    def move_absolute_mm(self, position: float, wait: bool = True):
         """Move the specified axes by their corresponding amounts.
 
         :param wait: If true, wait for the stage to arrive to the specified
@@ -146,9 +147,10 @@ class Stage(BaseStage):
         """
         w_text = "" if wait else "NOT "
         self.log.info(f"Absolute move to: {self.hardware_axis}={position} mm and {w_text}waiting.")
-        self.tigerbox.move_absolute(**{self.hardware_axis: position}, wait=wait)
+        # convert from mm to 1/10um
+        self.tigerbox.move_absolute(**{self.hardware_axis: round(position*10000, 1)}, wait=wait)
         if wait:
-            while self.is_moving():
+            while self.tigerbox.is_moving():
                 sleep(0.001)
 
     def setup_stage_scan(self, fast_axis_start_position: float,
@@ -213,13 +215,15 @@ class Stage(BaseStage):
         self.tigerbox.ser.close()
 
     @property
-    def position(self):
+    def position_mm(self):
         tiger_position = self.tigerbox.get_position(self.hardware_axis)
-        return self._tiger_to_sample(tiger_position)
+        # converting 1/10 um to mm
+        tiger_position_mm = {k:v/10000 for k, v in tiger_position.items()}
+        return self._tiger_to_sample(tiger_position_mm)
 
     @property
-    def limits(self):
-        """ Get the travel limits for the specified axes.
+    def limits_mm(self):
+        """ Get the travel limits for the specified axes returns um.
 
         :return: 2-value lists, where the first element is the lower
             travel limit and the second element is the upper travel limit.
@@ -285,6 +289,10 @@ class Stage(BaseStage):
 
         card_address = self.tigerbox.axis_to_card[self.hardware_axis][0]
         self.tigerbox.set_ttl_pin_modes(in0_mode = MODES[mode], card_address = card_address)
+
+    def halt(self):
+        """Stop stage"""
+        self.tigerbox.halt()
 
     def is_axis_moving(self):
         return self.tigerbox.is_axis_moving(self.hardware_axis)
