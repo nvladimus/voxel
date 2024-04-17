@@ -35,7 +35,7 @@ class Stage(BaseStage):
         self.axes_mapping.axis_map[instrument_axis] = hardware_axis
         # TODO change this, but self.id for consistency in lookup
         self.id = self.instrument_axis
-        self._position = 0
+        self._position_mm = 0
         self._speed = 1.0
         self._limits = [-10000, 10000]
 
@@ -83,8 +83,8 @@ class Stage(BaseStage):
 
     @property
     def position_mm(self):
-        self._position = random.randint(0, 100)
-        return {self.instrument_axis: self._position}
+        self._position_mm = random.randint(0, 100)
+        return {self.instrument_axis: self._position_mm}
 
     @property
     def speed_mm_s(self):
