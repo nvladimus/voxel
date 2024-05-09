@@ -32,16 +32,17 @@ class Instrument:
         for device_name, device_specs in self.config['instrument']['devices'].items():
             self._construct_device(device_name, device_specs)
 
+        # TODO: need somecheck to make sure if multiple filters, they don't come from the same wheel
         # construct and verify channels
         for channel_name, channel in self.config['instrument']['channels'].items():
             laser_name = channel['laser']
             if laser_name not in self.lasers.keys():
                 raise ValueError(f'laser {laser_name} not in {self.lasers.keys()}')
-            for filter_wheel_name, filter_name in channel['filter_wheel'].items():
-                if filter_wheel_name not in self.filter_wheels.keys():
-                    raise ValueError(f'filter wheel {filter_wheel_name} not in {self.filter_wheels.keys()}')
-                if filter_name not in self.filter_wheels[filter_wheel_name].filters:
-                    raise ValueError(f'filter {filter_name} not in {self.filter_wheels[filter_wheel_name].filters}')
+            for filter in channel.get('filter', []).items():
+                if filter not in self.filters.keys():
+                    raise ValueError(f'filter wheel {filter} not in {self.filters.keys()}')
+                if filter not in [v.filters for v in self.filter_wheels.values()]:
+                    raise ValueError(f'filter {filter} not associated with any filter wheel: {self.filter_wheels}')
             self.channels[channel_name] = channel
 
     def _construct_device(self, device_name, device_specs):

@@ -96,9 +96,8 @@ class ExASPIMAcquisition(Acquisition):
             power_mw = tile['power_mw']
             laser.power_setpoint_mw = power_mw
             self.log.info(f'setting laser power for {laser_id} to {power_mw} [mW]')
-            for filter_wheel_id, filter_id in channel['filter_wheel'].items():
-                filter_wheel = self.instrument.filter_wheels[filter_wheel_id]
-                filter_wheel.filter = filter_id
+            for filter in channel.get('filters', []):
+                self.instrument.filters[filter].enable()
 
             # run any pre-routines for all devices
             for device_name, routine_dictionary in getattr(self, 'routines', {}).items():
