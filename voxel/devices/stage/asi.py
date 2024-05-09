@@ -32,6 +32,8 @@ class Stage(BaseStage):
         :param instrument_axis: instrument hardware axis.
         """
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self.log.setLevel('INFO')
+
         self.tigerbox = TigerControllerSingleton(com_port = port) if tigerbox is None else tigerbox
         self.hardware_axis = hardware_axis.upper()
         self.instrument_axis = instrument_axis.lower()

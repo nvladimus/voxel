@@ -1,11 +1,11 @@
 import logging
 
 from voxel.devices.filter.base import BaseFilter
-from voxel.devices.filterwheel.base import BaseFilterWheel
+from voxel.devices.filterwheel.simulated import FilterWheel
 
 class Filter(BaseFilter):
 
-    def __init__(self, wheel: BaseFilterWheel, id: str):
+    def __init__(self, wheel: FilterWheel, id: str):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.id = id
         self.wheel = wheel

@@ -8,8 +8,9 @@ import inflection
 
 class Instrument:
 
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, log_level='INFO'):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.log.setLevel(log_level)
 
         self.config_path = Path(config_path)
         # yaml = YAML(typ='safe', pure=True)    # loads yaml in as dict. May want to use in future
@@ -34,16 +35,16 @@ class Instrument:
 
         # TODO: need somecheck to make sure if multiple filters, they don't come from the same wheel
         # construct and verify channels
-        for channel_name, channel in self.config['instrument']['channels'].items():
-            laser_name = channel['laser']
-            if laser_name not in self.lasers.keys():
-                raise ValueError(f'laser {laser_name} not in {self.lasers.keys()}')
-            for filter in channel.get('filter', []).items():
+        for channel in self.config['instrument']['channels'].values():
+            for laser_name in channel['lasers']:
+                if laser_name not in self.lasers.keys():
+                    raise ValueError(f'laser {laser_name} not in {self.lasers.keys()}')
+            for filter in channel['filters']:
                 if filter not in self.filters.keys():
                     raise ValueError(f'filter wheel {filter} not in {self.filters.keys()}')
-                if filter not in [v.filters for v in self.filter_wheels.values()]:
+                if filter not in sum([list(v.filters.keys()) for v in self.filter_wheels.values()], []):
                     raise ValueError(f'filter {filter} not associated with any filter wheel: {self.filter_wheels}')
-            self.channels[channel_name] = channel
+        self.channels = self.config['instrument']['channels']
 
     def _construct_device(self, device_name, device_specs):
         """Load, setup, and add any subdevices or tasks of a device
