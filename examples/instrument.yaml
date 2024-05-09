@@ -2,21 +2,25 @@ instrument:
   id: exaspim-01
   channels:
     "405":
-      laser: 405nm
-      filter_wheel:
-        ASI FW-1000: BP405
+      lasers:
+        -405nm
+      filters:
+        -BP405
     "488":
-      laser: 488nm
-      filter_wheel:
-        ASI FW-1000: BP488
+      lasers:
+        -488nm
+      filters:
+        - BP488
     "561":
-      laser: 561nm
-      filter_wheel:
-        ASI FW-1000: BP561
+      lasers:
+        -561nm
+      filters:
+        - BP561
     "638":
-      laser: 638nm
-      filter_wheel:
-        ASI FW-1000: LP638
+      lasers:
+        - 638nm
+      filters:
+        -  LP638
   devices:
       vp-151mx:
         type: camera
@@ -96,6 +100,37 @@ instrument:
             MB405/488/561/638: 4
             Empty1: 5
             Empty2: 6
+        subdevices:
+          BP405:
+            type: filter
+            driver: voxel.devices.filter.simulated
+            module: Filter
+            init:
+              id: BP405
+          BP488:
+            type: filter
+            driver: voxel.devices.filter.simulated
+            module: Filter
+            init:
+              id: BP488
+          BP561:
+            type: filter
+            driver: voxel.devices.filter.simulated
+            module: Filter
+            init:
+              id: BP561
+          BP638:
+            type: filter
+            driver: voxel.devices.filter.simulated
+            module: Filter
+            init:
+              id: BP638
+          MB405/488/561/638:
+            type: filter
+            driver: voxel.devices.filter.simulated
+            module: Filter
+            init:
+              id: MB405/488/561/638
       ASI joystick:
         type: joystick
         driver: voxel.devices.stage.simulated
