@@ -18,7 +18,7 @@ class FileTransfer():
         if '\\' in external_directory or '/' not in external_directory:
             assert ValueError('external_directory string should only contain / not \\')
         self._external_directory = str(external_directory)
-        self._local_directory = str(local_directory)
+        self._local_directory = Path(local_directory)
         if self._external_directory == self._local_directory:
             raise ValueError('External directory and local directory cannot be the same')
         self._filename = None
@@ -54,7 +54,7 @@ class FileTransfer():
         if '\\' in str(local_directory) or '/' not in str(local_directory):
             assert ValueError('external_directory string should only contain / not \\')
         # add a forward slash at end so directory name itself is not copied, contents only
-        self._local_directory = str(local_directory)
+        self._local_directory = Path(local_directory)
         self.log.info(f'setting local path to: {local_directory}')
 
     @property

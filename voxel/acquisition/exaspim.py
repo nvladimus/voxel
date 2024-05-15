@@ -1,23 +1,13 @@
 import numpy
 import time
-import math
-import threading
 import logging
-import sys
-import shutil
-import os
-import subprocess
-import platform
-import inspect
 from ruamel.yaml import YAML
 from pathlib import Path
-from psutil import virtual_memory
-from threading import Event, Thread
+from threading import Event, Thread, Lock
 from multiprocessing.shared_memory import SharedMemory
 from voxel.instruments.instrument import Instrument
 from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
 from voxel.acquisition.acquisition import Acquisition
-from voxel.processes.cpu.max_projection import MaxProjection
 import inflection
 
 
@@ -37,10 +27,12 @@ class ExASPIMAcquisition(Acquisition):
         self._verify_directories()
         self._verify_acquisition()
 
+        self.acquisition_threads = dict()
+        self.transfer_threads = dict()
+        self.stop_engine = Event()  # Event to flag a stop in engine
+
     def run(self):
 
-        acquisition_threads = dict()
-        transfer_threads = dict()
         filenames = dict()
 
         for tile in self.config['acquisition']['tiles']:
@@ -72,7 +64,7 @@ class ExASPIMAcquisition(Acquisition):
                 instrument_axis = tiling_stage.instrument_axis
                 tile_position = tile['position_mm'][instrument_axis]
                 self.log.info(f'moving stage {tiling_stage_id} to {instrument_axis} = {tile_position} mm')
-                tiling_stage.move_absolute(tile_position)
+                tiling_stage.move_absolute_mm(tile_position)
 
             # wait on all stages... simultaneously
             for tiling_stage_id, tiling_stage in self.instrument.tiling_stages.items():
@@ -80,7 +72,7 @@ class ExASPIMAcquisition(Acquisition):
                     instrument_axis = tiling_stage.instrument_axis
                     tile_position = tile['position_mm'][instrument_axis]
                     self.log.info(
-                        f'waiting for stage {tiling_stage_id}: {instrument_axis} = {tiling_stage.position} -> {tile_position} mm')
+                        f'waiting for stage {tiling_stage_id}: {instrument_axis} = {tiling_stage.position_mm} -> {tile_position} mm')
                     time.sleep(0.01)
 
             # prepare the scanning stage for step and shoot behavior
@@ -91,13 +83,28 @@ class ExASPIMAcquisition(Acquisition):
             # setup channel i.e. laser and filter wheels
             self.log.info(f'setting up channel: {tile_channel}')
             channel = self.instrument.channels[tile_channel]
-            laser_id = channel['laser']
-            laser = self.instrument.lasers[laser_id]
-            power_mw = tile['power_mw']
-            laser.power_setpoint_mw = power_mw
-            self.log.info(f'setting laser power for {laser_id} to {power_mw} [mW]')
-            for filter in channel.get('filters', []):
-                self.instrument.filters[filter].enable()
+            for device_type, devices in channel.items():
+                for device_name in devices:
+                    device = getattr(self.instrument, device_type)[device_name]
+                    if device_type in ['lasers', 'filters']:
+                        device.enable()
+                    for setting, value in tile.get(device_name, {}):
+                        setattr(device, setting, value)
+                        self.log.info(f'setting {setting} for {device_type} {device_name} to {value}')
+
+            # fixme: is this right?
+            for daq_name, daq in self.instrument.daqs.items():
+                if daq.tasks.get('ao_task', None) is not None:
+                    daq.add_task('ao')
+                    daq.generate_waveforms('ao', tile_channel)
+                    daq.write_ao_waveforms()
+                if daq.tasks.get('do_task', None) is not None:
+                    daq.add_task('do')
+                    daq.generate_waveforms('do', tile_channel)
+                    daq.write_do_waveforms()
+                if daq.tasks.get('co_task', None) is not None:
+                    pulse_count = daq.tasks['co_task']['timing'].get('pulse_count', None)
+                    daq.add_task('co', pulse_count)
 
             # run any pre-routines for all devices
             for device_name, routine_dictionary in getattr(self, 'routines', {}).items():
@@ -115,18 +122,18 @@ class ExASPIMAcquisition(Acquisition):
             for camera_id, camera in self.instrument.cameras.items():
                 self.log.info(f'arming camera and writer for {camera_id}')
                 # pass in camera specific camera, writer, and processes
-                thread = threading.Thread(target=self.engine,
+                thread = Thread(target=self.engine,
                                           args=(tile, filenames[camera_id],
                                                 camera,
                                                 self.writers[camera_id],
                                                 self.processes[camera_id],
                                                 ))
-                acquisition_threads[camera_id] = thread
+                self.acquisition_threads[camera_id] = thread
 
                 # start and arm the slaved cameras/writers
-            for camera_id in acquisition_threads:
+            for camera_id in self.acquisition_threads:
                 self.log.info(f'starting camera and writer for {camera_id}')
-                acquisition_threads[camera_id].start()
+                self.acquisition_threads[camera_id].start()
 
             #################### IMPORTANT ####################
             # for the exaspim, the NIDAQ is the master, so we start this last
@@ -135,9 +142,9 @@ class ExASPIMAcquisition(Acquisition):
                 daq.start()
 
             # wait for the cameras/writers to finish
-            for camera_id in acquisition_threads:
+            for camera_id in self.acquisition_threads:
                 self.log.info(f'waiting for camera {camera_id} to finish')
-                acquisition_threads[camera_id].join()
+                self.acquisition_threads[camera_id].join()
 
             # stop the daq
             for daq_id, daq in self.instrument.daqs.items():
@@ -145,24 +152,24 @@ class ExASPIMAcquisition(Acquisition):
                 daq.stop()
 
             # handle starting and waiting for file transfers
-            for device_name, transfer_dict in transfer_threads.items():
+            for device_name, transfer_dict in self.transfer_threads.items():
                 for transfer_id, transfer_thread in transfer_dict.items():
                     if transfer_thread.is_alive():
                         self.log.info(f"waiting on file transfer for {device_name} {transfer_id}")
                         transfer_thread.wait_until_finished()
-            transfer_threads = {}  # clear transfer threads
+            self.transfer_threads = {}  # clear transfer threads
 
             # create and start transfer threads from previous tile
             for device_name, transfer_dict in getattr(self, 'transfers', {}).items():
-                transfer_threads[device_name] = {}
+                self.transfer_threads[device_name] = {}
                 for transfer_name, transfer in transfer_dict.items():
-                    transfer_threads[device_name][transfer_name] = transfer
-                    transfer_threads[device_name][transfer_name].filename = filenames[device_name]
+                    self.transfer_threads[device_name][transfer_name] = transfer
+                    self.transfer_threads[device_name][transfer_name].filename = filenames[device_name]
                     self.log.info(f"starting file transfer for {device_name}")
-                    transfer_threads[device_name][transfer_name].start()
+                    self.transfer_threads[device_name][transfer_name].start()
 
         # wait for last tiles file transfer # TODO: We seem to do this logic a lot of looping through device then op.
-        #  Should this be a function?
+        #                                           Should this be a function?
         for device_name, transfer_dict in getattr(self, 'transfers', {}).items():
             for transfer_id, transfer_thread in transfer_dict.items():
                 if transfer_thread.is_alive():
@@ -183,14 +190,14 @@ class ExASPIMAcquisition(Acquisition):
             writer.x_pos_mm = tile['position_mm']['x']
             writer.y_pos_mm = tile['position_mm']['y']
             writer.z_pos_mm = tile['position_mm']['z']
-            writer.x_voxel_size_um = tile['voxel_size_um']['x']
-            writer.y_voxel_size_um = tile['voxel_size_um']['x']
-            writer.z_voxel_size_um = tile['voxel_size_um']['x']
+            # writer.x_voxel_size_um = tile['voxel_size_um']['x']
+            # writer.y_voxel_size_um = tile['voxel_size_um']['y']
+            writer.z_voxel_size_um = tile['step_size']['z']
             writer.filename = filename
             writer.channel = tile['channel']
 
             chunk_sizes[writer_name] = writer.chunk_count_px
-            chunk_locks[writer_name] = threading.Lock()
+            chunk_locks[writer_name] = Lock()
             img_buffers[writer_name] = SharedDoubleBuffer(
                 (writer.chunk_count_px, camera.roi['height_px'], camera.roi['width_px']),
                 dtype=writer.data_type)
@@ -230,6 +237,8 @@ class ExASPIMAcquisition(Acquisition):
 
         # Images arrive serialized in repeating channel order.
         for stack_index in range(tile['frame_count_px']):
+            if self.stop_engine.is_set():
+                break
             chunk_indexes = {writer_name: stack_index % chunk_size for writer_name, chunk_size in chunk_sizes.items()}
             # Start a batch of pulses to generate more frames and movements.    # TODO: Is this a TODO?
 
@@ -250,7 +259,7 @@ class ExASPIMAcquisition(Acquisition):
             # which may not be a multiple of the chunk size.
             for writer_name, writer in writers.items():
                 if chunk_indexes[writer_name] + 1 == chunk_sizes[writer_name] or stack_index == last_frame_index:
-                    while not writer.done_reading.is_set():
+                    while not writer.done_reading.is_set() and not self.stop_engine.is_set():
                         time.sleep(0.001)
                     # Dispatch chunk to each StackWriter compression process.
                     # Toggle double buffer to continue writing images.
@@ -291,3 +300,14 @@ class ExASPIMAcquisition(Acquisition):
             buffer.close()
             buffer.unlink()
             del buffer
+
+    def stop_acquisition(self):
+        """Overwriting to better stop acquisition"""
+
+        self.stop_engine.set()
+        for thread in self.acquisition_threads.values():
+            thread.join()
+
+        # TODO: Stop any devices here? or stop transfer_threads?
+
+        raise RuntimeError

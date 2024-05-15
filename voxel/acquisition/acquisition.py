@@ -502,3 +502,9 @@ class Acquisition:
                 raise ValueError(f'{memory_gb} [GB] \
                                     GPU RAM requested but only \
                                     {total_gpu_memory_gb} [GB] available')
+
+    def stop_acquisition(self):
+        """Method to force quit acquisition by raising error"""
+
+        raise RuntimeError
+
