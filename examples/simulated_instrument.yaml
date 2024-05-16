@@ -1,10 +1,5 @@
 instrument:
   channels:
-    "405":
-      lasers:
-        - 405nm
-      filters:
-        - BP405
     "488":
       lasers:
         - 488nm
@@ -15,11 +10,6 @@ instrument:
         - 561nm
       filters:
         - BP561
-    "638":
-      lasers:
-        - 638nm
-      filters:
-        - LP638
   devices:
     639nm:
       color: red
@@ -101,7 +91,7 @@ instrument:
         speed_mm_s: 1.0
       type: tiling_stage
     PCIe-6738:
-      driver: voxel.devices.daq.ni
+      driver: voxel.devices.daq.simulated
       init:
         dev: Dev2
       module: DAQ

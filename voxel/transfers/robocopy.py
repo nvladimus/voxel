@@ -78,7 +78,10 @@ class FileTransfer():
 
     def _run(self):
         # generate a list of subdirs and files in the parent local dir to delete at the end
-        delete_list = os.listdir(self._local_directory.absolute())
+        delete_list = []
+        for name in os.listdir(self._local_directory.absolute()):
+            if self.filename in name:
+                delete_list.append(name)
         # generate a list of files to copy
         # path is the entire experiment path
         # subdirs is any tile specific subdir i.e. zarr store
@@ -86,7 +89,9 @@ class FileTransfer():
         file_list = dict()
         for path, subdirs, files in os.walk(self._local_directory.absolute()):
             for name in files:
-                file_list[os.path.join(path, name)] = os.path.getsize(os.path.join(path, name))/1024**2
+                # check and only add if filename matches tranfer's filename
+                if self.filename in name:
+                    file_list[os.path.join(path, name)] = os.path.getsize(os.path.join(path, name))/1024**2
         total_size_mb = sum(file_list.values())
         # sort the file list based on the file sizes and create a list for transfers
         sorted_file_list = dict(sorted(file_list.items(), key = lambda item: item[1]))
