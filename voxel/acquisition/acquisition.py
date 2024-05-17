@@ -23,7 +23,7 @@ class Acquisition:
 
     def __init__(self, instrument: Instrument, config_filename: str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-
+        # TODO should we store tile metadata in the acquisition?
         self.config_path = Path(config_filename)
         self.config = YAML(typ='safe', pure=True).load(Path(self.config_path))
         self.acquisition = self.config['acquisition']
@@ -119,10 +119,10 @@ class Acquisition:
             if tile_channel not in self.instrument.channels:
                 raise ValueError(f'channel {tile_channel} is not in {self.instrument.channels}')
 
-    def _frame_size_mb(self, camera_id: str):
+    def _frame_size_mb(self, camera_id: str, writer_id: str):
         row_count_px = self.instrument.cameras[camera_id].roi['height_px']
         column_count_px = self.instrument.cameras[camera_id].roi['width_px']
-        data_type = self.writers[camera_id].data_type
+        data_type = self.writers[camera_id][writer_id].data_type
         frame_size_mb = row_count_px * column_count_px * numpy.dtype(data_type).itemsize / 1024 ** 2
         return frame_size_mb
 
@@ -238,18 +238,20 @@ class Acquisition:
         drives = dict()
         for camera_id, camera in self.instrument.cameras.items():
             data_size_gb = 0
-            # if windows
-            if platform.system() == 'Windows':
-                local_drive = os.path.splitdrive(self.writers[camera_id].path)[0]
-            # if unix
-            else:
-                abs_path = os.path.abspath(self.writers[camera_id].path)
-                local_drive = '/'
-            for tile in self.config['acquisition']['tiles']:
-                frame_size_mb = self._frame_size_mb(camera_id)
-                frame_count_px = tile['frame_count_px']
-                data_size_gb += frame_count_px * frame_size_mb / 1024
-            drives.setdefault(local_drive, []).append(data_size_gb)
+            for writer_id, writer in self.writers[camera_id].items():
+                # if windows
+                if platform.system() == 'Windows':
+                    local_drive = os.path.splitdrive(writer.path)[0]
+                # if unix
+                else:
+                    abs_path = os.path.abspath(writer.path)
+                    # TODO FIX THIS, SYNTAX FOR UNIX DRIVES?
+                    local_drive = '/'
+                for tile in self.config['acquisition']['tiles']:
+                    frame_size_mb = self._frame_size_mb(camera_id, writer_id)
+                    frame_count_px = tile['frame_count_px']
+                    data_size_gb += frame_count_px * frame_size_mb / 1024
+                drives.setdefault(local_drive, []).append(data_size_gb)
 
         for drive in drives:
             required_size_gb = sum(drives[drive])
@@ -268,20 +270,22 @@ class Acquisition:
         if self.transfers:
             drives = dict()
             for camera_id, camera in self.instrument.cameras.items():
-                data_size_gb = 0
-                # if windows
-                if platform.system() == 'Windows':
-                    external_drive = os.path.splitdrive(self.transfers[camera_id].external_directory)[0]
-                # if unix
-                else:
-                    abs_path = os.path.abspath(self.transfers[camera_id].external_directory)
-                    # TODO FIX THIS
-                    external_drive = '/'
-                for tile in self.config['acquisition']['tiles']:
-                    frame_size_mb = self._frame_size_mb(camera_id)
-                    frame_count_px = tile['frame_count_px']
-                    data_size_gb += frame_count_px * frame_size_mb / 1024
-                drives.setdefault(external_drive, []).append(data_size_gb)
+                for transfer_id, transfer in self.transfers[camera_id].items():
+                    for writer_id, writer in self.writers[camera_id].items():
+                        data_size_gb = 0
+                        # if windows
+                        if platform.system() == 'Windows':
+                            external_drive = os.path.splitdrive(transfer.external_directory)[0]
+                        # if unix
+                        else:
+                            abs_path = os.path.abspath(transfer.external_directory)
+                            # TODO FIX THIS, SYNTAX FOR UNIX DRIVES?
+                            external_drive = '/'
+                        for tile in self.config['acquisition']['tiles']:
+                            frame_size_mb = self._frame_size_mb(camera_id, writer_id)
+                            frame_count_px = tile['frame_count_px']
+                            data_size_gb += frame_count_px * frame_size_mb / 1024
+                        drives.setdefault(external_drive, []).append(data_size_gb)
             for drive in drives:
                 required_size_gb = sum(drives[drive])
                 self.log.info(f'required disk space = {required_size_gb:.1f} [GB] on drive {drive}')
@@ -460,17 +464,11 @@ class Acquisition:
         # Calculate double buffer size for all channels.
         memory_gb = 0
         for camera_id, camera in self.instrument.cameras.items():
-            row_count_px = camera.roi['height_px']
-            column_count_px = camera.roi['width_px']
-            # grab the correct writer, name of writer must match name of camera
-            try:
-                data_type = self.writers[camera_id].data_type
-                chunk_count_px = self.writers[camera_id].chunk_count_px
-            except:
-                raise ValueError(f'no writer found for camera {camera_id}. check yaml files.')
-            # factor of 2 for concurrent chunks being written/read
-            frame_size_mb = self._frame_size_mb(camera_id)
-            memory_gb += 2 * chunk_count_px * frame_size_mb / 1024
+            for writer_id, writer in self.writers[camera_id].items():
+                chunk_count_px = writer.chunk_count_px
+                # factor of 2 for concurrent chunks being written/read
+                frame_size_mb = self._frame_size_mb(camera_id, writer_id)
+                memory_gb += 2 * chunk_count_px * frame_size_mb / 1024
 
         free_memory_gb = virtual_memory()[1] / 1024 ** 3
 
@@ -481,27 +479,22 @@ class Acquisition:
             raise MemoryError('system does not have enough memory to run')
 
     def check_gpu_memory(self):
-
         # check GPU resources for downscaling
+        memory_gb = 0
         for camera_id, camera in self.instrument.cameras.items():
-            row_count_px = camera.roi['height_px']
-            column_count_px = camera.roi['width_px']
-            # grab the correct writer, name of writer must match name of camera
-            try:
-                data_type = self.writers[camera_id].data_type
-                chunk_count_px = self.writers[camera_id].chunk_count_px
-            except:
-                raise ValueError(f'no writer found for camera {camera_id}. check yaml files.')
+            for writer_id, writer in self.writers[camera_id].items():
+                chunk_count_px = writer.chunk_count_px
             # factor of 2 for concurrent chunks being written/read
-            frame_size_mb = self._frame_size_mb(camera_id)
-            memory_gb = chunk_count_px * frame_size_mb / 1024
-            total_gpu_memory_gb = get_device().get_info('MAX_MEM_ALLOC_SIZE') / 1024 ** 3
-            self.log.info(f"{total_gpu_memory_gb} RAM available")
-            self.log.info(f"{memory_gb} RAM requested")
-            if memory_gb >= total_gpu_memory_gb:
-                raise ValueError(f'{memory_gb} [GB] \
-                                    GPU RAM requested but only \
-                                    {total_gpu_memory_gb} [GB] available')
+            frame_size_mb = self._frame_size_mb(camera_id, writer_id)
+            memory_gb += 2 * chunk_count_px * frame_size_mb / 1024
+        # TODO, SHOULD WE USE SOMETHING BESIDES GPUTOOLS TO CHECK GPU MEMORY?
+        total_gpu_memory_gb = get_device().get_info('MAX_MEM_ALLOC_SIZE') / 1024 ** 3
+        self.log.info(f'required GPU RAM = {memory_gb:.1f} [GB]')
+        self.log.info(f'available GPU RAM = {total_gpu_memory_gb:.1f} [GB]')
+        if memory_gb >= total_gpu_memory_gb:
+            raise ValueError(f'{memory_gb} [GB] \
+                                GPU RAM requested but only \
+                                {total_gpu_memory_gb} [GB] available')
 
     def stop_acquisition(self):
         """Method to force quit acquisition by raising error"""

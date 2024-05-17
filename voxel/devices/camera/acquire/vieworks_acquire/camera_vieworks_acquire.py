@@ -275,10 +275,10 @@ class Camera(BaseCamera):
     def start(self, frame_count: int, live: bool = False):
         if live:
             # TODO: check if this is correct for continous streaming?
-            self.p.video[0].max_frame_count = 0
+            self.p.video[0].max_frame_count_px = 0
             self.runtime.start()
         else:
-            self.p.video[0].max_frame_count = frame_count
+            self.p.video[0].max_frame_count_px = frame_count
             self.runtime.start()
 
     def stop(self):
@@ -289,7 +289,7 @@ class Camera(BaseCamera):
     def grab_frame(self):
         """Retrieve a frame as a 2D numpy array with shape (rows, cols)."""
         if a := self.runtime.get_available_data(0):
-            packet = a.get_frame_count()
+            packet = a.get_frame_count_px()
             f = next(a.frames())
             latest_frame = f.data().squeeze().copy()
 

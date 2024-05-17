@@ -15,7 +15,7 @@ from time import sleep, perf_counter
 from math import ceil
 
 CHUNK_COUNT_PX = 128
-DIVISIBLE_FRAME_COUNT_PX = 128
+DIVISIBLE_frame_count_px_PX = 128
 B3D_QUANT_SIGMA = 1 # quantization step
 B3D_COMPRESSION_MODE = 1
 B3D_BACKGROUND_OFFSET = 0 # ADU
@@ -51,11 +51,11 @@ class Writer(BaseWriter):
         self._compression = COMPRESSION_TYPES["none"]
         self.compression_opts = None
         self._row_count_px = None
-        self._colum_count_px = None
-        self._frame_count_px = None
-        self._x_voxel_size_um = 1
-        self._y_voxel_size_um = 1
-        self._z_voxel_size_um = 1
+        self._colum_count_px_px = None
+        self._frame_count_px_px = None
+        self._x_voxel_size_um_um = 1
+        self._y_voxel_size_um_um = 1
+        self._z_voxel_size_um_um = 1
         self._x_position_mm = 0
         self._y_position_mm = 0
         self._z_position_mm = 0
@@ -89,30 +89,30 @@ class Writer(BaseWriter):
 
     @property
     def x_voxel_size_um(self):
-        return self._x_voxel_size_um
+        return self._x_voxel_size_um_um
 
     @x_voxel_size_um.setter
     def x_voxel_size_um(self, x_voxel_size_um: float):
         self.log.info(f'setting x voxel size to: {x_voxel_size_um} [um]')
-        self._x_voxel_size_um = x_voxel_size_um
+        self._x_voxel_size_um_um = x_voxel_size_um
 
     @property
     def y_voxel_size_um(self):
-        return self._y_voxel_size_um
+        return self._y_voxel_size_um_um
 
     @y_voxel_size_um.setter
     def y_voxel_size_um(self, y_voxel_size_um: float):
         self.log.info(f'setting y voxel size to: {y_voxel_size_um} [um]')
-        self._y_voxel_size_um = y_voxel_size_um
+        self._y_voxel_size_um_um = y_voxel_size_um
 
     @property
     def z_voxel_size_um(self):
-        return self._z_voxel_size_um
+        return self._z_voxel_size_um_um
 
     @z_voxel_size_um.setter
     def z_voxel_size_um(self, z_voxel_size_um: float):
         self.log.info(f'setting z voxel size to: {z_voxel_size_um} [um]')
-        self._z_voxel_size_um = z_voxel_size_um
+        self._z_voxel_size_um_um = z_voxel_size_um
 
     @property
     def x_position_mm(self):
@@ -152,14 +152,14 @@ class Writer(BaseWriter):
 
     @property
     def frame_count_px(self):
-        return self._frame_count_px
+        return self._frame_count_px_px
 
     @frame_count_px.setter
     def frame_count_px(self, frame_count_px: int):
         self.log.info(f'setting frame count to: {frame_count_px} [px]')
-        frame_count_px = ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
+        frame_count_px = ceil(frame_count_px / DIVISIBLE_frame_count_px_PX) * DIVISIBLE_frame_count_px_PX
         self.log.info(f'adjusting frame count to: {frame_count_px} [px]')
-        self._frame_count_px = frame_count_px
+        self._frame_count_px_px = frame_count_px
 
     @property
     def column_count_px(self):
@@ -293,16 +293,16 @@ class Writer(BaseWriter):
         self.current_channel_num = self.channel_list.index(self._channel)
         
         # Add dimensions to dictionary with key (tile#, channel#)
-        tile_dimensions = (self._frame_count_px, self._row_count_px, self._column_count_px)
+        tile_dimensions = (self._frame_count_px_px, self._row_count_px, self._column_count_px)
         self.dataset_dict[(self.current_tile_num, self.current_channel_num)] = tile_dimensions
         
         # Add voxel size to dictionary with key (tile#, channel#)
         # effective voxel size in x direction
-        size_x = self._x_voxel_size_um
+        size_x = self._x_voxel_size_um_um
         # effective voxel size in y direction
-        size_y = self._y_voxel_size_um*np.cos(self._theta_deg*np.pi/180.0)
+        size_y = self._y_voxel_size_um_um*np.cos(self._theta_deg*np.pi/180.0)
         # effective voxel size in z direction (scan)
-        size_z = self._z_voxel_size_um
+        size_z = self._z_voxel_size_um_um
         voxel_sizes = (size_z, size_y, size_x)
         self.voxel_size_dict[(self.current_tile_num, self.current_channel_num)] = voxel_sizes
         
@@ -411,7 +411,7 @@ class Writer(BaseWriter):
         # append all views based to bdv writer
         # this is necessary for bdv writer to have the metadata to write the xml at the end
         # if a view already exists in the bdv file, it will be skipped and not overwritten
-        image_size_z = int(ceil(self._frame_count_px/CHUNK_COUNT_PX)*CHUNK_COUNT_PX)
+        image_size_z = int(ceil(self._frame_count_px_px/CHUNK_COUNT_PX)*CHUNK_COUNT_PX)
         for append_tile, append_channel in self.dataset_dict:
             bdv_writer.append_view(
                                     stack = None,
@@ -423,7 +423,7 @@ class Writer(BaseWriter):
                                     voxel_size_xyz = self.voxel_size_dict[(append_tile, append_channel)],
                                     voxel_units = 'um')
 
-        chunk_total = ceil(self._frame_count_px/CHUNK_COUNT_PX)
+        chunk_total = ceil(self._frame_count_px_px/CHUNK_COUNT_PX)
         for chunk_num in range(chunk_total):
             # Wait for new data.
             while self.done_reading.is_set():

@@ -40,15 +40,15 @@ class Writer(BaseWriter):
         self._filename = None
         self._data_type = 'uint16'
         self._compression = COMPRESSION_TYPES["none"]
-        self._rows = None
-        self._colum_count = None
-        self._frame_count = None
-        self._z_pos_mm = None
-        self._y_pos_mm = None
-        self._x_pos_mm = None
-        self._z_voxel_size = None
-        self._y_voxel_size = None
-        self._x_voxel_size = None
+        self._row_count_px = None
+        self._colum_count_px = None
+        self._frame_count_px = None
+        self._z_position_mm = None
+        self._y_position_mm = None
+        self._x_position_mm = None
+        self._z_voxel_size_um = None
+        self._y_voxel_size_um = None
+        self._x_voxel_size_um = None
 
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         # Opinioated decision on chunking dimension order
@@ -66,30 +66,30 @@ class Writer(BaseWriter):
 
     @property
     def x_voxel_size_um(self):
-        return self._x_voxel_size_um
+        return self._x_voxel_size_um_um
 
     @x_voxel_size_um.setter
     def x_voxel_size_um(self, x_voxel_size_um: float):
         self.log.info(f'setting x voxel size to: {x_voxel_size_um} [um]')
-        self._x_voxel_size_um = x_voxel_size_um
+        self._x_voxel_size_um_um = x_voxel_size_um
 
     @property
     def y_voxel_size_um(self):
-        return self._y_voxel_size_um
+        return self._y_voxel_size_um_um
 
     @y_voxel_size_um.setter
     def y_voxel_size_um(self, y_voxel_size_um: float):
         self.log.info(f'setting y voxel size to: {y_voxel_size_um} [um]')
-        self._y_voxel_size_um = y_voxel_size_um
+        self._y_voxel_size_um_um = y_voxel_size_um
 
     @property
     def z_voxel_size_um(self):
-        return self._z_voxel_size_um
+        return self._z_voxel_size_um_um
 
     @z_voxel_size_um.setter
     def z_voxel_size_um(self, z_voxel_size_um: float):
         self.log.info(f'setting z voxel size to: {z_voxel_size_um} [um]')
-        self._z_voxel_size_um = z_voxel_size_um
+        self._z_voxel_size_um_um = z_voxel_size_um
 
     @property
     def x_position_mm(self):
@@ -120,12 +120,12 @@ class Writer(BaseWriter):
 
     @property
     def frame_count_px(self):
-        return self._frame_count_px
+        return self._frame_count_px_px
 
     @frame_count_px.setter
     def frame_count_px(self, frame_count_px: int):
         self.log.info(f'setting frame count to: {frame_count_px} [px]')
-        self._frame_count_px = frame_count_px
+        self._frame_count_px_px = frame_count_px
 
     @property
     def column_count_px(self):
@@ -242,11 +242,11 @@ class Writer(BaseWriter):
 
         metadata = {
             'axes': 'ZYX',
-            'PhysicalSizeX': self._x_voxel_size_um,
+            'PhysicalSizeX': self._x_voxel_size_um_um,
             'PhysicalSizeXUnit': 'um',
-            'PhysicalSizeY': self._y_voxel_size_um,
+            'PhysicalSizeY': self._y_voxel_size_um_um,
             'PhysicalSizeYUnit': 'um',
-            'PhysicalSizeZ': self._z_voxel_size_um,
+            'PhysicalSizeZ': self._z_voxel_size_um_um,
             'PhysicalSizeZUnit': 'um',
             'Channel': {'Name': [self._channel]},
             'Plane': {
@@ -259,7 +259,7 @@ class Writer(BaseWriter):
             }
         }
 
-        chunk_total = ceil(self._frame_count_px/CHUNK_COUNT_PX)
+        chunk_total = ceil(self._frame_count_px_px/CHUNK_COUNT_PX)
         for chunk_num in range(chunk_total):
             # Wait for new data.
             while self.done_reading.is_set():

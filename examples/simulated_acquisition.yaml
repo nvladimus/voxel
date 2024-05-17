@@ -53,7 +53,7 @@ acquisition:
           data_type: uint16
           frame_count_px: 10
     vnp-604mx:
-        bvd:
+        bdv:
           type: writer
           driver: voxel.writers.bdv
           module: Writer

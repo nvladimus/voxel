@@ -379,7 +379,7 @@ class Camera(BaseCamera):
         # initialize variables for acquisition run
         self.dropped_frames = 0
         self.pre_frame_time = 0
-        self.pre_frame_count = 0
+        self.pre_frame_count_px = 0
         if frames > 1:
             self.dcam.cap_start()
         elif frames == 1:
@@ -414,7 +414,7 @@ class Camera(BaseCamera):
         dcamcap_transferinfo(self.dcam._Dcam__hdcam, byref(cap_info))
         self.post_frame_time = time.time()
         frame_index = cap_info.nFrameCount
-        out_buffer_size = frame_index - self.pre_frame_count
+        out_buffer_size = frame_index - self.pre_frame_count_px
         in_buffer_size = self.buffer_size_frames - out_buffer_size
         if out_buffer_size > self.buffer_size_frames:
             new_dropped_frames = out_buffer_size - self.buffer_size_frames
@@ -442,7 +442,7 @@ class Camera(BaseCamera):
                       f"data rate: {state['Data Rate [MB/s]']:.2f} [MB/s], "
                       f"frame rate: {state['Frame Rate [fps]']:.2f} [fps].")
         self.pre_frame_time = time.time()
-        self.pre_frame_count = cap_info.nFrameCount
+        self.pre_frame_count_px = cap_info.nFrameCount
 
         return state
 
