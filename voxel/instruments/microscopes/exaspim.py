@@ -45,12 +45,12 @@ class ExASPIM(Instrument):
     #         }
 
     def _verify_master_device(self):
-        """Define master_device dictionary if it is defined in yaml. Master_device will be used later to calculate
+        """Define master_device dictionary if it is defined in yaml. master_device will be used later to calculate
         run time of acquisition"""
 
         if device_name := self.config['instrument'].get('master_device', False):
             self.master_device = {'name': device_name,
-                                  'type': self.config['instrument']['devices'].get(device_name, None)}
+                                  'type': self.config['instrument']['devices'].get(device_name, None)['type']}
             if self.master_device['type'] == 'daq':
                 master_task_dict = dict()
                 for task_name, task in getattr(self, 'daqs')[device_name].tasks.items():

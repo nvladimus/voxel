@@ -139,15 +139,15 @@ class Acquisition:
         master_device_name = self.instrument.master_device['name']
         master_device_type = self.instrument.master_device['type']
         # if camera, calculate acquisition rate based on frame time
-        if master_device_type == 'cameras':
+        if master_device_type == 'camera':
             acquisition_rate_hz = 1.0 / (self.instrument.cameras[master_device_name].frame_time_ms / 1000)
         # if scanning stage, calculate acquisition rate based on speed and voxel size
-        elif master_device_type == 'scanning stages':
+        elif master_device_type == 'scanning stage':
             speed_mm_s = self.instrument.scanning_stages[master_device_name].speed_mm_s
             voxel_size_um = tile['voxel_size_um']
             acquisition_rate_hz = speed_mm_s / (voxel_size_um / 1000)
         # if daq, calculate based on task interval time
-        elif master_device_type == 'daqs':
+        elif master_device_type == 'daq':
             master_task = self.instrument.master_device['task']
             acquisition_rate_hz = 1.0 / self.instrument.daqs[master_device_name].task_time_s[master_task]
         # otherwise assertion, these are the only three supported master devices
@@ -155,11 +155,11 @@ class Acquisition:
             raise ValueError(f'master device type {master_device_type} is not supported.')
         return acquisition_rate_hz
 
-    def _check_compression_ratio(self, camera_id: str):
+    def _check_compression_ratio(self, camera_id: str, writer_id: str):
         self.log.info(f'estimating acquisition compression ratio')
         # get the correct camera and writer
         camera = self.instrument.cameras[camera_id]
-        writer = self.writers[camera_id]
+        writer = self.writers[camera_id][writer_id]
         if writer.compression != 'none':
             # store initial trigger mode
             initial_trigger = camera.trigger
@@ -218,7 +218,7 @@ class Acquisition:
             filepath = str((writer.path / Path(f"{writer.filename}")).absolute())
             compressed_file_size_mb = os.stat(filepath).st_size / (1024 ** 2)
             # calculate the raw file size
-            frame_size_mb = self._frame_size_mb(camera_id)
+            frame_size_mb = self._frame_size_mb(camera_id, writer_id)
             # get pyramid factor
             pyramid_factor = self._pyramid_factor(levels=3)
             raw_file_size_mb = frame_size_mb * writer.frame_count_px * pyramid_factor
@@ -228,7 +228,8 @@ class Acquisition:
             writer.delete_files()
         else:
             compression_ratio = 1.0
-        self.log.info(f'compression ratio for camera: {camera_id} ~ {compression_ratio:.1f}')
+        self.log.info(f'compression ratio for camera: {camera_id} writer:\
+                        {writer_id} ~ {compression_ratio:.1f}')
         return compression_ratio
 
     def check_local_acquisition_disk_space(self):
@@ -387,39 +388,41 @@ class Acquisition:
 
         # loop over cameras and see where they are acquiring data
         for camera_id, camera in self.instrument.cameras.items():
-            # check the compression ratio for this camera
-            compression_ratio = self._check_compression_ratio(camera_id)
-            # grab the frame size and acquisition rate
-            frame_size_mb = self._frame_size_mb(camera_id)
-            acquisition_rate_hz = self._acquisition_rate_hz
-            local_directory = self.writers[camera_id].path
-            # strip drive letters from paths so that we can combine
-            # cameras acquiring to the same drives
-            if platform.system() == 'Windows':
-                local_drive_letter = os.path.splitdrive(local_directory)[0]
-            # if unix
-            else:
-                # TODO FIX THIS -> what is syntax for unix drives?
-                local_abs_path = os.path.abspath(local_directory)
-                local_drive_letter = '/'
-            # add into drives dictionary append to list if same drive letter
-            drives.setdefault(local_drive_letter, []).append(local_directory)
-            camera_speed_mb_s.setdefault(local_drive_letter, []).append(
-                acquisition_rate_hz * frame_size_mb / compression_ratio)
-            if self.transfers:
-                external_directory = self.transfers[camera_id].external_directory
+            for writer_id, writer in self.writers[camera_id].items():
+                # check the compression ratio for this camera
+                compression_ratio = self._check_compression_ratio(camera_id, writer_id)
+                # grab the frame size and acquisition rate
+                frame_size_mb = self._frame_size_mb(camera_id, writer_id)
+                acquisition_rate_hz = self._acquisition_rate_hz
+                local_directory = writer.path
                 # strip drive letters from paths so that we can combine
                 # cameras acquiring to the same drives
                 if platform.system() == 'Windows':
-                    external_drive_letter = os.path.splitdrive(local_directory)[0]
+                    local_drive_letter = os.path.splitdrive(local_directory)[0]
                 # if unix
                 else:
                     # TODO FIX THIS -> what is syntax for unix drives?
-                    external_abs_path = os.path.abspath(local_directory)
-                    external_drive_letter = '/'
+                    local_abs_path = os.path.abspath(local_directory)
+                    local_drive_letter = '/'
                 # add into drives dictionary append to list if same drive letter
-                drives.setdefault(external_drive_letter, []).append(external_directory)
-                camera_speed_mb_s.setdefault(external_drive_letter, []).append(acquisition_rate_hz * frame_size_mb)
+                drives.setdefault(local_drive_letter, []).append(local_directory)
+                camera_speed_mb_s.setdefault(local_drive_letter, []).append(
+                    acquisition_rate_hz * frame_size_mb / compression_ratio)
+                if self.transfers:
+                    for transfer_id, transfer in self.transfers[camera_id].items():
+                        external_directory = transfer.external_directory
+                        # strip drive letters from paths so that we can combine
+                        # cameras acquiring to the same drives
+                        if platform.system() == 'Windows':
+                            external_drive_letter = os.path.splitdrive(local_directory)[0]
+                        # if unix
+                        else:
+                            # TODO FIX THIS -> what is syntax for unix drives?
+                            external_abs_path = os.path.abspath(local_directory)
+                            external_drive_letter = '/'
+                        # add into drives dictionary append to list if same drive letter
+                        drives.setdefault(external_drive_letter, []).append(external_directory)
+                        camera_speed_mb_s.setdefault(external_drive_letter, []).append(acquisition_rate_hz * frame_size_mb)
 
         for drive in drives:
             # if more than one stream on this drive, just test the first directory location
