@@ -24,7 +24,8 @@ class TigerControllerSingleton(TigerController, metaclass=Singleton):
 
 class Stage(BaseStage):
 
-    def __init__(self, port: str, hardware_axis: str, instrument_axis: str, tigerbox: TigerController = None):
+    def __init__(self, port: str, hardware_axis: str, instrument_axis: str, tigerbox: TigerController = None,
+                 log_level = "INFO"):
         """Connect to hardware.
 
         :param tigerbox: TigerController instance.
@@ -32,9 +33,11 @@ class Stage(BaseStage):
         :param instrument_axis: instrument hardware axis.
         """
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.log.setLevel('INFO')
+        self.log.setLevel(log_level)
 
         self.tigerbox = TigerControllerSingleton(com_port = port) if tigerbox is None else tigerbox
+        self.tigerbox.log.setLevel(log_level)
+
         self.hardware_axis = hardware_axis.upper()
         self.instrument_axis = instrument_axis.lower()
         # TODO change this, but self.id for consistency in lookup
