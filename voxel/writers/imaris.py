@@ -16,7 +16,7 @@ from time import sleep, perf_counter
 from math import ceil
 
 CHUNK_COUNT_PX = 64
-DIVISIBLE_FRAME_COUNT_PX = 64
+DIVISIBLE_frame_count_px_PX = 64
 
 COMPRESSION_TYPES = {
     "lz4shuffle":  pw.eCompressionAlgorithmShuffleLZ4,
@@ -53,11 +53,11 @@ class Writer(BaseWriter):
         self._data_type = 'uint16'
         self._compression = COMPRESSION_TYPES["none"]
         self._row_count_px = None
-        self._colum_count_px = None
-        self._frame_count_px = None
-        self._x_voxel_size_um = 1
-        self._y_voxel_size_um = 1
-        self._z_voxel_size_um = 1
+        self._colum_count_px_px = None
+        self._frame_count_px_px = None
+        self._x_voxel_size_um_um = 1
+        self._y_voxel_size_um_um = 1
+        self._z_voxel_size_um_um = 1
         self._x_position_mm = 0
         self._y_position_mm = 0
         self._z_position_mm = 0
@@ -83,30 +83,30 @@ class Writer(BaseWriter):
 
     @property
     def x_voxel_size_um(self):
-        return self._x_voxel_size_um
+        return self._x_voxel_size_um_um
 
     @x_voxel_size_um.setter
     def x_voxel_size_um(self, x_voxel_size_um: float):
         self.log.info(f'setting x voxel size to: {x_voxel_size_um} [um]')
-        self._x_voxel_size_um = x_voxel_size_um
+        self._x_voxel_size_um_um = x_voxel_size_um
 
     @property
     def y_voxel_size_um(self):
-        return self._y_voxel_size_um
+        return self._y_voxel_size_um_um
 
     @y_voxel_size_um.setter
     def y_voxel_size_um(self, y_voxel_size_um: float):
         self.log.info(f'setting y voxel size to: {y_voxel_size_um} [um]')
-        self._y_voxel_size_um = y_voxel_size_um
+        self._y_voxel_size_um_um = y_voxel_size_um
 
     @property
     def z_voxel_size_um(self):
-        return self._z_voxel_size_um
+        return self._z_voxel_size_um_um
 
     @z_voxel_size_um.setter
     def z_voxel_size_um(self, z_voxel_size_um: float):
         self.log.info(f'setting z voxel size to: {z_voxel_size_um} [um]')
-        self._z_voxel_size_um = z_voxel_size_um
+        self._z_voxel_size_um_um = z_voxel_size_um
 
     @property
     def x_position_mm(self):
@@ -137,14 +137,14 @@ class Writer(BaseWriter):
 
     @property
     def frame_count_px(self):
-        return self._frame_count_px
+        return self._frame_count_px_px
 
     @frame_count_px.setter
     def frame_count_px(self, frame_count_px: int):
         self.log.info(f'setting frame count to: {frame_count_px} [px]')
-        frame_count_px = ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
+        frame_count_px = ceil(frame_count_px / DIVISIBLE_frame_count_px_PX) * DIVISIBLE_frame_count_px_PX
         self.log.info(f'adjusting frame count to: {frame_count_px} [px]')
-        self._frame_count_px = frame_count_px
+        self._frame_count_px_px = frame_count_px
 
     @property
     def column_count_px(self):
@@ -260,7 +260,7 @@ class Writer(BaseWriter):
         self.application_name = 'PyImarisWriter'
         self.application_version = '1.0.0'
         # voxel size metadata to create the converter
-        image_size_z = int(ceil(self._frame_count_px/CHUNK_COUNT_PX)*CHUNK_COUNT_PX)
+        image_size_z = int(ceil(self._frame_count_px_px/CHUNK_COUNT_PX)*CHUNK_COUNT_PX)
         self.image_size = pw.ImageSize(x=self._column_count_px, y=self._row_count_px, z=image_size_z,
                           c=1, t=1)
         self.block_size = pw.ImageSize(x=self._column_count_px, y=self._row_count_px, z=CHUNK_COUNT_PX,
@@ -269,12 +269,12 @@ class Writer(BaseWriter):
         # compute the start/end extremes of the enclosed rectangular solid.
         # (x0, y0, z0) position (in [um]) of the beginning of the first voxel,
         # (xf, yf, zf) position (in [um]) of the end of the last voxel.
-        x0 = self._x_position_mm - (self._x_voxel_size_um * 0.5 * self._column_count_px)
-        y0 = self._y_position_mm - (self._y_voxel_size_um * 0.5 * self._row_count_px)
+        x0 = self._x_position_mm - (self._x_voxel_size_um_um * 0.5 * self._column_count_px)
+        y0 = self._y_position_mm - (self._y_voxel_size_um_um * 0.5 * self._row_count_px)
         z0 = self._z_position_mm
-        xf = self._x_position_mm + (self._x_voxel_size_um * 0.5 * self._column_count_px)
-        yf = self._y_position_mm + (self._y_voxel_size_um * 0.5 * self._row_count_px)
-        zf = self._z_position_mm + self._frame_count_px * self._z_voxel_size_um
+        xf = self._x_position_mm + (self._x_voxel_size_um_um * 0.5 * self._column_count_px)
+        yf = self._y_position_mm + (self._y_voxel_size_um_um * 0.5 * self._row_count_px)
+        zf = self._z_position_mm + self._frame_count_px_px * self._z_voxel_size_um_um
         self.image_extents = pw.ImageExtents(-x0, -y0, -z0, -xf, -yf, -zf)
         # c = channel, t = time. These fields are unused for now.
         # Note: ImarisWriter performs MUCH faster when the dimension sequence
@@ -328,7 +328,7 @@ class Writer(BaseWriter):
                               self.dimension_sequence, self.block_size, filepath, 
                               self.opts, self.application_name,
                               self.application_version, self.callback_class)
-        chunk_total = ceil(self._frame_count_px/CHUNK_COUNT_PX)
+        chunk_total = ceil(self._frame_count_px_px/CHUNK_COUNT_PX)
         for chunk_num in range(chunk_total):
             block_index = pw.ImageSize(x=0, y=0, z=chunk_num, c=0, t=0)
             # Wait for new data.

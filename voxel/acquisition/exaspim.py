@@ -93,18 +93,18 @@ class ExASPIMAcquisition(Acquisition):
                         self.log.info(f'setting {setting} for {device_type} {device_name} to {value}')
 
             # fixme: is this right?
-            for daq_name, daq in self.instrument.daqs.items():
-                if daq.tasks.get('ao_task', None) is not None:
-                    daq.add_task('ao')
-                    daq.generate_waveforms('ao', tile_channel)
-                    daq.write_ao_waveforms()
-                if daq.tasks.get('do_task', None) is not None:
-                    daq.add_task('do')
-                    daq.generate_waveforms('do', tile_channel)
-                    daq.write_do_waveforms()
-                if daq.tasks.get('co_task', None) is not None:
-                    pulse_count = daq.tasks['co_task']['timing'].get('pulse_count', None)
-                    daq.add_task('co', pulse_count)
+            # for daq_name, daq in self.instrument.daqs.items():
+            #     if daq.tasks.get('ao_task', None) is not None:
+            #         daq.add_task('ao')
+            #         daq.generate_waveforms('ao', tile_channel)
+            #         daq.write_ao_waveforms()
+            #     if daq.tasks.get('do_task', None) is not None:
+            #         daq.add_task('do')
+            #         daq.generate_waveforms('do', tile_channel)
+            #         daq.write_do_waveforms()
+            #     if daq.tasks.get('co_task', None) is not None:
+            #         pulse_count = daq.tasks['co_task']['timing'].get('pulse_count', None)
+            #         daq.add_task('co', pulse_count)
 
             # run any pre-routines for all devices
             for device_name, routine_dictionary in getattr(self, 'routines', {}).items():
@@ -130,7 +130,7 @@ class ExASPIMAcquisition(Acquisition):
                                                 ))
                 self.acquisition_threads[camera_id] = thread
 
-                # start and arm the slaved cameras/writers
+            # start and arm the slaved cameras/writers
             for camera_id in self.acquisition_threads:
                 self.log.info(f'starting camera and writer for {camera_id}')
                 self.acquisition_threads[camera_id].start()
@@ -190,9 +190,9 @@ class ExASPIMAcquisition(Acquisition):
             writer.x_pos_mm = tile['position_mm']['x']
             writer.y_pos_mm = tile['position_mm']['y']
             writer.z_pos_mm = tile['position_mm']['z']
-            # writer.x_voxel_size_um = tile['voxel_size_um']['x']
-            # writer.y_voxel_size_um = tile['voxel_size_um']['y']
-            writer.z_voxel_size_um = tile['step_size']['z']
+            writer.x_voxel_size_um = tile['voxel_size_um']['x']
+            writer.y_voxel_size_um = tile['voxel_size_um']['y']
+            writer.z_voxel_size_um = tile['voxel_size_um']['z']
             writer.filename = filename
             writer.channel = tile['channel']
 

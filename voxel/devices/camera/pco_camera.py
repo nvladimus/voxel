@@ -267,7 +267,7 @@ class Camera(BaseCamera):
 
     def start(self):
         self.pre_frame_time = 0
-        self.pre_frame_count = 0
+        self.pre_frame_count_px = 0
         self.pco.start()
 
     def stop(self):
@@ -291,7 +291,7 @@ class Camera(BaseCamera):
         frame_index = self.pco.rec.get_status()["dwProcImgCount"]
         print(frame_index)
         # TODO FINISH THIS
-        # out_buffer_size = frame_index - self.pre_frame_count
+        # out_buffer_size = frame_index - self.pre_frame_count_px
         # in_buffer_size = self.buffer_size_frames - out_buffer_size
         # dropped_frames = self.pco.rec.get_status()["bFIFOOverflow"]
         # frame_rate = out_buffer_size/(self.pre_frame_time - self.post_frame_time)
