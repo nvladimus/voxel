@@ -1,8 +1,18 @@
 import logging
-from voxel.devices.tunable_lens.base import BaseTunableLens
 import optoICC
+from optoKummenberg.tools.definitions import UnitType
+from voxel.devices.tunable_lens.base import BaseTunableLens
 
 # constants for Optotune ICC-4C controller
+# CURRENT   = 0
+# OF        = 1
+# XY     = 2
+# FP     = 3
+# UNITLESS = 4
+# UNDEFINED = 5
+
+MODES = {"internal": UnitType.FP,
+         "external": UnitType.CURRENT}
 
 class TunableLens(BaseTunableLens):
 
@@ -16,36 +26,35 @@ class TunableLens(BaseTunableLens):
         self.icc4c = optoICC.connect(port=port)
         self.icc4c.reset(force=True)
         self.icc4c.go_pro()
-        self.channel = channel
-        self._mode = None
+        self._channel = channel
         self.tunable_lens = self.icc4c.channel[self.channel]
+        # start lens in internal mode
+        self.tunable_lens.SetControlMode(UnitType.FP)
+        self._mode = "internal"
+
+    @property
+    def channel(self):
+        return self._channel
 
     @property
     def mode(self):
         """Get the tunable lens control mode."""
-        return self._mode
+        mode = self.tunable_lens.GetControlMode()
+        return next(key for key, value in MODES.items() if value == mode)
 
     @mode.setter
     def mode(self, mode: str):
         """Set the tunable lens control mode."""
-
-        if mode == 'external':
-            max_diopter = self.tunable_lens.LensCompensation.GetMaxDiopter()
-            min_diopter = self.tunable_lens.LensCompensation.GetMinDiopter()
-            self.tunable_lens.Analog.SetVoltages_LUT([0, 10])
-            self.tunable_lens.Analog.SetValues_LUT([min_diopter, max_diopter])
-            self.tunable_lens.Analog.SetAsInput()
-            self._mode = 'external'
-        elif mode == 'internal':
-            self.tunable_lens.StaticInput.SetAsInput()
-            self._mode = 'internal'
-        else:
-            raise ValueError("mode must be one of external or internal")
+        if mode not in MODES.keys():
+            raise ValueError(f"{mode} must be {MODES}")
+        self.tunable_lens.SetControlMode(MODES[mode])
 
     @property
-    def temperature(self):
+    def signal_temperature_c(self):
         """Get the temperature in deg C."""
-        return self.tunable_lens.TemperatureManager.GetDeviceTemperature()[self.channel]
+        state = {}
+        state['Temperature [C]'] = self.tunable_lens.TemperatureManager.GetDeviceTemperature()
+        return state
 
     def close(self):
         self.icc4c.close()
