@@ -23,6 +23,6 @@ dependencies = [
     'gputools >= 0.2.14',
     'scikit-tensor-py3',
     'tensorstore >= 0.1.56',
-    'pyclesperanto >= 0.8.2'
+    'pyclesperanto >= 0.8.2',
     'pylablib >= 1.4.2'
 ]

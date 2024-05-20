@@ -34,43 +34,33 @@ class ExASPIM(Instrument):
         # verify master device for microscope
         self._verify_master_device()
         # verify channels for microscope
-        self._verify_channels()
-
-    def _verify_channels(self):
-        setattr(self, 'channels', dict())
-        for channel_name, channel in self.config['instrument']['channels'].items():
-            self.channels[channel_name] = {
-                'laser': channel['laser'],
-                'filter_wheel': channel['filter_wheel']
-            }
+    #     self._verify_channels()
+    #
+    # def _verify_channels(self):
+    #     setattr(self, 'channels', dict())
+    #     for channel_name, channel in self.config['instrument']['channels'].items():
+    #         self.channels[channel_name] = {
+    #             'laser': channel['lasers'],
+    #             'filter_wheel': channel['filter_wheel']
+    #         }
 
     def _verify_master_device(self):
+        """Define master_device dictionary if it is defined in yaml. master_device will be used later to calculate
+        run time of acquisition"""
 
-        for device_type, device_list in self.config['instrument']['devices'].items():
-            # check if this is the master device
-            for name, device in device_list.items():
-                if 'master' in device.keys():
-                    setattr(self, 'master_device', dict())
-                    self.log.info(f'loading {name} as a {device_type} master device')
-                    if isinstance(device['master'], bool):
-                        if device['master'] == True and not self.master_device:
-                            self.master_device['name'] = name
-                            self.master_device['type'] = device_type  
-                            # added logic for daqs
-                            if device_type == 'daqs':
-                                master_task_dict = dict()
-                                for task in device['tasks']:
-                                    # the master device will not have triggering enabled
-                                    trigger_mode = device['tasks'][task]['timing']['trigger_mode']
-                                    if trigger_mode == 'off':
-                                        self.master_device['task'] = device['tasks'][task]['name']
-                                        master_task_dict[device['tasks'][task]['name']] = trigger_mode
-                                if len(master_task_dict.keys()) > 1:
-                                    raise ValueError(f'there can only be one master task. but {master_task_dict} are all master tasks.')
-                        else:
-                            raise ValueError('master device is already defined. only one master device is allowed.')
-                    else:
-                        raise ValueError('master must be defined as true or false.')
+        if device_name := self.config['instrument'].get('master_device', False):
+            self.master_device = {'name': device_name,
+                                  'type': self.config['instrument']['devices'].get(device_name, None)['type']}
+            if self.master_device['type'] == 'daq':
+                master_task_dict = dict()
+                for task_name, task in getattr(self, 'daqs')[device_name].tasks.items():
+                    # the master device will not have triggering enabled
+                    trigger_mode = task['timing']['trigger_mode']
+                    if trigger_mode == 'off':
+                        self.master_device['task'] = task_name
+                        master_task_dict[task_name] = trigger_mode
+                if len(master_task_dict.keys()) > 1:
+                    raise ValueError(f'there can only be one master task. but {master_task_dict} are all master tasks.')
 
     def _verify_instrument(self):
         # assert that only one scanning stage is allowed

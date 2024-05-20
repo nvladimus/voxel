@@ -20,7 +20,7 @@ class MaxProjection:
         self._path = path
         self._column_count_px = None
         self._row_count_px = None
-        self._frame_count_px = None
+        self._frame_count_px_px = None
         self._projection_count_px = None
         self._filename = None
         self._data_type = None
@@ -47,12 +47,12 @@ class MaxProjection:
 
     @property
     def frame_count_px(self):
-        return self._frame_count_px
+        return self._frame_count_px_px
 
     @frame_count_px.setter
     def frame_count_px(self, frame_count_px: int):
         self.log.info(f'setting frame count to: {frame_count_px} [px]')
-        self._frame_count_px = frame_count_px
+        self._frame_count_px_px = frame_count_px
 
     @property
     def projection_count_px(self):
@@ -77,6 +77,13 @@ class MaxProjection:
     @property
     def path(self):
         return self._path
+
+    @path.setter
+    def path(self, path: str or path):
+        if '\\' in str(path) or '/' not in str(path):
+            self.log.error('path string should only contain / not \\')
+        else:
+            self._path = str(path)
 
     @property
     def filename(self):
@@ -116,12 +123,12 @@ class MaxProjection:
 
         # Create XY, YZ, ZX placeholder images.
         self.mip_xy = np.zeros((self._row_count_px, self._column_count_px), dtype=self._data_type)
-        self.mip_xz = np.zeros((self._frame_count_px, self._row_count_px), dtype=self._data_type)
-        self.mip_yz = np.zeros((self._column_count_px, self._frame_count_px), dtype=self._data_type)
+        self.mip_xz = np.zeros((self._frame_count_px_px, self._row_count_px), dtype=self._data_type)
+        self.mip_yz = np.zeros((self._column_count_px, self._frame_count_px_px), dtype=self._data_type)
 
-        chunk_count = math.ceil(self._frame_count_px / self._projection_count_px)
+        chunk_count = math.ceil(self._frame_count_px_px / self._projection_count_px)
 
-        while frame_index < self._frame_count_px:
+        while frame_index < self._frame_count_px_px:
             chunk_index = frame_index % self._projection_count_px
             # max project latest image
             if self.new_image.is_set():
@@ -138,7 +145,7 @@ class MaxProjection:
                 # maximum_x_projection returns (N,1) array so index [0] to put into self.mip_xz
                 self.mip_xz[frame_index, :] = cle.pull(cle.maximum_x_projection(cle.push(self.latest_img)))[0]
                 # if this projection thickness is complete or end of stack
-                if chunk_index == self._projection_count_px - 1 or frame_index == self._frame_count_px - 1:
+                if chunk_index == self._projection_count_px - 1 or frame_index == self._frame_count_px_px - 1:
                     start_index = int(frame_index - self._projection_count_px + 1)
                     end_index = int(frame_index + 1)
                     tifffile.imwrite(self.path / Path(f"{self.filename}_max_projection_xy_z_{start_index:06}_{end_index:06}.tiff"), self.mip_xy)

@@ -35,26 +35,28 @@ class Stage(BaseStage):
         self.axes_mapping.axis_map[instrument_axis] = hardware_axis
         # TODO change this, but self.id for consistency in lookup
         self.id = self.instrument_axis
-        self._position = 0
+        self._position_mm = 0
         self._speed = 1.0
+        self._limits = [-10000, 10000]
 
-    def move_relative(self, position: float, wait: bool = True):
+
+    def move_relative_mm(self, position: float, wait: bool = True):
         w_text = "" if wait else "NOT "
         self.log.info(f"relative move by: {self.hardware_axis}={position} mm and {w_text}waiting.")
         move_time_s = position / self._speed
         self.move_end_time_s = time.time() + move_time_s
-        self._position += position
-        while time.time() < self.move_end_time_s:
-            time.sleep(0.01)
+        self._position_mm += position
+        # while time.time() < self.move_end_time_s:
+        #     time.sleep(0.01)
 
-    def move_absolute(self, position: float, wait: bool = True):
+    def move_absolute_mm(self, position: float, wait: bool = True):
         w_text = "" if wait else "NOT "
         self.log.info(f"absolute move to: {self.hardware_axis}={position} mm and {w_text}waiting.")
-        move_time_s = abs(self._position - position) / self._speed
+        move_time_s = abs(self._position_mm - position) / self._speed
         self.move_end_time_s = time.time() + move_time_s
-        self._position = position
-        while time.time() < self.move_end_time_s:
-            time.sleep(0.01)
+        self._position_mm = position
+        # while time.time() < self.move_end_time_s:
+        #     time.sleep(0.01)
 
     def setup_stage_scan(self, fast_axis_start_position: float,
                          slow_axis_start_position: float,
@@ -63,12 +65,26 @@ class Stage(BaseStage):
                          strip_count: int, pattern: str,
                          retrace_speed_percent: int):
 
-        self._position = fast_axis_start_position
+        self._position_mm = fast_axis_start_position
+
+    def halts(self):
+        """Simulates stopping stage"""
+        pass
 
     @property
-    def position(self):
-        self._position = random.randint(0, 100)
-        return {self.instrument_axis: self._position}
+    def limits_mm(self):
+        """ Get the travel limits for the specified axes.
+
+        :return: a dict of 2-value lists, where the first element is the lower
+            travel limit and the second element is the upper travel limit.
+        """
+
+        return self._limits
+
+    @property
+    def position_mm(self):
+        self._position_mm = random.randint(0, 10)
+        return {self.instrument_axis: self._position_mm}
 
     @property
     def speed_mm_s(self):
@@ -85,7 +101,7 @@ class Stage(BaseStage):
             return False
 
     def zero_in_place(self):
-        self._position = 0
+        self._position_mm = 0
 
     def close(self):
         pass

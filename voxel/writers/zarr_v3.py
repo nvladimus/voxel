@@ -18,7 +18,7 @@ from math import ceil, log2
 from sympy import divisors
 
 CHUNK_COUNT_PX = 32
-DIVISIBLE_FRAME_COUNT_PX = 32
+DIVISIBLE_frame_count_px_PX = 32
 
 CHUNK_SIZE_X = 256
 CHUNK_SIZE_Y = 256
@@ -73,15 +73,15 @@ class Writer(BaseWriter):
         self._compression = "none"
         self._shuffle = "noshuffle"
         self._downsample_method = "cpu"
-        self._rows = None
-        self._colum_count = None
-        self._frame_count = None
-        self._z_pos_mm = None
-        self._y_pos_mm = None
-        self._x_pos_mm = None
-        self._z_voxel_size = None
-        self._y_voxel_size = None
-        self._x_voxel_size = None
+        self._row_count_px = None
+        self._colum_count_px = None
+        self._frame_count_px = None
+        self._z_position_mm = None
+        self._y_position_mm = None
+        self._x_position_mm = None
+        self._z_voxel_size_um = None
+        self._y_voxel_size_um = None
+        self._x_voxel_size_um = None
 
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         # Opinioated decision on chunking dimension order
@@ -99,30 +99,30 @@ class Writer(BaseWriter):
 
     @property
     def x_voxel_size_um(self):
-        return self._x_voxel_size_um
+        return self._x_voxel_size_um_um
 
     @x_voxel_size_um.setter
     def x_voxel_size_um(self, x_voxel_size_um: float):
         self.log.info(f'setting x voxel size to: {x_voxel_size_um} [um]')
-        self._x_voxel_size_um = x_voxel_size_um
+        self._x_voxel_size_um_um = x_voxel_size_um
 
     @property
     def y_voxel_size_um(self):
-        return self._y_voxel_size_um
+        return self._y_voxel_size_um_um
 
     @y_voxel_size_um.setter
     def y_voxel_size_um(self, y_voxel_size_um: float):
         self.log.info(f'setting y voxel size to: {y_voxel_size_um} [um]')
-        self._y_voxel_size_um = y_voxel_size_um
+        self._y_voxel_size_um_um = y_voxel_size_um
 
     @property
     def z_voxel_size_um(self):
-        return self._z_voxel_size_um
+        return self._z_voxel_size_um_um
 
     @z_voxel_size_um.setter
     def z_voxel_size_um(self, z_voxel_size_um: float):
         self.log.info(f'setting z voxel size to: {z_voxel_size_um} [um]')
-        self._z_voxel_size_um = z_voxel_size_um
+        self._z_voxel_size_um_um = z_voxel_size_um
 
     @property
     def x_position_mm(self):
@@ -153,14 +153,14 @@ class Writer(BaseWriter):
 
     @property
     def frame_count_px(self):
-        return self._frame_count_px
+        return self._frame_count_px_px
 
     @frame_count_px.setter
     def frame_count_px(self, frame_count_px: int):
         self.log.info(f'setting frame count to: {frame_count_px} [px]')
-        frame_count_px = ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
+        frame_count_px = ceil(frame_count_px / DIVISIBLE_frame_count_px_PX) * DIVISIBLE_frame_count_px_PX
         self.log.info(f'adjusting frame count to: {frame_count_px} [px]')
-        self._frame_count_px = frame_count_px
+        self._frame_count_px_px = frame_count_px
 
     @property
     def column_count_px(self):
@@ -208,7 +208,7 @@ class Writer(BaseWriter):
 
     @property
     def compression_level(self):
-        return self.compression_level
+        return self._compression_level
 
     @compression_level.setter
     def compression_level(self, compression_level: int):
@@ -242,6 +242,13 @@ class Writer(BaseWriter):
     @property
     def path(self):
         return self._path
+
+    @path.setter
+    def path(self, path: str or path):
+        if '\\' in str(path) or '/' not in str(path):
+            self.log.error('path string should only contain / not \\')
+        else:
+            self._path = str(path)
 
     @property
     def filename(self):
@@ -329,7 +336,7 @@ class Writer(BaseWriter):
         # round the zarr array size in x, y, z to be an integer multiple of the shard size
         store_size_x = int(ceil(self._column_count_px/CHUNK_SIZE_X)*CHUNK_SIZE_X) 
         store_size_y = int(ceil(self._row_count_px/CHUNK_SIZE_Y)*CHUNK_SIZE_Y)
-        store_size_z = int(ceil(self._frame_count_px/CHUNK_COUNT_PX)*CHUNK_COUNT_PX)
+        store_size_z = int(ceil(self._frame_count_px_px/CHUNK_COUNT_PX)*CHUNK_COUNT_PX)
 
         # determine the compatible chunk sizes for each level
         chunk_size_x = list()
@@ -367,7 +374,7 @@ class Writer(BaseWriter):
                         shape=[store_size_z // 2**level, store_size_y // 2**level, store_size_x // 2**level]
                 ).result())
 
-        chunk_total = ceil(self._frame_count_px/CHUNK_COUNT_PX)
+        chunk_total = ceil(self._frame_count_px_px/CHUNK_COUNT_PX)
         for chunk_num in range(chunk_total):
             # Wait for new data.
             while self.done_reading.is_set():

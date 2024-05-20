@@ -16,17 +16,17 @@ class BackgroundCollection:
         if '\\' in path or '/' not in path:
             assert ValueError('path string should only contain / not \\')
         self._path = path
-        self._frame_count_px = 1
+        self._frame_count_px_px = 1
         self._filename = None
         self._data_type = None
 
     @property
     def frame_count_px(self):
-        return self._frame_count_px
+        return self._frame_count_px_px
 
     @frame_count_px.setter
     def frame_count_px(self, frame_count_px: int):
-        self._frame_count_px = frame_count_px
+        self._frame_count_px_px = frame_count_px
 
     @property
     def data_type(self):
@@ -41,6 +41,13 @@ class BackgroundCollection:
     def path(self):
         return self._path
 
+    @path.setter
+    def path(self, path: str or path):
+        if '\\' in str(path) or '/' not in str(path):
+            self.log.error('path string should only contain / not \\')
+        else:
+            self._path = str(path)
+
     @property
     def filename(self):
         return self._filename
@@ -51,7 +58,8 @@ class BackgroundCollection:
             if filename.endswith(".tiff") or filename.endswith(".tif") else f"{filename}"
         self.log.info(f'setting filename to: {filename}')
 
-    def start(self, camera: BaseCamera):
+    def start(self, device: BaseCamera):    #TODO: Change to device so routine set up can be more routine hehe
+        camera = device
         # store initial trigger mode
         initial_trigger = camera.trigger
         # turn trigger off
@@ -61,8 +69,8 @@ class BackgroundCollection:
         # prepare and start camera
         camera.prepare()
         camera.start()
-        background_stack = np.zeros((self._frame_count_px, camera.roi['height_px'], camera.roi['width_px']), dtype = self._data_type)
-        for frame in range(self._frame_count_px):
+        background_stack = np.zeros((self._frame_count_px_px, camera.roi['height_px'], camera.roi['width_px']), dtype = self._data_type)
+        for frame in range(self._frame_count_px_px):
             background_stack[frame] = camera.grab_frame()
         # close writer and camera
         camera.stop()

@@ -10,7 +10,7 @@ class StackWriter:
     """Class for writing a stack of frames to a file on disk."""
 
     def __init__(self, runtime: acquire.Runtime(),
-                 image_rows: int, image_columns: int, image_count: int,
+                 image_row_count_px: int, image_columns: int, image_count: int,
                  first_img_centroid_x: float, first_img_centroid_y: float,
                  pixel_x_size_um: float, pixel_y_size_um: float,
                  pixel_z_size_um: float,
@@ -23,7 +23,7 @@ class StackWriter:
         self.dim_map = {'x': 0, 'y': 1, 'z': 2, 'c': 3, 't': 4}
         # metadata to create the file.
         self.cols = image_columns
-        self.rows = image_rows
+        self.rows = image_row_count_px
         self.img_count = image_count
         self.first_img_centroid_x_um = first_img_centroid_x
         self.first_img_centroid_y_um = first_img_centroid_y

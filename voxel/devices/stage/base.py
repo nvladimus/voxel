@@ -2,11 +2,11 @@ import inspect
 
 class BaseStage:
 
-    def move_relative(self, position: float, wait: bool = True):
+    def move_relative_mm(self, position: float, wait: bool = True):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    def move_absolute(self, position: float, wait: bool = True):
+    def move_absolute_mm(self, position: float, wait: bool = True):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -24,12 +24,12 @@ class BaseStage:
         pass
 
     @property
-    def position(self):
+    def position_mm(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
     @property
-    def limits(self):
+    def limits_mm(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -110,6 +110,10 @@ class BaseStage:
         pass
 
     def log_metadata(self):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    def halts(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 

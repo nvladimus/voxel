@@ -269,7 +269,7 @@ class CameraHamamatsuAcquire(BaseCamera):
 
     def start(self, frame_count: int, live: bool = False):
         if live:
-            self.p.video[0].max_frame_count = 10000000
+            self.p.video[0].max_frame_count_px = 10000000
             self.runtime.start()
         else:
             self.runtime.set_configuration(self.p)
@@ -277,7 +277,7 @@ class CameraHamamatsuAcquire(BaseCamera):
 
     def stop(self):
         # TODO: Should clarify what we mean here.
-        #  aqcuire.stop means stop when max_frame_count is reached. abort means abort any task
+        #  aqcuire.stop means stop when max_frame_count_px is reached. abort means abort any task
         self.runtime.abort()
 
     def grab_frame(self):
@@ -288,9 +288,9 @@ class CameraHamamatsuAcquire(BaseCamera):
         else:
             self.log.info('No frame in buffer')
 
-    def grab_frame_count(self):
+    def grab_frame_count_px(self):
         """Grab frame count off camera. Returns none if no frames taken"""
-        return self.runtime.get_available_data(0).get_frame_count()
+        return self.runtime.get_available_data(0).get_frame_count_px()
 
     def get_camera_acquisition_state(self):
         self.log.warning(f"camera acquisition state not implemented in ACQUIRE!")
