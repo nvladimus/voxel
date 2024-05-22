@@ -2,7 +2,7 @@ from voxel.devices.lasers.base import BaseLaser
 import logging
 from voxel.devices.daq.ni import DAQ
 
-
+# TODO: Finish
 class AOTFLaser(BaseLaser):
     """Laser controlled by nidaq. Power is a function of voltage"""
 
@@ -30,10 +30,6 @@ class AOTFLaser(BaseLaser):
     @power_setpoint_mw.setter
     def power_setpoint_mw(self, value: float):
         self._simulated_power_setpoint_m = value
-
-    @property
-    def max_power_mw(self):
-        return self._max_power_mw
 
     def enable(self):
         pass

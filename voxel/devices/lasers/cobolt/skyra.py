@@ -1,8 +1,10 @@
-import pycobolt
+from pycobolt import CoboltLaser
 import logging
 import sys
 from sympy import symbols, solve
 from voxel.devices.lasers.base import BaseLaser
+from voxel.descriptors.deliminated_property import DeliminatedProperty
+from enum import Enum
 
 # Define StrEnums if they don't yet exist.
 if sys.version_info < (3, 11):
@@ -68,7 +70,7 @@ class LaserSkyra(CoboltLaser, BaseLaser):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.prefix = prefix
         self.port = port
-        self.max_power_mw = max_power_mw
+        self.max_power_mw = type(self).power_setpoint_mw.maximum = max_power_mw
         self.min_current_ma = min_current_ma
         self.max_current_ma = max_current_ma
         # initialize current setpoint to min current ma
@@ -91,7 +93,7 @@ class LaserSkyra(CoboltLaser, BaseLaser):
         self.send_cmd(f'{self.prefix}Cmd.LaserDisable')
         self.log.info(f"laser {self.prefix} enabled")
     
-    @property
+    @DeliminatedProperty(minimum=0, maximum=float('inf'))
     def power_setpoint_mw(self):
         if self.constant_current == 'ON':
             return int(round(self.func.subs(symbols('x'),
@@ -124,13 +126,6 @@ class LaserSkyra(CoboltLaser, BaseLaser):
         self.log.info(f"laser {self.prefix} set to {value} mW")
 
     @property
-    def max_power_mw(self):
-        if self.constant_current == 'ON':
-            return int((round(self.func.subs(symbols('x'), 100), 1)))
-        else:
-            return int((self.max_power_mw))
-
-    @property
     def modulation_mode(self):
         # query the laser for the modulation mode
         if self.send_cmd(f'{self.prefix}Query.ModulationMode') == BoolVal.OFF:
@@ -151,9 +146,17 @@ class LaserSkyra(CoboltLaser, BaseLaser):
         self.send_cmd(f'{self.prefix}{digital_modulation}')
         self.send_cmd(f'{self.prefix}{analog_modulation}')
         self.log.info(f"modulation mode set to {value}")
+        self.set_max_power()
 
     def close(self):
         self.log.info('closing and calling disable')
         self.disable()
         if self.is_connected():
             self.disconnect()
+
+    def set_max_power(self):
+        if self.constant_current == 'ON':
+            max_power = int((round(self.func.subs(symbols('x'), 100), 1)))
+        else:
+            max_power = int((self.max_power))
+        type(self).power_setpoint_mw.maximum = max_power

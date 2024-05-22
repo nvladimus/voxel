@@ -13,11 +13,6 @@ class BaseLaser():
         pass
 
     @property
-    def max_power_mw(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    @property
     def modulation_mode(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass

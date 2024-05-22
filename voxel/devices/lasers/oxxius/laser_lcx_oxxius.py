@@ -2,6 +2,7 @@ from oxxius_laser import LCX
 from voxel.devices.lasers.base import BaseLaser
 import logging
 from serial import Serial
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 class LaserLCXOxxius(LCX, BaseLaser):
 
@@ -17,19 +18,15 @@ class LaserLCXOxxius(LCX, BaseLaser):
         super(LCX, self).__init__(port, self.prefix)
         # inherit from laser device_widgets class
 
-    @property
+        self.set_max_power()
+
+    @DeliminatedProperty(minimum=0, maximum=float('inf'))
     def power_setpoint_mw(self):
         return float(self.power_setpoint)
 
     @power_setpoint_mw.setter
     def power_setpoint_mw(self, value: float or int):
-        print('power setting to ', value)
         self.power_setpoint = value
-        print('power set to ', self.power_setpoint)
-
-    @property
-    def max_power_mw(self):
-        return float(self.max_power)
 
     @property
     def modulation_mode(self):
@@ -45,5 +42,8 @@ class LaserLCXOxxius(LCX, BaseLaser):
         self.disable()
         if self.port.is_open:
             self.port.close()
+
+    def set_max_power(self):
+        type(self).power_setpoint_mw.maximum = self.max_power
 
 

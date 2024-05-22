@@ -1,13 +1,15 @@
 from voxel.devices.lasers.base import BaseLaser
 import logging
 from serial import Serial
-
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 MODULATION_MODES = {
     'off' : {'external_control_mode': 'OFF', 'digital_modulation' : 'OFF'},
     'analog' : {'external_control_mode' : 'ON', 'digital_modulation' : 'OFF'},
     'digital': {'external_control_mode' : 'OFF', 'digital_modulation': 'ON'}
 }
+
+MAX_POWER_MW = 100
 
 class SimulatedCombiner:
 
@@ -53,17 +55,13 @@ class SimulatedLaser(BaseLaser):
         self._temperature = 20.0
         self._cdrh = 'ON'
 
-    @property
+    @DeliminatedProperty(minimum=0, maximum=MAX_POWER_MW)
     def power_setpoint_mw(self):
         return self._simulated_power_setpoint_m
 
     @power_setpoint_mw.setter
     def power_setpoint_mw(self, value: float):
         self._simulated_power_setpoint_m = value
-
-    @property
-    def max_power_mw(self):
-        return self._max_power_mw
 
     @property
     def modulation_mode(self):
