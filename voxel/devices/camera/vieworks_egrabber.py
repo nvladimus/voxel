@@ -4,6 +4,7 @@ from functools import wraps
 from voxel.devices.camera.base import BaseCamera
 from voxel.devices.utils.singleton import Singleton
 from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 from egrabber import *
 
 BUFFER_SIZE_MB = 2400
@@ -100,8 +101,7 @@ class Camera(BaseCamera):
         del self.grabber
         self.grabber = EGrabber(self.gentl, self.egrabber['interface'], self.egrabber['device'], self.egrabber['stream'],
                                    remote_required=True)
-
-    @property
+    @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
     def exposure_time_ms(self):
         # us to ms conversion
         return self.grabber.remote.get("ExposureTime")/1000
@@ -109,74 +109,51 @@ class Camera(BaseCamera):
     @exposure_time_ms.setter
     def exposure_time_ms(self, exposure_time_ms: float):
 
-        if exposure_time_ms < self.min_exposure_time_ms or \
-                exposure_time_ms > self.max_exposure_time_ms:
-            self.log.error(f"exposure time must be >{self.min_exposure_time_ms} ms \
-                             and <{self.max_exposure_time_ms} ms")
-            raise ValueError(f"exposure time must be >{self.min_exposure_time_ms} ms \
-                             and <{self.max_exposure_time_ms} ms")
-
         # Note: round ms to nearest us
         self.grabber.remote.set("ExposureTime", round(exposure_time_ms * 1e3, 1))
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
         # refresh parameter values
         self._get_min_max_step_values()
 
+    @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
+    def width_px(self):
+        return self.grabber.remote.get("Width")
+
+    @width_px.setter
+    def width_px(self, value: int):
+
+        # reset offset to (0,0)
+        self.grabber.remote.set("OffsetX", 0)
+
+        centered_offset_px = round((self.max_width_px / 2 - value / 2) / self.step_width_px) * self.step_width_px
+        self.grabber.remote.set("OffsetX", centered_offset_px)
+
+        self.grabber.remote.set("Width", value)
+        self.log.info(f"width set to: {value} px")
+
     @property
-    def roi(self):
-        return {'width_px': self.grabber.remote.get("Width"),
-                'height_px': self.grabber.remote.get("Height"),
-                'width_offset_px': self.grabber.remote.get("OffsetX"),
-                'height_offest_px': self.grabber.remote.get("OffsetY")}
+    def width_offset_px(self):
+        return self.grabber.remote.get("OffsetX")
 
-    @roi.setter
-    def roi(self, roi: dict):
+    @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
+    def height_px(self):
+        return self.grabber.remote.get("Height")
 
-        # reset roi to (0,0)
-        self.grabber.remote.set("OffsetX", 0)
+    @height_px.setter
+    def height_px(self, value: int):
+
+        # reset offset to (0,0)
         self.grabber.remote.set("OffsetY", 0)
-        # refresh parameter values
-        self._get_min_max_step_values()
 
-        width_px = roi['width_px']
-        height_px = roi['height_px']
+        centered_offset_px = round((self.max_height_px / 2 - value / 2) / self.step_height_px) * self.step_height_px
+        self.grabber.remote.set("OffsetY", centered_offset_px)
 
-        if height_px < self.min_height_px or \
-                (height_px % self.step_height_px) != 0 or \
-                height_px > self.max_height_px:
-            self.log.error(f"Height must be >{self.min_height_px} px, \
-                             <{self.max_height_px} px, \
-                             and a multiple of {self.step_height_px} px!")
-            raise ValueError(f"Height must be >{self.min_height_px} px, \
-                             <{self.max_height_px} px, \
-                             and a multiple of {self.step_height_px} px!")
+        self.grabber.remote.set("Height", value)
+        self.log.info(f"height set to: {value} px")
 
-        if width_px < self.min_width_px or \
-                (width_px % self.step_width_px) != 0 or \
-                width_px > self.max_width_px:
-            self.log.error(f"Width must be >{self.min_width_px} px, \
-                             <{self.max_width_px}, \
-                            and a multiple of {self.step_width_px} px!")
-            raise ValueError(f"Width must be >{self.min_width_px} px, \
-                             <{self.max_width_px}, \
-                            and a multiple of {self.step_width_px} px!")
-
-        self.grabber.remote.set("OffsetX", 0)
-        self.grabber.remote.set("Width", width_px)
-        # width offset must be a multiple of the divisible width in px
-        centered_width_offset_px = round((self.max_width_px / 2 - width_px / 2) / self.step_width_px) * self.step_width_px
-        self.grabber.remote.set("OffsetX", centered_width_offset_px)
-        self.grabber.remote.set("OffsetY", 0)
-        self.grabber.remote.set("Height", height_px)
-        height_px = self.grabber.remote.get("Height")
-        # Height offset must be a multiple of the divisible height in px
-        centered_height_offset_px = round(
-            (self.max_height_px / 2 - height_px / 2) / self.step_height_px) * self.step_height_px
-        self.grabber.remote.set("OffsetY", centered_height_offset_px)
-        self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
-        self.log.info(f"roi offset set to: {centered_width_offset_px} x {centered_height_offset_px} [width x height]")
-        # refresh parameter values
-        self._get_min_max_step_values()
+    @property
+    def height_offset_px(self):
+        return self.grabber.remote.get("OffsetY")
 
     @property
     def pixel_type(self):
@@ -222,7 +199,7 @@ class Camera(BaseCamera):
 
     @property
     def frame_time_ms(self):
-        return (self.line_interval_us * self.roi['height_px'])/1000 + self.exposure_time_ms
+        return (self.line_interval_us * self.height_px)/1000 + self.exposure_time_ms
 
     @property
     def trigger(self):
@@ -315,7 +292,7 @@ class Camera(BaseCamera):
         else:
             bit_to_byte = 2
         # software binning, so frame size is independent of binning factor
-        frame_size_mb = self.roi['width_px']*self.roi['height_px']*bit_to_byte/1e6
+        frame_size_mb = self.width_px*self.height_px*bit_to_byte/1e6
         self.buffer_size_frames = round(BUFFER_SIZE_MB / frame_size_mb)
         # realloc buffers appears to be allocating ram on the pc side, not camera side.
         self.grabber.realloc_buffers(self.buffer_size_frames)  # allocate RAM buffer N frames
@@ -436,6 +413,7 @@ class Camera(BaseCamera):
         # convert from us to ms
         try:
             self.min_exposure_time_ms = self.grabber.remote.get("ExposureTime.Min")/1e3
+            type(self).exposure_time_ms.minimum = self.min_exposure_time_ms
             self.log.debug(f"min exposure time is: {self.min_exposure_time_ms} ms")
         except:
             self.log.debug(f"min exposure time not available for camera {self.id}")
@@ -443,30 +421,35 @@ class Camera(BaseCamera):
         # convert from us to ms
         try:
             self.max_exposure_time_ms = self.grabber.remote.get("ExposureTime.Max")/1e3
+            type(self).exposure_time_ms.maximum = self.min_exposure_time_ms
             self.log.debug(f"max exposure time is: {self.max_exposure_time_ms} ms")
         except:
             self.log.debug(f"max exposure time not available for camera {self.id}")
         # minimum width
         try:
             self.min_width_px = self.grabber.remote.get("Width.Min")
+            type(self).width_px.minimum = self.min_width_px
             self.log.debug(f"min width is: {self.min_width_px} px")
         except:
             self.log.debug(f"min width not available for camera {self.id}")
         # maximum width
         try:
             self.max_width_px = self.grabber.remote.get("Width.Max")
+            type(self).width_px.maximum = self.max_width_px
             self.log.debug(f"max width is: {self.max_width_px} px")
         except:
             self.log.debug(f"max width not available for camera {self.id}")
         # minimum height
         try:
             self.min_height_px = self.grabber.remote.get("Height.Min")
+            type(self).height_px.minimum = self.min_height_px
             self.log.debug(f"min height is: {self.min_height_px} px")
         except:
             self.log.debug(f"min height not available for camera {self.id}")
         # maximum height
         try:
             self.max_height_px = self.grabber.remote.get("Height.Max")
+            type(self).height_px.maximum = self.max_height_px
             self.log.debug(f"max height is: {self.max_height_px} px")
         except:
             self.log.debug(f"max height not available for camera {self.id}")
@@ -498,18 +481,21 @@ class Camera(BaseCamera):
         # convert from us to ms
         try:
             self.step_exposure_time_ms = self.grabber.remote.get("ExposureTime.Inc")/1e3
+            type(self).exposure_time_ms.step = self.step_exposure_time_ms
             self.log.debug(f"step exposure time is: {self.step_exposure_time_ms} ms")
         except:
             self.log.debug(f"step exposure time not available for camera {self.id}")
         # step width
         try:
             self.step_width_px = self.grabber.remote.get("Width.Inc")
+            type(self).width_px.step = self.step_width_px
             self.log.debug(f"step width is: {self.step_width_px} px")
         except:
             self.log.debug(f"step width not available for camera {self.id}")
         # step height
         try:
             self.step_height_px = self.grabber.remote.get("Height.Inc")
+            type(self).height_px.step = self.step_height_px
             self.log.debug(f"step height is: {self.step_height_px} px")
         except:
             self.log.debug(f"step height not available for camera {self.id}")
