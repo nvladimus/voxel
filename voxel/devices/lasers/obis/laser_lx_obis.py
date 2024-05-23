@@ -2,6 +2,7 @@ from obis_laser import ObisLX, OperationalQuery, OperationalCmd
 from voxel.devices.lasers.base import BaseLaser
 import logging
 from serial import Serial
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 MODULATION_MODES = {
     'off': 'CWP',
@@ -24,17 +25,15 @@ class LaserLXObis(ObisLX, BaseLaser):
         super(ObisLX, self).__init__(port, self.prefix)
         # inherit from laser device_widgets class
 
-    @property
+        self.set_max_power()
+
+    @DeliminatedProperty(minimum=0, maximum=float('inf'))
     def power_setpoint_mw(self):
         return self.power_setpoint
 
     @power_setpoint_mw.setter
     def power_setpoint_mw(self, value: float or int):
         self.power_setpoint = value
-
-    @property
-    def max_power_mw(self):
-        return self.max_power
 
     @property
     def modulation_mode(self):
@@ -55,3 +54,6 @@ class LaserLXObis(ObisLX, BaseLaser):
 
     def status(self):
         return self.get_system_status()
+
+    def set_max_power(self):
+        type(self).power_setpoint_mw.maximum = self.max_power

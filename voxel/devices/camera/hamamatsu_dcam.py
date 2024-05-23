@@ -4,6 +4,7 @@ import time
 from voxel.devices.utils.singleton import Singleton
 from voxel.devices.camera.base import BaseCamera
 from voxel.devices.camera.sdks.dcam.dcam import *
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 BUFFER_SIZE_MB = 2400
 
@@ -145,83 +146,59 @@ class Camera(BaseCamera):
                 self.dcam = Dcam(self.cam_num)
                 self.dcam.dev_open()
 
-    @property
+    @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
     def exposure_time_ms(self):
-        # convert from ms units to s
+        # us to ms conversion
         return self.dcam.prop_getvalue(PROPERTIES["exposure_time"])*1000
 
     @exposure_time_ms.setter
     def exposure_time_ms(self, exposure_time_ms: float):
 
-        if exposure_time_ms < self.min_exposure_time_ms or \
-                exposure_time_ms > self.max_exposure_time_ms:
-            self.log.error(f"exposure time must be >{self.min_exposure_time_ms} ms \
-                             and <{self.max_exposure_time_ms} ms")
-            raise ValueError(f"exposure time must be >{self.min_exposure_time_ms} ms \
-                             and <{self.max_exposure_time_ms} ms")
-
-        # Note: ms units to s conversion
-        self.dcam.prop_setvalue(PROPERTIES["exposure_time"], exposure_time_ms/1000)
+        self.dcam.prop_setvalue(PROPERTIES["exposure_time"], exposure_time_ms / 1000)
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
         # refresh parameter values
         self._get_min_max_step_values()
 
-    @property
-    def roi(self):
+    @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
+    def width_px(self):
+        return self.dcam.prop_getvalue(PROPERTIES["subarray_hsize"])
 
-        return {'width_px': self.dcam.prop_getvalue(PROPERTIES["subarray_hsize"]),
-                'height_px': self.dcam.prop_getvalue(PROPERTIES["subarray_vsize"]),
-                'width_offset_px': self.dcam.prop_getvalue(PROPERTIES["subarray_hpos"]),
-                'height_offest_px': self.dcam.prop_getvalue(PROPERTIES["subarray_vpos"])}
+    @width_px.setter
+    def width_px(self, value: int):
 
-    @roi.setter
-    def roi(self, roi: dict):
-
-        width_px = roi['width_px']
-        height_px = roi['height_px']
-
-        sensor_height_px = self.max_height_px
-        sensor_width_px = self.max_width_px
-
-        if height_px < self.min_height_px or \
-                (height_px % self.step_height_px) != 0 or \
-                height_px > self.max_height_px:
-            self.log.error(f"Height must be >{self.min_height_px} px, \
-                             <{self.max_height_px} px, \
-                             and a multiple of {self.step_height_px} px!")
-            raise ValueError(f"Height must be >{self.min_height_px} px, \
-                             <{self.max_height_px} px, \
-                             and a multiple of {self.step_height_px} px!")
-
-        if width_px < self.min_width_px or \
-                (width_px % self.step_width_px) != 0 or \
-                width_px > self.max_width_px:
-            self.log.error(f"Width must be >{self.min_width_px} px, \
-                             <{self.max_width_px}, \
-                            and a multiple of {self.step_width_px} px!")
-            raise ValueError(f"Width must be >{self.min_width_px} px, \
-                             <{self.max_width_px}, \
-                            and a multiple of {self.step_width_px} px!")
-
-        # need to set to off before changing roi!
-        self.dcam.prop_setvalue(PROPERTIES['subarray_mode'], SUBARRAY_OFF)
+        # reset offset to (0,0)
         self.dcam.prop_setvalue(PROPERTIES["subarray_hpos"], 0)
-        self.dcam.prop_setvalue(PROPERTIES["subarray_hsize"], width_px)
-        # width offset must be a multiple of the divisible width in px
-        centered_width_offset_px = round((sensor_width_px / 2 - width_px / 2) / self.step_width_px) * self.step_width_px
-        self.dcam.prop_setvalue(PROPERTIES["subarray_hpos"], centered_width_offset_px)
+
+        self.dcam.prop_setvalue(PROPERTIES["subarray_hsize"], value)
+
+        centered_offset_px = round((self.max_width_px / 2 - value / 2) / self.step_width_px) * self.step_width_px
+        self.dcam.prop_setvalue(PROPERTIES["subarray_hpos"], centered_offset_px)
+
+        self.log.info(f"width set to: {value} px")
+
+    @property
+    def width_offset_px(self):
+        return self.dcam.prop_getvalue(PROPERTIES["subarray_hpos"])
+
+    @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
+    def height_px(self):
+        return self.dcam.prop_getvalue(PROPERTIES["subarray_vsize"])
+
+    @height_px.setter
+    def height_px(self, value: int):
+
+        # reset offset to (0,0)
         self.dcam.prop_setvalue(PROPERTIES["subarray_vpos"], 0)
-        self.dcam.prop_setvalue(PROPERTIES["subarray_vsize"], height_px)
-        # Height offset must be a multiple of the divisible height in px
-        centered_height_offset_px = round(
-            (sensor_height_px / 2 - height_px / 2) / self.step_height_px) * self.step_height_px
-        self.dcam.prop_setvalue(PROPERTIES["subarray_vpos"], centered_height_offset_px)
-        # need to set back to on after changing roi!
-        self.dcam.prop_setvalue(PROPERTIES['subarray_mode'], SUBARRAY_ON)
-        self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
-        self.log.info(f"roi offset set to: {centered_width_offset_px} x {centered_height_offset_px} [width x height]")
-        # refresh parameter values
-        self._get_min_max_step_values()
+
+        self.dcam.prop_setvalue(PROPERTIES["subarray_vsize"], value)
+
+        centered_offset_px = round((self.max_height_px / 2 - value / 2) / self.step_height_px) * self.step_height_px
+        self.dcam.prop_setvalue(PROPERTIES["subarray_vpos"], centered_offset_px)
+        self.log.info(f"height set to: {value} px")
+
+    @property
+    def height_offset_px(self):
+        return self.dcam.prop_getvalue(PROPERTIES["subarray_vpos"])
 
     @property
     def pixel_type(self):
@@ -241,7 +218,7 @@ class Camera(BaseCamera):
         # refresh parameter values
         self._get_min_max_step_values()
 
-    @property
+    @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
     def line_interval_us(self):
         line_interval_s = self.dcam.prop_getvalue(PROPERTIES["line_interval"])
         # convert from s to ms
@@ -249,13 +226,6 @@ class Camera(BaseCamera):
 
     @line_interval_us.setter
     def line_interval_us(self, line_interval_us: float):
-
-        if line_interval_us < self.min_line_interval_us or \
-                line_interval_us > self.max_line_interval_us:
-            self.log.error(f"line interval must be >{self.min_line_interval_us} us \
-                             and <{self.max_line_interval_us} us")
-            raise ValueError(f"exposure time must be >{self.min_line_interval_us} us \
-                             and <{self.max_line_interval_us} us")
 
         # convert from us to s
         self.dcam.prop_setvalue(PROPERTIES["line_interval"], line_interval_us/1e6)
@@ -266,9 +236,9 @@ class Camera(BaseCamera):
     @property
     def frame_time_ms(self):
         if 'light sheet' in self.readout_mode:
-            return (self.line_interval_us * self.roi['height_px'])/1000 + self.exposure_time_ms
+            return (self.line_interval_us * self.height_px)/1000 + self.exposure_time_ms
         else:
-            return (self.line_interval_us * self.roi['height_px']/2)/1000 + self.exposure_time_ms
+            return (self.line_interval_us * self.height_px/2)/1000 + self.exposure_time_ms
             
     @property
     def trigger(self):
@@ -369,7 +339,7 @@ class Camera(BaseCamera):
             bit_to_byte = 1
         else:
             bit_to_byte = 2
-        frame_size_mb = self.roi['width_px']*self.roi['height_px']/self.binning**2*bit_to_byte/1e6
+        frame_size_mb = self.width_px*self.height_px/self.binning**2*bit_to_byte/1e6
         self.buffer_size_frames = round(BUFFER_SIZE_MB / frame_size_mb)
         # realloc buffers appears to be allocating ram on the pc side, not camera side.
         self.dcam.buf_alloc(self.buffer_size_frames)
@@ -425,7 +395,7 @@ class Camera(BaseCamera):
             bit_to_byte = 1
         else:
             bit_to_byte = 2
-        data_rate = frame_rate*self.roi['width_px']*self.roi['height_px']/self.binning**2*bit_to_byte/1e6
+        data_rate = frame_rate*self.width_px*self.height_px/self.binning**2*bit_to_byte/1e6
         state = {}
         state['Frame Index'] = frame_index
         state['Input Buffer Size'] = in_buffer_size
@@ -459,24 +429,24 @@ class Camera(BaseCamera):
     def _get_min_max_step_values(self):
         # gather min max values
         # convert from s to ms
-        self.min_exposure_time_ms = self.dcam.prop_getattr(PROPERTIES["exposure_time"]).valuemin*1e3
-        self.max_exposure_time_ms = self.dcam.prop_getattr(PROPERTIES["exposure_time"]).valuemax*1e3
+        self.min_exposure_time_ms = type(self).exposure_time_ms.minimum = self.dcam.prop_getattr(PROPERTIES["exposure_time"]).valuemin*1e3
+        self.max_exposure_time_ms = type(self).exposure_time_ms.maximum = self.dcam.prop_getattr(PROPERTIES["exposure_time"]).valuemax*1e3
         # convert from s to us
-        self.min_line_interval_us = self.dcam.prop_getattr(PROPERTIES["line_interval"]).valuemin*1e6
-        self.max_line_interval_us = self.dcam.prop_getattr(PROPERTIES["line_interval"]).valuemax*1e6
-        self.min_width_px = self.dcam.prop_getattr(PROPERTIES["image_width"]).valuemin
-        self.max_width_px = self.dcam.prop_getattr(PROPERTIES["image_width"]).valuemax
-        self.min_height_px = self.dcam.prop_getattr(PROPERTIES["image_height"]).valuemin
-        self.max_height_px = self.dcam.prop_getattr(PROPERTIES["image_height"]).valuemax
+        self.min_line_interval_us = type(self).line_interval_us.minimum = self.dcam.prop_getattr(PROPERTIES["line_interval"]).valuemin*1e6
+        self.max_line_interval_us = type(self).line_interval_us.minimum =self.dcam.prop_getattr(PROPERTIES["line_interval"]).valuemax*1e6
+        self.min_width_px = type(self).width_px.minimum = self.dcam.prop_getattr(PROPERTIES["image_width"]).valuemin
+        self.max_width_px = type(self).width_px.maximum = self.dcam.prop_getattr(PROPERTIES["image_width"]).valuemax
+        self.min_height_px = type(self).height_px.minimum = self.dcam.prop_getattr(PROPERTIES["image_height"]).valuemin
+        self.max_height_px = type(self).height_px.maximum = self.dcam.prop_getattr(PROPERTIES["image_height"]).valuemax
         self.min_offset_x_px = self.dcam.prop_getattr(PROPERTIES["subarray_hpos"]).valuemin
         self.max_offset_x_px = self.dcam.prop_getattr(PROPERTIES["subarray_hpos"]).valuemax
         self.min_offset_y_px = self.dcam.prop_getattr(PROPERTIES["subarray_vpos"]).valuemin
         self.max_offset_y_px = self.dcam.prop_getattr(PROPERTIES["subarray_vpos"]).valuemax
         # convert from s to us
-        self.step_exposure_time_ms = self.dcam.prop_getattr(PROPERTIES["exposure_time"]).valuestep*1e3
-        self.step_line_interval_us = self.dcam.prop_getattr(PROPERTIES["line_interval"]).valuestep*1e6
-        self.step_width_px = self.dcam.prop_getattr(PROPERTIES["image_width"]).valuestep
-        self.step_height_px = self.dcam.prop_getattr(PROPERTIES["image_height"]).valuestep
+        self.step_exposure_time_ms = type(self).exposure_time_ms.step = self.dcam.prop_getattr(PROPERTIES["exposure_time"]).valuestep*1e3
+        self.step_line_interval_us = type(self).line_interval_us.step = self.dcam.prop_getattr(PROPERTIES["line_interval"]).valuestep*1e6
+        self.step_width_px = type(self).width_px.step = self.dcam.prop_getattr(PROPERTIES["image_width"]).valuestep
+        self.step_height_px = type(self).height_px.step = self.dcam.prop_getattr(PROPERTIES["image_height"]).valuestep
         self.step_offset_x_px = self.dcam.prop_getattr(PROPERTIES["subarray_hpos"]).valuestep
         self.step_offset_y_px = self.dcam.prop_getattr(PROPERTIES["subarray_vpos"]).valuestep
 

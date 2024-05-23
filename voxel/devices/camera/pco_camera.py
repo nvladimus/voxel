@@ -4,6 +4,7 @@ import time
 from voxel.devices.utils.singleton import Singleton
 from voxel.devices.camera.base import BaseCamera
 from sdks import pco
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 BUFFER_SIZE_MB = 2400
 
@@ -55,7 +56,7 @@ class Camera(BaseCamera):
             del self.pco
         self.pco = pcoSingleton.Camera(id=self.id)
 
-    @property
+    @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
     def exposure_time_ms(self):
         # convert from s units to ms
         return self.pco.exposure_time*1000
@@ -63,76 +64,56 @@ class Camera(BaseCamera):
     @exposure_time_ms.setter
     def exposure_time_ms(self, exposure_time_ms: float):
 
-        if exposure_time_ms < self.min_exposure_time_ms or \
-                exposure_time_ms > self.max_exposure_time_ms:
-            self.log.error(f"exposure time must be >{self.min_exposure_time_ms} ms \
-                             and <{self.max_exposure_time_ms} ms")
-            raise ValueError(f"exposure time must be >{self.min_exposure_time_ms} ms \
-                             and <{self.max_exposure_time_ms} ms")
-
         # Note: convert from ms to s
         self.pco.exposure_time = exposure_time_ms/1e3
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
         # refresh parameter values
         self._get_min_max_step_values()
 
-    @property
-    def roi(self):
-        # roi {'x0', 'y0', 'x1', 'y1'}
+    @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
+    def width_px(self):
         roi = self.pco.sdk.get_roi()
-        width_px = roi['x1']-roi['x0']+1
-        height_px = roi['y1']-roi['y0']+1
-        return {'width_px': width_px,
-                'height_px': height_px,
-                'width_offset_px': roi['x0']-1,
-                'height_offest_px': roi['y0']-1}
+        return roi['x1'] - roi['x0'] + 1
 
-    @roi.setter
-    def roi(self, roi: dict):
+    @width_px.setter
+    def width_px(self, value: int):
 
-        width_px = roi['width_px']
-        height_px = roi['height_px']
+        # reset offset to (0,0)
+        self.pco.sdk.set_roi(1, self.height_offset_px, self.width_px, self.height_px)
 
-        sensor_height_px = self.max_height_px
-        sensor_width_px = self.max_width_px
-
-        # set roi to origin {'x0', 'y0', 'x1', 'y1'}
-        self.pco.sdk.set_roi(1, 1, sensor_width_px, sensor_height_px)
-
-        if height_px < self.min_height_px or \
-                (height_px % self.step_height_px) != 0 or \
-                height_px > self.max_height_px:
-            self.log.error(f"Height must be >{self.min_height_px} px, \
-                             <{self.max_height_px} px, \
-                             and a multiple of {self.step_height_px} px!")
-            raise ValueError(f"Height must be >{self.min_height_px} px, \
-                             <{self.max_height_px} px, \
-                             and a multiple of {self.step_height_px} px!")
-
-        if width_px < self.min_width_px or \
-                (width_px % self.step_width_px) != 0 or \
-                width_px > self.max_width_px:
-            self.log.error(f"Width must be >{self.min_width_px} px, \
-                             <{self.max_width_px}, \
-                            and a multiple of {self.step_width_px} px!")
-            raise ValueError(f"Width must be >{self.min_width_px} px, \
-                             <{self.max_width_px}, \
-                            and a multiple of {self.step_width_px} px!")
-        self.pco.sdk.set_roi(1, 1, width_px, sensor_height_px)
-        # width offset must be a multiple of the divisible width in px
-        centered_width_offset_px = round((sensor_width_px / 2 - width_px / 2) / self.step_width_px) * self.step_width_px
-        self.pco.sdk.set_roi(centered_width_offset_px+1, 1, centered_width_offset_px+width_px, sensor_height_px)
-        self.pco.sdk.set_roi(centered_width_offset_px+1, 1, centered_width_offset_px+width_px, sensor_height_px)
-        # Height offset must be a multiple of the divisible height in px
-        centered_height_offset_px = round(
-            (sensor_height_px / 2 - height_px / 2) / self.step_height_px) * self.step_height_px
-        self.pco.sdk.set_roi(centered_width_offset_px+1, centered_height_offset_px+1, centered_width_offset_px+width_px, centered_height_offset_px+height_px)
-        self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
-        self.log.info(f"roi offset set to: {centered_width_offset_px} x {centered_height_offset_px} [width x height]")
-        # refresh parameter values
-        self._get_min_max_step_values()
+        centered_width_offset_px = round((self.max_width_px / 2 - value / 2) / self.step_width_px) * self.step_width_px
+        self.pco.sdk.set_roi(centered_width_offset_px + 1, self.height_offset_px, centered_width_offset_px + value, self.height_px)
+        self.log.info(f"width set to: {value} px")
 
     @property
+    def width_offset_px(self):
+        roi = self.pco.sdk.get_roi()
+        return roi['x0'] - 1
+
+    @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
+    def height_px(self):
+        roi = self.pco.sdk.get_roi()
+        height_px = roi['y1'] - roi['y0'] + 1
+        return height_px
+
+    @height_px.setter
+    def height_px(self, value: int):
+
+        # reset offset to (0,0)
+        # reset offset to (0,0)
+        self.pco.sdk.set_roi(self.width_offset_px, 1, self.width_px, self.height_px)
+
+        centered_offset_px = round((self.max_height_px / 2 - value / 2) / self.step_height_px) * self.step_height_px
+
+        self.pco.sdk.set_roi(self.width_offset_px, centered_offset_px, self.width_px, centered_height_offset_px + value)
+        self.log.info(f"height set to: {value} px")
+
+    @property
+    def height_offset_px(self):
+        roi = self.pco.sdk.get_roi()
+        return roi['y0'] - 1
+
+    @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
     def line_interval_us(self):
         line_interval_s = self.pco.sdk.get_cmos_line_timing()['line time']
         # returned value is in s, convert to us
@@ -140,12 +121,7 @@ class Camera(BaseCamera):
 
     @line_interval_us.setter
     def line_interval_us(self, line_interval_us: float):
-        if line_interval_us < self.min_line_interval_us or \
-                line_interval_us > self.max_line_interval_us:
-            self.log.error(f"line interval must be >{self.min_line_interval_us} us \
-                             and <{self.max_line_interval_us} us")
-            raise ValueError(f"line interval must be >{self.min_line_interval_us} us \
-                             and <{self.max_line_interval_us} us")
+
         # timebase is us if interval > 4 us
         self.pco.sdk.set_cmos_line_timing("on", line_interval_us/1e6)
         self.log.info(f"line interval set to: {line_interval_us} us")
@@ -155,9 +131,9 @@ class Camera(BaseCamera):
     @property
     def frame_time_ms(self):
         if 'light sheet' in self.readout_mode:
-            return (self.line_interval_us * self.roi['height_px'])/1000 + self.exposure_time_ms
+            return (self.line_interval_us * self.height_px)/1000 + self.exposure_time_ms
         else:
-            return (self.line_interval_us * self.roi['height_px']/2)/1000 + self.exposure_time_ms
+            return (self.line_interval_us * self.height_px/2)/1000 + self.exposure_time_ms
 
     @property
     def trigger(self):
@@ -260,7 +236,7 @@ class Camera(BaseCamera):
         # pco api prepares buffer and autostarts. api call is in start()
         # pco only 16-bit A/D
         bit_to_byte = 2
-        frame_size_mb = self.roi['width_px']*self.roi['height_px']/self.binning**2*bit_to_byte/1e6
+        frame_size_mb = self.width_px*self.height_px/self.binning**2*bit_to_byte/1e6
         self.buffer_size_frames = round(BUFFER_SIZE_MB / frame_size_mb)
         self.log.info(f"buffer set to: {self.buffer_size_frames} frames")
         self.pco.record(number_of_images=self.buffer_size_frames, mode='fifo')
@@ -326,18 +302,18 @@ class Camera(BaseCamera):
     def _get_min_max_step_values(self):
         # gather min max values
         # convert from s to ms
-        self.min_exposure_time_ms = self.pco.description['min exposure time']*1e3
-        self.max_exposure_time_ms = self.pco.description['max exposure time']*1e3
-        self.step_exposure_time_ms = self.pco.description['min exposure step']*1e3
-        self.min_width_px = self.pco.description['min width']
-        self.max_width_px = self.pco.description['max width']
-        self.min_height_px = self.pco.description['min height']
-        self.max_height_px = self.pco.description['max height']
-        self.step_width_px = self.pco.description['roi steps'][0]
-        self.step_height_px = self.pco.description['roi steps'][1]
-        self.min_line_interval_us = 20.0
-        self.max_line_interval_us = 100.0
-        self.step_ine_interval_us = 1.0
+        self.min_exposure_time_ms = type(self).exposure_time_ms.minimum = self.pco.description['min exposure time']*1e3
+        self.max_exposure_time_ms = type(self).exposure_time_ms.maximum = self.pco.description['max exposure time']*1e3
+        self.step_exposure_time_ms = type(self).exposure_time_ms.step = self.pco.description['min exposure step']*1e3
+        self.min_width_px = type(self).width_px.minimum = self.pco.description['min width']
+        self.max_width_px = type(self).width_px.maximum = self.pco.description['max width']
+        self.min_height_px = type(self).height_px.minimum = self.pco.description['min height']
+        self.max_height_px = type(self).height_px.maximum = self.pco.description['max height']
+        self.step_width_px = type(self).width_px.step = self.pco.description['roi steps'][0]
+        self.step_height_px = type(self).height_px.step = self.pco.description['roi steps'][1]
+        self.min_line_interval_us = type(self).line_interval_us.minimum = 20.0
+        self.max_line_interval_us = type(self).line_interval_us.minimum = 100.0
+        self.step_ine_interval_us = type(self).line_interval_us.step = 1.0
         # brute force query for valid line interval
         # code for auto grabbing max line interval
         # min_line_interval_us = 0

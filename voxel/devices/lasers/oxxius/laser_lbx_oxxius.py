@@ -3,7 +3,7 @@ from voxel.devices.lasers.base import BaseLaser
 import logging
 from sympy import symbols, solve
 from serial import Serial
-
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 MODULATION_MODES = {
     'off' : {'external_control_mode': BoolVal.OFF, 'digital_modulation':BoolVal.OFF},
@@ -35,7 +35,9 @@ class LaserLBXOxxius(LBX, BaseLaser):
         for order, co in self.coefficients.items():
             self.func = self.func + float(co) * x ** int(order)
 
-    @property
+        self.set_max_power()
+
+    @DeliminatedProperty(0, maximum=float('inf'))
     def power_setpoint_mw(self):
         if self.constant_current == 'ON':
             return int(round(self.func.subs(symbols('x'), self.current_setpoint)))
@@ -57,13 +59,6 @@ class LaserLBXOxxius(LBX, BaseLaser):
             self.power_setpoint = value
 
     @property
-    def max_power_mw(self):
-        if self.constant_current == 'ON':
-            return int((round(self.func.subs(symbols('x'), 100), 1)))
-        else:
-            return int((self.max_power))
-
-    @property
     def modulation_mode(self):
         if self.external_control_mode == 'ON':
             return 'analog'
@@ -78,15 +73,21 @@ class LaserLBXOxxius(LBX, BaseLaser):
             raise ValueError("mode must be one of %r." % MODULATION_MODES.keys())
         for attribute, state in MODULATION_MODES[value].items():
             setattr(self, attribute, state)
+        self.set_max_power()
 
     def status(self):
         return self.faults()
 
     def close(self):
-        print('closing and calling disable')
         self.disable()
         if self.port.is_open:
             self.port.close()
 
+    def set_max_power(self):
+        if self.constant_current == 'ON':
+            max_power = int((round(self.func.subs(symbols('x'), 100), 1)))
+        else:
+            max_power = int((self.max_power))
+        type(self).power_setpoint_mw.maximum = max_power
 
 

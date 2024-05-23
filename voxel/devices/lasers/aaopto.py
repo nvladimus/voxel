@@ -3,6 +3,8 @@ from voxel.devices.utils.singleton import Singleton
 from voxel.devices.lasers.base import BaseLaser
 from aaopto_aotf import MPDS
 from aaopto_aotf.device_codes import *
+from sympy import symbols, solve
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 MAX_VOLTAGE_V = 10
 
@@ -43,7 +45,7 @@ class AOTF(BaseLaser):
     def disable(self):
         self.aotf.disable_channel(self.id)
 
-    @property
+    @DeliminatedProperty(minimum=0, maximum=MAX_VOLTAGE_V)
     def power_setpoint_mw(self):
         return round(self.func.subs(symbols('x'), self.setpoint_v), 1)
 
@@ -60,16 +62,12 @@ class AOTF(BaseLaser):
                        f"no voltage correlates to {value} mW")
 
     @property
-    def max_power_mw(self):
-        return round(self.func.subs(symbols('x'), MAX_VOLTAGE_V), 1)
-
-    @property
     def modulation_mode(self):
         mode = self.aotf.get_channel_input_mode(channel=self.id)
         converted_mode = next(key for key, enum in INPUT_MODES.items() if enum.value == mode)
         return converted_mode
 
-    @input_mode.setter
+    @modulation_mode.setter
     def modulation_mode(self, mode: str):
         valid = list(INPUT_MODES.keys())
         if mode not in valid:

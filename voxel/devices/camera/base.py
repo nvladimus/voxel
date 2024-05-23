@@ -1,5 +1,6 @@
 import inspect
 
+
 class BaseCamera:
 
     @property
@@ -7,18 +8,23 @@ class BaseCamera:
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    @exposure_time_ms.setter
-    def exposure_time_ms(self, exposure_time_ms: float):
+    @property
+    def width_px(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
     @property
-    def roi(self):
+    def width_offset_px(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    @roi.setter
-    def roi(self, roi: dict):
+    @property
+    def height_px(self):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @property
+    def height_offset_px(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -27,18 +33,8 @@ class BaseCamera:
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    @pixel_type.setter
-    def pixel_type(self, pixel_type_bits: str):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
     @property
     def bit_packing_mode(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    @bit_packing_mode.setter
-    def bit_packing_mode(self, bit_packing: str):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -47,18 +43,8 @@ class BaseCamera:
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    @line_interval_us.setter
-    def line_interval_us(self, line_interval_us: float):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
     @property
     def readout_mode(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    @readout_mode.setter
-    def readout_mode(self, readout_mode: str):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -67,18 +53,8 @@ class BaseCamera:
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
-    @trigger.setter
-    def trigger(self, trigger: dict):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
     @property
-    def binning(self): 
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    @binning.setter
-    def binning(self, binning: str): 
+    def binning(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -126,7 +102,7 @@ class BaseCamera:
     def close(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
-        
+
     def grab_frame(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
@@ -138,5 +114,6 @@ class BaseCamera:
     def log_metadata(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
+
     def abort(self):
         pass
