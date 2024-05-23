@@ -120,8 +120,8 @@ class Acquisition:
                 raise ValueError(f'channel {tile_channel} is not in {self.instrument.channels}')
 
     def _frame_size_mb(self, camera_id: str, writer_id: str):
-        row_count_px = self.instrument.cameras[camera_id].roi['height_px']
-        column_count_px = self.instrument.cameras[camera_id].roi['width_px']
+        row_count_px = self.instrument.cameras[camera_id].height_px
+        column_count_px = self.instrument.cameras[camera_id].width_px
         data_type = self.writers[camera_id][writer_id].data_type
         frame_size_mb = row_count_px * column_count_px * numpy.dtype(data_type).itemsize / 1024 ** 2
         return frame_size_mb
@@ -169,14 +169,14 @@ class Acquisition:
             camera.trigger = new_trigger
 
             # prepare the writer
-            writer.row_count_px = camera.roi['height_px']
-            writer.column_count_px = camera.roi['width_px']
+            writer.row_count_px = camera.height_px
+            writer.column_count_px = camera.width_px
             writer.frame_count_px = writer.chunk_count_px
             writer.filename = 'compression_ratio_test'
 
             chunk_size = writer.chunk_count_px
             chunk_lock = threading.Lock()
-            img_buffer = SharedDoubleBuffer((chunk_size, camera.roi['height_px'], camera.roi['width_px']),
+            img_buffer = SharedDoubleBuffer((chunk_size, camera.height_px, camera.width_px),
                                             dtype=writer.data_type)
 
             # set up and start writer and camera

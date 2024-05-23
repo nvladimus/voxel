@@ -184,8 +184,8 @@ class ExASPIMAcquisition(Acquisition):
 
         # setup writers
         for writer_name, writer in writers.items():
-            writer.row_count_px = camera.roi['height_px']
-            writer.column_count_px = camera.roi['width_px']
+            writer.row_count_px = camera.height_px
+            writer.column_count_px = camera.width_px
             writer.frame_count_px = tile['frame_count_px']
             writer.x_pos_mm = tile['position_mm']['x']
             writer.y_pos_mm = tile['position_mm']['y']
@@ -199,22 +199,22 @@ class ExASPIMAcquisition(Acquisition):
             chunk_sizes[writer_name] = writer.chunk_count_px
             chunk_locks[writer_name] = Lock()
             img_buffers[writer_name] = SharedDoubleBuffer(
-                (writer.chunk_count_px, camera.roi['height_px'], camera.roi['width_px']),
+                (writer.chunk_count_px, camera.height_px, camera.width_px),
                 dtype=writer.data_type)
 
         # setup processes
         process_buffers = {}
         process_images = {}
         for process_name, process in processes.items():
-            process.row_count_px = camera.roi['height_px']
-            process.column_count_px = camera.roi['width_px']
+            process.row_count_px = camera.height_px
+            process.column_count_px = camera.width_px
             process.frame_count_px = tile['frame_count_px']
             process.filename = filename
-            img_bytes = numpy.prod(camera.roi['height_px'] * camera.roi['width_px']) * numpy.dtype(
+            img_bytes = numpy.prod(camera.height_px * camera.width_px) * numpy.dtype(
                 process.data_type).itemsize
             buffer = SharedMemory(create=True, size=int(img_bytes))
             process_buffers[process_name] = buffer
-            process.buffer_image = numpy.ndarray((camera.roi['height_px'], camera.roi['width_px']),
+            process.buffer_image = numpy.ndarray((camera.height_px, camera.width_px),
                                                  dtype=process.data_type, buffer=buffer.buf)
             process.prepare(buffer.name)
 
