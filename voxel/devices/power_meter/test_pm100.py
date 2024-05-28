@@ -1,4 +1,4 @@
-from voxel.devices.power_meter.thorlabs_pm100 import PowerMeter
+from voxel.devices.power_meter.thorlabs_pm100_old import PowerMeter
 
 serial_num = 'P0008860'
 power_meter = PowerMeter(serial_num)

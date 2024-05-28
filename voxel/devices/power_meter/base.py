@@ -1,9 +1,13 @@
 from abc import ABC, abstractmethod
+import logging
 
 class BasePowerMeter(ABC):
     """
     Abstract base class for a voxel power meter.
     """
+    def __init__(self, id: str) -> None:
+        self.id = id
+        self.log = logging.getLogger(f"{self.__class__.__name__}[{self.id}]")
 
     @abstractmethod
     def connect(self) -> None:

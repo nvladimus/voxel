@@ -15,7 +15,7 @@ class SimulatedPowerMeter(BasePowerMeter):
         Parameters:
         wavelength_nm (float): The wavelength in nanometers.
         """
-        self.id = id
+        super().__init__(id)
         self._wavelength_nm = wavelength_nm
         self._is_connected = False
 
