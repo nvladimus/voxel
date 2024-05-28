@@ -5,14 +5,19 @@ class BasePowerMeter(ABC):
     Abstract base class for a voxel power meter.
     """
 
-    def __init__(self, wavelength_nm: float):
+    @abstractmethod
+    def connect(self) -> None:
         """
-        Initialize the power meter with a specific wavelength.
+        Connect the power meter.
+        """
+        pass
 
-        Parameters:
-        wavelength_nm (float): The wavelength in nanometers.
+    @abstractmethod
+    def disconnect(self) -> None:
         """
-        self.wavelength_nm = wavelength_nm
+        Disconnect the power meter.
+        """
+        pass
 
     @property
     @abstractmethod
