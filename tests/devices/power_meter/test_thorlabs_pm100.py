@@ -41,6 +41,7 @@ def test_extended_data_collection(pm100d) -> None:
     duration = STRESS_TEST_MINUTES * 60 # in seconds
     while time.time() - start_time < duration:
         power = pm100d.power_mw
-        pm100d.log.info(f"Power: {power} mW")
+        remaining_time = duration - (time.time() - start_time)
+        pm100d.log.info(f"Power: {power} mW, Time Remaining: {remaining_time} seconds")
         assert power >= 0 and power <= 1000
         time.sleep(1)  # wait for 1 second before the next data collection
