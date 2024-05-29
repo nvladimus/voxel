@@ -45,7 +45,7 @@ class SimulatedPowerMeter(BasePowerMeter):
         float: The power in milliwatts if the power meter is connected, otherwise raises an exception.
         """
         self._check_connection()
-        return random.gauss(500, 50)
+        return max(min(random.gauss(500, 50), 1000), 0)
 
     @property
     def wavelength_nm(self) -> float:
