@@ -33,7 +33,7 @@ class BaseStage:
         pass
 
     @property
-    def position_mm(self):
+    def position_mm(self) -> float:
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 

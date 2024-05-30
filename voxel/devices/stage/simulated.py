@@ -84,7 +84,7 @@ class Stage(BaseStage):
     @property
     def position_mm(self):
         self._position_mm = 0#random.randint(0, 10)
-        return {self.instrument_axis: self._position_mm}
+        return self._position_mm
 
     @property
     def speed_mm_s(self):
