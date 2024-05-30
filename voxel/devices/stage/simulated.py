@@ -29,8 +29,8 @@ class Stage(BaseStage):
 
     def __init__(self, hardware_axis: str, instrument_axis: str):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.hardware_axis = hardware_axis.upper()
-        self.instrument_axis = instrument_axis.lower()
+        self._hardware_axis = hardware_axis.upper()
+        self._instrument_axis = instrument_axis.lower()
         self.axes_mapping = AxesMappingSingleton()
         self.axes_mapping.axis_map[instrument_axis] = hardware_axis
         # TODO change this, but self.id for consistency in lookup
@@ -83,7 +83,7 @@ class Stage(BaseStage):
 
     @property
     def position_mm(self):
-        self._position_mm = random.randint(0, 10)
+        self._position_mm = 0#random.randint(0, 10)
         return {self.instrument_axis: self._position_mm}
 
     @property
@@ -93,6 +93,14 @@ class Stage(BaseStage):
     @speed_mm_s.setter
     def speed_mm_s(self, speed_mm_s: float):
         self._speed = speed_mm_s
+
+    @property
+    def hardware_axis(self):
+        return self._hardware_axis
+
+    @property
+    def instrument_axis(self, ):
+        return self._instrument_axis
 
     def is_axis_moving(self):
         if time.time() < self.move_end_time_s:

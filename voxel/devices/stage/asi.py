@@ -4,6 +4,7 @@ from voxel.devices.stage.base import BaseStage
 from tigerasi.tiger_controller import TigerController, STEPS_PER_UM
 from tigerasi.device_codes import *
 from time import sleep
+
 # constants for Tiger ASI hardware
 
 MODES = {
@@ -17,15 +18,17 @@ SCAN_PATTERN = {
     "serpentine": ScanPattern.SERPENTINE,
 }
 
+
 # singleton wrapper around TigerController
 class TigerControllerSingleton(TigerController, metaclass=Singleton):
     def __init__(self, com_port):
         super(TigerControllerSingleton, self).__init__(com_port)
 
+
 class Stage(BaseStage):
 
     def __init__(self, port: str, hardware_axis: str, instrument_axis: str, tigerbox: TigerController = None,
-                 log_level = "INFO"):
+                 log_level="INFO"):
         """Connect to hardware.
 
         :param tigerbox: TigerController instance.
@@ -35,11 +38,11 @@ class Stage(BaseStage):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.log.setLevel(log_level)
 
-        self.tigerbox = TigerControllerSingleton(com_port = port) if tigerbox is None else tigerbox
+        self.tigerbox = TigerControllerSingleton(com_port=port) if tigerbox is None else tigerbox
         self.tigerbox.log.setLevel(log_level)
 
-        self.hardware_axis = hardware_axis.upper()
-        self.instrument_axis = instrument_axis.lower()
+        self._hardware_axis = hardware_axis.upper()
+        self._instrument_axis = instrument_axis.lower()
         # TODO change this, but self.id for consistency in lookup
         self.id = self.instrument_axis
         # axis_map: dictionary representing the mapping from sample pose to tigerbox axis.
@@ -50,7 +53,7 @@ class Stage(BaseStage):
                        "{'instrument axis': 'hardware axis'} "
                        f"from the following dict: {axis_map}.")
         self.sample_to_tiger_axis_map = self._sanitize_axis_map(axis_map)
-        r_axis_map =  dict(zip(axis_map.values(), axis_map.keys()))
+        r_axis_map = dict(zip(axis_map.values(), axis_map.keys()))
         self.tiger_to_sample_axis_map = self._sanitize_axis_map(r_axis_map)
         self.log.debug(f"New instrument to hardware axis mapping: "
                        f"{self.sample_to_tiger_axis_map}")
@@ -103,7 +106,7 @@ class Stage(BaseStage):
             # Default to same axis if no remapped axis exists.
             new_axis = mapping.get(axis, axis)  # Get new key.
             negative = 1 if new_axis.startswith('-') else 0
-            new_axes[new_axis.lstrip('-')] = (-1)**negative * value # Get new value.
+            new_axes[new_axis.lstrip('-')] = (-1) ** negative * value  # Get new value.
         return new_axes
 
     def _sample_to_tiger(self, axes: dict):
@@ -136,7 +139,7 @@ class Stage(BaseStage):
         w_text = "" if wait else "NOT "
         self.log.info(f"Relative move by: {self.hardware_axis}={position} mm and {w_text}waiting.")
         # convert from mm to 1/10um
-        self.tigerbox.move_relative(**{self.hardware_axis: round(position*10000, 1)}, wait=wait)
+        self.tigerbox.move_relative(**{self.hardware_axis: round(position * 10000, 1)}, wait=wait)
         if wait:
             while self.tigerbox.is_moving():
                 sleep(0.001)
@@ -153,17 +156,17 @@ class Stage(BaseStage):
         w_text = "" if wait else "NOT "
         self.log.info(f"Absolute move to: {self.hardware_axis}={position} mm and {w_text}waiting.")
         # convert from mm to 1/10um
-        self.tigerbox.move_absolute(**{self.hardware_axis: round(position*10000, 1)}, wait=wait)
+        self.tigerbox.move_absolute(**{self.hardware_axis: round(position * 10000, 1)}, wait=wait)
         if wait:
             while self.tigerbox.is_moving():
                 sleep(0.001)
 
     def setup_stage_scan(self, fast_axis_start_position: float,
-                               slow_axis_start_position: float,
-                               slow_axis_stop_position: float,
-                               frame_count: int, frame_interval_um: float,
-                               strip_count: int, pattern: str,
-                               retrace_speed_percent: int):
+                         slow_axis_start_position: float,
+                         slow_axis_stop_position: float,
+                         frame_count: int, frame_interval_um: float,
+                         strip_count: int, pattern: str,
+                         retrace_speed_percent: int):
         """Setup a stage scan orchestrated by the device hardware.
 
         This function sets up the outputting of <tile_count> output pulses
@@ -181,7 +184,7 @@ class Stage(BaseStage):
         # TODO: if position is unspecified, we should set is as
         #  "current position" from hardware.
         # Get the axis id in machine coordinate frame.
-        if self.mode == 'stage scan':            
+        if self.mode == 'stage scan':
             valid_pattern = list(SCAN_PATTERN.keys())
             if pattern not in valid_pattern:
                 raise ValueError("pattern must be one of %r." % valid_pattern)
@@ -190,12 +193,13 @@ class Stage(BaseStage):
             axis_to_card = self.tigerbox.axis_to_card
             fast_card = axis_to_card[fast_axis][0]
             fast_position = axis_to_card[fast_axis][1]
-            slow_axis = next(key for key, value in axis_to_card.items() if value[0] == fast_card and value[1] != fast_position)
+            slow_axis = next(
+                key for key, value in axis_to_card.items() if value[0] == fast_card and value[1] != fast_position)
             # Stop any existing scan. Apply machine coordinate frame scan params.
             self.log.debug(f"fast axis start: {fast_axis_start_position},"
                            f"slow axis start: {slow_axis_start_position}")
             self.tigerbox.setup_scan(fast_axis, slow_axis,
-                                     pattern=SCAN_PATTERN[pattern],)
+                                     pattern=SCAN_PATTERN[pattern], )
             self.tigerbox.scanr(scan_start_mm=fast_axis_start_position,
                                 pulse_interval_um=frame_interval_um,
                                 num_pixels=frame_count,
@@ -223,7 +227,7 @@ class Stage(BaseStage):
     def position_mm(self):
         tiger_position = self.tigerbox.get_position(self.hardware_axis)
         # converting 1/10 um to mm
-        tiger_position_mm = {k:v/10000 for k, v in tiger_position.items()}
+        tiger_position_mm = {k: v / 10000 for k, v in tiger_position.items()}
         return self._tiger_to_sample(tiger_position_mm)
 
     @property
@@ -279,8 +283,8 @@ class Stage(BaseStage):
     def mode(self):
         """Get the tiger axis ttl."""
         card_address = self.tigerbox.axis_to_card[self.hardware_axis][0]
-        ttl_reply = self.tigerbox.get_ttl_pin_modes(card_address) # note this does not return ENUM values
-        mode = int(ttl_reply[str.find(ttl_reply, 'X')+2:str.find(ttl_reply, 'Y')-1]) # strip the X= response
+        ttl_reply = self.tigerbox.get_ttl_pin_modes(card_address)  # note this does not return ENUM values
+        mode = int(ttl_reply[str.find(ttl_reply, 'X') + 2:str.find(ttl_reply, 'Y') - 1])  # strip the X= response
         converted_mode = next(key for key, enum in MODES.items() if enum.value == mode)
         return converted_mode
 
@@ -293,7 +297,7 @@ class Stage(BaseStage):
             raise ValueError("mode must be one of %r." % valid)
 
         card_address = self.tigerbox.axis_to_card[self.hardware_axis][0]
-        self.tigerbox.set_ttl_pin_modes(in0_mode = MODES[mode], card_address = card_address)
+        self.tigerbox.set_ttl_pin_modes(in0_mode=MODES[mode], card_address=card_address)
 
     def halt(self):
         """Stop stage"""
@@ -314,6 +318,14 @@ class Stage(BaseStage):
         self.log.debug(f'{build_config}')
         axis_settings = self.tigerbox.get_info(self.hardware_axis)
         self.log.info("{'instrument axis': 'hardware axis'} "
-                       f"{self.sample_to_tiger_axis_map}.")
+                      f"{self.sample_to_tiger_axis_map}.")
         for setting in axis_settings:
             self.log.info(f'{self.hardware_axis} axis, {setting}, {axis_settings[setting]}')
+
+    @property
+    def hardware_axis(self):
+        return self._hardware_axis
+
+    @property
+    def instrument_axis(self, ):
+        return self._instrument_axis

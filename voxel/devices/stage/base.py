@@ -1,6 +1,15 @@
 import inspect
 
+
 class BaseStage:
+
+    @property
+    def hardware_axis(self):
+        raise ValueError
+
+    @property
+    def instrument_axis(self):
+        raise ValueError
 
     def move_relative_mm(self, position: float, wait: bool = True):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
@@ -11,11 +20,11 @@ class BaseStage:
         pass
 
     def setup_stage_scan(self, fast_axis_start_position: float,
-                               slow_axis_start_position: float,
-                               slow_axis_stop_position: float,
-                               frame_count: int, frame_interval_um: float,
-                               strip_count: int, pattern: str,
-                               retrace_speed_percent: int):
+                         slow_axis_start_position: float,
+                         slow_axis_stop_position: float,
+                         frame_count: int, frame_interval_um: float,
+                         strip_count: int, pattern: str,
+                         retrace_speed_percent: int):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
@@ -72,7 +81,7 @@ class BaseStage:
     def mode(self, mode: int):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
-                
+
     @property
     def joystick_mapping(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
