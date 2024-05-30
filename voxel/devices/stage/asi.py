@@ -228,7 +228,7 @@ class Stage(BaseStage):
         tiger_position = self.tigerbox.get_position(self.hardware_axis)
         # converting 1/10 um to mm
         tiger_position_mm = {k: v / 10000 for k, v in tiger_position.items()}
-        return self._tiger_to_sample(tiger_position_mm)
+        return self._tiger_to_sample(tiger_position_mm)[self.instrument_axis]
 
     @property
     def limits_mm(self):
