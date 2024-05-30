@@ -22,6 +22,7 @@ class ThorlabsMFF101(BaseFlipMount):
         try:
             self.inst = Thorlabs.MFF(conn=self.address)
             self.inst.move_to_state(list(self.positions.values())[0])
+            self.inst.setup_flipper(transit_time=1)
         except Exception as e:
             self.log.error(f'Could not connect to flip mount {self.id}: {e}')
             raise e
@@ -39,17 +40,21 @@ class ThorlabsMFF101(BaseFlipMount):
         return next(key for key, value in self.positions.items() if value == pos_idx)
 
     @position.setter
-    def position(self, position_name: str, wait: bool = False):
+    def position(self, position_name: str, wait: bool = True):
         if self.inst is None: raise ValueError('Flip mount not connected')
+        if position_name not in self.positions:
+            raise ValueError(f'Invalid position {position_name}. Valid positions are {list(self.positions.keys())}')
         self.inst.move_to_state(self.positions[position_name])
         self.log.info(f'Flip mount {self.id} moved to position {position_name}')
         if wait:
-            time.sleep(self.switch_time_ms)
+            time.sleep(self.switch_time_ms * 1e-3)
 
-    def toggle(self):
+    def toggle(self, wait: bool = True):
         if self.inst is None: raise ValueError('Flip mount not connected')
         new_pos = 0 if self.inst.get_state() == 1 else 1
         self.inst.move_to_state(new_pos)
+        if wait:
+            time.sleep(self.switch_time_ms * 1e-3)
 
     @property
     def switch_time_ms(self) -> float:
@@ -61,4 +66,7 @@ class ThorlabsMFF101(BaseFlipMount):
     @switch_time_ms.setter
     def switch_time_ms(self, time_ms: float):
         if self.inst is None: raise ValueError('Flip mount not connected')
+        if not isinstance(time_ms, (int, float)) or time_ms <= 0:
+            raise ValueError('Switch time must be a positive number')
         self.inst.setup_flipper(transit_time=time_ms/1000)
+        self.log.info(f'Flip mount {self.id} switch time set to {time_ms} ms')
