@@ -15,7 +15,7 @@ class _DeliminatedProperty(property):
         self._fset = fset
         self._fdel = fdel
 
-    def __get__(self, instance, owner):
+    def __get__(self, instance, owner=None):
         if instance is None:
             return self
         return self._fget(instance)
@@ -34,6 +34,10 @@ class _DeliminatedProperty(property):
 
     def __set_name__(self, owner, name):
         self._name = f'_{name}'
+
+    def __call__(self, func):
+        self._fget = func
+        return self
 
     def setter(self, fset):
         return type(self)(self._fget, fset, self._fdel, self.minimum, self.maximum, self.step)

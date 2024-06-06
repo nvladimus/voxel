@@ -1,5 +1,15 @@
 from abc import ABC, abstractmethod
 import logging
+from typing import Literal
+
+from pydantic import BaseModel
+
+class FlipMountConfig(BaseModel):
+    id: str
+    conn: str
+    positions: dict[str, Literal[0, 1]]
+    init_pos: str
+    init_flip_time_ms: float
 
 class BaseFlipMount(ABC):
     def __init__(self, id: str):
@@ -19,7 +29,7 @@ class BaseFlipMount(ABC):
 
     @property
     @abstractmethod
-    def position(self) -> str:
+    def position(self) -> str | None:
         """Return the current position of the flip mount."""
         pass
 
@@ -34,10 +44,10 @@ class BaseFlipMount(ABC):
 
     @property
     @abstractmethod
-    def switch_time_ms(self) -> float:
+    def flip_time_ms(self) -> float:
         pass
 
-    @switch_time_ms.setter
+    @flip_time_ms.setter
     @abstractmethod
-    def switch_time_ms(self, time_ms: float):
+    def flip_time_ms(self, time_ms: float):
         pass
