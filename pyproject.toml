@@ -4,10 +4,13 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "voxel"
-authors = [{name = "Micah Woodard", email = "micah.woodard@alleninstitute.org"}, {name = "Adam Glaser", email = "adam.glaser@alleninstitute.org"}]
+authors = [
+    { name = "Micah Woodard", email = "micah.woodard@alleninstitute.org" },
+    { name = "Adam Glaser", email = "adam.glaser@alleninstitute.org" },
+]
 version = "0.0.0"
 dynamic = ["description"]
-description-file='README.md'
+description-file = 'README.md'
 dependencies = [
     'pyserial >= 3.5',
     'ruamel-yaml >= 0.18.5',
@@ -24,5 +27,6 @@ dependencies = [
     'scikit-tensor-py3',
     'tensorstore >= 0.1.56',
     'pyclesperanto >= 0.8.2',
-    'pylablib >= 1.4.2'
+    'pylablib >= 1.4.2',
+    'tigerasi >= 0.0.26',
 ]
