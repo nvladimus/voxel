@@ -44,6 +44,9 @@ class ThorlabsMFF101(BaseFlipMount):
             self._inst = None
             self.log.info(f'Flip mount {self.id} disconnected')
 
+    def wait(self):
+        time.sleep(self.flip_time_ms * 1e-3) # type: ignore
+
     @property
     def position(self) -> str | None:
         if self._inst is None: raise ValueError(f'Position not found for {self.id} Flip mount not connected')
@@ -57,25 +60,24 @@ class ThorlabsMFF101(BaseFlipMount):
             raise ValueError(f'Invalid position {position_name}. Valid positions are {list(self._positions.keys())}')
         self._inst.move_to_state(self._positions[position_name])
         self.log.info(f'Flip mount {self.id} moved to position {position_name}')
-        if wait:
-            time.sleep(self.flip_time_ms * 1e-3) # type: ignore
+        if wait: self.wait()
 
     def toggle(self, wait: bool = False):
         if self._inst is None: raise ValueError('Flip mount not connected')
         new_pos = 0 if self._inst.get_state() == 1 else 1
         self._inst.move_to_state(new_pos)
-        if wait:
-            time.sleep(self.flip_time_ms * 1e-3) # type: ignore
+        if wait: self.wait()
 
     @DeliminatedProperty(minimum=FLIP_TIME_RANGE[0], maximum=FLIP_TIME_RANGE[1], step=100)
-    def flip_time_ms(self) -> float:
+    def flip_time_ms(self) -> int:
         if self._inst is None:
             raise ValueError('Flip mount not connected')
         try:
             parameters = self._inst.get_flipper_parameters()
-            flip_time_ms: float = float(parameters.transit_time) * 1e3
+            flip_time_ms: int = int((parameters.transit_time) * 1e3)
         except Exception:
-            flip_time_ms = float((FLIP_TIME_RANGE[0] + FLIP_TIME_RANGE[1]) / 2)
+            # flip_time_ms = float((FLIP_TIME_RANGE[0] + FLIP_TIME_RANGE[1]) / 2) # sets to mid value
+            raise ValueError('Could not get flip time')
         return flip_time_ms
 
     @flip_time_ms.setter
@@ -83,6 +85,9 @@ class ThorlabsMFF101(BaseFlipMount):
         if self._inst is None: raise ValueError('Flip mount not connected')
         if not isinstance(time_ms, (int, float)) or time_ms <= 0:
             raise ValueError('Switch time must be a positive number')
-        clamped_time_ms = max(FLIP_TIME_RANGE[0], min(time_ms, FLIP_TIME_RANGE[1]))
-        self._inst.setup_flipper(transit_time=clamped_time_ms/1000)
-        self.log.info(f'Flip mount {self.id} switch time set to {clamped_time_ms} ms')
+        clamped_time_ms = int(max(FLIP_TIME_RANGE[0], min(time_ms, FLIP_TIME_RANGE[1])))
+        try:
+            self._inst.setup_flipper(transit_time=clamped_time_ms/1000)
+            self.log.info(f'Flip mount {self.id} switch time set to {clamped_time_ms} ms')
+        except Exception as e:
+            raise ValueError(f'Could not set flip time: {e}')

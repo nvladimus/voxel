@@ -9,7 +9,7 @@ class FlipMountConfig(BaseModel):
     conn: str
     positions: dict[str, Literal[0, 1]]
     init_pos: str
-    init_flip_time_ms: float
+    init_flip_time_ms: int
 
 class BaseFlipMount(ABC):
     def __init__(self, id: str):
@@ -44,10 +44,10 @@ class BaseFlipMount(ABC):
 
     @property
     @abstractmethod
-    def flip_time_ms(self) -> float:
+    def flip_time_ms(self) -> int:
         pass
 
     @flip_time_ms.setter
     @abstractmethod
-    def flip_time_ms(self, time_ms: float):
+    def flip_time_ms(self, time_ms: int):
         pass
