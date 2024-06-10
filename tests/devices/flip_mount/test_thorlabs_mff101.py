@@ -4,29 +4,30 @@ from voxel.devices.flip_mount import FlipMountConfig, ThorlabsMFF101
 from voxel.devices.flip_mount.thorlabs_mff101 import FLIP_TIME_RANGE
 
 CONN = '37007737'
-
-mff101_config = FlipMountConfig(
-    id='flip-mount-1',
-    conn=CONN,
-    positions={
-        'A': 0,
-        'B': 1,
-    },
-    init_pos='A',
-    init_flip_time_ms=1000,
-)
+POSITIONS = {
+    'A': 0,
+    'B': 1,
+}
+INIT_POS = 'A'
+INIT_FLIPTIME = 1000
 
 @pytest.fixture
 def mff101():
-    fm = ThorlabsMFF101(mff101_config)
+    fm = ThorlabsMFF101(
+            id='flip-mount-1',
+            conn=CONN,
+            positions=POSITIONS,
+            init_pos=INIT_POS,
+            init_flip_time_ms=INIT_FLIPTIME
+        )
     yield fm
     fm.disconnect()
 
 def test_connect(mff101):
     assert mff101._inst is not None
     mff101.wait()
-    assert mff101.position == mff101_config.init_pos
-    assert mff101.flip_time_ms == mff101_config.init_flip_time_ms
+    assert mff101.position == INIT_POS
+    assert mff101.flip_time_ms == INIT_FLIPTIME
 
 def test_disconnect(mff101):
     mff101.disconnect()

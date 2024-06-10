@@ -11,13 +11,13 @@ FLIP_TIME_RANGE = (500, 2800)
 
 
 class ThorlabsMFF101(BaseFlipMount):
-    def __init__(self, config: FlipMountConfig):
-        super().__init__(config.id)
-        self._conn = config.conn
-        self._positions = config.positions
+    def __init__(self, id, conn, positions, init_pos, init_flip_time_ms):
+        super().__init__(id)
+        self._conn = conn
+        self._positions = positions
         self._inst: Optional[Thorlabs.MFF] = None
-        self._init_pos = config.init_pos
-        self._init_flip_time_ms = config.init_flip_time_ms
+        self._init_pos = init_pos
+        self._init_flip_time_ms = init_flip_time_ms
         self.connect()
 
     def connect(self):
