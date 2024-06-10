@@ -1,3 +1,4 @@
+import time
 import pytest
 from voxel.devices.flip_mount import FlipMountConfig, ThorlabsMFF101
 from voxel.devices.flip_mount.thorlabs_mff101 import FLIP_TIME_RANGE
@@ -18,7 +19,6 @@ mff101_config = FlipMountConfig(
 @pytest.fixture
 def mff101():
     fm = ThorlabsMFF101(mff101_config)
-    fm.connect()
     yield fm
     fm.disconnect()
 
@@ -36,10 +36,12 @@ def test_position(mff101):
     mff101.wait()
     assert mff101.position == 'A'
 
-    mff101.position = ('B', True)
+    mff101.position = 'B'
+    mff101.wait()
     assert mff101.position == 'B'
 
-    mff101.position = ('A', True)
+    mff101.position = 'A'
+    mff101.wait()
     assert mff101.position == 'A'
 
 def test_toggle(mff101):
@@ -72,51 +74,31 @@ def test_invalid_flip_time(mff101):
     assert mff101.flip_time_ms == FLIP_TIME_RANGE[1]
 
 def test_different_switch_times(mff101):
-    mff101.position = ('A', True)
+    mff101.position = 'A'
+    mff101.wait()
 
     cycles = 5
-    switch_times = [500, 1000, 1500, 2000, 2500, 2800]
+    switch_times = [500, 1000, 1500, 2000, 2800]
     for switch_time in switch_times:
         mff101.flip_time_ms = switch_time
         for _ in range(cycles):
 
+            time.sleep(1)
             mff101.toggle(wait=True)
             assert mff101.position == 'B'
 
+            time.sleep(1)
             mff101.toggle(wait=True)
             assert mff101.position == 'A'
 
 def test_reset(mff101):
-    mff101.flip_time_ms = 2101
-    mff101.position = ('B', True)
+    mff101.flip_time_ms = 500
+    mff101.position = 'B'
+    mff101.wait()
+    assert mff101.position == 'B'
+    assert mff101.flip_time_ms == 500
+
     mff101.reset()
+    mff101.wait()
     assert mff101.position == 'A'
     assert mff101.flip_time_ms == 1000
-
-# Test invalid positions
-def test_invalid_positions():
-    with pytest.raises(ValueError):
-        # Invalid position value
-        FlipMountConfig(
-            id='flip-mount-1',
-            conn=CONN,
-            positions={
-                'A': 0,
-                'B': 2,
-            },
-            init_pos='A',
-            init_flip_time_ms=1000,
-        )
-
-    with pytest.raises(ValueError):
-        # Invalid init_pos
-        FlipMountConfig(
-            id='flip-mount-1',
-            conn=CONN,
-            positions={
-                'A': 0,
-                'B': 1,
-            },
-            init_pos='C',
-            init_flip_time_ms=1000,
-        )

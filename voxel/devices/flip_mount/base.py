@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 import logging
+import re
 from typing import Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, model_validator
 
 class FlipMountConfig(BaseModel):
     id: str
@@ -11,12 +12,11 @@ class FlipMountConfig(BaseModel):
     init_pos: str
     init_flip_time_ms: int
 
-    @field_validator('init_pos')
-    def init_pos_must_be_in_positions(cls, init_pos, values):
-        positions = values.get('positions')
-        if positions is not None and init_pos not in positions:
-            raise ValueError(f'init_pos {init_pos} is not a key in positions dictionary')
-        return init_pos
+    @model_validator(mode="after")
+    def init_pos_must_be_in_positions(self):
+        if self.init_pos not in self.positions:
+            raise ValueError(f"init_pos must be one of {self.positions.keys()}")
+        return self
 
 class BaseFlipMount(ABC):
     def __init__(self, id: str):

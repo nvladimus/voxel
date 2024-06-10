@@ -56,14 +56,13 @@ class ThorlabsMFF101(BaseFlipMount):
         return next((key for key, value in self._positions.items() if value == pos_idx), 'Unknown')
 
     @position.setter
-    def position(self, position_name: str, wait=False):
-        if self._inst is None: raise ValueError('Flip mount not connected')
+    def position(self, position_name: str):
+        if self._inst is None:
+            raise ValueError('Flip mount not connected')
         if position_name not in self._positions:
             raise ValueError(f'Invalid position {position_name}. Valid positions are {list(self._positions.keys())}')
         self._inst.move_to_state(self._positions[position_name])
         self.log.info(f'Flip mount {self.id} moved to position {position_name}')
-        if wait:
-            self.wait()
 
     @DeliminatedProperty(minimum=FLIP_TIME_RANGE[0], maximum=FLIP_TIME_RANGE[1], step=100)
     def flip_time_ms(self) -> int:
