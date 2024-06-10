@@ -4,10 +4,10 @@ import pyvisa as visa
 from . import BasePowerMeter, PowerMeterConfig
 
 class ThorlabsPowerMeter(BasePowerMeter):
-    def __init__(self, config: PowerMeterConfig) -> None:
-        super().__init__(config.id)
-        self.conn = config.conn
-        self._init_wavelength_nm = config.init_wavelength_nm
+    def __init__(self, id: str, conn: str, init_wavelength_nm: int) -> None:
+        super().__init__(id)
+        self.conn = conn
+        self._init_wavelength_nm = init_wavelength_nm
         self.inst: Optional[visa.resources.Resource] = None
         self.connect()
 
@@ -43,7 +43,7 @@ class ThorlabsPowerMeter(BasePowerMeter):
     @property
     def power_mw(self) -> float:
         self._check_connection()
-        return float(self.inst.query("MEAS:POW?")) # type: ignore
+        return float(self.inst.query("MEAS:POW?"))  * 1e3 # type: ignore
 
     @property
     def wavelength_nm(self) -> float:
