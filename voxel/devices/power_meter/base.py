@@ -6,7 +6,7 @@ from pydantic import BaseModel, field_validator
 class PowerMeterConfig(BaseModel):
     id: str
     conn: str
-    init_wavelength_nm: int
+    init_wavelength_nm: float
 
     @field_validator('init_wavelength_nm')
     def init_wavelength_nm_must_be_positive(cls, init_wavelength_nm):
@@ -47,7 +47,7 @@ class BasePowerMeter(ABC):
 
     @property
     @abstractmethod
-    def wavelength_nm(self) -> int:
+    def wavelength_nm(self) -> float:
         """
         Returns:
         int: The wavelength in nanometers.
@@ -56,7 +56,7 @@ class BasePowerMeter(ABC):
 
     @wavelength_nm.setter
     @abstractmethod
-    def wavelength_nm(self, wavelength: int):
+    def wavelength_nm(self, wavelength: float):
         """
         Parameters:
         wavelength (int): The new wavelength in nanometers.

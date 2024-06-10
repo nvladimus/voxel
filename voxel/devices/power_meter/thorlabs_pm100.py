@@ -46,12 +46,12 @@ class ThorlabsPowerMeter(BasePowerMeter):
         return float(self.inst.query("MEAS:POW?"))  * 1e3 # type: ignore
 
     @property
-    def wavelength_nm(self) -> int:
+    def wavelength_nm(self) -> float:
         self._check_connection()
-        return int(self.inst.query('SENS:CORR:WAV?')) # type: ignore
+        return float(self.inst.query('SENS:CORR:WAV?')) # type: ignore
 
     @wavelength_nm.setter
-    def wavelength_nm(self, wavelength: int) -> None:
+    def wavelength_nm(self, wavelength: float) -> None:
         self._check_connection()
         self.inst.write(f"SENS:CORR:WAV {wavelength}") # type: ignore
         self.log.info(f"{self.id} - Set wavelength to {wavelength} nm")
