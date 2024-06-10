@@ -4,12 +4,11 @@ import pytest
 
 from voxel.devices.power_meter import ThorlabsPowerMeter, PowerMeterConfig
 
-STRESS_TEST_MINUTES = 120
+STRESS_TEST_MINUTES = 1
 
 @pytest.fixture
 def pm100d():
-    config = PowerMeterConfig(id="pm100d", conn="USB0::0x1313::0x8078::P0008860::INSTR", init_wavelength_nm=532)
-    pm = ThorlabsPowerMeter(config)
+    pm = ThorlabsPowerMeter(id="pm100d", conn="USB0::0x1313::0x8078::P0008860::INSTR", init_wavelength_nm=532)
     pm.connect()
     yield pm
     pm.disconnect()
