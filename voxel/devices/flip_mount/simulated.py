@@ -1,12 +1,12 @@
 from . import BaseFlipMount, FlipMountConfig
 
 class SimulatedFlipMount(BaseFlipMount):
-    def __init__(self, config: FlipMountConfig):
-        super().__init__(config.id)
-        self._conn = config.conn
-        self._positions = config.positions
-        self._init_pos = config.init_pos
-        self._init_flip_time_ms = config.init_flip_time_ms
+    def __init__(self, id, conn, positions, init_pos, init_flip_time_ms):
+        super().__init__(id)
+        self._conn = conn
+        self._positions = positions
+        self._init_pos = init_pos
+        self._init_flip_time_ms = init_flip_time_ms
         self._inst = None
         self.connect()
 
