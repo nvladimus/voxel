@@ -1,33 +1,40 @@
 from typing import Optional
 import pyvisa as visa
 
-from voxel.devices.power_meter.base import BasePowerMeter
+from . import BasePowerMeter, PowerMeterConfig
 
 class ThorlabsPowerMeter(BasePowerMeter):
-    def __init__(self, id: str, address: str) -> None:
-        super().__init__(id)
-        self.address = address
+    def __init__(self, config: PowerMeterConfig) -> None:
+        super().__init__(config.id)
+        self.conn = config.conn
+        self._init_wavelength_nm = config.init_wavelength_nm
         self.inst: Optional[visa.resources.Resource] = None
+        self.connect()
 
     def connect(self):
         rm = visa.ResourceManager()
         try:
-            self.inst = rm.open_resource(self.address)
-            self.log.info(f"Connection to {self.address} successful")
+            self.inst = rm.open_resource(self.conn)
+            self.log.info(f"Connection to {self.conn} successful")
+            self.reset()
         except visa.VisaIOError as e:
-            self.log.error(f"Could not connect to {self.address}: {e}")
+            self.log.error(f"Could not connect to {self.conn}: {e}")
             raise
         except Exception as e:
             self.log.error(f"Unknown error: {e}")
             raise
 
+    def reset(self):
+        self._check_connection()
+        self.wavelength_nm = self._init_wavelength_nm
+
     def disconnect(self) -> None:
         if self.inst is not None:
             self.inst.close()
             self.inst = None
-            self.log.info(f"Disconnected from {self.address}")
+            self.log.info(f"Disconnected from {self.conn}")
         else:
-            self.log.warning(f"Already disconnected from {self.address}")
+            self.log.warning(f"Already disconnected from {self.conn}")
 
     def _check_connection(self):
         if self.inst is None:
