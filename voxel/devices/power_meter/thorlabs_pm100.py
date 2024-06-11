@@ -1,13 +1,12 @@
 from typing import Optional
 import pyvisa as visa
 
-from . import BasePowerMeter, PowerMeterConfig
+from . import BasePowerMeter
 
 class ThorlabsPowerMeter(BasePowerMeter):
-    def __init__(self, id: str, conn: str, init_wavelength_nm: int) -> None:
+    def __init__(self, id: str, conn: str) -> None:
         super().__init__(id)
         self.conn = conn
-        self._init_wavelength_nm = init_wavelength_nm
         self.inst: Optional[visa.resources.Resource] = None
         self.connect()
 
@@ -16,17 +15,12 @@ class ThorlabsPowerMeter(BasePowerMeter):
         try:
             self.inst = rm.open_resource(self.conn)
             self.log.info(f"Connection to {self.conn} successful")
-            self.reset()
         except visa.VisaIOError as e:
             self.log.error(f"Could not connect to {self.conn}: {e}")
             raise
         except Exception as e:
             self.log.error(f"Unknown error: {e}")
             raise
-
-    def reset(self):
-        self._check_connection()
-        self.wavelength_nm = self._init_wavelength_nm
 
     def disconnect(self) -> None:
         if self.inst is not None:

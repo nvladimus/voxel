@@ -8,7 +8,7 @@ STRESS_TEST_MINUTES = 1
 
 @pytest.fixture
 def pm100d():
-    pm = ThorlabsPowerMeter(id="pm100d", conn="USB0::0x1313::0x8078::P0008860::INSTR", init_wavelength_nm=532)
+    pm = ThorlabsPowerMeter(id="pm100d", conn="USB0::0x1313::0x8078::P0008860::INSTR")
     pm.connect()
     yield pm
     pm.disconnect()
