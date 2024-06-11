@@ -1,37 +1,30 @@
-import time
+from time import sleep
 from typing import Optional
 
 from pylablib.devices import Thorlabs
 
 from voxel.descriptors.deliminated_property import DeliminatedProperty
-from . import BaseFlipMount, FlipMountConfig
+from . import BaseFlipMount
 
 VALID_POSITIONS = [0, 1]
-FLIP_TIME_RANGE = (500, 2800)
+FLIP_TIME_RANGE_MS = (500, 2800, 100)
 
-
-class ThorlabsMFF101(BaseFlipMount):
-    def __init__(self, id, conn, positions, init_pos, init_flip_time_ms):
+class ThorlabsFlipMount(BaseFlipMount):
+    def __init__(self, id, conn, positions):
         super().__init__(id)
         self._conn = conn
         self._positions = positions
         self._inst: Optional[Thorlabs.MFF] = None
-        self._init_pos = init_pos
-        self._init_flip_time_ms = init_flip_time_ms
         self.connect()
 
     def connect(self):
         try:
             self._inst = Thorlabs.MFF(conn=self._conn)
-            self.reset()
+            self.position = next(iter(self._positions.keys())) # set to first position
+            self.flip_time_ms = FLIP_TIME_RANGE_MS[0] # min flip time
         except Exception as e:
             self.log.error(f'Could not connect to flip mount {self.id}: {e}')
             raise e
-
-    def reset(self):
-        if self._inst is None: raise ValueError(f'Unable to reset {self.id} Flip mount not connected')
-        self.position = self._init_pos
-        self.flip_time_ms = self._init_flip_time_ms
 
     def disconnect(self):
         if self._inst is not None:
@@ -40,7 +33,7 @@ class ThorlabsMFF101(BaseFlipMount):
             self.log.info(f'Flip mount {self.id} disconnected')
 
     def wait(self):
-        time.sleep(self.flip_time_ms * 1e-3) # type: ignore
+        sleep(self.flip_time_ms * 1e-3) # type: ignore
 
     def toggle(self, wait=False):
         if self._inst is None: raise ValueError('Flip mount not connected')
@@ -64,7 +57,7 @@ class ThorlabsMFF101(BaseFlipMount):
         self._inst.move_to_state(self._positions[position_name])
         self.log.info(f'Flip mount {self.id} moved to position {position_name}')
 
-    @DeliminatedProperty(minimum=FLIP_TIME_RANGE[0], maximum=FLIP_TIME_RANGE[1], step=100)
+    @DeliminatedProperty(minimum=FLIP_TIME_RANGE_MS[0], maximum=FLIP_TIME_RANGE_MS[1], step=FLIP_TIME_RANGE_MS[2])
     def flip_time_ms(self) -> int:
         if self._inst is None:
             raise ValueError('Flip mount not connected')
@@ -72,7 +65,7 @@ class ThorlabsMFF101(BaseFlipMount):
             parameters = self._inst.get_flipper_parameters()
             flip_time_ms: int = int((parameters.transit_time) * 1e3)
         except Exception:
-            # flip_time_ms = float((FLIP_TIME_RANGE[0] + FLIP_TIME_RANGE[1]) / 2) # sets to mid value
+            # flip_time_ms = float((FLIP_TIME_RANGE_MS[0] + FLIP_TIME_RANGE_MS[1]) / 2) # sets to mid value
             raise ValueError('Could not get flip time')
         return flip_time_ms
 
@@ -81,7 +74,7 @@ class ThorlabsMFF101(BaseFlipMount):
         if self._inst is None: raise ValueError('Flip mount not connected')
         if not isinstance(time_ms, (int, float)) or time_ms <= 0:
             raise ValueError('Switch time must be a positive number')
-        clamped_time_ms = int(max(FLIP_TIME_RANGE[0], min(time_ms, FLIP_TIME_RANGE[1])))
+        clamped_time_ms = int(max(FLIP_TIME_RANGE_MS[0], min(time_ms, FLIP_TIME_RANGE_MS[1])))
         try:
             self._inst.setup_flipper(transit_time=clamped_time_ms/1000)
             self.log.info(f'Flip mount {self.id} switch time set to {clamped_time_ms} ms')
