@@ -10,7 +10,7 @@ from time import sleep
 MODES = {
     "step shoot": TTLIn0Mode.REPEAT_LAST_REL_MOVE,
     "off": TTLIn0Mode.OFF,
-    "stage scan": TTLIn0Mode.ENCODER_SYNC
+    "stage scan": TTLIn0Mode.MOVE_TO_NEXT_ABS_POSITION
 }
 
 SCAN_PATTERN = {

@@ -25,11 +25,11 @@ BIT_PACKING_MODES = {
 }
 
 TRIGGERS = {
-    "modes": {
+    "mode": {
         "on": "On",
         "off": "Off",
     },
-    "sources": {
+    "source": {
         "internal": "None",
         "external": "Line0",
     },
@@ -39,7 +39,7 @@ TRIGGERS = {
     }
 }
 
-# singleton wrapper around EGenTL
+#singleton wrapper around EGenTL
 class EGenTLSingleton(EGenTL, metaclass=Singleton):
     def __init__(self):
         super(EGenTLSingleton, self).__init__()
@@ -68,7 +68,6 @@ class Camera(BaseCamera):
                         egrabber_list['grabbers'].append(info)
 
         # for camera in discovery.cameras:
-
         del discovery
         # identify by serial number and return correct grabber
         if not egrabber_list['grabbers']:
@@ -206,8 +205,8 @@ class Camera(BaseCamera):
         mode = self.grabber.remote.get("TriggerMode")
         source = self.grabber.remote.get("TriggerSource")
         polarity = self.grabber.remote.get("TriggerActivation")
-        return {"mode": next(key for key, value in TRIGGERS['modes'].items() if value == mode),
-                "source": next(key for key, value in TRIGGERS['sources'].items() if value == source),
+        return {"mode": next(key for key, value in TRIGGERS['mode'].items() if value == mode),
+                "source": next(key for key, value in TRIGGERS['source'].items() if value == source),
                 "polarity": next(key for key, value in TRIGGERS['polarity'].items() if value == polarity)}
 
     @trigger.setter
@@ -217,10 +216,10 @@ class Camera(BaseCamera):
         source = trigger['source']
         polarity = trigger['polarity']
 
-        valid_mode = list(TRIGGERS['modes'].keys())
+        valid_mode = list(TRIGGERS['mode'].keys())
         if mode not in valid_mode:
             raise ValueError("mode must be one of %r." % valid_mode)
-        valid_source = list(TRIGGERS['sources'].keys())
+        valid_source = list(TRIGGERS['source'].keys())
         if source not in valid_source:
             raise ValueError("source must be one of %r." % valid_source)
         valid_polarity = list(TRIGGERS['polarity'].keys())
@@ -229,8 +228,8 @@ class Camera(BaseCamera):
 
         # Note: Setting TriggerMode if it's already correct will throw an error
         if self.grabber.remote.get("TriggerMode") != mode:  # set camera to external trigger mode
-            self.grabber.remote.set("TriggerMode", TRIGGERS['modes'][mode])
-        self.grabber.remote.set("TriggerSource", TRIGGERS['sources'][source])
+            self.grabber.remote.set("TriggerMode", TRIGGERS['mode'][mode])
+        self.grabber.remote.set("TriggerSource", TRIGGERS['source'][source])
         self.grabber.remote.set("TriggerActivation", TRIGGERS['polarity'][polarity])
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
         # refresh parameter values
@@ -238,7 +237,7 @@ class Camera(BaseCamera):
 
     @property
     def binning(self):
-        return next(key for key, value in BINNING.items() if value == self._binning)
+        return self._binning
 
     @binning.setter
     def binning(self, binning: str):
@@ -298,8 +297,10 @@ class Camera(BaseCamera):
         self.grabber.realloc_buffers(self.buffer_size_frames)  # allocate RAM buffer N frames
         self.log.info(f"buffer set to: {self.buffer_size_frames} frames")
 
-    def start(self, frame_count=GENTL_INFINITE):
+    def start(self, frame_count: int = GENTL_INFINITE):
         """Start camera. If no frame count given, assume infinite frames"""
+        if frame_count == float('inf'):
+            frame_count = GENTL_INFINITE
         self.grabber.start(frame_count=frame_count)
 
     def stop(self):
