@@ -124,10 +124,14 @@ class FileTransfer():
             self._log_file = open(log_path, 'w')
             self.log.info(f"transferring {file_path} from {self._local_directory} to {self._external_directory}")
             # generate rsync command with args
-            cmd_with_args = self._flatten([self._protocol,
-                                           self._flags,
-                                           file_path,
-                                           Path(external_dir) / Path(filename)])
+            print(os.path.isfile(file_path), os.path.isdir(str(self._local_directory)) , os.path.isdir(self._external_directory) )
+            print([self._protocol, self._flags, file_path, str(Path(external_dir) / Path(filename))])
+            cmd_with_args = f'{self._protocol} [{(" ".join(self._flags))}] [{file_path}] [{Path(external_dir) / Path(filename)}]' #self._flatten([self._protocol,
+                                           # self._flags,
+                                           # file_path,
+                                           # str(Path(external_dir) / Path(filename))])
+            print(f'{self._protocol} [{(" ".join(self._flags))}] [{file_path}] [{Path(external_dir) / Path(filename)}]')
+            print()
             subprocess = Popen(cmd_with_args, stdout=self._log_file)
             self._log_file.close()
             time.sleep(0.01)
