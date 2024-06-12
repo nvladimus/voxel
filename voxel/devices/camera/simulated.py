@@ -19,9 +19,9 @@ MAX_EXPOSURE_TIME_MS = 6e4
 
 
 BINNING = {
-    "1": 1,
-    "2": 2,
-    "4": 4
+    1: 1,
+    2: 2,
+    4: 4
 }
 
 PIXEL_TYPES = {
