@@ -240,7 +240,7 @@ class Camera(BaseCamera):
         return self._binning
 
     @binning.setter
-    def binning(self, binning: str):
+    def binning(self, binning: int):
         valid_binning = list(BINNING.keys())
         if binning not in valid_binning:
             raise ValueError("binning must be one of %r." % valid_binning)
@@ -248,11 +248,11 @@ class Camera(BaseCamera):
 
         # if binning is not an integer, do it in hardware
         if not isinstance(BINNING[binning], int):
-            self.grabber.remote.set("BinningHorizontal", self._binning)
-            self.grabber.remote.set("BinningVertical", self._binning)
+            self.grabber.remote.set("BinningHorizontal", BINNING[binning])
+            self.grabber.remote.set("BinningVertical", BINNING[binning])
         # initialize the opencl binning program
         else:
-            self.gpu_binning = DownSample2D(binning=self._binning)
+            self.gpu_binning = DownSample2D(binning=int(self._binning))
 
     @property
     def sensor_width_px(self):
