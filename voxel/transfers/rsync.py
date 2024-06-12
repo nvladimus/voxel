@@ -25,6 +25,7 @@ class FileTransfer():
         self._protocol = 'rsync'
         self.progress = 0
         self._output_file = None
+        self.thread = None
         # print progress, delete files after transfer
         # check version of rsync
         # tested with v2.6.9

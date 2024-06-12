@@ -34,19 +34,16 @@ class ExASPIMAcquisition(Acquisition):
     def run(self):
 
         filenames = dict()
-
+        print(self.config['acquisition']['tiles'])
         for tile in self.config['acquisition']['tiles']:
-
-            tile_num_x = tile['tile_number']['x']
-            tile_num_y = tile['tile_number']['y']
-            tile_num_z = tile['tile_number']['z']
+            tile_num = tile['tile_number']
             tile_channel = tile['channel']
             filename_prefix = tile['prefix']
 
             # build filenames dict for all devices
             for device_name, device_specs in self.instrument.config['instrument']['devices'].items():
                 device_type = device_specs['type']
-                filenames[device_name] = f'{filename_prefix}_x_{tile_num_x:04}_y_{tile_num_y:04}_z_{tile_num_z:04}_' \
+                filenames[device_name] = f'{filename_prefix}_{tile_num}_' \
                                          f'ch_{tile_channel}_{device_type}_{device_name}'
 
             # sanity check length of scan
