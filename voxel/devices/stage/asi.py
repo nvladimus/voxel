@@ -135,7 +135,7 @@ class Stage(BaseStage):
         """
         return self._remap(axes, self.tiger_to_sample_axis_map)
 
-    def move_relative_mm(self, position: float, wait: bool = True):
+    def move_relative_mm(self, position: float, wait: bool = False):
         w_text = "" if wait else "NOT "
         self.log.info(f"Relative move by: {self.hardware_axis}={position} mm and {w_text}waiting.")
         # convert from mm to 1/10um
@@ -144,7 +144,7 @@ class Stage(BaseStage):
             while self.tigerbox.is_moving():
                 sleep(0.001)
 
-    def move_absolute_mm(self, position: float, wait: bool = True):
+    def move_absolute_mm(self, position: float, wait: bool = False):
         """Move the specified axes by their corresponding amounts.
 
         :param wait: If true, wait for the stage to arrive to the specified

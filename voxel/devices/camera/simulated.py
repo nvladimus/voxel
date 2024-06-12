@@ -30,8 +30,8 @@ PIXEL_TYPES = {
 }
 
 LINE_INTERVALS_US = {
-    "mono8": 100.00,
-    "mono16": 200.00
+    "mono8": 10.00,
+    "mono16": 20.00
 }
 
 TRIGGERS = {
@@ -185,9 +185,10 @@ class Camera(BaseCamera):
         valid_binning = list(BINNING.keys())
         if binning not in valid_binning:
             raise ValueError("binning must be one of %r." % BINNING)
-        self._binning = BINNING[binning]
-        # initialize the downsampling in 2d
-        self.gpu_binning = DownSample2D(binning=self._binning)
+        else:
+            self._binning = BINNING[binning]
+            # initialize the downsampling in 2d
+            self.gpu_binning = DownSample2D(binning=self._binning)
 
     @property
     def pixel_type(self):
@@ -272,9 +273,6 @@ class Camera(BaseCamera):
         self.frame = 0
         self.frame_rate = 0
         self.dropped_frames = 0
-        # commenting out below, this breaks the current code
-        # i = 1
-        # while i <= frame_count and not self.terminate_frame_grab.is_set():
         i = 1
         frame_count = frame_count if frame_count is not None else 1
         while i <= frame_count and not self.terminate_frame_grab.is_set():
@@ -284,12 +282,7 @@ class Camera(BaseCamera):
             image = numpy.random.randint(low=128, high=256, size=(row_count, column_count), dtype=self._pixel_type)
             while (time.time() - start_time) < self.frame_time_ms / 1000:
                 time.sleep(0.01)
-            # commenting out queue for now
-            # self.buffer.put(image)
             self.buffer.append(image)
-            # self.frame += 1
-            # end_time = time.time()
-            # self.frame_rate = 1/(end_time - start_time)
             self.frame += 1
             i = i if frame_count is None else i + 1
             end_time = time.time()
@@ -302,5 +295,3 @@ class Camera(BaseCamera):
 
     def close(self):
         pass
-
-

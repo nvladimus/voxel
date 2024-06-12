@@ -156,3 +156,4 @@ class FileTransfer():
             else:
                 raise ValueError(f'{f} is not a file or directory.')
         self.log.info(f"transfer finished")
+        subprocess.kill()

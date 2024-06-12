@@ -2,12 +2,13 @@
 import os
 import time
 import logging
-import sys
+import signal
 import threading
 import shutil
 from subprocess import Popen, PIPE, STDOUT
 from pathlib import Path
 from typing import List, Any, Iterable
+
 
 class FileTransfer():
 
@@ -134,7 +135,7 @@ class FileTransfer():
                 file_progress = 0
                 while file_progress < 100:
                     # open the stdout file in a temporary handle with r+ mode
-                    f = open(f'{self._local_directory / self._log_file}', 'r+')
+                    f = open(log_path, 'r+')
                     # read the last line
                     line = f.readlines()[-1]
                     # try to find if there is a % in the last line
@@ -190,6 +191,7 @@ class FileTransfer():
             else:
                 raise ValueError(f'{f} is not a file or directory.')
         self.log.info(f"transfer finished")
+        subprocess.kill()
 
     def _flatten(self, lst: List[Any]) -> Iterable[Any]:
         """Flatten a list using generators comprehensions.
