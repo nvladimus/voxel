@@ -306,6 +306,9 @@ class Camera(BaseCamera):
     def stop(self):
         self.grabber.stop()
 
+    def abort(self):
+        self.grabber.stop()
+
     def close(self):
         del self.grabber
         
