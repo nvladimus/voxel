@@ -14,8 +14,8 @@ from datetime import datetime
 from time import sleep, perf_counter
 from math import ceil
 
-CHUNK_COUNT_PX = 64
-DIVISIBLE_FRAME_COUNT_PX = 64
+CHUNK_COUNT_PX = 128
+DIVISIBLE_FRAME_COUNT_PX = 128
 B3D_QUANT_SIGMA = 1 # quantization step
 B3D_COMPRESSION_MODE = 1
 B3D_BACKGROUND_OFFSET = 0 # ADU
