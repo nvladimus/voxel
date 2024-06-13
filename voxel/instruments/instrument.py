@@ -93,6 +93,7 @@ class Instrument:
             # If subdevice init needs parent object type, add device object to init arguments
             elif parameter.annotation == type(device_object):
                 subdevice_specs['init'][name] = device_object
+        print()
         self._construct_device(subdevice_name, subdevice_specs)
 
     def _load_device(self, driver: str, module: str, kwds):

@@ -11,14 +11,14 @@ JOYSTICK_AXES = {
     "None": JoystickInput.NONE
 }
 
-POLARITY = {
+POLARITIES = {
     "inverted": JoystickPolarity.INVERTED,
     "default": JoystickPolarity.DEFAULT,
 }
 
 class Joystick(BaseJoystick):
 
-    def __init__(self, tigerbox: TigerController, joystick_mapping: dict = None, axis_mapping:dict={}):
+    def __init__(self, tigerbox: TigerController, axis_mapping:dict, joystick_mapping: dict = None):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
 
@@ -29,9 +29,11 @@ class Joystick(BaseJoystick):
              "wheel_z": {"instrument_axis": "z", "polarity": "default"},
              "wheel_f": {"instrument_axis": "w", "polarity": "default"},
              }
-        self._stage_axes = {v:k for k,v in axis_mapping if k in self.tigerbox.axes and v in self.tigerbox.axes}
+        self.axes_mapping = axis_mapping
+        self._stage_axes = {v:k for k,v in axis_mapping.items() if k.upper() in self.tigerbox.axes and v.upper() in self.tigerbox.axes}
         for axis in self.tigerbox.axes:
-            self._stage_axes[axis] = axis
+            if axis.lower() not in self._stage_axes.keys():
+                self._stage_axes[axis.lower()] = axis.lower()
         # grab the instrument to hardware axis mapping for the joystick device
         for joystick_id, joystick_dict in self.joystick_mapping.items():
             # check that the joystick ids are valid
@@ -39,12 +41,12 @@ class Joystick(BaseJoystick):
                 raise ValueError(f"{joystick_id} must be in {JOYSTICK_AXES.keys()}")
             # check that ther polarities are valid
             joystick_polarity = joystick_dict["polarity"]
-            if joystick_polarity not in POLARITY.keys():
-                raise ValueError(f"{joystick_polarity} must be in {POLARITY.keys()}")
+            if joystick_polarity not in POLARITIES.keys():
+                raise ValueError(f"{joystick_polarity} must be in {POLARITIES.keys()}")
             instrument_axis = joystick_dict["instrument_axis"]
             hardware_axis = self.axes_mapping[instrument_axis]
             # check that the axes are valid
-            if hardware_axis not in self._stage_axes:
+            if hardware_axis not in self._stage_axes.keys():
                 raise ValueError(
                     f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis.")
 
@@ -65,8 +67,8 @@ class Joystick(BaseJoystick):
                 raise ValueError(f"{joystick_id} must be in {JOYSTICK_AXES.keys()}")
             # check that ther polarities are valid
             joystick_polarity = joystick_dict["polarity"]
-            if joystick_polarity not in POLARITY.keys():
-                raise ValueError(f"{joystick_polarity} must be in {POLARITY.keys()}")
+            if joystick_polarity not in POLARITIES.keys():
+                raise ValueError(f"{joystick_polarity} must be in {POLARITIES.keys()}")
 
             instrument_axis = joystick_dict["instrument_axis"]
             hardware_axis = self.axes_mapping[instrument_axis]
