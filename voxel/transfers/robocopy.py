@@ -6,7 +6,7 @@ import sys
 import threading
 import glob
 import shutil
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen, PIPE, STDOUT, DEVNULL
 from pathlib import Path
 
 class FileTransfer():
@@ -16,8 +16,8 @@ class FileTransfer():
         # check path for forward slashes
         if '\\' in external_directory or '/' not in external_directory:
             assert ValueError('external_directory string should only contain / not \\')
-        self._external_directory = str(external_directory)
-        self._local_directory = str(local_directory)
+        self._external_directory = Path(external_directory)
+        self._local_directory = Path(local_directory)
         if self._external_directory == self._local_directory:
             raise ValueError('External directory and local directory cannot be the same')
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
@@ -43,7 +43,7 @@ class FileTransfer():
         if '\\' in str(local_directory) or '/' not in str(local_directory):
             assert ValueError('external_directory string should only contain / not \\')
         # add a forward slash at end so directory name itself is not copied, contents only
-        self._local_directory = local_directory
+        self._local_directory = Path(local_directory)
         self.log.info(f'setting local path to: {local_directory}')
 
     @property
@@ -55,7 +55,7 @@ class FileTransfer():
         if '\\' in str(external_directory) or '/' not in str(external_directory):
             assert ValueError('external_directory string should only contain / not \\')
         # add a forward slash at end so directory name itself is not copied, contents only
-        self._external_directory = external_directory
+        self._external_directory = Path(external_directory)
         self.log.info(f'setting local path to: {external_directory}')
 
     @property
@@ -112,7 +112,10 @@ class FileTransfer():
             log_path = Path(f'{self._local_directory.absolute()}/{self._filename}.txt')
             cmd_with_args = f'{self._protocol} {local_dir} {external_dir} \
                 /j /if {filename} /njh /njs /log:{log_path}'
-            subprocess = Popen(cmd_with_args, stdout=PIPE, stderr=STDOUT)
+            # stdout to PIPE will cause malloc errors on exist
+            # no stdout will print subprocess to python
+            # stdout to DEVNULL will supresss subprocess output
+            subprocess = Popen(cmd_with_args, stdout=DEVNULL)
             time.sleep(0.01)
             # lets monitor the progress of the individual file if size > 1 GB
             if file_size_mb > 1024:
@@ -135,7 +138,7 @@ class FileTransfer():
                     self.progress = (total_transferred_mb +
                                     file_size_mb * file_progress / 100) / total_size_mb * 100
                     # pause for 1 sec
-                    time.sleep(0.001)
+                    time.sleep(0.1)
             else:
                 subprocess.wait()
                 self.progress = (total_transferred_mb + file_size_mb) / total_size_mb * 100
