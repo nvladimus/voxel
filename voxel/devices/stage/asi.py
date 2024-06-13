@@ -4,6 +4,7 @@ from voxel.devices.stage.base import BaseStage
 from tigerasi.tiger_controller import TigerController, STEPS_PER_UM
 from tigerasi.device_codes import *
 from time import sleep
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 # constants for Tiger ASI hardware
 
@@ -73,6 +74,10 @@ class Stage(BaseStage):
         self.min_backlash_mm = 0
         self.max_backlash_mm = 1
         self.step_backlash_mm = 0.01
+
+        # set limits on stage position
+        type(self).position_mm.minimum = self.limits_mm[0]
+        type(self).position_mm.maximum = self.limits_mm[1]
 
     def _sanitize_axis_map(self, axis_map: dict):
         """save an input axis mapping to apply to move commands.
@@ -223,13 +228,17 @@ class Stage(BaseStage):
     def close(self):
         self.tigerbox.ser.close()
 
-    @property
+    @DeliminatedProperty      # set limits to stage limits
     def position_mm(self):
         tiger_position = self.tigerbox.get_position(self.hardware_axis)
         # converting 1/10 um to mm
         tiger_position_mm = {k: v / 10000 for k, v in tiger_position.items()}
         # FIXME: Sometimes tigerbox yields empty stage position so return None if this happens?
         return self._tiger_to_sample(tiger_position_mm).get(self.instrument_axis, None)
+
+    @position_mm.setter
+    def position_mm(self, value):
+        self.move_absolute_mm(value)
 
     @property
     def limits_mm(self):

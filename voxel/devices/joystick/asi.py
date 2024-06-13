@@ -35,7 +35,6 @@ class Joystick(BaseJoystick):
             if axis.lower() not in self._stage_axes.keys():
                 self._stage_axes[axis.lower()] = axis.lower()
                 self.axes_mapping[axis.lower()] = axis.lower()
-        print(self.axes_mapping)
         # grab the instrument to hardware axis mapping for the joystick device
         for joystick_id, joystick_dict in self.joystick_mapping.items():
             # check that the joystick ids are valid
