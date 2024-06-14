@@ -107,14 +107,14 @@ class FileTransfer():
             if not os.path.isdir(external_dir):
                 os.makedirs(external_dir)
             # setup log file
-            log_path = Path(f'{self._local_directory.absolute()}/{self._filename}.txt')
+            log_path = Path(self._local_directory, f"{self._filename}.txt")
             self._log_file = open(log_path, 'w')
             self.log.info(f"transferring {file_path} from {self._local_directory} to {self._external_directory}")
             # generate rsync command with args
             cmd_with_args = self._flatten([self._protocol,
                                            self._flags,
                                            file_path,
-                                           Path(external_dir) / Path(filename)])
+                                           Path(external_dir, filename)])
             subprocess = Popen(cmd_with_args, stdout=self._log_file)
             self._log_file.close()
             time.sleep(0.01)
@@ -125,7 +125,7 @@ class FileTransfer():
                 file_progress = 0
                 while file_progress < 100:
                     # open the stdout file in a temporary handle with r+ mode
-                    f = open(f'{self._local_directory / self._log_file}', 'r+')
+                    f = open(log_path, 'r+')
                     # read the last line
                     line = f.readlines()[-1]
                     # try to find if there is a % in the last line
@@ -181,6 +181,7 @@ class FileTransfer():
             else:
                 raise ValueError(f'{f} is not a file or directory.')
         self.log.info(f"transfer finished")
+        subprocess.kill()
 
     def _flatten(self, lst: List[Any]) -> Iterable[Any]:
         """Flatten a list using generators comprehensions.

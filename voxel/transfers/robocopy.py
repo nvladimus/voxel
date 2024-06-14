@@ -100,7 +100,7 @@ class FileTransfer():
             # /if move only the specified filename
             # /njh no job header in log file
             # /njs no job summary in log file
-            log_path = Path(f'{self._local_directory.absolute()}/{self._filename}.txt')
+            log_path = Path(self._local_directory, f"{self._filename}.txt")
             cmd_with_args = f'{self._protocol} {local_dir} {external_dir} \
                 /j /if {filename} /njh /njs /log:{log_path}'
             # stdout to PIPE will cause malloc errors on exist
@@ -115,7 +115,7 @@ class FileTransfer():
                 file_progress = 0
                 while file_progress < 100:
                     # open log file
-                    f = open(f'{log_path}', 'r')
+                    f = open(log_path, 'r')
                     # read the last line
                     line = f.readlines()[-1]
                     # close the log file
