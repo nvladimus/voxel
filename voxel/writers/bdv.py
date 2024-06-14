@@ -14,8 +14,8 @@ from datetime import datetime
 from time import sleep, perf_counter
 from math import ceil
 
-CHUNK_COUNT_PX = 128
-DIVISIBLE_frame_count_px_PX = 128
+CHUNK_COUNT_PX = 64
+DIVISIBLE_FRAME_COUNT_PX = 64
 B3D_QUANT_SIGMA = 1 # quantization step
 B3D_COMPRESSION_MODE = 1
 B3D_BACKGROUND_OFFSET = 0 # ADU
@@ -157,7 +157,7 @@ class Writer(BaseWriter):
     @frame_count_px.setter
     def frame_count_px(self, frame_count_px: int):
         self.log.info(f'setting frame count to: {frame_count_px} [px]')
-        frame_count_px = ceil(frame_count_px / DIVISIBLE_frame_count_px_PX) * DIVISIBLE_frame_count_px_PX
+        frame_count_px = ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
         self.log.info(f'adjusting frame count to: {frame_count_px} [px]')
         self._frame_count_px_px = frame_count_px
 
