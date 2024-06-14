@@ -371,7 +371,8 @@ class Writer(BaseWriter):
                     (4, 256, 256),
                     (4, 256, 256)
                   )
-        filepath = str((Path(self._path) / self._filename).absolute())
+        # bdv requires input string not Path
+        filepath = str(Path(self._path, self._filename).absolute())
         # re-initialize bdv writer for tile/channel list
         # required to dump all datasets in a single bdv file
         bdv_writer = npy2bdv.BdvWriter(
@@ -482,7 +483,7 @@ class Writer(BaseWriter):
         self.signal_progress_percent
 
     def delete_files(self):
-        filepath = str((self._path / Path(f"{self._filename}")).absolute())
-        xmlpath = str((self._path / Path(f"{self._filename}")).absolute()).replace('h5', 'xml')
+        filepath = Path(self._path, self._filename).absolute()
+        xmlpath = Path(self._path, self._filename).absolute().replace('h5', 'xml')
         os.remove(filepath)
         os.remove(xmlpath)

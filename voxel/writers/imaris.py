@@ -316,7 +316,7 @@ class Writer(BaseWriter):
         log_handler = logging.StreamHandler(sys.stdout)
         log_handler.setFormatter(log_formatter)
         logger.addHandler(log_handler)
-        filepath = str((Path(self._path) / self._filename).absolute())
+        filepath = Path(self._path, self._filename).absolute()
         converter = \
             pw.ImageConverter(self._data_type, self.image_size, self.sample_size,
                               self.dimension_sequence, self.block_size, filepath, 
@@ -365,5 +365,5 @@ class Writer(BaseWriter):
         self.signal_progress_percent
 
     def delete_files(self):
-        filepath = str((self._path / Path(f"{self._filename}")).absolute())
+        filepath = Path(self._path, self._filename).absolute()
         os.remove(filepath)

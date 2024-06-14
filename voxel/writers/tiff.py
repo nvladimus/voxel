@@ -227,7 +227,7 @@ class Writer(BaseWriter):
         log_handler = logging.StreamHandler(sys.stdout)
         log_handler.setFormatter(log_formatter)
         logger.addHandler(log_handler)
-        filepath = str((Path(self._path) / self._filename).absolute())
+        filepath = Path(self._path, self._filename).absolute()
 
         writer = tifffile.TiffWriter(filepath,
                                      bigtiff=True)
@@ -235,11 +235,11 @@ class Writer(BaseWriter):
 
         metadata = {
             'axes': 'ZYX',
-            'PhysicalSizeX': self._x_voxel_size_um_um,
+            'PhysicalSizeX': self._x_voxel_size_um,
             'PhysicalSizeXUnit': 'um',
-            'PhysicalSizeY': self._y_voxel_size_um_um,
+            'PhysicalSizeY': self._y_voxel_size_um,
             'PhysicalSizeYUnit': 'um',
-            'PhysicalSizeZ': self._z_voxel_size_um_um,
+            'PhysicalSizeZ': self._z_voxel_size_um,
             'PhysicalSizeZUnit': 'um',
             'Channel': {'Name': [self._channel]},
             'Plane': {
@@ -291,5 +291,5 @@ class Writer(BaseWriter):
         self.signal_progress_percent
 
     def delete_files(self):
-        filepath = str((self._path / Path(f"{self._filename}")).absolute())
+        filepath = Path(self._path, self._filename).absolute()
         os.remove(filepath)

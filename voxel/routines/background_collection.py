@@ -11,10 +11,7 @@ class BackgroundCollection:
 
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        # check path for forward slashes
-        if '\\' in path or '/' not in path:
-            assert ValueError('path string should only contain / not \\')
-        self._path = path
+        self._path = Path(path)
         self._frame_count_px_px = 1
         self._filename = None
         self._data_type = None
@@ -41,11 +38,9 @@ class BackgroundCollection:
         return self._path
 
     @path.setter
-    def path(self, path: str or path):
-        if '\\' in str(path) or '/' not in str(path):
-            self.log.error('path string should only contain / not \\')
-        else:
-            self._path = str(path)
+    def path(self, path: str):
+        self._path = Path(path)
+        self.log.info(f'setting path to: {path}')
 
     @property
     def filename(self):
@@ -78,4 +73,4 @@ class BackgroundCollection:
         camera.trigger = initial_trigger
         # average and save the image
         background_image = np.median(background_stack, axis=0)
-        tifffile.imwrite(self.path / Path(f"{self.filename}.tiff"), background_image.astype(self._data_type))
+        tifffile.imwrite(Path(self.path, f"{self.filename}.tiff"), background_image.astype(self._data_type))

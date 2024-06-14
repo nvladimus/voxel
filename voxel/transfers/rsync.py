@@ -120,6 +120,8 @@ class FileTransfer():
             time.sleep(0.01)
             # lets monitor the progress of the individual file if size > 1 GB
             if file_size_mb > 1024:
+                # wait for subprocess to start otherwise log file won't exist yet
+                time.sleep(1.0)
                 file_progress = 0
                 while file_progress < 100:
                     # open the stdout file in a temporary handle with r+ mode

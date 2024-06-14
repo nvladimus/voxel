@@ -125,14 +125,14 @@ class MeanProjection(Process):
                 if chunk_index == self._projection_count_px - 1 or frame_index == self._frame_count_px_px - 1:
                     start_index = int(frame_index - self._projection_count_px + 1)
                     end_index = int(frame_index + 1)
-                    tifffile.imwrite(self.path / Path(f"{self.filename}_mean_projection_xy_z_{start_index:06}_{end_index:06}.tiff"), self.mip_xy)
+                    tifffile.imwrite(Path(self.path, f"{self.filename}_mean_projection_xy_z_{start_index:06}_{end_index:06}.tiff"), self.mip_xy)
                     # reset the xy mip
                     self.mip_xy = np.zeros((self._row_count_px, self._column_count_px), dtype=self._data_type)
                 frame_index += 1
                 self.new_image.clear()
 
-        tifffile.imwrite(self.path / Path(f"{self.filename}_mean_projection_yz.tiff"), self.mip_yz)
-        tifffile.imwrite(self.path / Path(f"{self.filename}_mean_projection_xz.tiff"), self.mip_xz)
+        tifffile.imwrite(Path(self.path, f"{self.filename}_mean_projection_yz.tiff"), self.mip_yz)
+        tifffile.imwrite(Path(self.path, f"{self.filename}_mean_projection_xz.tiff"), self.mip_xz)
 
     def wait_to_finish(self):
         self.log.info(f"mean projection {self.filename}: waiting to finish.")
