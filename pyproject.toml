@@ -7,6 +7,7 @@ name = "voxel"
 authors = [
     { name = "Micah Woodard", email = "micah.woodard@alleninstitute.org" },
     { name = "Adam Glaser", email = "adam.glaser@alleninstitute.org" },
+    { name = "Walter Mwaniki", email = "walter.mwaniki@alleninstitute.org" },
 ]
 version = "0.0.0"
 dynamic = ["description"]
@@ -28,5 +29,7 @@ dependencies = [
     'tensorstore >= 0.1.56',
     'pyclesperanto >= 0.8.2',
     'pylablib >= 1.4.2',
+    'inflection >= 0.5.1',
     'tigerasi >= 0.0.26',
+    'pydantic >= 2.7.3',
 ]
