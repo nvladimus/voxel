@@ -20,6 +20,12 @@ class BaseLaser(ABC):
 
     @property
     @abstractmethod
+    def power_setpoint_mw(self) -> float:
+        """Get the power setpoint of the laser in mW."""
+        pass
+
+    @property
+    @abstractmethod
     def modulation_mode(self) -> str:
         """Get the modulation mode of the laser."""
         pass
