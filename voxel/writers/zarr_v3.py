@@ -17,8 +17,8 @@ from time import sleep, perf_counter
 from math import ceil, log2
 from sympy import divisors
 
-CHUNK_COUNT_PX = 32
-DIVISIBLE_frame_count_px_PX = 32
+CHUNK_COUNT_PX = 64
+DIVISIBLE_FRAME_COUNT_PX = 64
 
 CHUNK_SIZE_X = 256
 CHUNK_SIZE_Y = 256
@@ -158,7 +158,7 @@ class Writer(BaseWriter):
     @frame_count_px.setter
     def frame_count_px(self, frame_count_px: int):
         self.log.info(f'setting frame count to: {frame_count_px} [px]')
-        frame_count_px = ceil(frame_count_px / DIVISIBLE_frame_count_px_PX) * DIVISIBLE_frame_count_px_PX
+        frame_count_px = ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
         self.log.info(f'adjusting frame count to: {frame_count_px} [px]')
         self._frame_count_px_px = frame_count_px
 
