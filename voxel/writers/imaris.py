@@ -5,7 +5,7 @@ import re
 import os
 import sys
 from voxel.writers.base import BaseWriter
-from multiprocessing import Process, Array, Value, Event
+from multiprocessing import Process, Array, Event
 from multiprocessing.shared_memory import SharedMemory
 from ctypes import c_wchar
 from PyImarisWriter import PyImarisWriter as pw
@@ -43,10 +43,8 @@ class Writer(BaseWriter):
     def __init__(self, path: str):
  
         super().__init__()
-        # check path for forward slashes
-        if '\\' in path or '/' not in path:
-            assert ValueError('path string should only contain / not \\')
-        self._path = path
+        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self._path = Path(path)
         self._color = '#ffffff' # initialize as white
         self._channel = None
         self._filename = None
@@ -64,8 +62,6 @@ class Writer(BaseWriter):
         self._theta_deg = 0
         self._channel = None
         self.progress = 0
-
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         # Opinioated decision on chunking dimension order
         self.chunk_dim_order = ('z', 'y', 'x')
         # Flow control attributes to synchronize inter-process communication.
@@ -194,11 +190,9 @@ class Writer(BaseWriter):
         return self._path
 
     @path.setter
-    def path(self, path: str or path):
-        if '\\' in str(path) or '/' not in str(path):
-            self.log.error('path string should only contain / not \\')
-        else:
-            self._path = str(path)
+    def path(self, path: str):
+        self._path = Path(path)
+        self.log.info(f'setting path to: {path}')
 
     @property
     def filename(self):

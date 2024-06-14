@@ -1,24 +1,18 @@
-"""File Transfer process in a separate class for Win/Linux compatibility."""
 import os
 import time
 import logging
-import signal
 import threading
 import shutil
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen
 from pathlib import Path
 from typing import List, Any, Iterable
-
 
 class FileTransfer():
 
     def __init__(self, external_directory: str, local_directory: str):
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        # check path for forward slashes
-        if '\\' in external_directory or '/' not in external_directory:
-            assert ValueError('external_directory string should only contain / not \\')
-        self._external_directory = str(external_directory)
+        self._external_directory = Path(external_directory)
         self._local_directory = Path(local_directory)
         if self._external_directory == self._local_directory:
             raise ValueError('External directory and local directory cannot be the same')
@@ -26,7 +20,6 @@ class FileTransfer():
         self._protocol = 'rsync'
         self.progress = 0
         self._output_file = None
-        self.thread = None
         # print progress, delete files after transfer
         # check version of rsync
         # tested with v2.6.9
@@ -52,10 +45,7 @@ class FileTransfer():
         return self._local_directory
 
     @local_directory.setter
-    def local_directory(self, local_directory: str or Path):
-        if '\\' in str(local_directory) or '/' not in str(local_directory):
-            assert ValueError('external_directory string should only contain / not \\')
-        # add a forward slash at end so directory name itself is not copied, contents only
+    def local_directory(self, local_directory: str):
         self._local_directory = Path(local_directory)
         self.log.info(f'setting local path to: {local_directory}')
 
@@ -64,10 +54,7 @@ class FileTransfer():
         return self._external_directory
 
     @external_directory.setter
-    def external_directory(self, external_directory: str or Path):
-        if '\\' in str(external_directory) or '/' not in str(external_directory):
-            assert ValueError('external_directory string should only contain / not \\')
-        # add a forward slash at end so directory name itself is not copied, contents only
+    def external_directory(self, external_directory: str):
         self._external_directory = str(external_directory)
         self.log.info(f'setting local path to: {external_directory}')
 
@@ -124,14 +111,10 @@ class FileTransfer():
             self._log_file = open(log_path, 'w')
             self.log.info(f"transferring {file_path} from {self._local_directory} to {self._external_directory}")
             # generate rsync command with args
-            print(os.path.isfile(file_path), os.path.isdir(str(self._local_directory)) , os.path.isdir(self._external_directory) )
-            print([self._protocol, self._flags, file_path, str(Path(external_dir) / Path(filename))])
-            cmd_with_args = f'{self._protocol} [{(" ".join(self._flags))}] [{file_path}] [{Path(external_dir) / Path(filename)}]' #self._flatten([self._protocol,
-                                           # self._flags,
-                                           # file_path,
-                                           # str(Path(external_dir) / Path(filename))])
-            print(f'{self._protocol} [{(" ".join(self._flags))}] [{file_path}] [{Path(external_dir) / Path(filename)}]')
-            print()
+            cmd_with_args = self._flatten([self._protocol,
+                                           self._flags,
+                                           file_path,
+                                           Path(external_dir) / Path(filename)])
             subprocess = Popen(cmd_with_args, stdout=self._log_file)
             self._log_file.close()
             time.sleep(0.01)
@@ -140,7 +123,7 @@ class FileTransfer():
                 file_progress = 0
                 while file_progress < 100:
                     # open the stdout file in a temporary handle with r+ mode
-                    f = open(log_path, 'r+')
+                    f = open(f'{self._local_directory / self._log_file}', 'r+')
                     # read the last line
                     line = f.readlines()[-1]
                     # try to find if there is a % in the last line
@@ -196,7 +179,6 @@ class FileTransfer():
             else:
                 raise ValueError(f'{f} is not a file or directory.')
         self.log.info(f"transfer finished")
-        subprocess.kill()
 
     def _flatten(self, lst: List[Any]) -> Iterable[Any]:
         """Flatten a list using generators comprehensions.

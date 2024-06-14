@@ -13,15 +13,12 @@ class FileTransfer():
 
     def __init__(self, external_directory: str, local_directory: str):
         super().__init__()
-        # check path for forward slashes
-        if '\\' in external_directory or '/' not in external_directory:
-            assert ValueError('external_directory string should only contain / not \\')
+        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self._external_directory = Path(external_directory)
         self._local_directory = Path(local_directory)
         if self._external_directory == self._local_directory:
             raise ValueError('External directory and local directory cannot be the same')
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self._filename = ''
+        self._filename = None
         self._protocol = 'robocopy'
         self.progress = 0
 
@@ -39,10 +36,7 @@ class FileTransfer():
         return self._local_directory
 
     @local_directory.setter
-    def local_directory(self, local_directory: str or Path):
-        if '\\' in str(local_directory) or '/' not in str(local_directory):
-            assert ValueError('external_directory string should only contain / not \\')
-        # add a forward slash at end so directory name itself is not copied, contents only
+    def local_directory(self, local_directory: str):
         self._local_directory = Path(local_directory)
         self.log.info(f'setting local path to: {local_directory}')
 
@@ -51,10 +45,7 @@ class FileTransfer():
         return self._external_directory
 
     @external_directory.setter
-    def external_directory(self, external_directory: str or Path):
-        if '\\' in str(external_directory) or '/' not in str(external_directory):
-            assert ValueError('external_directory string should only contain / not \\')
-        # add a forward slash at end so directory name itself is not copied, contents only
+    def external_directory(self, external_directory: str):
         self._external_directory = Path(external_directory)
         self.log.info(f'setting local path to: {external_directory}')
 
