@@ -12,7 +12,7 @@ STEPS_PER_UM = 10
 MODES = {
     "step shoot": TTLIn0Mode.REPEAT_LAST_REL_MOVE,
     "off": TTLIn0Mode.OFF,
-    "stage scan": TTLIn0Mode.ENCODER_SYNC
+    "stage scan": TTLIn0Mode.MOVE_TO_NEXT_ABS_POSITION
 }
 
 SCAN_PATTERN = {
@@ -237,6 +237,10 @@ class Stage(BaseStage):
         tiger_position_mm = {k: v / 10000 for k, v in tiger_position.items()}
         # FIXME: Sometimes tigerbox yields empty stage position so return None if this happens?
         return self._hardware_to_instrument(tiger_position_mm).get(self.instrument_axis, None)
+
+    @position_mm.setter
+    def position_mm(self, value):
+        self.move_absolute_mm(value, False)
 
     @property
     def limits_mm(self):
