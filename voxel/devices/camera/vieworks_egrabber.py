@@ -117,7 +117,7 @@ class Camera(BaseCamera):
     @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
     def width_px(self):
         return self.grabber.remote.get("Width")
-
+    
     @width_px.setter
     def width_px(self, value: int):
 
@@ -133,14 +133,14 @@ class Camera(BaseCamera):
     @property
     def width_offset_px(self):
         return self.grabber.remote.get("OffsetX")
-
+    
     @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
     def height_px(self):
         return self.grabber.remote.get("Height")
 
     @height_px.setter
     def height_px(self, value: int):
-
+        
         # reset offset to (0,0)
         self.grabber.remote.set("OffsetY", 0)
 

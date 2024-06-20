@@ -156,6 +156,7 @@ class FileTransfer():
                     # sum to transferred amount to track progress
                     self.progress = (total_transferred_mb +
                                     file_size_mb * file_progress / 100) / total_size_mb * 100
+                    self.log.info(f'file transfer is {self.progress:.2f} % complete.')
                     # close temporary stdout file handle
                     f.close()
                     # pause for 1 sec
@@ -163,6 +164,7 @@ class FileTransfer():
             else:
                 subprocess.wait()
                 self.progress = (total_transferred_mb + file_size_mb) / total_size_mb * 100
+                self.log.info(f'file transfer is {self.progress:.2f} % complete.')
             # clean up and remove the temporary log file
             os.remove(log_path)
             # update the total transfered amount

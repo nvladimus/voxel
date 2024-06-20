@@ -19,6 +19,10 @@ class BaseStage:
     #     self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
     #     pass
 
+    def setup_step_shoot_scan(self, step_size_um: float):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+    
     def setup_stage_scan(self, fast_axis_start_position: float,
                          slow_axis_start_position: float,
                          slow_axis_stop_position: float,
