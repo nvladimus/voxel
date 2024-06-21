@@ -425,7 +425,7 @@ class Camera(BaseCamera):
         # convert from us to ms
         try:
             self.max_exposure_time_ms = self.grabber.remote.get("ExposureTime.Max")/1e3
-            type(self).exposure_time_ms.maximum = self.min_exposure_time_ms
+            type(self).exposure_time_ms.maximum = self.max_exposure_time_ms
             self.log.debug(f"max exposure time is: {self.max_exposure_time_ms} ms")
         except:
             self.log.debug(f"max exposure time not available for camera {self.id}")
