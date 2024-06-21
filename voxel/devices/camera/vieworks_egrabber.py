@@ -280,7 +280,7 @@ class Camera(BaseCamera):
 
     @property
     def readout_mode(self):
-        self.log.warning(f"binning is not available with egrabber")
+        #self.log.warning(f"binning is not available with egrabber")
         readout_mode = "light sheet forward"
         return readout_mode
 
