@@ -2,42 +2,57 @@ import logging
 import numpy
 from functools import wraps
 from voxel.devices.camera.base import BaseCamera
+from voxel.devices.camera.sdks.egrabber import *
 from voxel.devices.utils.singleton import Singleton
 from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
 from voxel.descriptors.deliminated_property import DeliminatedProperty
-from egrabber import *
 
 BUFFER_SIZE_MB = 2400
 
 # generate valid binning by querying egrabber
+# should be of the form
+# {"2": "X2",
+#  "3": "X3",
+#  "4": "X4"...
+# }
 BINNING = dict()
 
 # generate valid pixel types by querying egrabber
+# should be of the form
+# {"mono8": "Mono8",
+#  "mono12": "Mono12",
+#  "mono16": "Mono16"...
+# }
 PIXEL_TYPES = dict()
 
 # generate line intervals by querying egrabber
+# should be of the form
+# {"mono8": 15.0,
+#  "mono12": 25.5,
+#  "mono16": 45.44 ...
+# }
 LINE_INTERVALS_US = dict()
 
-BIT_PACKING_MODES = {
-    "msb": "Msb",
-    "lsb": "Lsb",
-    "none": "None"
-}
+# generate bit packing modes by querying egrabber
+# should be of the form
+# {"msb": "Msb",
+#  "lsb": "Lsb",
+#  "none": "None" ...
+# }
+BIT_PACKING_MODES = dict()
 
-TRIGGERS = {
-    "mode": {
-        "on": "On",
-        "off": "Off",
-    },
-    "source": {
-        "internal": "None",
-        "external": "Line0",
-    },
-    "polarity": {
-        "rising": "RisingEdge",
-        "falling": "FallingEdge",
-    }
-}
+# generate triggers by querying egrabber
+# should be of the form
+# {"mode": {"on": "On",
+#           "off": "Off"},
+#  "source": {"software": "Software",
+#             "line0": "Line0"},
+#  "polarity": {"risingedge": "RisingEdge",
+#               "fallingedge": "FallingEdge"}
+# }
+TRIGGERS = {"mode": dict(),
+            "source": dict(),
+            "polarity": dict()}
 
 #singleton wrapper around EGenTL
 class EGenTLSingleton(EGenTL, metaclass=Singleton):
@@ -46,9 +61,9 @@ class EGenTLSingleton(EGenTL, metaclass=Singleton):
 
 class Camera(BaseCamera):
 
-    def __init__(self, id=str):
+    def __init__(self, id: str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self.id = id
+        self.id = str(id)  # convert to string incase serial # is entered as int
         self.gentl = EGenTLSingleton()
         discovery = EGrabberDiscovery(self.gentl)
         discovery.discover()
@@ -69,6 +84,7 @@ class Camera(BaseCamera):
 
         # for camera in discovery.cameras:
         del discovery
+
         # identify by serial number and return correct grabber
         if not egrabber_list['grabbers']:
             raise ValueError('no valid cameras found. check connections and close any software.')
@@ -77,6 +93,8 @@ class Camera(BaseCamera):
             for egrabber in egrabber_list['grabbers']:
                 grabber = EGrabber(self.gentl, egrabber['interface'], egrabber['device'], egrabber['stream'],
                                    remote_required=True)
+                # note the framegrabber serial number is also available through:
+                # grabber.interface.get('DeviceSerialNumber)
                 if grabber.remote.get('DeviceSerialNumber') == self.id:
                     self.log.info(f"grabber found for S/N: {self.id}")
                     self.grabber = grabber
@@ -89,17 +107,9 @@ class Camera(BaseCamera):
         del grabber
         # initialize binning as 1
         self._binning = 1
-        # grab min/max parameter values
-        self._get_min_max_step_values()
-        # check binning options
-        self._query_binning()
-        # check pixel types options
-        self._query_pixel_types()
+        # initialize parameter values
+        self._update_parameters()
 
-    def reset(self):
-        del self.grabber
-        self.grabber = EGrabber(self.gentl, self.egrabber['interface'], self.egrabber['device'], self.egrabber['stream'],
-                                   remote_required=True)
     @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
     def exposure_time_ms(self):
         # us to ms conversion
@@ -107,7 +117,6 @@ class Camera(BaseCamera):
 
     @exposure_time_ms.setter
     def exposure_time_ms(self, exposure_time_ms: float):
-
         # Note: round ms to nearest us
         self.grabber.remote.set("ExposureTime", round(exposure_time_ms * 1e3, 1))
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
@@ -120,15 +129,14 @@ class Camera(BaseCamera):
     
     @width_px.setter
     def width_px(self, value: int):
-
         # reset offset to (0,0)
         self.grabber.remote.set("OffsetX", 0)
-
         centered_offset_px = round((self.max_width_px / 2 - value / 2) / self.step_width_px) * self.step_width_px
         self.grabber.remote.set("OffsetX", centered_offset_px)
-
         self.grabber.remote.set("Width", value)
         self.log.info(f"width set to: {value} px")
+        # refresh parameter values
+        self._get_min_max_step_values()
 
     @property
     def width_offset_px(self):
@@ -140,15 +148,14 @@ class Camera(BaseCamera):
 
     @height_px.setter
     def height_px(self, value: int):
-        
         # reset offset to (0,0)
         self.grabber.remote.set("OffsetY", 0)
-
         centered_offset_px = round((self.max_height_px / 2 - value / 2) / self.step_height_px) * self.step_height_px
         self.grabber.remote.set("OffsetY", centered_offset_px)
-
         self.grabber.remote.set("Height", value)
         self.log.info(f"height set to: {value} px")
+        # refresh parameter values
+        self._get_min_max_step_values()
 
     @property
     def height_offset_px(self):
@@ -162,16 +169,14 @@ class Camera(BaseCamera):
 
     @pixel_type.setter
     def pixel_type(self, pixel_type_bits: str):
-
         valid = list(PIXEL_TYPES.keys())
         if pixel_type_bits not in valid:
             raise ValueError("pixel_type_bits must be one of %r." % valid)
-
-        # Note: for the Vieworks VP-151MX camera, the pixel type also controls line interval
+        # note: for the Vieworks VP-151MX camera, the pixel type also controls line interval
         self.grabber.remote.set("PixelFormat", PIXEL_TYPES[pixel_type_bits])
         self.log.info(f"pixel type set to: {pixel_type_bits}")
         # refresh parameter values
-        self._get_min_max_step_values()
+        self._update_parameters()
 
     @property
     def bit_packing_mode(self):
@@ -181,11 +186,9 @@ class Camera(BaseCamera):
 
     @bit_packing_mode.setter
     def bit_packing_mode(self, bit_packing: str):
-
         valid = list(BIT_PACKING_MODES.keys())
         if bit_packing not in valid:
             raise ValueError("bit_packing_mode must be one of %r." % valid)
-
         self.grabber.stream.set("UnpackingMode", BIT_PACKING_MODES[bit_packing])
         self.log.info(f"bit packing mode set to: {bit_packing}")
         # refresh parameter values
@@ -211,11 +214,9 @@ class Camera(BaseCamera):
 
     @trigger.setter
     def trigger(self, trigger: dict):
-
         mode = trigger['mode']
         source = trigger['source']
         polarity = trigger['polarity']
-
         valid_mode = list(TRIGGERS['mode'].keys())
         if mode not in valid_mode:
             raise ValueError("mode must be one of %r." % valid_mode)
@@ -225,8 +226,7 @@ class Camera(BaseCamera):
         valid_polarity = list(TRIGGERS['polarity'].keys())
         if polarity not in valid_polarity:
             raise ValueError("polarity must be one of %r." % valid_polarity)
-
-        # Note: Setting TriggerMode if it's already correct will throw an error
+        # note: Setting TriggerMode if it's already correct will throw an error
         if self.grabber.remote.get("TriggerMode") != mode:  # set camera to external trigger mode
             self.grabber.remote.set("TriggerMode", TRIGGERS['mode'][mode])
         self.grabber.remote.set("TriggerSource", TRIGGERS['source'][source])
@@ -245,7 +245,6 @@ class Camera(BaseCamera):
         if binning not in valid_binning:
             raise ValueError("binning must be one of %r." % valid_binning)
         self._binning = binning
-
         # if binning is not an integer, do it in hardware
         if not isinstance(BINNING[binning], int):
             self.grabber.remote.set("BinningHorizontal", BINNING[binning])
@@ -253,6 +252,8 @@ class Camera(BaseCamera):
         # initialize the opencl binning program
         else:
             self.gpu_binning = DownSample2D(binning=int(self._binning))
+        # refresh parameter values
+        self._get_min_max_step_values()
 
     @property
     def sensor_width_px(self):
@@ -278,12 +279,6 @@ class Camera(BaseCamera):
         state['Sensor Temperature [C]'] = self.grabber.remote.get("DeviceTemperature")
         return state
 
-    @property
-    def readout_mode(self):
-        #self.log.warning(f"binning is not available with egrabber")
-        readout_mode = "light sheet forward"
-        return readout_mode
-
     def prepare(self):
         # determine bits to bytes
         if self.pixel_type == 'mono8':
@@ -307,11 +302,16 @@ class Camera(BaseCamera):
         self.grabber.stop()
 
     def abort(self):
-        self.grabber.stop()
+        self.stop()
 
     def close(self):
         del self.grabber
-        
+
+    def reset(self):
+        del self.grabber
+        self.grabber = EGrabber(self.gentl, self.egrabber['interface'], self.egrabber['device'], self.egrabber['stream'],
+                                   remote_required=True)
+                
     def grab_frame(self):
         """Retrieve a frame as a 2D numpy array with shape (rows, cols)."""
         # Note: creating the buffer and then "pushing" it at the end has the
@@ -410,8 +410,23 @@ class Camera(BaseCamera):
                         if not self.grabber.system.get(query.command(feature)):
                             self.log.info(f'system, {feature}, {self.grabber.system.get(feature)}')
 
-    def _get_min_max_step_values(self):
+    def _update_parameters(self):
+        # grab min/max parameter values
+        self._get_min_max_step_values()
+        # check binning options
+        self._query_binning()
+        # check pixel types options
+        self._query_pixel_types()
+        # check bit packing options
+        self._query_bit_packing_modes()
+        # check trigger mode options
+        self._query_trigger_modes()
+        # check trigger source options
+        self._query_trigger_sources()
+        # check trigger polarity options
+        self._query_trigger_polarities()
 
+    def _get_min_max_step_values(self):
         # gather min max values. all may not be available for certain cameras.
         # minimum exposure time
         # convert from us to ms
@@ -520,6 +535,7 @@ class Camera(BaseCamera):
         # egrabber defines 1 as 'X1', 2 as 'X2', 3 as 'X3'...
         # check only horizontal since we will use same binning for vertical
         binning_options = self.grabber.remote.get("@ee BinningHorizontal", dtype=list)
+        init_binning = self.grabber.remote.get("BinningHorizontal")
         for binning in binning_options:
             try:
                 self.grabber.remote.set("BinningHorizontal", binning)
@@ -533,13 +549,13 @@ class Camera(BaseCamera):
                     self.log.debug(f"{binning} will be implemented through software")
                     key = int(binning.replace("X", ""))
                     BINNING[key] = key
-                    
-        # initialize binning as 1
-        self.grabber.remote.set("BinningHorizontal", BINNING[1])
+        # reset to initial value
+        self.grabber.remote.set("BinningHorizontal", init_binning)
 
     def _query_pixel_types(self):
         # egrabber defines as 'Mono8', 'Mono12', 'Mono16'...
         pixel_type_options = self.grabber.remote.get("@ee PixelFormat", dtype=list)
+        init_pixel_type = self.grabber.remote.get("PixelFormat")
         for pixel_type in pixel_type_options:
             try:
                 self.grabber.remote.set("PixelFormat", pixel_type)
@@ -548,19 +564,89 @@ class Camera(BaseCamera):
                 PIXEL_TYPES[key] = pixel_type
             except:
                 self.log.debug(f"{pixel_type} not avaiable on this camera")
-        # initialize pixel type as mono16
-        self.grabber.remote.set("PixelFormat", PIXEL_TYPES["mono16"])
 
-        # once the pixel types are found, detrmine line intervals
+        # once the pixel types are found, determine line intervals
         self._query_line_intervals()
+        # reset to initial value
+        self.grabber.remote.set("PixelFormat", init_pixel_type)
+
+    def _query_bit_packing_modes(self):
+        # egrabber defines as 'Msb', 'Lsb', 'None'...
+        bit_packing_options = self.grabber.stream.get("@ee UnpackingMode", dtype=list)
+        init_bit_packing = self.grabber.stream.get("UnpackingMode")
+        for bit_packing in bit_packing_options:
+            try:
+                self.grabber.stream.set("UnpackingMode", bit_packing)
+                # generate lowercase string key
+                key = bit_packing.lower()
+                BIT_PACKING_MODES[key] = bit_packing
+            except:
+                self.log.debug(f"{bit_packing} not avaiable on this camera")
+       # reset to initial value
+        self.grabber.stream.set("UnpackingMode", init_bit_packing)
 
     def _query_line_intervals(self):
-
+        # based on framerate and number of sensor rows
         for key in PIXEL_TYPES:
             # set pixel type
             self.grabber.remote.set("PixelFormat", PIXEL_TYPES[key])
             # check max acquisition rate, used to determine line interval
             max_frame_rate = self.grabber.remote.get("AcquisitionFrameRate.Max")
-            line_interval_s = (1/max_frame_rate)/self.sensor_height_px
+            # vp-151mx camera uses the sony imx411 camera which has 10640 active rows
+            # but 10802 total rows. from the manual 10760 are used during readout
+            if self.grabber.remote.get("DeviceModelName") == "VP-151MX-M6H0":
+                line_interval_s = (1/max_frame_rate)/(self.sensor_height_px + 120)
+            else:
+                line_interval_s = (1/max_frame_rate)/self.sensor_height_px
             # conver from s to us and store
             LINE_INTERVALS_US[key] = line_interval_s*1e6
+
+    def _query_trigger_modes(self):
+        trigger_mode_options = self.grabber.remote.get("@ee TriggerMode", dtype=list)
+        init_trigger_mode = self.grabber.remote.get("TriggerMode")
+        for trigger_mode in trigger_mode_options:
+            # note: setting TriggerMode to the already set value throws an error
+            # so check the current value and only set if new value
+            if self.grabber.remote.get("TriggerMode") != trigger_mode:  # set camera to external trigger mode
+                try:
+                    self.grabber.remote.set("TriggerMode", trigger_mode)
+                    # generate lowercase string key
+                    key = trigger_mode.lower()
+                    TRIGGERS['mode'][key] = trigger_mode
+                except:
+                    self.log.debug(f"{trigger_mode} not avaiable on this camera")
+            # if it is already set to this value, we know that it is a valid setting
+            else:
+                key = trigger_mode.lower()
+                print(key)
+                TRIGGERS['mode'][key] = trigger_mode  
+        # reset to initial value
+        self.grabber.remote.set("TriggerMode", init_trigger_mode)
+
+    def _query_trigger_sources(self):
+        trigger_source_options = self.grabber.remote.get("@ee TriggerSource", dtype=list)
+        init_trigger_source = self.grabber.remote.get("TriggerSource")
+        for trigger_source in trigger_source_options:
+            try:
+                self.grabber.remote.set("TriggerSource", trigger_source)
+                # generate lowercase string key
+                key = trigger_source.lower()
+                TRIGGERS['source'][key] = trigger_source
+            except:
+                self.log.debug(f"{trigger_source} not avaiable on this camera") 
+        # reset to initial value
+        self.grabber.remote.set("TriggerSource", init_trigger_source)
+
+    def _query_trigger_polarities(self):
+        trigger_polarity_options = self.grabber.remote.get("@ee TriggerActivation", dtype=list)
+        init_trigger_polarity = self.grabber.remote.get("TriggerActivation")
+        for trigger_polarity in trigger_polarity_options:
+            try:
+                self.grabber.remote.set("TriggerActivation", trigger_polarity)
+                # generate lowercase string key
+                key = trigger_polarity.lower()
+                TRIGGERS['polarity'][key] = trigger_polarity
+            except:
+                self.log.debug(f"{trigger_polarity} not avaiable on this camera")
+        # reset to initial value
+        self.grabber.remote.set("TriggerActivation", init_trigger_polarity)
