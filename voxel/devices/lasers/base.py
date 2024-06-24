@@ -1,64 +1,64 @@
-from abc import ABC, abstractmethod
-import logging
+from abc import abstractmethod
 
-class BaseLaser(ABC):
+from ..base import VoxelDevice
+
+
+class BaseLaser(VoxelDevice):
+    """Base class for all voxel laser devices."""
     def __init__(self, id: str):
-        self.id = id
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        super().__init__(id)
 
-    @property
     @abstractmethod
-    def power_mw(self) -> float:
-        """Get the power of the laser in mW."""
+    def enable(self):
+        """Turn on the laser"""
         pass
 
-    @power_mw.setter
     @abstractmethod
-    def power_mw(self, value: float):
-        """Set the power of the laser in mW."""
+    def disable(self):
+        """Turn off the laser"""
         pass
 
     @property
     @abstractmethod
     def power_setpoint_mw(self) -> float:
-        """Get the power setpoint of the laser in mW."""
+        """
+        The power setpoint is the target power that the laser is trying to achieve.
+
+        :return: The power setpoint in mW.
+        :rtype: float
+        """
+        pass
+
+    @power_setpoint_mw.setter
+    @abstractmethod
+    def power_setpoint_mw(self, value: float) -> None:
+        """
+        Set the power setpoint for the laser in mW.
+
+        :param value: The power setpoint in mW.
+        :type value: float
+        :rtype: None
+        """
         pass
 
     @property
     @abstractmethod
-    def modulation_mode(self) -> str:
-        """Get the modulation mode of the laser."""
-        pass
+    def power_mw(self) -> float:
+        """
+        Get the actual power of the laser in mW.
 
-    @modulation_mode.setter
-    @abstractmethod
-    def modulation_mode(self, value: str):
-        """Set the modulation mode of the laser."""
+        :return: The power in mW.
+        :rtype: float
+        """
         pass
 
     @property
     @abstractmethod
-    def signal_temperature_c(self) -> float:
-        """Get the temperature of the laser in degrees Celsius."""
-        pass
+    def temperature_c(self) -> float:
+        """
+        Get the main temperature of the laser in degrees Celsius.
 
-    @abstractmethod
-    def status(self):
-        """Get the status of the laser."""
-        pass
-
-    @abstractmethod
-    def cdrh(self):
-        pass
-
-    @abstractmethod
-    def enable(self):
-        pass
-
-    @abstractmethod
-    def disable(self):
-        pass
-
-    @abstractmethod
-    def close(self):
+        :return: The temperature in degrees Celsius.
+        :rtype: float
+        """
         pass
