@@ -18,18 +18,13 @@ class SimulatedPowerMeter(BasePowerMeter):
         super().__init__(id)
         self._wavelength_nm = wavelength_nm
         self._is_connected = False
+        self._connect()
 
-    def connect(self):
+    def _connect(self):
         """
-        Connect the power meter.
+        Connect to the power meter.
         """
         self._is_connected = True
-
-    def disconnect(self) -> None:
-        """
-        Shutdown the power meter.
-        """
-        self._is_connected = False
 
     def _check_connection(self):
         """
@@ -64,3 +59,9 @@ class SimulatedPowerMeter(BasePowerMeter):
         """
         self._check_connection()
         self._wavelength_nm = wavelength
+
+    def close(self) -> None:
+        """
+        Shutdown the power meter.
+        """
+        self._is_connected = False
