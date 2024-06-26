@@ -25,7 +25,10 @@ class _DeliminatedProperty(property):
             raise AttributeError("can't set attribute")
         if self.step is not None:
             value = round(value / self.step) * self.step  # if step size, ensure value adheres to this
-        self._fset(instance, min(self.maximum, max(value, self.minimum)))  # if under/over min/max, correct
+        # if minimum/maximum are callable, call them with instance
+        maximum = self.maximum(instance) if callable(self.maximum) else self.maximum
+        minimum = self.minimum(instance) if callable(self.minimum) else self.minimum
+        self._fset(instance, min(maximum, max(value, minimum)))  # if under/over min/max, correct
 
     def __delete__(self, instance):
         if self._fdel is None:
