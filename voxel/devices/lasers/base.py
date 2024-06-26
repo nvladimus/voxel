@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from typing import Optional
 
 from ..base import VoxelDevice
 
@@ -54,7 +55,7 @@ class BaseLaser(VoxelDevice):
 
     @property
     @abstractmethod
-    def temperature_c(self) -> float:
+    def temperature_c(self) -> Optional[float]:
         """
         Get the main temperature of the laser in degrees Celsius.
 
