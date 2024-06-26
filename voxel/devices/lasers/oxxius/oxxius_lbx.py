@@ -6,14 +6,15 @@ from serial import Serial
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 MODULATION_MODES = {
-    'off' : {'external_control_mode': BoolVal.OFF, 'digital_modulation':BoolVal.OFF},
-    'analog' : {'external_control_mode':BoolVal.ON, 'digital_modulation':BoolVal.OFF},
-    'digital': {'external_control_mode' :BoolVal.OFF, 'digital_modulation':BoolVal.ON}
+    'off': {'external_control_mode': BoolVal.OFF, 'digital_modulation': BoolVal.OFF},
+    'analog': {'external_control_mode': BoolVal.ON, 'digital_modulation': BoolVal.OFF},
+    'digital': {'external_control_mode': BoolVal.OFF, 'digital_modulation': BoolVal.ON}
 }
+
 
 class LaserLBXOxxius(LBX, BaseLaser):
 
-    def __init__(self, port: Serial or str, prefix:str, coefficients: dict):
+    def __init__(self, port: Serial or str, prefix: str, coefficients: dict):
         """Communicate with specific LBX laser in L6CC Combiner box.
 
                 :param port: comm port for lasers.
@@ -50,7 +51,7 @@ class LaserLBXOxxius(LBX, BaseLaser):
             solutions = solve(self.func - value)  # solutions for laser value
             for sol in solutions:
                 if round(sol) in range(0, 101):
-                    self.current_setpoint = int(round(sol))     # setpoint must be integer
+                    self.current_setpoint = int(round(sol))  # setpoint must be integer
                     return
             # If no value exists, alert user
             self.log.error(f"Cannot set laser to {value}mW because "
@@ -89,5 +90,3 @@ class LaserLBXOxxius(LBX, BaseLaser):
         else:
             max_power = int((self.max_power))
         type(self).power_setpoint_mw.maximum = max_power
-
-
