@@ -33,4 +33,6 @@ dependencies = [
     'inflection >= 0.5.1',
     'tigerasi >= 0.0.26',
     'pydantic >= 2.7.3',
+    'sympy >= 1.12.1',
+    'pycobolt @ git+https://github.com/cobolt-lasers/pycobolt.git',
 ]

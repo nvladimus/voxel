@@ -1,7 +1,16 @@
 from .base import BaseLaser
-from .coherent import GenesisMXLaser
+from .cobolt import SkyraLaser
+from .oxxius import OxxiusLBXLaser, OxxiusLCXLaser
+from .coherent import GenesisMXLaser, ObisLXLaser, ObisLSLaser
+from .vortran import StradusLaser
 
 __all__ = [
     'BaseLaser',
-    'GenesisMXLaser'
+    'SkyraLaser',
+    'OxxiusLBXLaser',
+    'OxxiusLCXLaser',
+    'ObisLXLaser',
+    'ObisLSLaser',
+    'GenesisMXLaser',
+    'StradusLaser'
 ]

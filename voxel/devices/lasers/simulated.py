@@ -1,15 +1,18 @@
+import random
+
 from voxel.devices.lasers.base import BaseLaser
 import logging
 from serial import Serial
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 MODULATION_MODES = {
-    'off' : {'external_control_mode': 'OFF', 'digital_modulation' : 'OFF'},
-    'analog' : {'external_control_mode' : 'ON', 'digital_modulation' : 'OFF'},
-    'digital': {'external_control_mode' : 'OFF', 'digital_modulation': 'ON'}
+    'off': {'external_control_mode': 'OFF', 'digital_modulation': 'OFF'},
+    'analog': {'external_control_mode': 'ON', 'digital_modulation': 'OFF'},
+    'digital': {'external_control_mode': 'OFF', 'digital_modulation': 'ON'}
 }
 
 MAX_POWER_MW = 100
+
 
 class SimulatedCombiner:
 
@@ -19,12 +22,12 @@ class SimulatedCombiner:
         self.ser = Serial
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self._PercentageSplitStatus = 0
+
     @property
     def percentage_split(self):
         """Set percentage split of lasers"""
 
         return self._PercentageSplitStatus
-
 
     @percentage_split.setter
     def percentage_split(self, value):
@@ -37,31 +40,45 @@ class SimulatedCombiner:
     def close(self):
         pass
 
+
 class SimulatedLaser(BaseLaser):
 
-    def __init__(self, port: Serial or str, prefix: str = '', coefficients: dict = {}):
-        """Communicate with specific LBX laser in L6CC Combiner box.
+    def __init__(self, id: str, combiner: SimulatedCombiner, prefix: str = '', coefficients: dict = {}):
+        """
+        Communicate with specific Simulated laser in Simulated Combiner box.
 
-                :param port: comm port for lasers.
-                :param prefix: prefix specic to laser.
-                """
+        :param id: voxel device id for this laser.
+        :param combiner: SimulatedCombiner instance used to communicate with the laser.
+        :param prefix: prefix specic to laser.
+        """
+        super().__init__(id)
 
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.prefix = prefix
-        self.ser = Serial
-        self._simulated_power_setpoint_m = 10.0
+        self._combiner = combiner
+        self._simulated_power_setpoint_mw = 10.0
         self._max_power_mw = 100.0
         self._modulation_mode = 'digital'
         self._temperature = 20.0
         self._cdrh = 'ON'
+        self._status = []
+
+    def enable(self):
+        pass
+
+    def disable(self):
+        pass
 
     @DeliminatedProperty(minimum=0, maximum=MAX_POWER_MW)
     def power_setpoint_mw(self):
-        return self._simulated_power_setpoint_m
+        return self._simulated_power_setpoint_mw
 
     @power_setpoint_mw.setter
     def power_setpoint_mw(self, value: float):
-        self._simulated_power_setpoint_m = value
+        self._simulated_power_setpoint_mw = value
+
+    @property
+    def power_mw(self):
+        return random.gauss(self._simulated_power_setpoint_mw, 0.1)
 
     @property
     def modulation_mode(self):
@@ -74,12 +91,13 @@ class SimulatedLaser(BaseLaser):
         for attribute, state in MODULATION_MODES[value].items():
             setattr(self, attribute, state)
             self._modulation_mode = value
+
     @property
-    def signal_temperature_c(self):
+    def temperature_c(self):
         return self._temperature
 
     def status(self):
-        return []
+        return self._status
 
     @property
     def cdrh(self):
@@ -88,12 +106,6 @@ class SimulatedLaser(BaseLaser):
     @cdrh.setter
     def cdrh(self, value: str):
         self._cdrh = value
-
-    def enable(self):
-        pass
-
-    def disable(self):
-        pass
 
     def close(self):
         pass
