@@ -1,4 +1,5 @@
-from .hops.hops_dll import HOPSDevice
-from .genesis import GenesisLaser
+from .genesis_mx import GenesisMXLaser
 
-__all__ = ['GenesisLaser', 'HOPSDevice']
+__all__ = [
+    'GenesisMXLaser'
+]
