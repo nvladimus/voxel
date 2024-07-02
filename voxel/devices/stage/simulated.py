@@ -83,7 +83,7 @@ class Stage(BaseStage):
 
     @property
     def position_mm(self):
-        self._position_mm = 0#random.randint(0, 10)
+        #self._position_mm = 0#random.randint(0, 10)
         return self._position_mm
 
     @property
