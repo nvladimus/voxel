@@ -3,7 +3,7 @@ import numpy
 import time
 from voxel.devices.utils.singleton import Singleton
 from voxel.devices.camera.base import BaseCamera
-from sdks import pco
+from _sdks import pco
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 BUFFER_SIZE_MB = 2400
@@ -34,7 +34,7 @@ class pcoSingleton(pco, metaclass=Singleton):
     def __init__(self):
         super(pcoSingleton, self).__init__()
 
-class Camera(BaseCamera):
+class PCOCamera(BaseCamera):
 
     def __init__(self, id=str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")

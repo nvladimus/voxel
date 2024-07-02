@@ -50,7 +50,7 @@ TRIGGERS = {
 }
 
 
-class Camera(BaseCamera):
+class SimulatedCamera(BaseCamera):
 
     width_px = DeliminatedProperty(fget=lambda instance: getattr(instance, '_width_px'),
                                    fset=lambda instance, value: setattr(instance, '_width_px', value),

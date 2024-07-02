@@ -1,9 +1,8 @@
 import logging
-import numpy
 import time
 from voxel.devices.utils.singleton import Singleton
 from voxel.devices.camera.base import BaseCamera
-from voxel.devices.camera.sdks.dcam.dcam import *
+from voxel.devices.camera._acquire._sdks.dcam.dcam import *
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 BUFFER_SIZE_MB = 2400
@@ -111,7 +110,7 @@ class DcamapiSingleton(Dcamapi, metaclass=Singleton):
     def __init__(self):
         super(DcamapiSingleton, self).__init__()
 
-class Camera(BaseCamera):
+class HamamatsuCamera(BaseCamera):
 
     def __init__(self, id = str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")

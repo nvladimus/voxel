@@ -1,7 +1,7 @@
 import logging
 import numpy
 from functools import wraps
-from voxel.devices.camera.base import BaseCamera
+from voxel.devices.camera import BaseCamera
 from voxel.devices.utils.singleton import Singleton
 from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
 from voxel.descriptors.deliminated_property import DeliminatedProperty
@@ -44,7 +44,7 @@ class EGenTLSingleton(EGenTL, metaclass=Singleton):
     def __init__(self):
         super(EGenTLSingleton, self).__init__()
 
-class Camera(BaseCamera):
+class VieworksCamera(BaseCamera):
 
     def __init__(self, id=str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
