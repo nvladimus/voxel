@@ -19,7 +19,7 @@ class SimulatedCombiner:
         self.ser = Serial
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self._PercentageSplitStatus = 0
-    @property
+    @DeliminatedProperty(minimum=0, maximum=100, unit='%')
     def percentage_split(self):
         """Set percentage split of lasers"""
 
