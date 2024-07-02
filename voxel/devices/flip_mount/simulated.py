@@ -12,13 +12,13 @@ class SimulatedFlipMount(BaseFlipMount):
         self._conn = conn
         self._positions = positions
         self._inst: Literal[0, 1] = None
-        self.connect()
+        self._connect()
 
-    def connect(self):
+    def _connect(self):
         self.position = next(iter(self._positions)) # set to first position
         self.flip_time_ms: float = FLIP_TIME_RANGE_MS[0] # min flip time
 
-    def disconnect(self):
+    def close(self):
         self._inst = None
 
     def wait(self):

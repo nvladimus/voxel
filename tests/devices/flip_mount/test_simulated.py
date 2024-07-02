@@ -14,15 +14,15 @@ def simulated():
             positions=POSITIONS
         )
     yield fm
-    fm.disconnect()
+    fm.close()
 
 def test_connect(simulated):
     assert simulated._inst is not None
     simulated.wait()
     assert simulated.position ==  next(iter(POSITIONS.keys()))
 
-def test_disconnect(simulated):
-    simulated.disconnect()
+def test_close(simulated):
+    simulated.close()
     assert simulated._inst is None
 
 def test_position(simulated):
