@@ -8,6 +8,7 @@ import shutil
 import os
 import subprocess
 import platform
+import datetime
 from ruamel.yaml import YAML
 from pathlib import Path
 from psutil import virtual_memory
@@ -30,6 +31,10 @@ class Acquisition:
         self.instrument = instrument
         for device_name, operation_dictionary in self.config['acquisition']['operations'].items():
             self._construct_operations(device_name, operation_dictionary)
+
+    @property
+    def name(self):
+        return self._name
 
     def _load_device(self, driver: str, module: str, kwds: dict = dict()):
         """Load in device based on config. Expecting driver, module, and kwds input"""
@@ -68,6 +73,65 @@ class Acquisition:
             elif not getattr(self, operation_type).get(device_name, False):
                 getattr(self, operation_type)[device_name] = {}
             getattr(self, operation_type)[device_name][operation_name] = operation_object
+
+    def _construct_name(self):
+        if not self.acquisition['name']:
+            self.log.warning('no name specified in yaml file. defaulting to "test".')
+            self._name = 'test'
+        else:
+            name_dict = self.acquisition['name']
+            # grab the delimeter
+            if name_dict['delimiter']:
+                delimiter = name_dict['delimiter']
+            else:
+                delimiter = '_'
+            # grab the name format list
+            if not name_dict['format']:
+                raise ValueError('no format specified for acquisition name.')
+            else:
+                if type(name_dict['format']) != list:
+                    raise ValueError('name must be a list. check yaml file.')
+            metadata_dict = self.acquisition['metadata']
+            self._name = str()
+            for name in name_dict['format']:
+                # check that name is in metadata
+                if name not in metadata_dict.keys():
+                    raise ValueError(f'{name} is not a valid metadata property. check yaml file.')
+                else:
+                    metadata_value = metadata_dict[name]
+                self._name += f'{metadata_value}{delimiter}'
+            # add datetime to end of name if it exists
+            if name_dict['datetime_format']:
+                datetime_format = name_dict['datetime_format']
+                # check if valid format
+                try:
+                    self._name += datetime.datetime.now().strftime(datetime_format)
+                except:
+                    raise ValueError(f'{datetime_format} is not a valid format for strftime.')
+            print(self._name)
+
+    @property
+    def _acquisition_rate_hz(self):
+        # use master device to determine theoretical instrument speed.
+        # master device is last device in trigger tree
+        master_device_name = self.instrument.master_device['name']
+        master_device_type = self.instrument.master_device['type']
+        # if camera, calculate acquisition rate based on frame time
+        if master_device_type == 'camera':
+            acquisition_rate_hz = 1.0 / (self.instrument.cameras[master_device_name].frame_time_ms / 1000)
+        # if scanning stage, calculate acquisition rate based on speed and voxel size
+        elif master_device_type == 'scanning stage':
+            speed_mm_s = self.instrument.scanning_stages[master_device_name].speed_mm_s
+            voxel_size_um = tile['voxel_size_um']
+            acquisition_rate_hz = speed_mm_s / (voxel_size_um / 1000)
+        # if daq, calculate based on task interval time
+        elif master_device_type == 'daq':
+            master_task = self.instrument.master_device['task']
+            acquisition_rate_hz = 1.0 / self.instrument.daqs[master_device_name].task_time_s[master_task]
+        # otherwise assertion, these are the only three supported master devices
+        else:
+            raise ValueError(f'master device type {master_device_type} is not supported.')
+        return acquisition_rate_hz
 
     def _verify_directories(self):
         self.log.info(f'verifying local and external directories')
@@ -128,29 +192,6 @@ class Acquisition:
         for level in range(levels):
             pyramid_factor += (1 / (2 ** level)) ** 3
         return pyramid_factor
-
-    @property
-    def _acquisition_rate_hz(self):
-        # use master device to determine theoretical instrument speed.
-        # master device is last device in trigger tree
-        master_device_name = self.instrument.master_device['name']
-        master_device_type = self.instrument.master_device['type']
-        # if camera, calculate acquisition rate based on frame time
-        if master_device_type == 'camera':
-            acquisition_rate_hz = 1.0 / (self.instrument.cameras[master_device_name].frame_time_ms / 1000)
-        # if scanning stage, calculate acquisition rate based on speed and voxel size
-        elif master_device_type == 'scanning stage':
-            speed_mm_s = self.instrument.scanning_stages[master_device_name].speed_mm_s
-            voxel_size_um = tile['voxel_size_um']
-            acquisition_rate_hz = speed_mm_s / (voxel_size_um / 1000)
-        # if daq, calculate based on task interval time
-        elif master_device_type == 'daq':
-            master_task = self.instrument.master_device['task']
-            acquisition_rate_hz = 1.0 / self.instrument.daqs[master_device_name].task_time_s[master_task]
-        # otherwise assertion, these are the only three supported master devices
-        else:
-            raise ValueError(f'master device type {master_device_type} is not supported.')
-        return acquisition_rate_hz
 
     def _check_compression_ratio(self, camera_id: str, writer_id: str):
         self.log.info(f'estimating acquisition compression ratio')
