@@ -22,6 +22,7 @@ class MaxProjection:
         self._frame_count_px_px = None
         self._projection_count_px = None
         self._filename = None
+        self._acquisition_name = Path()
         self._data_type = None
         self.new_image = Event()
         self.new_image.clear()
@@ -83,6 +84,15 @@ class MaxProjection:
         self.log.info(f'setting path to: {path}')
 
     @property
+    def acquisition_name(self):
+        return self._acquisition_name
+
+    @acquisition_name.setter
+    def acquisition_name(self, acquisition_name: str):
+        self._acquisition_name = Path(acquisition_name)
+        self.log.info(f'setting acquisition name to: {acquisition_name}')
+        
+    @property
     def filename(self):
         return self._filename
 
@@ -135,15 +145,15 @@ class MaxProjection:
                     start_index = int(frame_index - self._projection_count_px + 1)
                     end_index = int(frame_index + 1)
                     tifffile.imwrite(
-                        Path(self.path, f"{self.filename}_max_projection_xy_z_{start_index:06}_{end_index:06}.tiff"),
+                        Path(self.path, self._acquisition_name, f"{self.filename}_max_projection_xy_z_{start_index:06}_{end_index:06}.tiff"),
                         self.mip_xy)
                     # reset the xy mip
                     self.mip_xy = np.zeros((self._row_count_px, self._column_count_px), dtype=self._data_type)
                 frame_index += 1
                 self.new_image.clear()
 
-        tifffile.imwrite(Path(self.path, f"{self.filename}_max_projection_yz.tiff"), self.mip_yz)
-        tifffile.imwrite(Path(self.path, f"{self.filename}_max_projection_xz.tiff"), self.mip_xz)
+        tifffile.imwrite(Path(self.path, self._acquisition_name, f"{self.filename}_max_projection_yz.tiff"), self.mip_yz)
+        tifffile.imwrite(Path(self.path, self._acquisition_name, f"{self.filename}_max_projection_xz.tiff"), self.mip_xz)
 
     def wait_to_finish(self):
         self.log.info(f"max projection {self.filename}: waiting to finish.")

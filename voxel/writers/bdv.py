@@ -45,6 +45,7 @@ class Writer(BaseWriter):
         self._color = '#ffffff' # initialize as white
         self._channel = None
         self._filename = None
+        self._acquisition_name = None
         self._data_type = "uint16"
         self._compression = COMPRESSION_TYPES["none"]
         self.compression_opts = None
@@ -223,10 +224,14 @@ class Writer(BaseWriter):
     def path(self):
         return self._path
 
-    @path.setter
-    def path(self, path: str):
-        self._path = Path(path)
-        self.log.info(f'setting path to: {path}')
+    @property
+    def acquisition_name(self):
+        return self._acquisition_name
+
+    @acquisition_name.setter
+    def acquisition_name(self, acquisition_name: str):
+        self._acquisition_name = Path(acquisition_name)
+        self.log.info(f'setting acquisition name to: {acquisition_name}')
 
     @property
     def filename(self):
@@ -372,7 +377,7 @@ class Writer(BaseWriter):
                     (4, 256, 256)
                   )
         # bdv requires input string not Path
-        filepath = str(Path(self._path, self._filename).absolute())
+        filepath = str(Path(self._path, self._acquisition_name, self._filename).absolute())
         # re-initialize bdv writer for tile/channel list
         # required to dump all datasets in a single bdv file
         bdv_writer = npy2bdv.BdvWriter(
@@ -483,7 +488,7 @@ class Writer(BaseWriter):
         self.signal_progress_percent
 
     def delete_files(self):
-        filepath = Path(self._path, self._filename).absolute()
-        xmlpath = Path(self._path, self._filename).absolute().replace('h5', 'xml')
+        filepath = Path(self._path, self._acquisition_name, self._filename).absolute()
+        xmlpath = Path(self._path, self._acquisition_name, self._filename).absolute().replace('h5', 'xml')
         os.remove(filepath)
         os.remove(xmlpath)

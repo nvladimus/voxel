@@ -48,6 +48,7 @@ class Writer(BaseWriter):
         self._color = '#ffffff' # initialize as white
         self._channel = None
         self._filename = None
+        self._acquisition_name = Path()
         self._data_type = 'uint16'
         self._compression = COMPRESSION_TYPES["none"]
         self._row_count_px = None
@@ -189,10 +190,14 @@ class Writer(BaseWriter):
     def path(self):
         return self._path
 
-    @path.setter
-    def path(self, path: str):
-        self._path = Path(path)
-        self.log.info(f'setting path to: {path}')
+    @property
+    def acquisition_name(self):
+        return self._acquisition_name
+
+    @acquisition_name.setter
+    def acquisition_name(self, acquisition_name: str):
+        self._acquisition_name = Path(acquisition_name)
+        self.log.info(f'setting acquisition name to: {acquisition_name}')
 
     @property
     def filename(self):
@@ -316,7 +321,7 @@ class Writer(BaseWriter):
         log_handler = logging.StreamHandler(sys.stdout)
         log_handler.setFormatter(log_formatter)
         logger.addHandler(log_handler)
-        filepath = Path(self._path, self._filename).absolute()
+        filepath = Path(self._path, self._acquisition_name, self._filename).absolute()
         converter = \
             pw.ImageConverter(self._data_type, self.image_size, self.sample_size,
                               self.dimension_sequence, self.block_size, filepath, 
@@ -365,5 +370,5 @@ class Writer(BaseWriter):
         self.signal_progress_percent
 
     def delete_files(self):
-        filepath = Path(self._path, self._filename).absolute()
+        filepath = Path(self._path, self._acquisition_name, self._filename).absolute()
         os.remove(filepath)
