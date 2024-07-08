@@ -55,15 +55,31 @@ class MaxProjection:
         self._frame_count_px_px = frame_count_px
 
     @property
-    def projection_count_px(self):
-        return self._projection_count_px
+    def x_projection_count_px(self):
+        return self._x_projection_count_px
 
-    @projection_count_px.setter
-    def projection_count_px(self, projection_count_px: int):
-        self.log.info(f'setting projection count to: {projection_count_px} [px]')
-        # projection_count_px = self.frame_count_px / round(self.frame_count_px / projection_count_px)
-        # self.log.info(f'adjusting projection count to: {projection_count_px} [px]')
-        self._projection_count_px = projection_count_px
+    @x_projection_count_px.setter
+    def x_projection_count_px(self, x_projection_count_px: int):
+        self.log.info(f'setting projection count to: {x_projection_count_px} [px]')
+        self._x_projection_count_px = x_projection_count_px
+
+    @property
+    def y_projection_count_px(self):
+        return self._y_projection_count_px
+
+    @y_projection_count_px.setter
+    def y_projection_count_px(self, y_projection_count_px: int):
+        self.log.info(f'setting projection count to: {y_projection_count_px} [px]')
+        self._y_projection_count_px = y_projection_count_px
+
+    @property
+    def z_projection_count_px(self):
+        return self._z_projection_count_px
+
+    @z_projection_count_px.setter
+    def z_projection_count_px(self, z_projection_count_px: int):
+        self.log.info(f'setting projection count to: {z_projection_count_px} [px]')
+        self._z_projection_count_px = z_projection_count_px
 
     @property
     def data_type(self):
@@ -113,7 +129,7 @@ class MaxProjection:
     def prepare(self, shm_name):
         self.p = Process(target=self._run)
         self.shm_shape = (self._row_count_px, self._column_count_px)
-        # Create attributes to open shared memory in run function
+        # create attributes to open shared memory in run function
         self.shm = SharedMemory(shm_name, create=False)
         self.latest_img = np.ndarray(self.shm_shape, self._data_type, buffer=self.shm.buf)
 
@@ -122,38 +138,58 @@ class MaxProjection:
         self.p.start()
 
     def _run(self):
-        frame_index = 0
-        # Build mips. Assume frames increment sequentially in z.
 
-        # Create XY, YZ, ZX placeholder images.
+        # generate max projections. assume frames increment sequentially in z.
+        # determine intervals along X and Y
+        x_index_list = np.arange(0, self._column_count_px, self._x_projection_count_px)
+        y_index_list = np.arange(0, self._row_count_px, self._y_projection_count_px)
+        if self._column_count_px not in x_index_list:
+            x_index_list = np.append(x_index_list, self._column_count_px)
+        if self._row_count_px not in y_index_list:
+            y_index_list = np.append(y_index_list, self._row_count_px)
+            
+        print(x_index_list)
+        print(y_index_list)
+
+        # create XY, YZ, ZX placeholder images.
         self.mip_xy = np.zeros((self._row_count_px, self._column_count_px), dtype=self._data_type)
-        self.mip_xz = np.zeros((self._frame_count_px_px, self._row_count_px), dtype=self._data_type)
-        self.mip_yz = np.zeros((self._column_count_px, self._frame_count_px_px), dtype=self._data_type)
+        self.mip_xz = np.zeros((self._frame_count_px_px, self._row_count_px, len(y_index_list)), dtype=self._data_type)
+        self.mip_yz = np.zeros((self._column_count_px, self._frame_count_px_px, len(x_index_list)), dtype=self._data_type)
 
-        chunk_count = math.ceil(self._frame_count_px_px / self._projection_count_px)
+        frame_index = 0
+        start_index = 0
 
         while frame_index < self._frame_count_px_px:
-            chunk_index = frame_index % self._projection_count_px
+            chunk_index = frame_index % self._z_projection_count_px
             # max project latest image
             if self.new_image.is_set():
                 self.latest_img = np.ndarray(self.shm_shape, self._data_type, buffer=self.shm.buf)
                 self.mip_xy = np.maximum(self.mip_xy, self.latest_img).astype(np.uint16)
-                self.mip_yz[:, frame_index] = np.max(self.latest_img, axis=0)
-                self.mip_xz[frame_index, :] = np.max(self.latest_img, axis=1)
+                for i in range(0, len(x_index_list)-1):
+                    self.mip_yz[:, frame_index, i] = np.max(self.latest_img[x_index_list[i]:x_index_list[i+1], :], axis=0)
+                for i in range(0, len(y_index_list)-1):
+                    self.mip_xz[frame_index, :, i] = np.max(self.latest_img[:, y_index_list[i]:y_index_list[i+1]], axis=1)
                 # if this projection thickness is complete or end of stack
-                if chunk_index == self._projection_count_px - 1 or frame_index == self._frame_count_px_px - 1:
-                    start_index = int(frame_index - self._projection_count_px + 1)
+                if chunk_index == self._z_projection_count_px - 1 or frame_index == self._frame_count_px_px - 1:
                     end_index = int(frame_index + 1)
                     tifffile.imwrite(
                         Path(self.path, self._acquisition_name, f"{self.filename}_max_projection_xy_z_{start_index:06}_{end_index:06}.tiff"),
                         self.mip_xy)
                     # reset the xy mip
                     self.mip_xy = np.zeros((self._row_count_px, self._column_count_px), dtype=self._data_type)
+                    # set next start index to previous end index
+                    start_index = end_index
                 frame_index += 1
                 self.new_image.clear()
 
-        tifffile.imwrite(Path(self.path, self._acquisition_name, f"{self.filename}_max_projection_yz.tiff"), self.mip_yz)
-        tifffile.imwrite(Path(self.path, self._acquisition_name, f"{self.filename}_max_projection_xz.tiff"), self.mip_xz)
+        for i in range(0, len(x_index_list)-1):
+            start_index = x_index_list[i]
+            end_index = x_index_list[i+1]
+            tifffile.imwrite(Path(self.path, self._acquisition_name, f"{self.filename}_max_projection_yz_x_{start_index:06}_{end_index:06}.tiff"), self.mip_yz[:, :, i])
+        for i in range(0, len(y_index_list)-1):
+            start_index = y_index_list[i]
+            end_index = y_index_list[i+1]
+            tifffile.imwrite(Path(self.path, self._acquisition_name, f"{self.filename}_max_projection_xz_y_{start_index:06}_{end_index:06}.tiff"), self.mip_xz[:, :, i])
 
     def wait_to_finish(self):
         self.log.info(f"max projection {self.filename}: waiting to finish.")
