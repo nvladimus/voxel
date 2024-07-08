@@ -20,7 +20,9 @@ class MaxProjection:
         self._column_count_px = None
         self._row_count_px = None
         self._frame_count_px_px = None
-        self._projection_count_px = None
+        self._x_projection_count_px = None
+        self._y_projection_count_px = None
+        self._z_projection_count_px = None
         self._filename = None
         self._acquisition_name = Path()
         self._data_type = None
@@ -139,17 +141,25 @@ class MaxProjection:
 
     def _run(self):
 
+        # check if projection counts were set
+        # if not, set to max possible values based on tile
+        if self._x_projection_count_px == None:
+            self._x_projection_count_px = self._column_count_px
+        if self._y_projection_count_px == None:
+            self._y_projection_count_px = self._row_count_px
+        if self._z_projection_count_px == None:
+            self._z_projection_count_px = self._frame_count_px_px
+        
         # generate max projections. assume frames increment sequentially in z.
         # determine intervals along X and Y
+
         x_index_list = np.arange(0, self._column_count_px, self._x_projection_count_px)
         y_index_list = np.arange(0, self._row_count_px, self._y_projection_count_px)
+
         if self._column_count_px not in x_index_list:
             x_index_list = np.append(x_index_list, self._column_count_px)
         if self._row_count_px not in y_index_list:
             y_index_list = np.append(y_index_list, self._row_count_px)
-            
-        print(x_index_list)
-        print(y_index_list)
 
         # create XY, YZ, ZX placeholder images.
         self.mip_xy = np.zeros((self._row_count_px, self._column_count_px), dtype=self._data_type)
@@ -163,6 +173,7 @@ class MaxProjection:
             chunk_index = frame_index % self._z_projection_count_px
             # max project latest image
             if self.new_image.is_set():
+                print(frame_index)
                 self.latest_img = np.ndarray(self.shm_shape, self._data_type, buffer=self.shm.buf)
                 self.mip_xy = np.maximum(self.mip_xy, self.latest_img).astype(np.uint16)
                 for i in range(0, len(x_index_list)-1):

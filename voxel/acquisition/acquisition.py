@@ -52,9 +52,7 @@ class Acquisition:
         for key, value in settings.items():
             setattr(device, key, value)
         # set acquisition_name attribute if it exists for object
-        print(device)
         if hasattr(device, 'acquisition_name'):
-            print(device)
             setattr(device, 'acquisition_name', self._name)
 
     def _construct_operations(self, device_name, operation_dictionary):

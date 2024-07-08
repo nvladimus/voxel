@@ -265,7 +265,6 @@ class Camera(BaseCamera):
         """return a dict with the state of the acquisition buffers"""
         self.post_frame_time = time.time()
         frame_index = self.pco.rec.get_status()["dwProcImgCount"]
-        print(frame_index)
         # TODO FINISH THIS
         # out_buffer_size = frame_index - self.pre_frame_count_px
         # in_buffer_size = self.buffer_size_frames - out_buffer_size

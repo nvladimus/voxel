@@ -618,7 +618,6 @@ class Camera(BaseCamera):
             # if it is already set to this value, we know that it is a valid setting
             else:
                 key = trigger_mode.lower()
-                print(key)
                 TRIGGERS['mode'][key] = trigger_mode  
         # reset to initial value
         self.grabber.remote.set("TriggerMode", init_trigger_mode)
