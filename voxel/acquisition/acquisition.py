@@ -8,6 +8,7 @@ import shutil
 import os
 import subprocess
 import platform
+import datetime
 from ruamel.yaml import YAML
 from pathlib import Path
 from psutil import virtual_memory
@@ -31,6 +32,10 @@ class Acquisition:
         for device_name, operation_dictionary in self.config['acquisition']['operations'].items():
             self._construct_operations(device_name, operation_dictionary)
 
+    @property
+    def name(self):
+        return self._name
+
     def _load_device(self, driver: str, module: str, kwds: dict = dict()):
         """Load in device based on config. Expecting driver, module, and kwds input"""
         self.log.info(f'loading {driver}.{module}')
@@ -46,6 +51,11 @@ class Acquisition:
         # successively iterate through settings keys
         for key, value in settings.items():
             setattr(device, key, value)
+        # set acquisition_name attribute if it exists for object
+        print(device)
+        if hasattr(device, 'acquisition_name'):
+            print(device)
+            setattr(device, 'acquisition_name', self._name)
 
     def _construct_operations(self, device_name, operation_dictionary):
         """Load and setup operations of an acquisition
@@ -69,21 +79,85 @@ class Acquisition:
                 getattr(self, operation_type)[device_name] = {}
             getattr(self, operation_type)[device_name][operation_name] = operation_object
 
+    def _construct_acquisition_name(self):
+        if not self.acquisition['name']:
+            self.log.warning('no name specified in yaml file. defaulting to "test".')
+            self._name = 'test'
+        else:
+            name_dict = self.acquisition['name']
+            # grab the delimeter
+            if name_dict['delimiter']:
+                delimiter = name_dict['delimiter']
+            else:
+                delimiter = '_'
+                self.log.warning('no delimiter specified in yaml file. defaulting to "_".')
+            # grab the name format list
+            if not name_dict['format']:
+                raise ValueError('no format specified for acquisition name.')
+            else:
+                if type(name_dict['format']) != list:
+                    raise ValueError('name must be a list. check yaml file.')
+            metadata_dict = self.acquisition['metadata']
+            self._name = str()
+            for name in name_dict['format']:
+                # check that name is in metadata
+                if name == 'datetime':
+                    if not name_dict['datetime']:
+                        raise ValueError('no datetime format specified. check yaml file.')
+                    else:
+                        datetime_format = name_dict['datetime']
+                        # check if valid format
+                        try:
+                            self._name += datetime.datetime.now().strftime(datetime_format)
+                        except:
+                            raise ValueError(f'{datetime_format} is not a valid format for strftime.')
+                elif name not in metadata_dict.keys():
+                    raise ValueError(f'{name} is not a valid metadata property. check yaml file.')
+                else:
+                    metadata_value = metadata_dict[name]
+                    self._name += str(metadata_value)
+                if name != name_dict['format'][-1]:
+                    self._name += delimiter
+    
+
+    @property
+    def _acquisition_rate_hz(self):
+        # use master device to determine theoretical instrument speed.
+        # master device is last device in trigger tree
+        master_device_name = self.instrument.master_device['name']
+        master_device_type = self.instrument.master_device['type']
+        # if camera, calculate acquisition rate based on frame time
+        if master_device_type == 'camera':
+            acquisition_rate_hz = 1.0 / (self.instrument.cameras[master_device_name].frame_time_ms / 1000)
+        # if scanning stage, calculate acquisition rate based on speed and voxel size
+        elif master_device_type == 'scanning stage':
+            speed_mm_s = self.instrument.scanning_stages[master_device_name].speed_mm_s
+            voxel_size_um = tile['voxel_size_um']
+            acquisition_rate_hz = speed_mm_s / (voxel_size_um / 1000)
+        # if daq, calculate based on task interval time
+        elif master_device_type == 'daq':
+            master_task = self.instrument.master_device['task']
+            acquisition_rate_hz = 1.0 / self.instrument.daqs[master_device_name].task_time_s[master_task]
+        # otherwise assertion, these are the only three supported master devices
+        else:
+            raise ValueError(f'master device type {master_device_type} is not supported.')
+        return acquisition_rate_hz
+
     def _verify_directories(self):
         self.log.info(f'verifying local and external directories')
         # check if local directories exist
         for writer_dictionary in self.writers.values():
             for writer in writer_dictionary.values():
-                local_directory = writer.path
-                if not os.path.isdir(local_directory):
-                    os.mkdir(local_directory)
+                local_path = Path(writer.path, self._name)
+                if not os.path.isdir(local_path):
+                    os.makedirs(local_path)
         # check if external directories exist
         if hasattr(self, 'transfers'):
             for transfer_dictionary in self.transfers.values():
                 for transfer in transfer_dictionary.values():
-                    external_directory = transfer.external_directory
-                    if not os.path.isdir(external_directory):
-                        os.mkdir(external_directory)
+                    external_path = Path(transfer.external_path, self._name)
+                    if not os.path.isdir(external_path):
+                        os.makedirs(external_path)
 
     def _verify_acquisition(self):
 
@@ -102,7 +176,7 @@ class Acquisition:
                                  f'This will cause data to be overwritten.')
         # check that files won't be overwritten if multiple writers/transfers per device
         for device_name, transfers in getattr(self, 'transfers', {}).items():
-            external_directories = [transfer.external_directory for transfer in transfers.values()]
+            external_directories = [transfer.external_path for transfer in transfers.values()]
             if len(external_directories) != len(set(external_directories)):
                 raise ValueError(f'More than one operation for device {device_name} is transferring to the same folder.'
                                  f' This will cause data to be overwritten.')
@@ -128,29 +202,6 @@ class Acquisition:
         for level in range(levels):
             pyramid_factor += (1 / (2 ** level)) ** 3
         return pyramid_factor
-
-    @property
-    def _acquisition_rate_hz(self):
-        # use master device to determine theoretical instrument speed.
-        # master device is last device in trigger tree
-        master_device_name = self.instrument.master_device['name']
-        master_device_type = self.instrument.master_device['type']
-        # if camera, calculate acquisition rate based on frame time
-        if master_device_type == 'camera':
-            acquisition_rate_hz = 1.0 / (self.instrument.cameras[master_device_name].frame_time_ms / 1000)
-        # if scanning stage, calculate acquisition rate based on speed and voxel size
-        elif master_device_type == 'scanning stage':
-            speed_mm_s = self.instrument.scanning_stages[master_device_name].speed_mm_s
-            voxel_size_um = tile['voxel_size_um']
-            acquisition_rate_hz = speed_mm_s / (voxel_size_um / 1000)
-        # if daq, calculate based on task interval time
-        elif master_device_type == 'daq':
-            master_task = self.instrument.master_device['task']
-            acquisition_rate_hz = 1.0 / self.instrument.daqs[master_device_name].task_time_s[master_task]
-        # otherwise assertion, these are the only three supported master devices
-        else:
-            raise ValueError(f'master device type {master_device_type} is not supported.')
-        return acquisition_rate_hz
 
     def _check_compression_ratio(self, camera_id: str, writer_id: str):
         self.log.info(f'estimating acquisition compression ratio')
@@ -273,10 +324,10 @@ class Acquisition:
                         data_size_gb = 0
                         # if windows
                         if platform.system() == 'Windows':
-                            external_drive = os.path.splitdrive(transfer.external_directory)[0]
+                            external_drive = os.path.splitdrive(transfer.external_path)[0]
                         # if unix
                         else:
-                            abs_path = os.path.abspath(transfer.external_directory)
+                            abs_path = os.path.abspath(transfer.external_path)
                             # TODO FIX THIS, SYNTAX FOR UNIX DRIVES?
                             external_drive = '/'
                         for tile in self.config['acquisition']['tiles']:
@@ -337,10 +388,10 @@ class Acquisition:
                 data_size_gb = 0
                 # if windows
                 if platform.system() == 'Windows':
-                    external_drive = os.path.splitdrive(self.transfers[camera_id].external_directory)[0]
+                    external_drive = os.path.splitdrive(self.transfers[camera_id].external_path)[0]
                 # if unix
                 else:
-                    abs_path = os.path.abspath(self.transfers[camera_id].external_directory)
+                    abs_path = os.path.abspath(self.transfers[camera_id].external_path)
                     # TODO FIX THIS
                     external_drive = '/'
                 frame_size_mb = self._frame_size_mb(camera_id)
@@ -391,40 +442,40 @@ class Acquisition:
                 # grab the frame size and acquisition rate
                 frame_size_mb = self._frame_size_mb(camera_id, writer_id)
                 acquisition_rate_hz = self._acquisition_rate_hz
-                local_directory = writer.path
+                local_path = writer.path
                 # strip drive letters from paths so that we can combine
                 # cameras acquiring to the same drives
                 if platform.system() == 'Windows':
-                    local_drive_letter = os.path.splitdrive(local_directory)[0]
+                    local_drive_letter = os.path.splitdrive(local_path)[0]
                 # if unix
                 else:
                     # TODO FIX THIS -> what is syntax for unix drives?
-                    local_abs_path = os.path.abspath(local_directory)
+                    local_abs_path = os.path.abspath(local_path)
                     local_drive_letter = '/'
                 # add into drives dictionary append to list if same drive letter
-                drives.setdefault(local_drive_letter, []).append(local_directory)
+                drives.setdefault(local_drive_letter, []).append(local_path)
                 camera_speed_mb_s.setdefault(local_drive_letter, []).append(
                     acquisition_rate_hz * frame_size_mb / compression_ratio)
                 if self.transfers:
                     for transfer_id, transfer in self.transfers[camera_id].items():
-                        external_directory = transfer.external_directory
+                        external_path = transfer.external_path
                         # strip drive letters from paths so that we can combine
                         # cameras acquiring to the same drives
                         if platform.system() == 'Windows':
-                            external_drive_letter = os.path.splitdrive(local_directory)[0]
+                            external_drive_letter = os.path.splitdrive(local_path)[0]
                         # if unix
                         else:
                             # TODO FIX THIS -> what is syntax for unix drives?
-                            external_abs_path = os.path.abspath(local_directory)
+                            external_abs_path = os.path.abspath(local_path)
                             external_drive_letter = '/'
                         # add into drives dictionary append to list if same drive letter
-                        drives.setdefault(external_drive_letter, []).append(external_directory)
+                        drives.setdefault(external_drive_letter, []).append(external_path)
                         camera_speed_mb_s.setdefault(external_drive_letter, []).append(acquisition_rate_hz * frame_size_mb)
 
         for drive in drives:
             # if more than one stream on this drive, just test the first directory location
-            local_directory = drives[drive][0]
-            test_filename = Path(f'{local_directory}/iotest')
+            local_path = drives[drive][0]
+            test_filename = Path(f'{local_path}/iotest')
             f = open(test_filename, 'a')  # Create empty file to check reading/writing speed
             f.close()
             try:

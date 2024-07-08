@@ -10,14 +10,15 @@ from pathlib import Path
 
 class FileTransfer():
 
-    def __init__(self, external_directory: str, local_directory: str):
+    def __init__(self, external_path: str, local_path: str):
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self._external_directory = Path(external_directory)
-        self._local_directory = Path(local_directory)
-        if self._external_directory == self._local_directory:
+        self._external_path = Path(external_path)
+        self._local_path = Path(local_path)
+        if self._external_path == self._local_path:
             raise ValueError('External directory and local directory cannot be the same')
         self._filename = None
+        self._acquisition_name = Path()
         self._protocol = 'robocopy'
         self._verify_transfer = False
         self._num_tries = 1
@@ -34,22 +35,31 @@ class FileTransfer():
         self._filename = filename
 
     @property
-    def local_directory(self):
-        return self._local_directory
+    def acquisition_name(self):
+        return self._acquisition_name
 
-    @local_directory.setter
-    def local_directory(self, local_directory: str):
-        self._local_directory = Path(local_directory)
-        self.log.info(f'setting local path to: {local_directory}')
+    @acquisition_name.setter
+    def acquisition_name(self, acquisition_name: str):
+        self._acquisition_name = Path(acquisition_name)
+        self.log.info(f'setting acquisition name to: {acquisition_name}')
 
     @property
-    def external_directory(self):
-        return self._external_directory
+    def local_path(self):
+        return self._local_path
 
-    @external_directory.setter
-    def external_directory(self, external_directory: str):
-        self._external_directory = Path(external_directory)
-        self.log.info(f'setting local path to: {external_directory}')
+    @local_path.setter
+    def local_path(self, local_path: str):
+        self._local_path = Path(local_path)
+        self.log.info(f'setting local path to: {local_path}')
+
+    @property
+    def external_path(self):
+        return self._external_path
+
+    @external_path.setter
+    def external_path(self, external_path: str):
+        self._external_path = Path(external_path)
+        self.log.info(f'setting local path to: {external_path}')
 
     @property
     def verify_transfer(self):
@@ -102,7 +112,7 @@ class FileTransfer():
             return False
 
     def start(self):
-        self.log.info(f"transferring from {self._local_directory} to {self._external_directory}")
+        self.log.info(f"transferring from {self._local_path} to {self._external_path}")
         self.thread = threading.Thread(target=self._run)
         self.thread.start()
 
@@ -113,13 +123,17 @@ class FileTransfer():
         return self.thread.is_alive()
 
     def _run(self):
+        
+        local_directory = Path(self._local_path, self._acquisition_name)
+        external_directory = Path(self._external_path, self._acquisition_name)
+        
         transfer_complete = False
         retry_num = 0
         # loop over number of attempts in the event that a file transfer fails
         while transfer_complete == False and retry_num <= self._max_retry-1:
             # generate a list of subdirs and files in the parent local dir to delete at the end
             delete_list = []
-            for name in os.listdir(self._local_directory.absolute()):
+            for name in os.listdir(local_directory.absolute()):
                 if self.filename in name:
                     delete_list.append(name)
             # generate a list of files to copy
@@ -127,7 +141,7 @@ class FileTransfer():
             # subdirs is any tile specific subdir i.e. zarr store
             # files are any tile specific files
             file_list = dict()
-            for path, subdirs, files in os.walk(self._local_directory.absolute()):
+            for path, subdirs, files in os.walk(local_directory.absolute()):
                 for name in files:
                     # check and only add if filename matches tranfer's filename
                     if self.filename in name:
@@ -148,14 +162,14 @@ class FileTransfer():
                     [local_dir, filename] = os.path.split(file_path)
                     # specify external directory
                     # need to change directories to str because they are Path objects
-                    external_dir = local_dir.replace(str(self._local_directory), str(self._external_directory))
+                    external_dir = local_dir.replace(str(local_directory), str(external_directory))
                     # robocopy flags
                     # /j unbuffered copy for transfer speed stability
                     # /mov deletes local files after transfer
                     # /if move only the specified filename
                     # /njh no job header in log file
                     # /njs no job summary in log file
-                    log_path = Path(self._local_directory, f"{self._filename}.txt")
+                    log_path = Path(local_directory, f"{self._filename}.txt")
                     cmd_with_args = f'{self._protocol} {local_dir} {external_dir} \
                         /j /if {filename} /njh /njs /log:{log_path}'
                     # stdout to PIPE will cause malloc errors on exist
@@ -211,8 +225,8 @@ class FileTransfer():
                 # clean up the local subdirs and files
                 for file in delete_list:
                     # f is a relative path, convert to absolute
-                    local_file_path = os.path.join(self._local_directory.absolute(), file)
-                    external_file_path = os.path.join(self._external_directory.absolute(), file)
+                    local_file_path = os.path.join(local_directory.absolute(), file)
+                    external_file_path = os.path.join(external_directory.absolute(), file)
                     # .zarr is directory but os.path.isdir will return False
                     if os.path.isdir(local_file_path) or ".zarr" in local_dir:
                         # TODO how to hash check zarr -> directory instead of file?
