@@ -105,6 +105,9 @@ class Camera(BaseCamera):
             raise ValueError(f"no grabber found for S/N: {self.id}")
 
         del grabber
+        # IMPORTANT: call stop here in the event that the camera previously crashed
+        # if not called, the camera may not respond via the SDK
+        self.grabber.remote.execute('AcquisitionStop')
         # initialize binning as 1
         self._binning = 1
         # initialize parameter values
