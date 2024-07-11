@@ -5,7 +5,7 @@ import os
 import tifffile
 import math
 import time
-from multiprocessing import Process, Value, Event, Array
+from multiprocessing import Process, Event
 from multiprocessing.shared_memory import SharedMemory
 from pathlib import Path
 
@@ -16,9 +16,7 @@ class MaxProjection:
 
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        if '\\' in path or '/' not in path:
-            assert ValueError('path string should only contain / not \\')
-        self._path = path
+        self._path = Path(path)
         self._column_count_px = None
         self._row_count_px = None
         self._frame_count_px_px = None
@@ -80,11 +78,9 @@ class MaxProjection:
         return self._path
 
     @path.setter
-    def path(self, path: str or path):
-        if '\\' in str(path) or '/' not in str(path):
-            self.log.error('path string should only contain / not \\')
-        else:
-            self._path = str(path)
+    def path(self, path: str):
+        self._path = Path(path)
+        self.log.info(f'setting path to: {path}')
 
     @property
     def filename(self):
@@ -139,15 +135,15 @@ class MaxProjection:
                     start_index = int(frame_index - self._projection_count_px + 1)
                     end_index = int(frame_index + 1)
                     tifffile.imwrite(
-                        self.path / Path(f"{self.filename}_max_projection_xy_z_{start_index:06}_{end_index:06}.tiff"),
+                        Path(self.path, f"{self.filename}_max_projection_xy_z_{start_index:06}_{end_index:06}.tiff"),
                         self.mip_xy)
                     # reset the xy mip
                     self.mip_xy = np.zeros((self._row_count_px, self._column_count_px), dtype=self._data_type)
                 frame_index += 1
                 self.new_image.clear()
 
-        tifffile.imwrite(self.path / Path(f"{self.filename}_max_projection_yz.tiff"), self.mip_yz)
-        tifffile.imwrite(self.path / Path(f"{self.filename}_max_projection_xz.tiff"), self.mip_xz)
+        tifffile.imwrite(Path(self.path, f"{self.filename}_max_projection_yz.tiff"), self.mip_yz)
+        tifffile.imwrite(Path(self.path, f"{self.filename}_max_projection_xz.tiff"), self.mip_xz)
 
     def wait_to_finish(self):
         self.log.info(f"max projection {self.filename}: waiting to finish.")

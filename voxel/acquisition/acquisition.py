@@ -109,9 +109,6 @@ class Acquisition:
 
         # check tile parameters
         for tile in self.config['acquisition']['tiles']:
-            number_axes = list(tile['tile_number'].keys())
-            if number_axes.sort() != self.instrument.stage_axes.sort():
-                raise ValueError(f'not all stage axes are defined for tile numbers')
             position_axes = list(tile['position_mm'].keys())
             if position_axes.sort() != self.instrument.stage_axes.sort():
                 raise ValueError(f'not all stage axes are defined for tile positions')
@@ -250,7 +247,7 @@ class Acquisition:
                     local_drive = '/'
                 for tile in self.config['acquisition']['tiles']:
                     frame_size_mb = self._frame_size_mb(camera_id, writer_id)
-                    frame_count_px = tile['frame_count_px']
+                    frame_count_px = tile['steps']
                     data_size_gb += frame_count_px * frame_size_mb / 1024
                 drives.setdefault(local_drive, []).append(data_size_gb)
 
@@ -284,7 +281,7 @@ class Acquisition:
                             external_drive = '/'
                         for tile in self.config['acquisition']['tiles']:
                             frame_size_mb = self._frame_size_mb(camera_id, writer_id)
-                            frame_count_px = tile['frame_count_px']
+                            frame_count_px = tile['steps']
                             data_size_gb += frame_count_px * frame_size_mb / 1024
                         drives.setdefault(external_drive, []).append(data_size_gb)
             for drive in drives:
@@ -315,7 +312,7 @@ class Acquisition:
                 local_drive = '/'
 
             frame_size_mb = self._frame_size_mb(camera_id)
-            frame_count_px = tile['frame_count_px']
+            frame_count_px = tile['steps']
             data_size_gb += frame_count_px * frame_size_mb / 1024
 
             drives.setdefault(local_drive, []).append(data_size_gb)
@@ -347,7 +344,7 @@ class Acquisition:
                     # TODO FIX THIS
                     external_drive = '/'
                 frame_size_mb = self._frame_size_mb(camera_id)
-                frame_count_px = tile['frame_count_px']
+                frame_count_px = tile['steps']
                 data_size_gb += frame_count_px * frame_size_mb / 1024
                 drives.setdefault(external_drive, []).append(data_size_gb)
             for drive in drives:

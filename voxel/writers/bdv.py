@@ -40,10 +40,8 @@ class Writer(BaseWriter):
     def __init__(self, path: str):
  
         super().__init__()
-        # check path for forward slashes
-        if '\\' in path or '/' not in path:
-            assert ValueError('path string should only contain / not \\')
-        self._path = path
+        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self._path = Path(path)
         self._color = '#ffffff' # initialize as white
         self._channel = None
         self._filename = None
@@ -61,15 +59,12 @@ class Writer(BaseWriter):
         self._z_position_mm = 0
         self._theta_deg = 0
         self._channel = None
-        
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         # Opinioated decision on chunking dimension order
         self.chunk_dim_order = ('z', 'y', 'x')
         # Flow control attributes to synchronize inter-process communication.
         self.done_reading = Event()
         self.done_reading.set()  # Set after processing all data in shared mem.
         self.deallocating = Event()
-
         # Lists for storing all datasets in a single BDV file
         self.current_tile_num = 0
         self.current_channel_num = 0
@@ -229,11 +224,9 @@ class Writer(BaseWriter):
         return self._path
 
     @path.setter
-    def path(self, path: str or path):
-        if '\\' in str(path) or '/' not in str(path):
-            self.log.error('path string should only contain / not \\')
-        else:
-            self._path = str(path)
+    def path(self, path: str):
+        self._path = Path(path)
+        self.log.info(f'setting path to: {path}')
 
     @property
     def filename(self):
@@ -378,7 +371,8 @@ class Writer(BaseWriter):
                     (4, 256, 256),
                     (4, 256, 256)
                   )
-        filepath = str((Path(self._path) / self._filename).absolute())
+        # bdv requires input string not Path
+        filepath = str(Path(self._path, self._filename).absolute())
         # re-initialize bdv writer for tile/channel list
         # required to dump all datasets in a single bdv file
         bdv_writer = npy2bdv.BdvWriter(
@@ -489,7 +483,7 @@ class Writer(BaseWriter):
         self.signal_progress_percent
 
     def delete_files(self):
-        filepath = str((self._path / Path(f"{self._filename}")).absolute())
-        xmlpath = str((self._path / Path(f"{self._filename}")).absolute()).replace('h5', 'xml')
+        filepath = Path(self._path, self._filename).absolute()
+        xmlpath = Path(self._path, self._filename).absolute().replace('h5', 'xml')
         os.remove(filepath)
         os.remove(xmlpath)
