@@ -29,7 +29,7 @@ class TigerControllerSingleton(TigerController, metaclass=Singleton):
 
 class Stage(BaseStage):
 
-    def __init__(self, port: str, hardware_axis: str, instrument_axis: str, tigerbox: TigerController = None,
+    def __init__(self, hardware_axis: str, instrument_axis: str, tigerbox: TigerController = None, port: str = None,
                  log_level="INFO"):
         """Connect to hardware.
 
@@ -39,6 +39,9 @@ class Stage(BaseStage):
         """
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.log.setLevel(log_level)
+
+        if tigerbox == None and port == None:
+            raise ValueError('Tigerbox and port cannot both be none')
 
         self.tigerbox = TigerControllerSingleton(com_port=port) if tigerbox is None else tigerbox
         self.tigerbox.log.setLevel(log_level)
