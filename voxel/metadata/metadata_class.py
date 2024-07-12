@@ -1,17 +1,20 @@
 from datetime import datetime
 import logging
+from voxel.metadata.base import BaseMetadata
 
 DATE_FORMATS = {'year/month/day/hour/minute/second': '%Y-%m-%d_%H-%M-%S',
                 'month/day/year/hour/minute/second': '%m-%d-%Y_%H-%M-%S',
                 'month/day/year': '%m-%d-%Y',
                 'None': None}
 
-class MetadataClass:
+class MetadataClass(BaseMetadata):
     """Class to handle metadata"""
 
     def __init__(self, metadata_dictionary: dict, date_format: str = 'None', name_specs: dict = {}):
 
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+
+        super().__init__()
 
         for key, value in metadata_dictionary.items():
             # create properties from keyword entries

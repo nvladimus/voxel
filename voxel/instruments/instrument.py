@@ -15,9 +15,11 @@ class Instrument:
         self.config_path = Path(config_path)
         # yaml = YAML(typ='safe', pure=True)    # loads yaml in as dict. May want to use in future
         self.config = YAML(typ='safe', pure=True).load(self.config_path)
+
         # store a dict of {device name: device type} for convenience
         self.channels = {}
         self.stage_axes = []
+
         # construct microscope
         self._construct()
 
