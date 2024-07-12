@@ -1,6 +1,5 @@
 import numpy
 import time
-import math
 import threading
 import logging
 import sys
@@ -8,13 +7,10 @@ import shutil
 import os
 import subprocess
 import platform
-import datetime
 from ruamel.yaml import YAML
 from pathlib import Path
 from psutil import virtual_memory
-from threading import Event, Thread
-from gputools import get_device, init_device
-from multiprocessing.shared_memory import SharedMemory
+from gputools import get_device
 from voxel.instruments.instrument import Instrument
 from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
 import inflection
@@ -22,53 +18,48 @@ import inflection
 
 class Acquisition:
 
-    def __init__(self, instrument: Instrument, config_filename: str):
+    def __init__(self, instrument: Instrument, config_filename: str, log_level='INFO'):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        # TODO should we store tile metadata in the acquisition?
+        self.log.setLevel(log_level)
+
         self.config_path = Path(config_filename)
         self.config = YAML(typ='safe', pure=True).load(Path(self.config_path))
-        self.acquisition = self.config['acquisition']
         self.instrument = instrument
-        for device_name, operation_dictionary in self.config['acquisition']['operations'].items():
-            self._construct_operations(device_name, operation_dictionary)
 
-    @property
-    def name(self):
-        return self._name
+        # initialize metadata attribute. NOT a dictionary since only one metadata class can exist in acquisition
+        # TODO: Validation of config should check that metadata exists and only one
+        self.metadata = self._construct_class(self.config['acquisition']['metadata'])
 
-    def _load_device(self, driver: str, module: str, kwds: dict = dict()):
+        # initialize operations
+        for operation_type, operation_dict in self.config['acquisition']['operations'].items():
+            setattr(self, operation_type, dict())
+            self._construct_operations(operation_type, operation_dict)
+
+    def _load_class(self, driver: str, module: str, kwds: dict = dict()):
         """Load in device based on config. Expecting driver, module, and kwds input"""
         self.log.info(f'loading {driver}.{module}')
         __import__(driver)
         device_class = getattr(sys.modules[driver], module)
         return device_class(**kwds)
 
-    def _setup_device(self, device: object, settings: dict):
+    def _setup_class(self, device: object, settings: dict):
         """Setup device based on settings dictionary
         :param device: device to be setup
         :param settings: dictionary of attributes, values to set according to config"""
+
         self.log.info(f'setting up {device}')
         # successively iterate through settings keys
         for key, value in settings.items():
             setattr(device, key, value)
-        # set acquisition_name attribute if it exists for object
-        if hasattr(device, 'acquisition_name'):
-            setattr(device, 'acquisition_name', self._name)
 
-    def _construct_operations(self, device_name, operation_dictionary):
+    def _construct_operations(self, device_name: str, operation_dictionary: dict):
         """Load and setup operations of an acquisition
         :param device_name: name of device which operation pertain to
         :param operation_dictionary: dictionary of operation pertaining to device"""
 
         for operation_name, operation_specs in operation_dictionary.items():
             operation_type = inflection.pluralize(operation_specs['type'])
-            driver = operation_specs['driver']
-            module = operation_specs['module']
-            init = operation_specs.get('init', {})
-            operation_object = self._load_device(driver, module, init)
-            settings = operation_specs.get('settings', {})
-            self.log.info(f'constructing {driver}')
-            self._setup_device(operation_object, settings)
+            operation_object = self._construct_class(operation_specs)
 
             # create operation dictionary if it doesn't already exist and add operation to dictionary
             if not hasattr(self, operation_type):
@@ -77,46 +68,19 @@ class Acquisition:
                 getattr(self, operation_type)[device_name] = {}
             getattr(self, operation_type)[device_name][operation_name] = operation_object
 
-    def _construct_acquisition_name(self):
-        if not self.acquisition['name']:
-            self.log.warning('no name specified in yaml file. defaulting to "test".')
-            self._name = 'test'
-        else:
-            name_dict = self.acquisition['name']
-            # grab the delimeter
-            if name_dict['delimiter']:
-                delimiter = name_dict['delimiter']
-            else:
-                delimiter = '_'
-                self.log.warning('no delimiter specified in yaml file. defaulting to "_".')
-            # grab the name format list
-            if not name_dict['format']:
-                raise ValueError('no format specified for acquisition name.')
-            else:
-                if type(name_dict['format']) != list:
-                    raise ValueError('name must be a list. check yaml file.')
-            metadata_dict = self.acquisition['metadata']
-            self._name = str()
-            for name in name_dict['format']:
-                # check that name is in metadata
-                if name == 'datetime':
-                    if not name_dict['datetime']:
-                        raise ValueError('no datetime format specified. check yaml file.')
-                    else:
-                        datetime_format = name_dict['datetime']
-                        # check if valid format
-                        try:
-                            self._name += datetime.datetime.now().strftime(datetime_format)
-                        except:
-                            raise ValueError(f'{datetime_format} is not a valid format for strftime.')
-                elif name not in metadata_dict.keys():
-                    raise ValueError(f'{name} is not a valid metadata property. check yaml file.')
-                else:
-                    metadata_value = metadata_dict[name]
-                    self._name += str(metadata_value)
-                if name != name_dict['format'][-1]:
-                    self._name += delimiter
-    
+    def _construct_class(self, class_specs: dict):
+        """Construct a class object based on dictionary specifications
+        :param """
+
+        driver = class_specs['driver']
+        module = class_specs['module']
+        init = class_specs.get('init', {})
+        class_object = self._load_class(driver, module, init)
+        settings = class_specs.get('settings', {})
+        self.log.info(f'constructing {driver}')
+        self._setup_class(class_object, settings)
+
+        return class_object
 
     @property
     def _acquisition_rate_hz(self):
@@ -141,19 +105,25 @@ class Acquisition:
             raise ValueError(f'master device type {master_device_type} is not supported.')
         return acquisition_rate_hz
 
+    def run(self):
+        """Run function. This method must be overwritten for each specific microscope"""
+
+        self._verify_acquisition()
+        self._verify_directories()
+
     def _verify_directories(self):
         self.log.info(f'verifying local and external directories')
         # check if local directories exist
         for writer_dictionary in self.writers.values():
             for writer in writer_dictionary.values():
-                local_path = Path(writer.path, self._name)
+                local_path = Path(writer.path, self.metadata.acquisition_name)
                 if not os.path.isdir(local_path):
                     os.makedirs(local_path)
         # check if external directories exist
         if hasattr(self, 'transfers'):
             for transfer_dictionary in self.transfers.values():
                 for transfer in transfer_dictionary.values():
-                    external_path = Path(transfer.external_path, self._name)
+                    external_path = Path(transfer.external_path, self.metadata.acquisition_name)
                     if not os.path.isdir(external_path):
                         os.makedirs(external_path)
 
