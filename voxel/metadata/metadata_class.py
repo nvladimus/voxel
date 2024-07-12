@@ -20,7 +20,7 @@ class MetadataClass(BaseMetadata):
             # create properties from keyword entries
             setattr(self, f'_{key}', value)
             new_property = property(fget=lambda x, k=key: getattr(self, f'_{k}'),
-                                    fset=lambda val, k=key: setattr(self, f'_{k}', val))
+                                    fset=lambda metadataclass, val, k=key: self.set_class_attribute(val, k))
             setattr(type(self), key, new_property)
         # initialize properties
         self.date_format = date_format
@@ -29,6 +29,10 @@ class MetadataClass(BaseMetadata):
         self.delimiter = name_specs.get('delimiter', '_')
         self.acquisition_name_format = name_specs.get('format', [])
         self._acquisition_name = self.generate_acquisition_name()
+
+    def set_class_attribute(self, value, name):
+        """Function to set attribute of class to act as setters"""
+        setattr(self, f'_{name}', value)
 
     @property
     def date_format(self):
@@ -67,6 +71,7 @@ class MetadataClass(BaseMetadata):
     @property
     def acquisition_name(self):
         """Unique name that descibes acquisition adhering to passed in name_specs and date of acquisition"""
+        print('in acquisition name')
         return self.generate_acquisition_name()
 
     def generate_acquisition_name(self):
