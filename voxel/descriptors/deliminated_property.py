@@ -3,13 +3,14 @@
 
 class _DeliminatedProperty(property):
 
-    def __init__(self, fget, fset=None, fdel=None, minimum=float('-inf'), maximum=float('inf'), step=None):
+    def __init__(self, fget, fset=None, fdel=None, minimum=float('-inf'), maximum=float('inf'), step=None, unit: str =None):
 
         super().__init__()
 
         self.minimum = minimum
         self.maximum = maximum
         self.step = step
+        self.unit = unit
 
         self._fget = fget
         self._fset = fset
@@ -25,7 +26,10 @@ class _DeliminatedProperty(property):
             raise AttributeError("can't set attribute")
         if self.step is not None:
             value = round(value / self.step) * self.step  # if step size, ensure value adheres to this
-        self._fset(instance, min(self.maximum, max(value, self.minimum)))  # if under/over min/max, correct
+        # if minimum/maximum are callable, call them with instance
+        maximum = self.maximum(instance) if callable(self.maximum) else self.maximum
+        minimum = self.minimum(instance) if callable(self.minimum) else self.minimum
+        self._fset(instance, min(maximum, max(value, minimum)))  # if under/over min/max, correct
 
     def __delete__(self, instance):
         if self._fdel is None:
@@ -40,10 +44,10 @@ class _DeliminatedProperty(property):
         return self
 
     def setter(self, fset):
-        return type(self)(self._fget, fset, self._fdel, self.minimum, self.maximum, self.step)
+        return type(self)(self._fget, fset, self._fdel, self.minimum, self.maximum, self.step, self.unit)
 
     def deleter(self, fdel):
-        return type(self)(self._fget, self._fset, fdel, self.minimum, self.maximum, self.step)
+        return type(self)(self._fget, self._fset, fdel, self.minimum, self.maximum, self.step, self.unit)
 
     @property
     def fset(self):

@@ -36,4 +36,6 @@ dependencies = [
     'PyVISA >= 1.14.1',
     'PyVISA-py >= 0.7.2',
     'pyusb >= 1.2.1',
+    'sympy >= 1.12.1',
+    'pycobolt @ git+https://github.com/cobolt-lasers/pycobolt.git',
 ]

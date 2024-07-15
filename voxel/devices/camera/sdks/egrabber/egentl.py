@@ -42,6 +42,7 @@ def Gigelink():
         cE.Eur_Gigelink(ct.byref(cti.box))
         return cti.box_value
 
+# commented out to allow for singleton metaclass!!
 # @six.add_metaclass(utils.FinalClass)
 class EGenTL():
     """An EGenTL object is a wrapper around EGenTL C++ API."""
