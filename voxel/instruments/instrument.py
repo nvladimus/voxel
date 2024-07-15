@@ -36,10 +36,10 @@ class Instrument:
         # TODO: need somecheck to make sure if multiple filters, they don't come from the same wheel
         # construct and verify channels
         for channel in self.config['instrument']['channels'].values():
-            for laser_name in channel['lasers']:
+            for laser_name in channel.get('lasers', []):
                 if laser_name not in self.lasers.keys():
                     raise ValueError(f'laser {laser_name} not in {self.lasers.keys()}')
-            for filter in channel['filters']:
+            for filter in channel.get('filters', []):
                 if filter not in self.filters.keys():
                     raise ValueError(f'filter wheel {filter} not in {self.filters.keys()}')
                 if filter not in sum([list(v.filters.keys()) for v in self.filter_wheels.values()], []):
@@ -93,6 +93,7 @@ class Instrument:
             # If subdevice init needs parent object type, add device object to init arguments
             elif parameter.annotation == type(device_object):
                 subdevice_specs['init'][name] = device_object
+        print()
         self._construct_device(subdevice_name, subdevice_specs)
 
     def _load_device(self, driver: str, module: str, kwds):

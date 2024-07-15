@@ -1,14 +1,15 @@
+import logging
 import random
 
-from voxel.devices.lasers.base import BaseLaser
-import logging
 from serial import Serial
+
 from voxel.descriptors.deliminated_property import DeliminatedProperty
+from voxel.devices.lasers.base import BaseLaser
 
 MODULATION_MODES = {
-    'off': {'external_control_mode': 'OFF', 'digital_modulation': 'OFF'},
-    'analog': {'external_control_mode': 'ON', 'digital_modulation': 'OFF'},
-    'digital': {'external_control_mode': 'OFF', 'digital_modulation': 'ON'}
+    'off' : {'external_control_mode': 'OFF', 'digital_modulation' : 'OFF'},
+    'analog' : {'external_control_mode' : 'ON', 'digital_modulation' : 'OFF'},
+    'digital': {'external_control_mode' : 'OFF', 'digital_modulation': 'ON'}
 }
 
 MAX_POWER_MW = 100
@@ -22,8 +23,7 @@ class SimulatedCombiner:
         self.ser = Serial
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self._PercentageSplitStatus = 0
-
-    @property
+    @DeliminatedProperty(minimum=0, maximum=100, unit='%')
     def percentage_split(self):
         """Set percentage split of lasers"""
 
