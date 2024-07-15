@@ -1,11 +1,23 @@
 from datetime import datetime
 import logging
+import inflection
+
 from voxel.metadata.base import BaseMetadata
 
 DATE_FORMATS = {'year/month/day/hour/minute/second': '%Y-%m-%d_%H-%M-%S',
                 'month/day/year/hour/minute/second': '%m-%d-%Y_%H-%M-%S',
                 'month/day/year': '%m-%d-%Y',
                 'None': None}
+
+X_ANATOMICAL_DIRECTIONS = {'Anterior to posterior': 'Anterior_to_posterior',
+                           'Posterior to anterior': 'Posterior_to_anterior'}
+
+Y_ANATOMICAL_DIRECTIONS = {'Inferior to superior': 'Inferior_to_superior',
+                           'Superior to inferior': 'Superior_to_inferior'}
+
+Z_ANATOMICAL_DIRECTIONS = {'Left to right': 'Left_to_right',
+                           'Right to left': 'Right_to_left'}
+
 
 class MetadataClass(BaseMetadata):
     """Class to handle metadata"""
@@ -32,7 +44,15 @@ class MetadataClass(BaseMetadata):
 
     def set_class_attribute(self, value, name):
         """Function to set attribute of class to act as setters"""
-        setattr(self, f'_{name}', value)
+
+        if inflection.pluralize(name).upper() in globals().keys():
+            opt_dict = globals()[inflection.pluralize(name).upper()]
+            if value not in opt_dict.keys():
+                raise ValueError(f'{value} not in {opt_dict.keys()}')
+            else:
+                setattr(self, f'_{name}', opt_dict[value])
+        else:
+            setattr(self, f'_{name}', value)
 
     @property
     def date_format(self):
@@ -71,7 +91,6 @@ class MetadataClass(BaseMetadata):
     @property
     def acquisition_name(self):
         """Unique name that descibes acquisition adhering to passed in name_specs and date of acquisition"""
-        print('in acquisition name')
         return self.generate_acquisition_name()
 
     def generate_acquisition_name(self):
@@ -88,6 +107,6 @@ class MetadataClass(BaseMetadata):
                 if not isinstance(getattr(type(self), prop_name, None), property):  # check if prop name is metadata property
                     raise ValueError(f'{prop_name} is not a metadata property. Please choose from {self.__dir__()}')
                 name.append(str(getattr(self, prop_name)))
-            date = datetime.now().strftime(self._date_format) if self._date_format is not None else ''
-            name.append(date)
+            if self._date_format is not None:
+                name.append(datetime.now().strftime(self._date_format))
             return f'{delimiter}'.join(name)
