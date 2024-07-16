@@ -120,14 +120,6 @@ class MaxProjection:
             if filename.endswith(".tiff") or filename.endswith(".tif") else f"{filename}"
         self.log.info(f'setting filename to: {filename}')
 
-    @property
-    def buffer_image(self):
-        return self._buffer_image
-
-    @buffer_image.setter
-    def buffer_image(self, buffer_image: np.ndarray):
-        self._buffer_image = buffer_image
-
     def prepare(self, shm_name):
         self.p = Process(target=self._run)
         self.shm_shape = (self._row_count_px, self._column_count_px)

@@ -52,8 +52,9 @@ class Writer(BaseWriter):
         self._data_type = 'uint16'
         self._compression = COMPRESSION_TYPES["none"]
         self._row_count_px = None
-        self._colum_count_px_px = None
+        self._column_count_px = None
         self._frame_count_px_px = None
+        self._shm_name = ''
         self._x_voxel_size_um_um = 1
         self._y_voxel_size_um_um = 1
         self._z_voxel_size_um_um = 1

@@ -181,7 +181,7 @@ class Camera(BaseCamera):
         return self._binning
 
     @binning.setter
-    def binning(self, binning: str):
+    def binning(self, binning: int):
         valid_binning = list(BINNING.keys())
         if binning not in valid_binning:
             raise ValueError("binning must be one of %r." % BINNING)

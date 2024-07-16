@@ -19,6 +19,7 @@ class FileTransfer():
         if self._external_path == self._local_path:
             raise ValueError('External directory and local directory cannot be the same')
         self._filename = None
+        self._max_retry = 0
         self._acquisition_name = Path()
         self._protocol = 'rsync'
         self._verify_transfer = False
