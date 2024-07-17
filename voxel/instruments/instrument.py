@@ -125,6 +125,7 @@ class Instrument:
         """Setup device based on settings dictionary
         :param device: device to be setup
         :param settings: dictionary of attributes, values to set according to config"""
+
         self.log.info(f'setting up {device}')
         # successively iterate through settings keys
         for key, value in settings.items():
@@ -144,7 +145,7 @@ def for_all_methods(lock, cls):
             wrapped_getter = lock_methods(getattr(attr, 'fget'), lock)
             wrapped_setter = lock_methods(getattr(attr, 'fset'), lock)
             setattr(cls, attr_name, property(wrapped_getter, wrapped_setter))
-        elif callable(attr):
+        elif callable(attr) and not isinstance(inspect.getattr_static(cls, attr_name), staticmethod):
             setattr(cls, attr_name, lock_methods(attr, lock))
     return cls
 
