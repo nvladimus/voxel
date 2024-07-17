@@ -5,7 +5,9 @@ import importlib
 from serial import Serial
 from ruamel.yaml import YAML
 import inflection
-from threading import Lock
+from threading import Lock, RLock
+from functools import wraps
+from voxel.descriptors.deliminated_property import _DeliminatedProperty
 
 class Instrument:
 
@@ -57,7 +59,7 @@ class Instrument:
         """
 
         self.log.info(f'constructing {device_name}')
-        lock = Lock() if lock is None else lock
+        lock = RLock() if lock is None else lock
         device_type = inflection.pluralize(device_specs['type'])
         driver = device_specs['driver']
         module = device_specs['module']
@@ -101,7 +103,6 @@ class Instrument:
             # If subdevice init needs parent object type, add device object to init arguments
             elif parameter.annotation == type(device_object):
                 subdevice_specs['init'][name] = device_object
-
         self._construct_device(subdevice_name, subdevice_specs, lock)
 
     def _load_device(self, driver: str, module: str, kwds, lock: Lock):
@@ -115,8 +116,10 @@ class Instrument:
 
         self.log.info(f'loading {driver}.{module}')
         device_class = getattr(importlib.import_module(driver), module)
+        #return device_class(**kwds)
         thread_safe_device_class = for_all_methods(lock, device_class)
         return thread_safe_device_class(**kwds)
+
 
     def _setup_device(self, device: object, settings: dict):
         """Setup device based on settings dictionary
@@ -131,20 +134,25 @@ class Instrument:
 def for_all_methods(lock, cls):
     """Function that iterates through callable methods and properties in a class and wraps with lock_methods"""
     for attr_name in cls.__dict__:
+        if attr_name == '__init__':
+            continue
         attr = getattr(cls, attr_name)
-        print(attr)
-        if callable(attr):
-            setattr(cls, attr_name, lock_methods(attr, lock))
+        if type(attr) == _DeliminatedProperty:
+            attr._fset = lock_methods(attr._fset, lock)
+            attr._fget = lock_methods(attr._fget, lock)
         elif isinstance(attr, property):
             wrapped_getter = lock_methods(getattr(attr, 'fget'), lock)
             wrapped_setter = lock_methods(getattr(attr, 'fset'), lock)
             setattr(cls, attr_name, property(wrapped_getter, wrapped_setter))
+        elif callable(attr):
+            setattr(cls, attr_name, lock_methods(attr, lock))
     return cls
 
 def lock_methods(fn, lock):
     """Wrapper that locks lock shared by all methods and properties so class is thread safe"""
-    def wrapper(*args, **kwargs):
 
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
         with lock:
             return fn(*args, **kwargs)
     return wrapper
