@@ -8,7 +8,7 @@ from voxel.writers.base import BaseWriter
 from voxel.writers.bdv_writer import npy2bdv
 from multiprocessing import Process, Array, Value, Event
 from multiprocessing.shared_memory import SharedMemory
-from ctypes import c_wchar
+from ctypes import c_wchar, c_int
 from pathlib import Path
 from datetime import datetime
 from time import sleep, perf_counter
@@ -46,12 +46,14 @@ class Writer(BaseWriter):
         self._channel = None
         self._filename = None
         self._acquisition_name = None
+        self._shm_name = ''
         self._data_type = "uint16"
         self._compression = COMPRESSION_TYPES["none"]
         self.compression_opts = None
         self._row_count_px = None
-        self._colum_count_px_px = None
+        self._column_count_px = None
         self._frame_count_px_px = None
+        self.progress = Value(c_int, 0)
         self._x_voxel_size_um_um = 1
         self._y_voxel_size_um_um = 1
         self._z_voxel_size_um_um = 1
