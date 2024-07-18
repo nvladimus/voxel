@@ -171,6 +171,16 @@ class BaseWriter():
         pass
 
     @property
+    def acquisition_name(self):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @acquisition_name.setter
+    def acquisition_name(self, acquisition_name: str):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @property
     def filename(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
