@@ -87,6 +87,10 @@ class Stage(BaseStage):
     def position_mm(self):
         return self._position_mm
 
+    @position_mm.setter
+    def position_mm(self, value):
+        self._position_mm = value
+
     @property
     def speed_mm_s(self):
         return self._speed
