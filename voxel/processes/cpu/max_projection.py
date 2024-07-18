@@ -167,13 +167,13 @@ class MaxProjection:
         start_index = 0
 
         while frame_index < self._frame_count_px_px:
-            chunk_index = frame_index % self._z_projection_count_px
             # max project latest image
             if self.new_image.is_set():
                 self.latest_img = np.ndarray(self.shm_shape, self._data_type, buffer=self.shm.buf)
                 if z_projection:
                     self.mip_xy = np.maximum(self.mip_xy, self.latest_img).astype(np.uint16)
                     # if this projection thickness is complete or end of stack
+                    chunk_index = frame_index % self._z_projection_count_px
                     if chunk_index == self._z_projection_count_px - 1 or frame_index == self._frame_count_px_px - 1:
                         end_index = int(frame_index + 1)
                         self.log.info(f'saving {self.filename}_max_projection_xy_z_{start_index:06}_{end_index:06}.tiff')
