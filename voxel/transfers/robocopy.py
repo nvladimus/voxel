@@ -7,6 +7,7 @@ import shutil
 from imohash import hashfile
 from subprocess import Popen, DEVNULL
 from pathlib import Path
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 class FileTransfer():
 
@@ -17,6 +18,7 @@ class FileTransfer():
         self._local_path = Path(local_path)
         if self._external_path == self._local_path:
             raise ValueError('External directory and local directory cannot be the same')
+        self._progress = 0
         self._filename = None
         self._max_retry = 0
         self._acquisition_name = Path()
@@ -24,7 +26,6 @@ class FileTransfer():
         self._verify_transfer = False
         self._num_tries = 1
         self._timeout_s = 60
-        self.progress = 0
 
     @property
     def filename(self):
@@ -89,12 +90,13 @@ class FileTransfer():
         self._timeout_s = timeout_s
         self.log.info(f'setting timeout to: {timeout_s}')
 
-    @property
-    def signal_progress_percent(self):
-        state = {}
-        state['Transfer Progress [%]'] = self.progress
-        self.log.info(f'{self._filename} transfer progress: {self.progress:.2f} [%]')
-        return state
+    @DeliminatedProperty(minimum=0, maximum=100, unit='%')
+    def progress(self):
+        return self._progress
+
+    @progress.setter
+    def progress(self, value: float):
+        self._progress = value
 
     def _verify_file(self, local_file_path: str, external_file_path: str):
         # verifying large files with a full checksum is too time consuming

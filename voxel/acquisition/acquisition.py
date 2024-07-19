@@ -517,6 +517,8 @@ class Acquisition:
 
     def stop_acquisition(self):
         """Method to force quit acquisition by raising error"""
-
         raise RuntimeError
 
+    def close(self):
+        """Close functionality"""
+        pass

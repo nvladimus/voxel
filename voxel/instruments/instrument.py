@@ -132,6 +132,10 @@ class Instrument:
         for key, value in settings.items():
             setattr(device, key, value)
 
+    def close(self):
+        """Close functionality"""
+        pass
+
 
 def for_all_methods(lock, cls):
     """Function that iterates through callable methods and properties in a class and wraps with lock_methods"""
