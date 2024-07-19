@@ -18,9 +18,11 @@ class Instrument:
         self.config_path = Path(config_path)
         # yaml = YAML(typ='safe', pure=True)    # loads yaml in as dict. May want to use in future
         self.config = YAML(typ='safe', pure=True).load(self.config_path)
+
         # store a dict of {device name: device type} for convenience
         self.channels = {}
         self.stage_axes = []
+
         # construct microscope
         self._construct()
 
@@ -116,7 +118,6 @@ class Instrument:
 
         self.log.info(f'loading {driver}.{module}')
         device_class = getattr(importlib.import_module(driver), module)
-        #return device_class(**kwds)
         thread_safe_device_class = for_all_methods(lock, device_class)
         return thread_safe_device_class(**kwds)
 

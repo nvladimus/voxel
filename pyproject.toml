@@ -33,4 +33,5 @@ dependencies = [
     'inflection >= 0.5.1',
     'tigerasi >= 0.0.26',
     'pydantic >= 2.7.3',
+    'imohash >= 1.0.5'
 ]

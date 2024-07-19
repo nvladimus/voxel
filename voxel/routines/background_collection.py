@@ -14,6 +14,7 @@ class BackgroundCollection:
         self._path = Path(path)
         self._frame_count_px_px = 1
         self._filename = None
+        self._acquisition_name = Path()
         self._data_type = None
 
     @property
@@ -42,6 +43,15 @@ class BackgroundCollection:
         self._path = Path(path)
         self.log.info(f'setting path to: {path}')
 
+    @property
+    def acquisition_name(self):
+        return self._acquisition_name
+
+    @acquisition_name.setter
+    def acquisition_name(self, acquisition_name: str):
+        self._acquisition_name = Path(acquisition_name)
+        self.log.info(f'setting acquisition name to: {acquisition_name}')
+        
     @property
     def filename(self):
         return self._filename
@@ -73,4 +83,4 @@ class BackgroundCollection:
         camera.trigger = initial_trigger
         # average and save the image
         background_image = np.median(background_stack, axis=0)
-        tifffile.imwrite(Path(self.path, f"{self.filename}.tiff"), background_image.astype(self._data_type))
+        tifffile.imwrite(Path(self.path, self._acquisition_name, f"{self.filename}.tiff"), background_image.astype(self._data_type))

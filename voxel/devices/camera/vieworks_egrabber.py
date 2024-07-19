@@ -105,6 +105,9 @@ class Camera(BaseCamera):
             raise ValueError(f"no grabber found for S/N: {self.id}")
 
         del grabber
+        # IMPORTANT: call stop here in the event that the camera previously crashed
+        # if not called, the camera may not respond via the SDK
+        self.grabber.remote.execute('AcquisitionStop')
         # initialize binning as 1
         self._binning = 1
         # initialize parameter values
@@ -618,7 +621,6 @@ class Camera(BaseCamera):
             # if it is already set to this value, we know that it is a valid setting
             else:
                 key = trigger_mode.lower()
-                print(key)
                 TRIGGERS['mode'][key] = trigger_mode  
         # reset to initial value
         self.grabber.remote.set("TriggerMode", init_trigger_mode)

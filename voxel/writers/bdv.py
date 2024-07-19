@@ -8,7 +8,7 @@ from voxel.writers.base import BaseWriter
 from voxel.writers.bdv_writer import npy2bdv
 from multiprocessing import Process, Array, Value, Event
 from multiprocessing.shared_memory import SharedMemory
-from ctypes import c_wchar
+from ctypes import c_wchar, c_int
 from pathlib import Path
 from datetime import datetime
 from time import sleep, perf_counter
@@ -45,12 +45,15 @@ class Writer(BaseWriter):
         self._color = '#ffffff' # initialize as white
         self._channel = None
         self._filename = None
+        self._acquisition_name = None
+        self._shm_name = ''
         self._data_type = "uint16"
         self._compression = COMPRESSION_TYPES["none"]
         self.compression_opts = None
         self._row_count_px = None
-        self._colum_count_px_px = None
+        self._column_count_px = None
         self._frame_count_px_px = None
+        self.progress = Value(c_int, 0)
         self._x_voxel_size_um_um = 1
         self._y_voxel_size_um_um = 1
         self._z_voxel_size_um_um = 1
@@ -223,10 +226,14 @@ class Writer(BaseWriter):
     def path(self):
         return self._path
 
-    @path.setter
-    def path(self, path: str):
-        self._path = Path(path)
-        self.log.info(f'setting path to: {path}')
+    @property
+    def acquisition_name(self):
+        return self._acquisition_name
+
+    @acquisition_name.setter
+    def acquisition_name(self, acquisition_name: str):
+        self._acquisition_name = Path(acquisition_name)
+        self.log.info(f'setting acquisition name to: {acquisition_name}')
 
     @property
     def filename(self):
@@ -372,7 +379,7 @@ class Writer(BaseWriter):
                     (4, 256, 256)
                   )
         # bdv requires input string not Path
-        filepath = str(Path(self._path, self._filename).absolute())
+        filepath = str(Path(self._path, self._acquisition_name, self._filename).absolute())
         # re-initialize bdv writer for tile/channel list
         # required to dump all datasets in a single bdv file
         bdv_writer = npy2bdv.BdvWriter(
@@ -483,7 +490,7 @@ class Writer(BaseWriter):
         self.signal_progress_percent
 
     def delete_files(self):
-        filepath = Path(self._path, self._filename).absolute()
-        xmlpath = Path(self._path, self._filename).absolute().replace('h5', 'xml')
+        filepath = Path(self._path, self._acquisition_name, self._filename).absolute()
+        xmlpath = Path(self._path, self._acquisition_name, self._filename).absolute().replace('h5', 'xml')
         os.remove(filepath)
         os.remove(xmlpath)
