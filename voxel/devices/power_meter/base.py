@@ -1,27 +1,15 @@
-from abc import ABC, abstractmethod
-import logging
+from ..base import VoxelDevice
 
-class BasePowerMeter(ABC):
+from abc import abstractmethod
+
+
+class BasePowerMeter(VoxelDevice):
     """
     Abstract base class for a voxel power meter.
     """
+
     def __init__(self, id: str) -> None:
-        self.id = id
-        self.log = logging.getLogger(f"{self.__class__.__name__}[{self.id}]")
-
-    @abstractmethod
-    def connect(self) -> None:
-        """
-        Connect the power meter.
-        """
-        pass
-
-    @abstractmethod
-    def disconnect(self) -> None:
-        """
-        Disconnect the power meter.
-        """
-        pass
+        super().__init__(id)
 
     @property
     @abstractmethod

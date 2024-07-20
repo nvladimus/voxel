@@ -33,6 +33,9 @@ dependencies = [
     'inflection >= 0.5.1',
     'tigerasi >= 0.0.26',
     'pydantic >= 2.7.3',
+    'PyVISA >= 1.14.1',
+    'PyVISA-py >= 0.7.2',
+    'pyusb >= 1.2.1',
     'imohash >= 1.0.5'
     'sympy >= 1.12.1',
     'pycobolt @ git+https://github.com/cobolt-lasers/pycobolt.git',

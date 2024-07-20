@@ -17,15 +17,15 @@ def mff101():
             positions=POSITIONS
         )
     yield fm
-    fm.disconnect()
+    fm.close()
 
 def test_connect(mff101):
     assert mff101._inst is not None
     mff101.wait()
     assert mff101.position ==  next(iter(POSITIONS.keys()))
 
-def test_disconnect(mff101):
-    mff101.disconnect()
+def test_close(mff101):
+    mff101.close()
     assert mff101._inst is None
 
 def test_position(mff101):
