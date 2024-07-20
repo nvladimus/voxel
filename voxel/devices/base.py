@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 import logging
 
+
 class VoxelDevice(ABC):
     """Base class for all voxel devices."""
 
@@ -13,4 +14,3 @@ class VoxelDevice(ABC):
     def close(self):
         """Close the device."""
         pass
-

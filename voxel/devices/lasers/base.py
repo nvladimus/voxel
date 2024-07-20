@@ -1,47 +1,65 @@
-import inspect
+from abc import abstractmethod
+from typing import Optional
 
-class BaseLaser():
+from ..base import VoxelDevice
+
+
+class BaseLaser(VoxelDevice):
+    """Base class for all voxel laser devices."""
+    def __init__(self, id: str):
+        super().__init__(id)
+
+    @abstractmethod
+    def enable(self):
+        """Turn on the laser"""
+        pass
+
+    @abstractmethod
+    def disable(self):
+        """Turn off the laser"""
+        pass
 
     @property
-    def power_setpoint_mw(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+    @abstractmethod
+    def power_setpoint_mw(self) -> float:
+        """
+        The power setpoint is the target power that the laser is trying to achieve.
+
+        :return: The power setpoint in mW.
+        :rtype: float
+        """
         pass
 
     @power_setpoint_mw.setter
-    def power_setpoint_mw(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+    @abstractmethod
+    def power_setpoint_mw(self, value: float) -> None:
+        """
+        Set the power setpoint for the laser in mW.
+
+        :param value: The power setpoint in mW.
+        :type value: float
+        :rtype: None
+        """
         pass
 
     @property
-    def modulation_mode(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
+    @abstractmethod
+    def power_mw(self) -> float:
+        """
+        Get the actual power of the laser in mW.
 
-    @modulation_mode.setter
-    def modulation_mode(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        :return: The power in mW.
+        :rtype: float
+        """
         pass
 
     @property
-    def signal_temperature_c(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
+    @abstractmethod
+    def temperature_c(self) -> Optional[float]:
+        """
+        Get the main temperature of the laser in degrees Celsius.
 
-    def status(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    def cdrh(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    def enable(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    def disable(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    def close(self):
+        :return: The temperature in degrees Celsius.
+        :rtype: float
+        """
         pass
