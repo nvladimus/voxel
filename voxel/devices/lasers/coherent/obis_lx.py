@@ -2,7 +2,7 @@ from obis_laser import ObisLX, OperationalQuery, OperationalCmd
 from serial import Serial
 
 from voxel.descriptors.deliminated_property import DeliminatedProperty
-from voxel.devices.lasers.base import BaseLaser
+from ..base import BaseLaser
 
 MODULATION_MODES: dict[str, str] = {
     'off': 'CWP',

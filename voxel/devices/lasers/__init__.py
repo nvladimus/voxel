@@ -1,16 +1,20 @@
-from .base import BaseLaser
-from .cobolt import SkyraLaser
-from .oxxius import OxxiusLBXLaser, OxxiusLCXLaser
-from .coherent import GenesisMXLaser, ObisLXLaser, ObisLSLaser
-from .vortran import StradusLaser
+"""
+Available laser devices:
+- voxel.devices.lasers.simulated
+    - SimulatedLaser
+- voxel.devices.lasers.vortran
+    - StradusLaser
+- voxel.devices.lasers.cobolt
+    - SkyraLaser
+- voxel.devices.lasers.oxxius
+    -  OxxiusLBXLaser
+    -  OxxiusLCXLaser
+- voxel.devices.lasers.coherent
+    - ObisLXLaser
+    - ObisLSLaser
+    - GenesisMXLaser
+"""
 
-__all__ = [
-    'BaseLaser',
-    'SkyraLaser',
-    'OxxiusLBXLaser',
-    'OxxiusLCXLaser',
-    'ObisLXLaser',
-    'ObisLSLaser',
-    'GenesisMXLaser',
-    'StradusLaser'
-]
+from .base import BaseLaser
+
+__all__ = ['BaseLaser']
