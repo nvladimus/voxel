@@ -20,7 +20,7 @@ class FileTransfer():
             raise ValueError('External directory and local directory cannot be the same')
         self._progress = 0
         self._filename = None
-        self._max_retry = 0
+        self._max_retry = 1
         self._acquisition_name = Path()
         self._protocol = 'robocopy'
         self._verify_transfer = False
@@ -129,7 +129,6 @@ class FileTransfer():
         
         local_directory = Path(self._local_path, self._acquisition_name)
         external_directory = Path(self._external_path, self._acquisition_name)
-        
         transfer_complete = False
         retry_num = 0
         # loop over number of attempts in the event that a file transfer fails
@@ -139,7 +138,7 @@ class FileTransfer():
             for name in os.listdir(local_directory.absolute()):
                 if self.filename in name:
                     delete_list.append(name)
-            # generate a list of files to copy
+                        # generate a list of files to copy
             # path is the entire experiment path
             # subdirs is any tile specific subdir i.e. zarr store
             # files are any tile specific files
