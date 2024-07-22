@@ -1,9 +1,8 @@
 from abc import abstractmethod
 
-import numpy
 from nptyping import NDArray
-from voxel.descriptor.deliminated_property import DeliminatedProperty
-from voxel.devices.device import VoxelDevce
+from voxel.descriptors.deliminated_property import DeliminatedProperty
+from voxel.devices.base import VoxelDevce
 
 
 class BaseCamera(VoxelDevce):
