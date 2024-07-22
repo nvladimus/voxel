@@ -11,13 +11,20 @@ FLIP_TIME_RANGE_MS = (500, 2800, 100)
 
 class ThorlabsFlipMount(BaseFlipMount):
     def __init__(self, id, conn, positions):
+        """
+        Initialize the Thorlabs flip mount. \n
+
+        @param id: Provide a unique device id
+        @param conn: Connection string - serial no.
+        @param positions: Dictionary of positions and their corresponding index
+        """
         super().__init__(id)
         self._conn = conn
         self._positions = positions
         self._inst: Optional[Thorlabs.MFF] = None
-        self.connect()
+        self._connect()
 
-    def connect(self):
+    def _connect(self):
         try:
             self._inst = Thorlabs.MFF(conn=self._conn)
             self.position = next(iter(self._positions.keys())) # set to first position
@@ -26,7 +33,7 @@ class ThorlabsFlipMount(BaseFlipMount):
             self.log.error(f'Could not connect to flip mount {self.id}: {e}')
             raise e
 
-    def disconnect(self):
+    def _disconnect(self):
         if self._inst is not None:
             self._inst.close()
             self._inst = None
@@ -80,3 +87,7 @@ class ThorlabsFlipMount(BaseFlipMount):
             self.log.info(f'Flip mount {self.id} switch time set to {clamped_time_ms} ms')
         except Exception as e:
             raise ValueError(f'Could not set flip time: {e}')
+
+    def close(self):
+        self._disconnect()
+        self.log.info(f'Flip mount {self.id} shutdown')
