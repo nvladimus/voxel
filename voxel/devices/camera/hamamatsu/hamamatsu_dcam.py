@@ -2,7 +2,7 @@ import logging
 import time
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 from voxel.devices.camera.base import BaseCamera
-from voxel.devices.camera.sdks.dcam.dcam import (
+from voxel.devices.camera.hamamatsu.dcam.dcam import (
     DCAM_IDSTR,
     DCAMCAP_TRANSFERINFO,
     DCAMERR,
@@ -56,24 +56,6 @@ PIXEL_TYPES = dict()
 #  "4x4": 4 ...
 # }
 BINNING = dict()
-
-# full dcam trigger modes mapping
-# NORMAL = 1
-# PIV = 3
-# START = 6
-# full dcam trigger sources mapping
-# INTERNAL = 1
-# EXTERNAL = 2
-# SOFTWARE = 3
-# MASTERPULSE = 4
-# full dcam trigger polarity mapping
-# NEGATIVE = 1
-# POSITIVE = 2
-# full dcam trigger active mapping
-# EDGE = 1
-# LEVEL = 2
-# SYNCREADOUT = 3
-# POINT = 4
 
 # generate valid triggers by querying dcam
 # full dcam trigger modes mapping
@@ -307,10 +289,12 @@ class Camera(BaseCamera):
     @pixel_type.setter
     def pixel_type(self, pixel_type_bits: str):
         """
-        The pixel type of the camera: \n
-        - mono8, mono10, mono12, mono14, mono16, etc.
+        The pixel type of the camera.
 
         :param pixel_type_bits: The pixel type
+        * **mono8**
+        * **mono12**
+        * **mono16**
         :type pixel_type_bits: str
         :raises ValueError: Invalid pixel type
         """
@@ -383,11 +367,7 @@ class Camera(BaseCamera):
     @property
     def trigger(self):
         """
-        Get the trigger mode of the camera. \n
-        The trigger mode consists of three parameters: \n
-        - mode (e.g. on or off) \n
-        - source (e.g. internal or external) \n
-        - polarity (e.g. rising edge or falling edge)
+        Get the trigger mode of the camera.
 
         :return: The trigger mode of the camera.
         :rtype: dict
@@ -405,13 +385,21 @@ class Camera(BaseCamera):
     @trigger.setter
     def trigger(self, trigger: dict):
         """
-        Set the trigger mode of the camera. \n
-        The trigger mode consists of three parameters: \n
-        - mode (e.g. on or off) \n
-        - source (e.g. internal or external) \n
-        - polarity (e.g. rising edge or falling edge)
+        Set the trigger mode of the camera.
 
         :param trigger: The trigger mode of the camera
+        **Trigger modes**
+        * **normal**
+        * **start**
+        * **piv**
+        **Trigger sources**
+        * **internal**
+        * **external**
+        * **software**
+        * **masterpulse**
+        **Trigger polarities**
+        * **negative**
+        * **positive**
         :type trigger: dict
         :raises ValueError: Invalid trigger mode
         :raises ValueError: Invalid trigger source
@@ -448,8 +436,7 @@ class Camera(BaseCamera):
     @property
     def binning(self):
         """
-        Get the binning mode of the camera. \n
-        Integer value, e.g. 2 is 2x2 binning
+        Get the binning mode of the camera.
 
         :return: The binning mode of the camera
         :rtype: int
@@ -461,13 +448,13 @@ class Camera(BaseCamera):
     @binning.setter
     def binning(self, binning: str):
         """
-        Set the binning of the camera. \n
-        If the binning is not supported in hardware \n
-        it will be implemented via software using the GPU. \n
-        This API assumes identical binning in X and Y.
+        Set the binning of the camera.
 
         :param binning: The binning mode of the camera
-        :type binning: int
+        * **1x1**
+        * **2x2**
+        * **4x4**
+        :type binning: str
         :raises ValueError: Invalid binning setting
         """
 
@@ -534,6 +521,15 @@ class Camera(BaseCamera):
         Set the sensor mode of the camera.
 
         :param sensor_mode: The sensor mode of the camera
+        * **area**
+        * **line**
+        * **tdi**
+        * **tdi_extended**
+        * **progresive**
+        * **splitview**
+        * **duallightsheet**
+        * **photonnumberresolving**
+        * **wholelines**
         :type sensor_mode: str
         :raises ValueError: Invalid sensor mode
         """
@@ -571,6 +567,12 @@ class Camera(BaseCamera):
         Set the readout direction of the camera.
 
         :param readout_direction: The readout direction of the camera
+        * **forward**
+        * **backward**
+        * **bytrigger**
+        * **diverge**
+        * **forwardbidirection**
+        * **reversebidirection**
         :type readout_direction: str
         :raises ValueError: Invalid readout direction
         """

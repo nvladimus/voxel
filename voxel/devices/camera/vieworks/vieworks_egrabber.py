@@ -2,7 +2,7 @@ import logging
 import numpy
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 from voxel.devices.camera.base import BaseCamera
-from voxel.devices.camera.sdks.egrabber import (
+from voxel.devices.camera.vieworks.egrabber import (
     BUFFER_INFO_BASE,
     GENTL_INFINITE,
     INFO_DATATYPE_PTR,
@@ -288,10 +288,14 @@ class Camera(BaseCamera):
     @pixel_type.setter
     def pixel_type(self, pixel_type_bits: str):
         """
-        The pixel type of the camera: \n
-        - mono8, mono10, mono12, mono14, mono16, etc.
+        The pixel type of the camera.
 
         :param pixel_type_bits: The pixel type
+        * **mono8**
+        * **mono10**
+        * **mono12**
+        * **mono14**
+        * **mono16**
         :type pixel_type_bits: str
         :raises ValueError: Invalid pixel type
         """
@@ -324,10 +328,12 @@ class Camera(BaseCamera):
     @bit_packing_mode.setter
     def bit_packing_mode(self, bit_packing: str):
         """
-        The bit packing mode of the camera: \n
-        - lsb, msb, none
+        The bit packing mode of the camera.
 
         :param bit_packing: The bit packing mode
+        * **lsb**
+        * **msb**
+        * **none**
         :type bit_packing: str
         """
 
@@ -368,11 +374,7 @@ class Camera(BaseCamera):
     @property
     def trigger(self):
         """
-        Get the trigger mode of the camera. \n
-        The trigger mode consists of three parameters: \n
-        - mode (e.g. on or off) \n
-        - source (e.g. internal or external) \n
-        - polarity (e.g. rising edge or falling edge)
+        Get the trigger mode of the camera.
 
         :return: The trigger mode of the camera.
         :rtype: dict
@@ -396,13 +398,18 @@ class Camera(BaseCamera):
     @trigger.setter
     def trigger(self, trigger: dict):
         """
-        Set the trigger mode of the camera. \n
-        The trigger mode consists of three parameters: \n
-        - mode (e.g. on or off) \n
-        - source (e.g. internal or external) \n
-        - polarity (e.g. rising edge or falling edge)
+        Set the trigger mode of the camera.
 
         :param trigger: The trigger mode of the camera
+        **Trigger modes**
+        * **on**
+        * **off**
+        **Trigger sources**
+        * **line0**
+        * **software**
+        **Trigger polarities**
+        * **risingedge**
+        * **fallingedge**
         :type trigger: dict
         :raises ValueError: Invalid trigger mode
         :raises ValueError: Invalid trigger source
@@ -455,6 +462,9 @@ class Camera(BaseCamera):
         This API assumes identical binning in X and Y.
 
         :param binning: The binning mode of the camera
+        * **1**
+        * **2**
+        * **4**
         :type binning: str
         :raises ValueError: Invalid binning setting
         """

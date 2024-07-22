@@ -2,12 +2,12 @@ import logging
 import time
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 from voxel.devices.camera.base import BaseCamera
-from voxel.devices.camera.sdks import pco
+from voxel.devices.camera.pco import pco
 from voxel.devices.utils.singleton import Singleton
 
 BUFFER_SIZE_MB = 2400
 
-BINNING = ['1', '2', '4']
+BINNING = ["1", "2", "4"]
 
 # PIXEL TYPE
 # only uint16 easily supported for pco sdk
@@ -256,11 +256,7 @@ class Camera(BaseCamera):
     @property
     def trigger(self):
         """
-        Get the trigger mode of the camera. \n
-        The trigger mode consists of three parameters: \n
-        - mode (e.g. on or off) \n
-        - source (e.g. internal or external) \n
-        - polarity (e.g. rising edge or falling edge)
+        Get the trigger mode of the camera.
 
         :return: The trigger mode of the camera.
         :rtype: dict
@@ -281,13 +277,24 @@ class Camera(BaseCamera):
     @trigger.setter
     def trigger(self, trigger: dict):
         """
-        Set the trigger mode of the camera. \n
-        The trigger mode consists of three parameters: \n
-        - mode (e.g. on or off) \n
-        - source (e.g. internal or external) \n
-        - polarity (e.g. rising edge or falling edge)
+        Set the trigger mode of the camera.
 
         :param trigger: The trigger mode of the camera
+        **Trigger modes**
+        * **auto sequence**
+        * **software trigger**
+        * **external exposure start & software trigger**
+        * **external exposure control**
+        * **external synchronized**
+        * **fast external exposure control**
+        * **external CDS control**
+        * **slow external exposure control**
+        * **external synchronized HDSDI**
+        **Trigger sources**
+        * **internal**
+        * **external**
+        **Trigger polarities**
+        * **none**
         :type trigger: dict
         :raises ValueError: Invalid trigger mode
         :raises ValueError: Invalid trigger source
@@ -319,8 +326,7 @@ class Camera(BaseCamera):
     @property
     def binning(self):
         """
-        Get the binning mode of the camera. \n
-        Integer value, e.g. 2 is 2x2 binning
+        Get the binning mode of the camera.
 
         :return: The binning mode of the camera
         :rtype: int
@@ -332,13 +338,13 @@ class Camera(BaseCamera):
     @binning.setter
     def binning(self, binning: str):
         """
-        Set the binning of the camera. \n
-        If the binning is not supported in hardware \n
-        it will be implemented via software using the GPU. \n
-        This API assumes identical binning in X and Y.
+        Set the binning of the camera.
 
         :param binning: The binning mode of the camera
-        :type binning: int
+        * **1**
+        * **2**
+        * **4**
+        :type binning: str
         :raises ValueError: Invalid binning setting
         """
         # pco binning can be different in x, y. set same for both,
@@ -365,10 +371,10 @@ class Camera(BaseCamera):
     @pixel_type.setter
     def pixel_type(self):
         """
-        The pixel type of the camera: \n
-        - mono8, mono10, mono12, mono14, mono16, etc.
+        The pixel type of the camera.
 
         :param pixel_type_bits: The pixel type
+        * **mono16**
         :type pixel_type_bits: str
         :raises ValueError: Invalid pixel type
         """
@@ -460,6 +466,12 @@ class Camera(BaseCamera):
         Set the readout dirmodeection of the camera.
 
         :param readout_mode: The readout mode of the camera
+        * **light sheet forward**
+        * **rolling in**
+        * **rolling out**
+        * **rolling up**
+        * **rolling down**
+        * **light sheet backward**
         :type readout_mode: str
         :raises ValueError: Invalid readout mode
         """
