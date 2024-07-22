@@ -1,42 +1,46 @@
 import logging
-import numpy
 import time
-from voxel.devices.utils.singleton import Singleton
-from voxel.devices.camera.base import BaseCamera
-from _sdks import pco
 from voxel.descriptors.deliminated_property import DeliminatedProperty
+from voxel.devices.camera.base import BaseCamera
+from voxel.devices.camera.sdks import pco
+from voxel.devices.utils.singleton import Singleton
 
 BUFFER_SIZE_MB = 2400
 
-BINNING = [
-    1,
-    2,
-    4
-]
+BINNING = ['1', '2', '4']
 
 # PIXEL TYPE
 # only uint16 easily supported for pco sdk
+PIXEL_TYPES = {"mono16": "uint16"}
 
 # generate modes by querying pco sdk
 TRIGGERS = {
     "modes": dict(),
-    "sources": {
-        "internal": "auto",
-        "external": "external"
-    },
-    "polarity": None
+    "sources": {"internal": "auto", "external": "external"},
+    "polarity": None,
 }
 
 READOUT_MODES = dict()
 
+
 # singleton wrapper around pco
 class pcoSingleton(pco, metaclass=Singleton):
     def __init__(self):
+        """Singleton wrapper around the PCO SDK. Ensures the same EGrabber \n
+        instance is returned anytime EGrabber is initialized.
+        """
         super(pcoSingleton, self).__init__()
 
-class PCOCamera(BaseCamera):
 
+class Camera(BaseCamera):
     def __init__(self, id=str):
+        """Voxel driver for PCO cameras.
+
+        :param id: Serial number of the camera.
+        :type id: str
+        :raises ValueError: No camera found.
+        """
+
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = id
         # note self.id here is the interface, not a unique camera id
@@ -56,204 +60,473 @@ class PCOCamera(BaseCamera):
             del self.pco
         self.pco = pcoSingleton.Camera(id=self.id)
 
-    @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
+    @DeliminatedProperty(
+        minimum=lambda self: self.min_exposure_time_ms,
+        maximum=lambda self: self.max_exposure_time_ms,
+        step=lambda self: self.step_exposure_time_ms,
+        unit="ms",
+    )
     def exposure_time_ms(self):
+        """
+        Get the exposure time of the camera in ms.
+
+        :return: The exposure time in ms
+        :rtype: float
+        """
         # convert from s units to ms
-        return self.pco.exposure_time*1000
+        return self.pco.exposure_time * 1000
 
     @exposure_time_ms.setter
     def exposure_time_ms(self, exposure_time_ms: float):
+        """
+        Set the exposure time of the camera in ms.
 
+        :param exposure_time_ms: The exposure time in ms
+        :type exposure_time_ms: float
+        """
         # Note: convert from ms to s
-        self.pco.exposure_time = exposure_time_ms/1e3
+        self.pco.exposure_time = exposure_time_ms / 1e3
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
         # refresh parameter values
         self._get_min_max_step_values()
 
-    @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
+    @DeliminatedProperty(
+        minimum=lambda self: self.min_width_px,
+        maximum=lambda self: self.max_width_px,
+        step=lambda self: self.step_width_px,
+        unit="px",
+    )
     def width_px(self):
+        """
+        Get the width of the camera region of interest in pixels.
+
+        :return: The width of the region of interest in pixels
+        :rtype: int
+        """
+
         roi = self.pco.sdk.get_roi()
-        return roi['x1'] - roi['x0'] + 1
+        return roi["x1"] - roi["x0"] + 1
 
     @width_px.setter
     def width_px(self, value: int):
+        """
+        Set the width of the camera region of interest in pixels.
 
+        :param value: The width of the region of interest in pixels
+        :type value: int
+        """
         # reset offset to (0,0)
         self.pco.sdk.set_roi(1, self.height_offset_px, self.width_px, self.height_px)
 
-        centered_width_offset_px = round((self.max_width_px / 2 - value / 2) / self.step_width_px) * self.step_width_px
-        self.pco.sdk.set_roi(centered_width_offset_px + 1, self.height_offset_px, centered_width_offset_px + value, self.height_px)
+        centered_width_offset_px = (
+            round((self.max_width_px / 2 - value / 2) / self.step_width_px)
+            * self.step_width_px
+        )
+        self.pco.sdk.set_roi(
+            centered_width_offset_px + 1,
+            self.height_offset_px,
+            centered_width_offset_px + value,
+            self.height_px,
+        )
         self.log.info(f"width set to: {value} px")
 
     @property
     def width_offset_px(self):
-        roi = self.pco.sdk.get_roi()
-        return roi['x0'] - 1
+        """
+        Get the width offset of the camera region of interest in pixels.
 
-    @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
-    def height_px(self):
+        :return: The width offset of the region of interest in pixels
+        :rtype: int
+        """
         roi = self.pco.sdk.get_roi()
-        height_px = roi['y1'] - roi['y0'] + 1
+        return roi["x0"] - 1
+
+    @DeliminatedProperty(
+        minimum=lambda self: self.min_height_px,
+        maximum=lambda self: self.max_height_px,
+        step=lambda self: self.step_height_px,
+        unit="px",
+    )
+    def height_px(self):
+        """
+        Get the height of the camera region of interest in pixels.
+
+        :return: The height of the region of interest in pixels
+        :rtype: int
+        """
+
+        roi = self.pco.sdk.get_roi()
+        height_px = roi["y1"] - roi["y0"] + 1
         return height_px
 
     @height_px.setter
     def height_px(self, value: int):
+        """
+        Set the height of the camera region of interest in pixels.
 
+        :param value: The height of the region of interest in pixels
+        :type value: int
+        """
         # reset offset to (0,0)
         # reset offset to (0,0)
         self.pco.sdk.set_roi(self.width_offset_px, 1, self.width_px, self.height_px)
 
-        centered_offset_px = round((self.max_height_px / 2 - value / 2) / self.step_height_px) * self.step_height_px
+        centered_height_offset_px = (
+            round((self.max_height_px / 2 - value / 2) / self.step_height_px)
+            * self.step_height_px
+        )
 
-        self.pco.sdk.set_roi(self.width_offset_px, centered_offset_px, self.width_px, centered_height_offset_px + value)
+        self.pco.sdk.set_roi(
+            self.width_offset_px,
+            centered_height_offset_px,
+            self.width_px,
+            centered_height_offset_px + value,
+        )
         self.log.info(f"height set to: {value} px")
 
     @property
     def height_offset_px(self):
-        roi = self.pco.sdk.get_roi()
-        return roi['y0'] - 1
+        """
+        Get the height offset of the camera region of interest in pixels.
 
-    @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
+        :return: The height offset of the region of interest in pixels
+        :rtype: int
+        """
+
+        roi = self.pco.sdk.get_roi()
+        return roi["y0"] - 1
+
+    @DeliminatedProperty(
+        minimum=lambda self: self.min_line_interval_us,
+        maximum=lambda self: self.max_line_interval_us,
+        step=lambda self: self.step_line_interval_us,
+        unit="us",
+    )
     def line_interval_us(self):
-        line_interval_s = self.pco.sdk.get_cmos_line_timing()['line time']
+        """
+        Get the line interval of the camera in us. \n
+        This is the time interval between adjacnet \n
+        rows activating on the camera sensor.
+
+        :return: The line interval of the camera in us
+        :rtype: float
+        """
+
+        line_interval_s = self.pco.sdk.get_cmos_line_timing()["line time"]
         # returned value is in s, convert to us
-        return line_interval_s*1e6
+        return line_interval_s * 1e6
 
     @line_interval_us.setter
     def line_interval_us(self, line_interval_us: float):
+        """
+        Set the line interval of the camera in us. \n
+        This is the time interval between adjacnet \n
+        rows activating on the camera sensor.
 
+        :param line_interval_us: The linterval of the camera in us
+        :type line_interval_us: float
+        """
         # timebase is us if interval > 4 us
-        self.pco.sdk.set_cmos_line_timing("on", line_interval_us/1e6)
+        self.pco.sdk.set_cmos_line_timing("on", line_interval_us / 1e6)
         self.log.info(f"line interval set to: {line_interval_us} us")
         # refresh parameter values
         self._get_min_max_step_values()
 
     @property
     def frame_time_ms(self):
-        if 'light sheet' in self.readout_mode:
-            return (self.line_interval_us * self.height_px)/1000 + self.exposure_time_ms
+        """
+        Get the frame time of the camera in ms. \n
+        This is the total time to acquire a single image. \n
+        Rolling shutter spans half of the chip, whereas \n
+        light sheet spans the full chip.
+
+        :return: The frame time of the camera in ms
+        :rtype: float
+        """
+
+        if "light sheet" in self.readout_mode:
+            return (
+                self.line_interval_us * self.height_px
+            ) / 1000 + self.exposure_time_ms
         else:
-            return (self.line_interval_us * self.height_px/2)/1000 + self.exposure_time_ms
+            return (
+                self.line_interval_us * self.height_px / 2
+            ) / 1000 + self.exposure_time_ms
 
     @property
     def trigger(self):
-        mode = self.pco.sdk.get_trigger_mode()['trigger mode']
-        source = self.pco.sdk.get_acquire_mode()['acquire mode']
-        polarity = None
-        return {"mode": next(key for key, value in TRIGGERS['modes'].items() if value == mode),
-                "source": next(key for key, value in TRIGGERS['sources'].items() if value == source),
-                "polarity": None}
+        """
+        Get the trigger mode of the camera. \n
+        The trigger mode consists of three parameters: \n
+        - mode (e.g. on or off) \n
+        - source (e.g. internal or external) \n
+        - polarity (e.g. rising edge or falling edge)
+
+        :return: The trigger mode of the camera.
+        :rtype: dict
+        """
+
+        mode = self.pco.sdk.get_trigger_mode()["trigger mode"]
+        source = self.pco.sdk.get_acquire_mode()["acquire mode"]
+        return {
+            "mode": next(
+                key for key, value in TRIGGERS["modes"].items() if value == mode
+            ),
+            "source": next(
+                key for key, value in TRIGGERS["sources"].items() if value == source
+            ),
+            "polarity": None,
+        }
 
     @trigger.setter
     def trigger(self, trigger: dict):
+        """
+        Set the trigger mode of the camera. \n
+        The trigger mode consists of three parameters: \n
+        - mode (e.g. on or off) \n
+        - source (e.g. internal or external) \n
+        - polarity (e.g. rising edge or falling edge)
+
+        :param trigger: The trigger mode of the camera
+        :type trigger: dict
+        :raises ValueError: Invalid trigger mode
+        :raises ValueError: Invalid trigger source
+        :raises ValueError: Invalid trigger polarity
+        """
 
         # skip source and polarity, not used in PCO API
-        mode = trigger['mode']
-        source = trigger['source']
-        polarity = trigger['polarity']
+        mode = trigger["mode"]
+        source = trigger["source"]
+        polarity = trigger["polarity"]
 
-        valid_mode = list(TRIGGERS['modes'].keys())
+        valid_mode = list(TRIGGERS["modes"].keys())
         if mode not in valid_mode:
             raise ValueError("mode must be one of %r." % valid_mode)
-        valid_source = list(TRIGGERS['sources'].keys())
+        valid_source = list(TRIGGERS["sources"].keys())
         if source not in valid_source:
             raise ValueError("source must be one of %r." % valid_source)
-        if polarity != None:
-            raise ValueError("polarity must be one of %r." % valid_polarity)
+        if polarity:
+            raise ValueError("polarity must be one of %r." % None)
 
-        self.pco.sdk.set_trigger_mode(mode=TRIGGERS['modes'][mode])
-        self.pco.sdk.set_acquire_mode(mode=TRIGGERS['sources'][source])
-        self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
+        self.pco.sdk.set_trigger_mode(mode=TRIGGERS["modes"][mode])
+        self.pco.sdk.set_acquire_mode(mode=TRIGGERS["sources"][source])
+        self.log.info(
+            f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}"
+        )
         # refresh parameter values
         self._get_min_max_step_values()
 
     @property
     def binning(self):
+        """
+        Get the binning mode of the camera. \n
+        Integer value, e.g. 2 is 2x2 binning
+
+        :return: The binning mode of the camera
+        :rtype: int
+        """
         # pco binning can be different in x, y. take x value.
-        binning = self.pco.sdk.get_binning()['binning x']
+        binning = self.pco.sdk.get_binning()["binning x"]
         return binning
 
     @binning.setter
     def binning(self, binning: str):
+        """
+        Set the binning of the camera. \n
+        If the binning is not supported in hardware \n
+        it will be implemented via software using the GPU. \n
+        This API assumes identical binning in X and Y.
+
+        :param binning: The binning mode of the camera
+        :type binning: int
+        :raises ValueError: Invalid binning setting
+        """
         # pco binning can be different in x, y. set same for both,
         if binning not in BINNING:
             raise ValueError("binning must be one of %r." % BINNING)
-        self.pco.sdk.set_binning(binning, binning)
+        self.pco.sdk.set_binning(int(binning), int(binning))
         self.log.info(f"binning set to: {binning}")
         # refresh parameter values
         self._get_min_max_step_values()
 
     @property
+    def pixel_type(self):
+        """
+        Get the pixel type of the camera.
+
+        :return: The pixel type of the camera
+        :rtype: str
+        """
+
+        pixel_type = self._pixel_type
+        # invert the dictionary and find the abstracted key to output
+        return next(key for key, value in PIXEL_TYPES.items() if value == pixel_type)
+
+    @pixel_type.setter
+    def pixel_type(self):
+        """
+        The pixel type of the camera: \n
+        - mono8, mono10, mono12, mono14, mono16, etc.
+
+        :param pixel_type_bits: The pixel type
+        :type pixel_type_bits: str
+        :raises ValueError: Invalid pixel type
+        """
+
+        pixel_type = self._pixel_type
+        # invert the dictionary and find the abstracted key to output
+        return next(key for key, value in PIXEL_TYPES.items() if value == pixel_type)
+
+    @property
     def sensor_width_px(self):
+        """
+        Get the width of the camera sensor in pixels.
+
+        :return: The width of the camera sensor in pixels
+        :rtype: int
+        """
+
         return self.max_width_px
 
     @property
     def sensor_height_px(self):
+        """
+        Get the height of the camera sensor in pixels.
+
+        :return: The height of the camera sensor in pixels
+        :rtype: int
+        """
+
         return self.max_height_px
 
     @property
     def signal_mainboard_temperature_c(self):
-        """get the mainboard temperature in degrees C."""
+        """
+        Get the mainboard temperature of the camera in deg C.
+
+        :return: The mainboard temperature of the camera in deg C
+        :rtype: float
+        """
+
         state = {}
-        state['Mainboard Temperature [C]'] = self.pco.sdk.get_temperature()['camera temperature']
+        state["Mainboard Temperature [C]"] = self.pco.sdk.get_temperature()[
+            "camera temperature"
+        ]
         return state
 
     @property
     def signal_sensor_temperature_c(self):
-        """get the sensor temperature in degrees C."""
+        """
+        Get the sensor temperature of the camera in deg C.
+
+        :return: The sensor temperature of the camera in deg C.
+        :rtype: float
+        """
+
         state = {}
-        state['Sensor Temperature [C]'] = self.pco.sdk.get_temperature()['sensor temperature']
+        state["Sensor Temperature [C]"] = self.pco.sdk.get_temperature()[
+            "sensor temperature"
+        ]
         return state
 
     @property
     def readout_mode(self):
+        """
+        Get the readout mode of the camera.
+
+        :return: The readout mode of the camera
+        :rtype: str
+        """
+
         # returns dict with only key as 'format'
         readout_mode = self.pco.sdk.get_interface_output_format("edge")["format"]
         # readout mode does not return string but int, need to parse this separately
         # from READOUT_MODES
         READOUT_OUTPUT = {
-            'light sheet forward': 0,
-            'rolling in': 256,
-            'rolling out': 512,
-            'rolling up': 768,
-            'rolling down': 1024,
-            'light sheet backward': 1280,
+            "light sheet forward": 0,
+            "rolling in": 256,
+            "rolling out": 512,
+            "rolling up": 768,
+            "rolling down": 1024,
+            "light sheet backward": 1280,
         }
-        return next(key for key, value in READOUT_OUTPUT.items() if value == readout_mode)
+        return next(
+            key for key, value in READOUT_OUTPUT.items() if value == readout_mode
+        )
 
     @readout_mode.setter
     def readout_mode(self, readout_mode: str):
+        """
+        Set the readout dirmodeection of the camera.
+
+        :param readout_mode: The readout mode of the camera
+        :type readout_mode: str
+        :raises ValueError: Invalid readout mode
+        """
+
         # pco api requires edge input for scmos readout control
         valid_mode = list(READOUT_MODES.keys())
         if readout_mode not in valid_mode:
             raise ValueError("mode must be one of %r." % valid_mode)
-        self.pco.sdk.set_interface_output_format(interface='edge', format=READOUT_MODES[readout_mode])
+        self.pco.sdk.set_interface_output_format(
+            interface="edge", format=READOUT_MODES[readout_mode]
+        )
         self.log.info(f"readout mode set to: {readout_mode}")
         # refresh parameter values
         self._get_min_max_step_values()
 
     def prepare(self):
+        """
+        Prepare the camera to acquire images. \n
+        Initializes the camera buffer.
+        """
         # pco api prepares buffer and autostarts. api call is in start()
         # pco only 16-bit A/D
         bit_to_byte = 2
-        frame_size_mb = self.width_px*self.height_px/self.binning**2*bit_to_byte/1e6
+        frame_size_mb = (
+            self.width_px * self.height_px / self.binning**2 * bit_to_byte / 1e6
+        )
         self.buffer_size_frames = round(BUFFER_SIZE_MB / frame_size_mb)
         self.log.info(f"buffer set to: {self.buffer_size_frames} frames")
-        self.pco.record(number_of_images=self.buffer_size_frames, mode='fifo')
+        self.pco.record(number_of_images=self.buffer_size_frames, mode="fifo")
 
     def start(self):
+        """
+        Start the camera.
+        """
+
         self.pre_frame_time = 0
         self.pre_frame_count_px = 0
         self.pco.start()
 
     def stop(self):
+        """
+        Stop the camera.
+        """
+
         self.pco.stop()
 
+    def abort(self):
+        """
+        Abort the camera.
+        """
+
+        self.stop()
+
     def close(self):
+        """
+        Close the camera.
+        """
+
         self.pco.close()
 
     def grab_frame(self):
-        """Retrieve a frame as a 2D numpy array with shape (rows, cols)."""
+        """
+        Grab a frame from the camera buffer.
+
+        :return: The camera frame of size (height, width).
+        :rtype: numpy.array
+        """
         # pco api call is blocking on its own
         timeout_s = 1
         self.pco.wait_for_new_image(delay=True, timeout=timeout_s)
@@ -262,7 +535,19 @@ class PCOCamera(BaseCamera):
         return image
 
     def signal_acquisition_state(self):
-        """return a dict with the state of the acquisition buffers"""
+        """
+        Return a dictionary of the acquisition state: \n
+        - Frame Index - frame number of the acquisition \n
+        - Input Buffer Size - number of free frames in buffer \n
+        - Output Buffer Size - number of frames to grab from buffer \n
+        - Dropped Frames - number of dropped frames
+        - Data Rate [MB/s] - data rate of acquisition
+        - Frame Rate [fps] - frames per second of acquisition
+
+        :return: The acquisition state
+        :rtype: dict
+        """
+
         self.post_frame_time = time.time()
         frame_index = self.pco.rec.get_status()["dwProcImgCount"]
         print(frame_index)
@@ -291,26 +576,51 @@ class PCOCamera(BaseCamera):
         # return state
 
     def log_metadata(self):
+        """
+        Log all metadata from the camera to the logger.
+        """
         # log pco configuration settings
         # this is not a comprehensive dump of all metadata
         # todo is to figure out api calls to autodump everything
-        self.log.info('pco camera parameters')
+        self.log.info("pco camera parameters")
         configuration = self.pco.configuration
         for key in configuration:
-            self.log.info(f'{key}, {configuration[key]}')
+            self.log.info(f"{key}, {configuration[key]}")
 
     def _get_min_max_step_values(self):
+        """
+        Internal function that queries camera SDK to determine \n
+        minimum, maximumm, and step values.
+        """
         # gather min max values
         # convert from s to ms
-        self.min_exposure_time_ms = type(self).exposure_time_ms.minimum = self.pco.description['min exposure time']*1e3
-        self.max_exposure_time_ms = type(self).exposure_time_ms.maximum = self.pco.description['max exposure time']*1e3
-        self.step_exposure_time_ms = type(self).exposure_time_ms.step = self.pco.description['min exposure step']*1e3
-        self.min_width_px = type(self).width_px.minimum = self.pco.description['min width']
-        self.max_width_px = type(self).width_px.maximum = self.pco.description['max width']
-        self.min_height_px = type(self).height_px.minimum = self.pco.description['min height']
-        self.max_height_px = type(self).height_px.maximum = self.pco.description['max height']
-        self.step_width_px = type(self).width_px.step = self.pco.description['roi steps'][0]
-        self.step_height_px = type(self).height_px.step = self.pco.description['roi steps'][1]
+        self.min_exposure_time_ms = type(self).exposure_time_ms.minimum = (
+            self.pco.description["min exposure time"] * 1e3
+        )
+        self.max_exposure_time_ms = type(self).exposure_time_ms.maximum = (
+            self.pco.description["max exposure time"] * 1e3
+        )
+        self.step_exposure_time_ms = type(self).exposure_time_ms.step = (
+            self.pco.description["min exposure step"] * 1e3
+        )
+        self.min_width_px = type(self).width_px.minimum = self.pco.description[
+            "min width"
+        ]
+        self.max_width_px = type(self).width_px.maximum = self.pco.description[
+            "max width"
+        ]
+        self.min_height_px = type(self).height_px.minimum = self.pco.description[
+            "min height"
+        ]
+        self.max_height_px = type(self).height_px.maximum = self.pco.description[
+            "max height"
+        ]
+        self.step_width_px = type(self).width_px.step = self.pco.description[
+            "roi steps"
+        ][0]
+        self.step_height_px = type(self).height_px.step = self.pco.description[
+            "roi steps"
+        ][1]
         self.min_line_interval_us = type(self).line_interval_us.minimum = 20.0
         self.max_line_interval_us = type(self).line_interval_us.minimum = 100.0
         self.step_ine_interval_us = type(self).line_interval_us.step = 1.0
@@ -366,44 +676,56 @@ class PCOCamera(BaseCamera):
         # self.step_line_interval_us = 1.0
 
     def _query_trigger_modes(self):
+        """
+        Internal function that queries camera SDK to determine \n
+        trigger mode options.
+        """
 
         trigger_mode_options = {
-            'off': 'auto sequence',
-            'software': 'software trigger',
-            'external start & software trigger': "external exposure start & software trigger",
-            'external exposure control': 'external exposure control',
-            'external synchronized': 'external synchronized',
-            'fast external exposure control': 'fast external exposure control',
-            'external cds control': 'external CDS control',
-            'slow external exposure control': 'slow external exposure control',
-            'external synchronized hdsdi': 'external synchronized HDSDI'
+            "off": "auto sequence",
+            "software": "software trigger",
+            "external start & software trigger": "external exposure start & software trigger",
+            "external exposure control": "external exposure control",
+            "external synchronized": "external synchronized",
+            "fast external exposure control": "fast external exposure control",
+            "external cds control": "external CDS control",
+            "slow external exposure control": "slow external exposure control",
+            "external synchronized hdsdi": "external synchronized HDSDI",
         }
 
         for key in trigger_mode_options:
             try:
                 self.pco.sdk.set_trigger_mode(mode=trigger_mode_options[key])
-                TRIGGERS['modes'][key] = trigger_mode_options[key]
-            except:
+                TRIGGERS["modes"][key] = trigger_mode_options[key]
+            except key.DoesNotExist:
                 self.log.debug(f"{key} not avaiable on this camera")
         # initialize as off
-        self.pco.sdk.set_trigger_mode(mode=trigger_mode_options['off'])
+        self.pco.sdk.set_trigger_mode(mode=trigger_mode_options["off"])
 
     def _query_readout_modes(self):
+        """
+        Internal function that queries camera SDK to determine \n
+        readout mode options.
+        """
 
         readout_mode_options = {
-            'light sheet forward': 'top bottom',
-            'rolling in': 'top center bottom center',
-            'rolling out': "center top center bottom",
-            'rolling up': 'center top center bottom',
-            'rolling down': 'top center center bottom',
-            'light sheet backward': 'inverse',
+            "light sheet forward": "top bottom",
+            "rolling in": "top center bottom center",
+            "rolling out": "center top center bottom",
+            "rolling up": "center top center bottom",
+            "rolling down": "top center center bottom",
+            "light sheet backward": "inverse",
         }
 
         for key in readout_mode_options:
             try:
-                self.pco.sdk.set_interface_output_format(interface='edge', format=readout_mode_options[key])
+                self.pco.sdk.set_interface_output_format(
+                    interface="edge", format=readout_mode_options[key]
+                )
                 READOUT_MODES[key] = readout_mode_options[key]
-            except:
+            except key.DoesNotExist:
                 self.log.debug(f"{key} not avaiable on this camera")
         # initialize as rolling in shutter
-        self.pco.sdk.set_interface_output_format(interface='edge', format=readout_mode_options['rolling in'])
+        self.pco.sdk.set_interface_output_format(
+            interface="edge", format=readout_mode_options["rolling in"]
+        )
