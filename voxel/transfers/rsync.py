@@ -1,11 +1,9 @@
-"""File Transfer process in a separate class for Win/Linux compatibility."""
 import os
 import time
 import logging
-import sys
 import threading
 import shutil
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen
 from pathlib import Path
 from typing import List, Any, Iterable
 
@@ -14,10 +12,7 @@ class FileTransfer():
     def __init__(self, external_directory: str, local_directory: str):
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        # check path for forward slashes
-        if '\\' in external_directory or '/' not in external_directory:
-            assert ValueError('external_directory string should only contain / not \\')
-        self._external_directory = str(external_directory)
+        self._external_directory = Path(external_directory)
         self._local_directory = Path(local_directory)
         if self._external_directory == self._local_directory:
             raise ValueError('External directory and local directory cannot be the same')
@@ -50,10 +45,7 @@ class FileTransfer():
         return self._local_directory
 
     @local_directory.setter
-    def local_directory(self, local_directory: str or Path):
-        if '\\' in str(local_directory) or '/' not in str(local_directory):
-            assert ValueError('external_directory string should only contain / not \\')
-        # add a forward slash at end so directory name itself is not copied, contents only
+    def local_directory(self, local_directory: str):
         self._local_directory = Path(local_directory)
         self.log.info(f'setting local path to: {local_directory}')
 
@@ -62,10 +54,7 @@ class FileTransfer():
         return self._external_directory
 
     @external_directory.setter
-    def external_directory(self, external_directory: str or Path):
-        if '\\' in str(external_directory) or '/' not in str(external_directory):
-            assert ValueError('external_directory string should only contain / not \\')
-        # add a forward slash at end so directory name itself is not copied, contents only
+    def external_directory(self, external_directory: str):
         self._external_directory = str(external_directory)
         self.log.info(f'setting local path to: {external_directory}')
 
@@ -118,23 +107,25 @@ class FileTransfer():
             if not os.path.isdir(external_dir):
                 os.makedirs(external_dir)
             # setup log file
-            log_path = Path(f'{self._local_directory.absolute()}/{self._filename}.txt')
+            log_path = Path(self._local_directory, f"{self._filename}.txt")
             self._log_file = open(log_path, 'w')
             self.log.info(f"transferring {file_path} from {self._local_directory} to {self._external_directory}")
             # generate rsync command with args
             cmd_with_args = self._flatten([self._protocol,
                                            self._flags,
                                            file_path,
-                                           Path(external_dir) / Path(filename)])
+                                           Path(external_dir, filename)])
             subprocess = Popen(cmd_with_args, stdout=self._log_file)
             self._log_file.close()
             time.sleep(0.01)
             # lets monitor the progress of the individual file if size > 1 GB
             if file_size_mb > 1024:
+                # wait for subprocess to start otherwise log file won't exist yet
+                time.sleep(1.0)
                 file_progress = 0
                 while file_progress < 100:
                     # open the stdout file in a temporary handle with r+ mode
-                    f = open(f'{self._local_directory / self._log_file}', 'r+')
+                    f = open(log_path, 'r+')
                     # read the last line
                     line = f.readlines()[-1]
                     # try to find if there is a % in the last line
@@ -165,6 +156,7 @@ class FileTransfer():
                     # sum to transferred amount to track progress
                     self.progress = (total_transferred_mb +
                                     file_size_mb * file_progress / 100) / total_size_mb * 100
+                    self.log.info(f'file transfer is {self.progress:.2f} % complete.')
                     # close temporary stdout file handle
                     f.close()
                     # pause for 1 sec
@@ -172,6 +164,7 @@ class FileTransfer():
             else:
                 subprocess.wait()
                 self.progress = (total_transferred_mb + file_size_mb) / total_size_mb * 100
+                self.log.info(f'file transfer is {self.progress:.2f} % complete.')
             # clean up and remove the temporary log file
             os.remove(log_path)
             # update the total transfered amount
@@ -190,6 +183,7 @@ class FileTransfer():
             else:
                 raise ValueError(f'{f} is not a file or directory.')
         self.log.info(f"transfer finished")
+        subprocess.kill()
 
     def _flatten(self, lst: List[Any]) -> Iterable[Any]:
         """Flatten a list using generators comprehensions.

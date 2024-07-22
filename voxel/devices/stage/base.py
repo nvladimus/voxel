@@ -11,14 +11,18 @@ class BaseStage:
     def instrument_axis(self):
         raise ValueError
 
-    def move_relative_mm(self, position: float, wait: bool = True):
+    # def move_relative_mm(self, position: float, wait: bool = True):
+    #     self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+    #     pass
+    #
+    # def move_absolute_mm(self, position: float, wait: bool = True):
+    #     self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+    #     pass
+
+    def setup_step_shoot_scan(self, step_size_um: float):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
-
-    def move_absolute_mm(self, position: float, wait: bool = True):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
+    
     def setup_stage_scan(self, fast_axis_start_position: float,
                          slow_axis_start_position: float,
                          slow_axis_stop_position: float,
