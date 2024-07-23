@@ -1,7 +1,5 @@
 import numpy as np
 import logging
-import multiprocessing
-import re
 import os
 import sys
 import tifffile
@@ -10,7 +8,6 @@ from multiprocessing import Process, Array, Value, Event
 from multiprocessing.shared_memory import SharedMemory
 from ctypes import c_wchar
 from pathlib import Path
-from datetime import datetime
 from time import sleep, perf_counter
 from math import ceil
 
@@ -24,6 +21,7 @@ DATA_TYPES = {
     "uint8",
     "uint16"
 }
+
 
 class Writer(BaseWriter):
 
@@ -47,6 +45,8 @@ class Writer(BaseWriter):
         self._z_voxel_size_um = None
         self._y_voxel_size_um = None
         self._x_voxel_size_um = None
+        # share double value to update inside process
+        self.progress = Value('d', 0.0)
         # Opinioated decision on chunking dimension order
         self.chunk_dim_order = ('z', 'y', 'x')
         # Flow control attributes to synchronize inter-process communication.
@@ -58,6 +58,7 @@ class Writer(BaseWriter):
     def signal_progress_percent(self):
         # convert to %
         state = {'Progress [%]': self.progress.value*100}
+        self.log.info(f'Progress [%]: {self.progress.value*100}')
         return state
 
     @property
@@ -201,7 +202,6 @@ class Writer(BaseWriter):
         self.log.info(f'setting shared memory to: {name}')
 
     def prepare(self):
-        self.progress = multiprocessing.Value('d', 0.0)
         self.p = Process(target=self._run, args=(self.progress,))
         # Specs for reconstructing the shared memory object.
         self._shm_name = Array(c_wchar, 32)  # hidden and exposed via property.

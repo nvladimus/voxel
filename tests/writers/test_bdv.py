@@ -2,25 +2,16 @@ import numpy
 import time
 import math
 import threading
-import os
-from pathlib import Path
-from ruamel.yaml import YAML
-from threading import Event, Thread
 from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
-from multiprocessing.shared_memory import SharedMemory
 from voxel.writers.bdv import Writer
 
 if __name__ == '__main__':
-
-    this_dir = Path(__file__).parent.resolve() # directory of this test file.
-    config_path = this_dir / Path("test_bdv.yaml")
-    config = YAML().load(Path(config_path))
 
     chunk_size_frames = 128
     num_frames = 256
     num_tiles = 1
 
-    stack_writer_worker = Writer(config['writer']['path'])
+    stack_writer_worker = Writer('.')
     stack_writer_worker.row_count_px = 2048
     stack_writer_worker.column_count_px = 2048
     stack_writer_worker.x_voxel_size_um = 0.748
@@ -28,9 +19,10 @@ if __name__ == '__main__':
     stack_writer_worker.z_voxel_size_um = 1
     stack_writer_worker.theta_deg = 45
     stack_writer_worker.frame_count_px = num_frames
-    stack_writer_worker.compression = config['writer']['compression']
-    stack_writer_worker.data_type = config['writer']['data_type']
+    stack_writer_worker.compression = 'none'
+    stack_writer_worker.data_type = 'uint16'
     stack_writer_worker.channel = '488'
+    stack_writer_worker.acquisition_name = 'test'
     frame_index = 0
     tile_index = 0
 
@@ -56,7 +48,7 @@ if __name__ == '__main__':
                      stack_writer_worker.column_count_px)
 
         img_buffer = SharedDoubleBuffer(mem_shape,
-                                        dtype=config['writer']['data_type'])
+                                        dtype='uint16')
 
         chunk_lock = threading.Lock()
 
@@ -74,7 +66,7 @@ if __name__ == '__main__':
                     low=0,
                     high=256,
                     size=(stack_writer_worker.row_count_px, stack_writer_worker.column_count_px),
-                    dtype = config['writer']['data_type']
+                    dtype = 'uint16'
                 ))
             else:
                 img_buffer.add_image( \
@@ -82,11 +74,12 @@ if __name__ == '__main__':
                         low=0,
                         high=32,
                         size=(stack_writer_worker.row_count_px, stack_writer_worker.column_count_px),
-                        dtype = config['writer']['data_type']
+                        dtype = 'uint16'
                     ))
             # mimic 5 fps imaging
             time.sleep(0.05)
             frame_index += 1
+            print(stack_writer_worker.signal_progress_percent)
             # Dispatch either a full chunk of frames or the last chunk,
             # which may not be a multiple of the chunk size.
             if chunk_index == chunk_size_frames - 1 or stack_index == last_frame_index:
@@ -101,16 +94,11 @@ if __name__ == '__main__':
                 # written yet.
                 with chunk_lock:
                     img_buffer.toggle_buffers()
-                    if config['writer']['path'] is not None:
-                        stack_writer_worker.shm_name = \
-                            img_buffer.read_buf_mem_name
-                        stack_writer_worker.done_reading.clear()
+                    stack_writer_worker.shm_name = \
+                        img_buffer.read_buf_mem_name
+                    stack_writer_worker.done_reading.clear()
 
         stack_writer_worker.wait_to_finish()
 
         img_buffer.close_and_unlink()
         del img_buffer
-
-        # remove files
-        # os.remove(f'test_{tile_index}.h5')
-        # os.remove(f'test_{tile_index}.xml')

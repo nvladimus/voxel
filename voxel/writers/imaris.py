@@ -5,7 +5,7 @@ import re
 import os
 import sys
 from voxel.writers.base import BaseWriter
-from multiprocessing import Process, Array, Event
+from multiprocessing import Process, Array, Event, Value
 from multiprocessing.shared_memory import SharedMemory
 from ctypes import c_wchar
 from PyImarisWriter import PyImarisWriter as pw
@@ -28,6 +28,7 @@ DATA_TYPES = [
     "uint16"
 ]
 
+
 class ImarisProgressChecker(pw.CallbackClass):
     """Class for tracking progress of an active ImarisWriter disk-writing
     operation."""
@@ -37,6 +38,7 @@ class ImarisProgressChecker(pw.CallbackClass):
 
     def RecordProgress(self, progress, total_bytes_written):
         self.progress = progress
+
 
 class Writer(BaseWriter):
 
@@ -63,7 +65,8 @@ class Writer(BaseWriter):
         self._z_position_mm = 0
         self._theta_deg = 0
         self._channel = None
-        self.progress = 0
+        # share double value to update inside process
+        self.progress = Value('d', 0.0)
         # Opinioated decision on chunking dimension order
         self.chunk_dim_order = ('z', 'y', 'x')
         # Flow control attributes to synchronize inter-process communication.
@@ -76,7 +79,8 @@ class Writer(BaseWriter):
     @property
     def signal_progress_percent(self):
         # convert to %
-        state = {'Progress [%]': self.progress*100}
+        state = {'Progress [%]': self.progress.value*100}
+        self.log.info(f'Progress [%]: {self.progress.value*100}')
         return state
 
     @property
@@ -246,7 +250,7 @@ class Writer(BaseWriter):
         self.log.info(f'setting shared memory to: {name}')
 
     def prepare(self):
-        self.p = Process(target=self._run)
+        self.p = Process(target=self._run, args=(self.progress,))
         # Specs for reconstructing the shared memory object.
         self._shm_name = Array(c_wchar, 32)  # hidden and exposed via property.
         # This is almost always going to be: (chunk_size, rows, columns).
@@ -308,7 +312,7 @@ class Writer(BaseWriter):
         self.log.info(f"{self._filename}: starting writer.")
         self.p.start()
 
-    def _run(self):
+    def _run(self, shared_progress):
         """Loop to wait for data from a specified location and write it to disk
         as an Imaris file. Close up the file afterwards.
 
@@ -348,8 +352,10 @@ class Writer(BaseWriter):
                   f"{perf_counter() - start_time:.3f} [s]")
             shm.close()
             self.done_reading.set()
+            # update shared value progress range 0-1
+            shared_progress.value = self.callback_class.progress
 
-        # Wait for file writing to finish.
+        # wait for file writing to finish
         if self.callback_class.progress < 1.0:
             logger.warning(f"{self._filename}: waiting for data writing to complete for "
                   f"{self._filename}. "

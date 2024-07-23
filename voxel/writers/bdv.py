@@ -1,16 +1,13 @@
 import numpy as np
 import logging
-import multiprocessing
-import re
 import os
 import sys
 from voxel.writers.base import BaseWriter
 from voxel.writers.bdv_writer import npy2bdv
 from multiprocessing import Process, Array, Value, Event
 from multiprocessing.shared_memory import SharedMemory
-from ctypes import c_wchar, c_int
+from ctypes import c_wchar
 from pathlib import Path
-from datetime import datetime
 from time import sleep, perf_counter
 from math import ceil
 
@@ -35,6 +32,7 @@ DATA_TYPES = [
 
 # TODO ADD DOWNSAMPLE METHOD TO GET PASSED INTO NPY2BDV
 
+
 class Writer(BaseWriter):
 
     def __init__(self, path: str):
@@ -53,7 +51,8 @@ class Writer(BaseWriter):
         self._row_count_px = None
         self._column_count_px = None
         self._frame_count_px_px = None
-        self.progress = Value(c_int, 0)
+        # share double value to update inside process
+        self.progress = Value('d', 0.0)
         self._x_voxel_size_um_um = 1
         self._y_voxel_size_um_um = 1
         self._z_voxel_size_um_um = 1
@@ -269,7 +268,6 @@ class Writer(BaseWriter):
         self.log.info(f'setting shared memory to: {name}')
         
     def prepare(self):
-        self.progress = multiprocessing.Value('d', 0.0)
         self.p = Process(target=self._run, args=(self.progress,))
         # Specs for reconstructing the shared memory object.
         self._shm_name = Array(c_wchar, 32)  # hidden and exposed via property.
@@ -335,7 +333,7 @@ class Writer(BaseWriter):
         affine_shift = np.array(
                             ([1.0, 0.0, 0.0, shift_x],
                             [0.0, 1.0, 0.0, shift_y],
-                            [0.0, 0.0, 1.0, 0.0]))
+                            [0.0, 0.0, 1.0, shift_z]))
 
         self.affine_deskew_dict[(self.current_tile_num, self.current_channel_num)] = affine_deskew
         self.affine_scale_dict[(self.current_tile_num, self.current_channel_num)] = affine_scale
@@ -380,6 +378,7 @@ class Writer(BaseWriter):
                   )
         # bdv requires input string not Path
         filepath = str(Path(self._path, self._acquisition_name, self._filename).absolute())
+        print(filepath)
         # re-initialize bdv writer for tile/channel list
         # required to dump all datasets in a single bdv file
         bdv_writer = npy2bdv.BdvWriter(
@@ -447,7 +446,7 @@ class Writer(BaseWriter):
                   f"{perf_counter() - start_time:.3f} [s]")
             shm.close()
             self.done_reading.set()
-            # NEED TO USE SHARED VALUE HERE
+            # update shared progress value
             shared_progress.value = (chunk_num+1)/chunk_total
 
         # Wait for file writing to finish.

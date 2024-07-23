@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     for tile_index in range(num_tiles):
         
-        stack_writer_worker = Writer(f'test_{tile_index}.ims')
+        stack_writer_worker = Writer('.')
         stack_writer_worker.row_count_px = 2048
         stack_writer_worker.column_count_px = 2048
         stack_writer_worker.x_voxel_size_um = 0.748
@@ -33,11 +33,12 @@ if __name__ == '__main__':
         stack_writer_worker.z_voxel_size_um = 1
         stack_writer_worker.theta_deg = 45
         stack_writer_worker.frame_count_px = num_frames
-        stack_writer_worker.compression = config['writer']['compression']
-        stack_writer_worker.data_type = config['writer']['data_type']
-        stack_writer_worker.path = config['writer']['path']
-        stack_writer_worker.color = config['writer']['color']
+        stack_writer_worker.compression = 'lz4shuffle'
+        stack_writer_worker.data_type = 'uint16'
+        stack_writer_worker.color = '#00ff92'
         stack_writer_worker.channel = '488'
+        stack_writer_worker.filename = 'data.ims'
+        stack_writer_worker.acquisition_name = 'test'
 
         # move tile over 1 mm
         stack_writer_worker.x_position_mm = 0 + tile_index*1.000
