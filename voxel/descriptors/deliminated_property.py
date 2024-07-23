@@ -120,7 +120,7 @@ def deliminated_property(
         minimum: Union[T, Callable[[Any], T]] = float('-inf'),
         maximum: Union[T, Callable[[Any], T]] = float('inf'),
         step: Optional[T] = None,
-        unit: Optional[str] = None,
+        unit: str = ""
 ) -> Callable[[Callable[[Any], T]], DeliminatedProperty[T]]:
     """
     Decorator for DeliminatedProperty.  \n
