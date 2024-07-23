@@ -88,6 +88,7 @@ class Camera(BaseCamera):
         self._trigger = {'mode': 'on',
                          'source': 'internal',
                          'polarity': 'rising'}
+        self._latest_frame = None
 
     @DeliminatedProperty(minimum=MIN_EXPOSURE_TIME_MS, maximum=MAX_EXPOSURE_TIME_MS, step=0.001)
     def exposure_time_ms(self):
@@ -239,10 +240,15 @@ class Camera(BaseCamera):
 
         self.frame += 1
         image = numpy.random.randint(low=128, high=256, size=(self._height_px, self._width_px), dtype=self._pixel_type)
+        self._latest_frame = image
         if self._binning > 1:
             return self.gpu_binning.run(image)
         else:
             return image
+
+    @property
+    def latest_frame(self):
+        return self._latest_frame
 
     # def signal_acquisition_state(self):
     #     """return a dict with the state of the acquisition buffers"""
