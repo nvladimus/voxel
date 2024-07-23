@@ -1,15 +1,34 @@
-import os
-import time
 import logging
-import threading
+import os
 import shutil
 import sys
-from imohash import hashfile
-from subprocess import Popen
+import threading
+import time
 from pathlib import Path
-from typing import List, Any, Iterable
+from subprocess import Popen
+from typing import Any, Iterable, List
 
-class FileTransfer():
+from imohash import hashfile
+
+from voxel.file_transfers.base import BaseFileTransfer
+
+
+class RsyncFileTransfer(BaseFileTransfer):
+    """
+    Voxel driver for Rsync file transfer process.
+
+    Process will transfer files with the following regex\n
+    format:\n
+    \n
+    From -> \\local_path\\acquisition_name\\filename*\n
+    To -> \\external_path\\acquisition_name\\filename*\n
+    \n
+    :param external_path: External path of files to be transferred
+    :param local_path: Local path of files to be transferred
+    :type external_path: str
+    :type local_path: str
+    :raise ValueError: Same external and local path
+    """
 
     def __init__(self, external_path: str, local_path: str):
         super().__init__()
@@ -17,11 +36,13 @@ class FileTransfer():
         self._external_path = Path(external_path)
         self._local_path = Path(local_path)
         if self._external_path == self._local_path:
-            raise ValueError('External directory and local directory cannot be the same')
+            raise ValueError(
+                "External path and local path cannot be the same"
+            )
         self._filename = None
         self._max_retry = 0
         self._acquisition_name = Path()
-        self._protocol = 'rsync'
+        self._protocol = "rsync"
         self._verify_transfer = False
         self._num_tries = 1
         self._timeout_s = 60
@@ -36,114 +57,238 @@ class FileTransfer():
         # --progress outputs progress which is piped to log file
         # --recursive transfers all files in directory sequentially
         # --info=progress2 outputs % progress for all files not sequentially for each file
-        self._flags = ['--progress', '--recursive', '--info=progress2']
+        self._flags = ["--progress", "--recursive", "--info=progress2"]
 
     @property
     def filename(self):
+        """
+        The base filename of files to be transferred.
+
+        :return: The base filename
+        :rtype: str
+        """
+
         return self._filename
 
     @filename.setter
     def filename(self, filename: str):
-        self.log.info(f'setting filename to: {filename}')
+        """
+        The base filename of files to be transferred.
+
+        :param value: The base filename
+        :type value: str
+        """
+
+        self.log.info(f"setting filename to: {filename}")
         self._filename = filename
 
     @property
     def acquisition_name(self):
+        """
+        The base acquisition name of files to be transferred.
+
+        :return: The base filename
+        :rtype: str
+        """
+
         return self._acquisition_name
 
     @acquisition_name.setter
     def acquisition_name(self, acquisition_name: str):
+        """
+        The base acquisition name of files to be transferred.
+
+        :param value: The base acquisition_name
+        :type value: str
+        """
+
         self._acquisition_name = Path(acquisition_name)
-        self.log.info(f'setting acquisition name to: {acquisition_name}')
-        
+        self.log.info(f"setting acquisition name to: {acquisition_name}")
+
     @property
     def local_path(self):
+        """
+        The local path of files to be transferred.
+
+        :return: The local path
+        :rtype: str
+        """
+
         return self._local_path
 
     @local_path.setter
     def local_path(self, local_path: str):
+        """
+        The local path of files to be transferred.
+
+        :param value: The local path
+        :type value: str
+        """
+
         self._local_path = Path(local_path)
-        self.log.info(f'setting local path to: {local_path}')
+        self.log.info(f"setting local path to: {local_path}")
 
     @property
     def external_path(self):
+        """
+        The external path of files to be transferred.
+
+        :return: The external path
+        :rtype: str
+        """
+
         return self._external_path
 
     @external_path.setter
     def external_path(self, external_path: str):
-        self._external_path = str(external_path)
-        self.log.info(f'setting local path to: {external_path}')
+        """
+        The external path of files to be transferred.
+
+        :param value: The external path
+        :type value: str
+        """
+
+        self._external_path = Path(external_path)
+        self.log.info(f"setting local path to: {external_path}")
 
     @property
     def verify_transfer(self):
+        """
+        State of transfer process.
+
+        :return: The transfer process state
+        :rtype: str
+        """
+
         return self._verify_transfer
 
     @verify_transfer.setter
     def verify_transfer(self, verify_transfer: bool):
+        """
+        State of transfer process.
+
+        :param value: The transfer process state
+        :type value: bool
+        """
+
         self._verify_transfer = verify_transfer
-        self.log.info(f'setting verify transfer to: {verify_transfer}')
+        self.log.info(f"setting verify transfer to: {verify_transfer}")
 
     @property
     def max_retry(self):
+        """
+        Number of times to retry the transfer process.
+
+        :return: Number of retry attempts
+        :rtype: int
+        """
+
         return self._max_retry
 
     @max_retry.setter
     def max_retry(self, max_retry: int):
+        """
+        Number of times to retry the transfer process.
+
+        :param value: Number of retry attempts
+        :type value: int
+        """
+
         self._max_retry = max_retry
-        self.log.info(f'setting max retry to: {max_retry}')
+        self.log.info(f"setting max retry to: {max_retry}")
 
     @property
     def timeout_s(self):
+        """
+        Timeout for the transfer process.
+
+        :return: Timeout in seconds
+        :rtype: float
+        """
+
         return self._timeout_s
 
     @timeout_s.setter
     def timeout_s(self, timeout_s: float):
+        """
+        Timeout for the transfer process.
+
+        :param value: Timeout in seconds
+        :type value: float
+        """
+
         self._timeout_s = timeout_s
-        self.log.info(f'setting timeout to: {timeout_s}')
+        self.log.info(f"setting timeout to: {timeout_s}")
 
     @property
     def signal_progress_percent(self):
+        """
+        Get the progress of the transfer process.
+
+        :return: Progress in percent
+        :rtype: float
+        """
+
         state = {}
-        state['Transfer Progress [%]'] = self.progress
-        self.log.info(f'{self._filename} transfer progress: {self.progress:.2f} [%]')
+        state["Transfer Progress [%]"] = self.progress
+        self.log.info(f"{self._filename} transfer progress: {self.progress:.2f} [%]")
         return state
 
-    def _verify_file(self, local_file_path: str, external_file_path: str):
-        # verifying large files with a full checksum is too time consuming
-        # verifying based on file size alone is not thorough
-        # use imohash library to perform hasing on small subset of file
-        # imohash defaults to reading 16K bits (i.e. 1<<14) from beginning, middle, and end
-        local_hash = hashfile(local_file_path, sample_size=1<<14)
-        external_hash = hashfile(external_file_path, sample_size=1<<14)
-        if local_hash == external_hash:
-            self.log.info(f'{local_file_path} and {external_file_path} hashes match')
-            return True
-        else:
-            self.log.info(f'hash mismatch for {local_file_path} and {external_file_path}')
-            self.log.info(f'{local_file_path} hash = {local_hash}')
-            self.log.info(f'{external_file_path} hash = {external_hash}')
-            return False
-        
     def start(self):
         self.log.info(f"transferring from {self._local_path} to {self._external_path}")
         self.thread = threading.Thread(target=self._run)
         self.thread.start()
 
     def wait_until_finished(self):
+        """
+        Wait for the transfer process to finish.
+        """
+
         self.thread.join()
 
     def is_alive(self):
+        """
+        Check if the transfer process is still running.
+        """
+
         return self.thread.is_alive()
 
+    def _verify_file(self, local_file_path: str, external_file_path: str):
+        """
+        Internal function that hash checks a transfered file.
+
+        :return: State of transfered file
+        :rtype: bool
+        """
+        # verifying large files with a full checksum is too time consuming
+        # verifying based on file size alone is not thorough
+        # use imohash library to perform hasing on small subset of file
+        # imohash defaults to reading 16K bits (i.e. 1<<14) from beginning, middle, and end
+        local_hash = hashfile(local_file_path, sample_size=1 << 14)
+        external_hash = hashfile(external_file_path, sample_size=1 << 14)
+        if local_hash == external_hash:
+            self.log.info(f"{local_file_path} and {external_file_path} hashes match")
+            return True
+        else:
+            self.log.info(
+                f"hash mismatch for {local_file_path} and {external_file_path}"
+            )
+            self.log.info(f"{local_file_path} hash = {local_hash}")
+            self.log.info(f"{external_file_path} hash = {external_hash}")
+            return False
+
     def _run(self):
-      
+        """
+        Internal function that runs the transfer process.
+        """
+
         local_directory = Path(self._local_path, self._acquisition_name)
         external_directory = Path(self._external_path, self._acquisition_name)
-        
+
         transfer_complete = False
         retry_num = 0
         # loop over number of attempts in the event that a file transfer fails
-        while transfer_complete == False and retry_num <= self._max_retry-1:
+        while transfer_complete == False and retry_num <= self._max_retry - 1:
             # generate a list of subdirs and files in the parent local dir to delete at the end
             delete_list = []
             for name in os.listdir(local_directory.absolute()):
@@ -158,50 +303,61 @@ class FileTransfer():
                 for name in files:
                     # check and only add if filename matches tranfer's filename
                     if self.filename in name:
-                        file_list[os.path.join(path, name)] = os.path.getsize(os.path.join(path, name))/1024**2
+                        file_list[os.path.join(path, name)] = (
+                            os.path.getsize(os.path.join(path, name)) / 1024**2
+                        )
             total_size_mb = sum(file_list.values())
             # sort the file list based on the file sizes and create a list for transfers
-            sorted_file_list = dict(sorted(file_list.items(), key = lambda item: item[1]))
+            sorted_file_list = dict(sorted(file_list.items(), key=lambda item: item[1]))
             total_transferred_mb = 0
             # if file list is empty, transfer must be complete
             if not sorted_file_list:
                 transfer_complete = True
             # if not, try to initiate transfer again
             else:
-                self.log.info(f'starting file transfer attempt {retry_num+1}/{self._max_retry}')
+                self.log.info(
+                    f"starting file transfer attempt {retry_num+1}/{self._max_retry}"
+                )
                 for file_path, file_size_mb in sorted_file_list.items():
                     # transfer just one file and iterate
                     # split filename and path
                     [local_dir, filename] = os.path.split(file_path)
                     # specify external directory
                     # need to change directories to str because they are Path objects
-                    external_dir = local_dir.replace(str(local_directory), str(external_directory))
+                    external_dir = local_dir.replace(
+                        str(local_directory), str(external_directory)
+                    )
                     # make external directory tree if needed
                     if not os.path.isdir(external_dir):
                         os.makedirs(external_dir)
                     # setup log file
                     log_path = Path(local_directory, f"{self._filename}.txt")
-                    self._log_file = open(log_path, 'w')
-                    self.log.info(f"transferring {file_path} from {local_directory} to {external_directory}")
+                    self._log_file = open(log_path, "w")
+                    self.log.info(
+                        f"transferring {file_path} from {local_directory} to {external_directory}"
+                    )
                     # generate rsync command with args
                     if sys.platform == "win32":
                         # if windows, rsync expects absolute paths with driver letters to use
                         # /cygdrive/drive-letter and / not \
                         # example: /cygdrive/c/test/filename.extension
-                        file_path = file_path.replace('\\', '/').replace(':', '')
-                        file_path = '/cygdrive/' + file_path
-                        external_dir = external_dir.replace('\\', '/').replace(':', '')
-                        external_dir = '/cygdrive/' + external_dir + '/' + filename
-                        cmd_with_args = self._flatten([self._protocol,
-                                        self._flags,
-                                        file_path,
-                                        external_dir])
-                    elif sys.platform == 'darwin' or 'linux' or 'linux2':
+                        file_path = file_path.replace("\\", "/").replace(":", "")
+                        file_path = "/cygdrive/" + file_path
+                        external_dir = external_dir.replace("\\", "/").replace(":", "")
+                        external_dir = "/cygdrive/" + external_dir + "/" + filename
+                        cmd_with_args = self._flatten(
+                            [self._protocol, self._flags, file_path, external_dir]
+                        )
+                    elif sys.platform == "darwin" or "linux" or "linux2":
                         # linux or darwin, paths defined as below
-                        cmd_with_args = self._flatten([self._protocol,
-                                        self._flags,
-                                        file_path,
-                                        Path(external_dir, filename)])
+                        cmd_with_args = self._flatten(
+                            [
+                                self._protocol,
+                                self._flags,
+                                file_path,
+                                Path(external_dir, filename),
+                            ]
+                        )
                     subprocess = Popen(cmd_with_args, stdout=self._log_file)
                     self._log_file.close()
                     time.sleep(1.0)
@@ -215,17 +371,17 @@ class FileTransfer():
                         while file_progress < 100:
                             start_time_s = time.time()
                             # open the stdout file in a temporary handle with r+ mode
-                            f = open(log_path, 'r+')
+                            f = open(log_path, "r+")
                             # read the last line
                             line = f.readlines()[-1]
                             # try to find if there is a % in the last line
                             try:
                                 # grab the index of the % symbol
-                                index = line.find('%')
+                                index = line.find("%")
                                 # a location with % has been found
                                 if index != -1:
                                     # grab the string of the % progress
-                                    value = line[index-4:index]
+                                    value = line[index - 4: index]
                                     # strip and convert to float
                                     file_progress = float(value.rstrip())
                                 # we must be at the last line of the file
@@ -235,46 +391,60 @@ class FileTransfer():
                                     # read line that must be 100% line
                                     line = f.readlines()[-4]
                                     # grab the index of the % symbol
-                                    index = line.find('%')
+                                    index = line.find("%")
                                     # grab the string of the % progress
-                                    value = line[index-4:index]
+                                    value = line[index - 4 : index]
                                     # strip and convert to float
                                     file_progress = float(value.rstrip())
-                            # no lines in the file yet          
+                            # no lines in the file yet
                             except:
                                 file_progress = 0
                             # sum to transferred amount to track progress
-                            self.progress = (total_transferred_mb +
-                                            file_size_mb * file_progress / 100) / total_size_mb * 100
+                            self.progress = (
+                                (
+                                    total_transferred_mb
+                                    + file_size_mb * file_progress / 100
+                                )
+                                / total_size_mb
+                                * 100
+                            )
                             end_time_s = time.time()
                             # keep track of how long stuck at same progress
                             if self.progress == previous_progress:
-                                stuck_time_s += (end_time_s - start_time_s)
+                                stuck_time_s += end_time_s - start_time_s
                                 # break if exceeds timeout
-                                if stuck_time_s >+ self._timeout_s:
+                                if stuck_time_s > +self._timeout_s:
                                     break
                             previous_progress = self.progress
-                            self.log.info(f'file transfer is {self.progress:.2f} % complete.')
+                            self.log.info(
+                                f"file transfer is {self.progress:.2f} % complete."
+                            )
                             # close temporary stdout file handle
                             f.close()
                             # pause for 10 sec
                             time.sleep(10.0)
                     else:
                         subprocess.wait()
-                        self.progress = (total_transferred_mb + file_size_mb) / total_size_mb * 100
-                        self.log.info(f'file transfer is {self.progress:.2f} % complete.')
+                        self.progress = (
+                            (total_transferred_mb + file_size_mb) / total_size_mb * 100
+                        )
+                        self.log.info(
+                            f"file transfer is {self.progress:.2f} % complete."
+                        )
                     # wait for process to finish before cleaning log file
                     time.sleep(10.0)
                     # clean up and remove the temporary log file
                     os.remove(log_path)
                     # update the total transfered amount
                     total_transferred_mb += file_size_mb
-                    # self.log.info(f'file transfer is {self.progress:.2f} % complete.')         
+                    # self.log.info(f'file transfer is {self.progress:.2f} % complete.')
                 # clean up the local subdirs and files
                 for file in delete_list:
                     # f is a relative path, convert to absolute
                     local_file_path = os.path.join(local_directory.absolute(), file)
-                    external_file_path = os.path.join(external_directory.absolute(), file)
+                    external_file_path = os.path.join(
+                        external_directory.absolute(), file
+                    )
                     # .zarr is directory but os.path.isdir will return False
                     if os.path.isdir(local_file_path) or ".zarr" in local_dir:
                         # TODO how to hash check zarr -> directory instead of file?
@@ -285,35 +455,43 @@ class FileTransfer():
                             # put in try except in case no external file found
                             try:
                                 # if hash is verified delete file
-                                if self._verify_file(local_file_path, external_file_path):
+                                if self._verify_file(
+                                    local_file_path, external_file_path
+                                ):
                                     # remove local file
-                                    self.log.info(f'deleting {local_file_path}')
+                                    self.log.info(f"deleting {local_file_path}")
                                     os.remove(local_file_path)
                                 # if has fails, external file is corrupt
                                 else:
                                     # remove external file, try again
-                                    self.log.info(f'hashes did not match, deleting {external_file_path}')
+                                    self.log.info(
+                                        f"hashes did not match, deleting {external_file_path}"
+                                    )
                                     os.remove(external_file_path)
                                     pass
-                            except:
-                                self.log.warning(f'no external file exists at {external_file_path}')
+                            except external_file_path.DoesNotExist:
+                                self.log.warning(
+                                    f"no external file exists at {external_file_path}"
+                                )
                         else:
                             # remove local file
-                            self.log.info(f'deleting {local_file_path}')
+                            self.log.info(f"deleting {local_file_path}")
                             os.remove(local_file_path)
                     else:
-                        raise ValueError(f'{local_file_path} is not a file or directory.')
+                        self.log.warning(
+                            f"{local_file_path} is not a file or directory."
+                        )
                 self.log.info(f"transfer finished")
                 subprocess.kill()
                 retry_num += 1
 
     def _flatten(self, lst: List[Any]) -> Iterable[Any]:
         """Flatten a list using generators comprehensions.
-            Returns a flattened version of list lst.
+        Returns a flattened version of list lst.
         """
         for sublist in lst:
-             if isinstance(sublist, list):
-                 for item in sublist:
-                     yield item
-             else:
-                 yield sublist
+            if isinstance(sublist, list):
+                for item in sublist:
+                    yield item
+            else:
+                yield sublist
