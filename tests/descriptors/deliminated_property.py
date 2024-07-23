@@ -1,13 +1,13 @@
-from voxel.descriptors.deliminated_property import DeliminatedProperty
+from voxel.descriptors.deliminated_property import deliminated_property
 
 VALUE_MIN = 20
 VALUE_MAX = 100
 VALUE_STEP = 3
 
 class DummyDevice:
-    device_property3 = DeliminatedProperty(fget=lambda instance: getattr(instance, "_device_property3"),
-                                           fset=lambda instance, value: setattr(instance, "_device_property3", value),
-                                           minimum=VALUE_MIN, maximum=VALUE_MAX, step=VALUE_STEP)
+    device_property3 = deliminated_property(fget=lambda instance: getattr(instance, "_device_property3"),
+                                            fset=lambda instance, value: setattr(instance, "_device_property3", value),
+                                            minimum=VALUE_MIN, maximum=VALUE_MAX, step=VALUE_STEP)
 
     def __init__(self):
         self.device_property0 = 10
@@ -15,7 +15,7 @@ class DummyDevice:
         self.device_property2 = 30
         self.device_property3 = 40
 
-    @DeliminatedProperty(minimum=VALUE_MIN, maximum=VALUE_MAX, step=VALUE_STEP)
+    @deliminated_property(minimum=VALUE_MIN, maximum=VALUE_MAX, step=VALUE_STEP)
     def device_property0(self):
         """Example property with minimum, maximum, and step as arguments"""
         return self._device_property0
@@ -24,7 +24,7 @@ class DummyDevice:
     def device_property0(self, value):
         self._device_property0 = value
 
-    @DeliminatedProperty
+    @deliminated_property
     def device_property1(self):
         """Example property with no arguments. Can also use @property"""
         return self._device_property1
@@ -33,7 +33,7 @@ class DummyDevice:
     def device_property1(self, value):
         self._device_property1 = value
 
-    @DeliminatedProperty(minimum=VALUE_MIN)
+    @deliminated_property(minimum=VALUE_MIN)
     def device_property2(self):
         """Example property with minimum as argument"""
         return self._device_property2
