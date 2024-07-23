@@ -1,8 +1,10 @@
-import logging
-import numpy
 import time
 from multiprocessing import Event
 from threading import Thread
+
+import numpy as np
+from numpy.typing import NDArray
+
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 from voxel.devices.camera.base import BaseCamera
 from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
@@ -40,17 +42,19 @@ TRIGGERS = {
 }
 
 
-class Camera(BaseCamera):
-    def __init__(self, id):
-        """Voxel driver for a simulated camera. Camera constants are for a \n
-        Vieworks VP-151MX camera.
+class SimulatedCamera(BaseCamera):
+    """Voxel driver for a simulated camera. Camera constants are for a \n
+    Vieworks VP-151MX camera.
 
-        :param id: Serial number of the camera.
-        :type id: str
+    :param id: Serial number of the camera.
+    :type id: str
+    """
+
+    def __init__(self, id: str, cam_id: str):
+        """ Constructor for the SimulatedCamera class.
         """
-
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self.id = id
+        super().__init__(id)
+        self.cam_id = cam_id
         self.terminate_frame_grab = Event()
         self.terminate_frame_grab.clear()
         self._pixel_type = "mono16"
@@ -63,34 +67,34 @@ class Camera(BaseCamera):
         self._binning = 1
         self._trigger = {"mode": "on", "source": "internal", "polarity": "rising"}
 
+        self.gpu_binning = DownSample2D(binning=self._binning)
+        self.buffer = list()
+        self.thread = None
+
     @DeliminatedProperty(
         minimum=MIN_EXPOSURE_TIME_MS,
         maximum=MAX_EXPOSURE_TIME_MS,
         step=STEP_EXPOSURE_TIME_MS,
         unit="ms",
     )
-    def exposure_time_ms(self):
-        """
-        Get the exposure time of the camera in ms.
+    def exposure_time_ms(self) -> float:
+        """Get the exposure time of the camera in ms.
 
         :return: The exposure time in ms
         :rtype: float
         """
-
         return self._exposure_time_ms
 
     @exposure_time_ms.setter
-    def exposure_time_ms(self, exposure_time_ms: float):
-        """
-        Set the exposure time of the camera in ms.
+    def exposure_time_ms(self, exposure_time_ms: float) -> None:
+        """Set the exposure time of the camera in ms.
 
         :param exposure_time_ms: The exposure time in ms
         :type exposure_time_ms: float
         """
-
         if (
-            exposure_time_ms < MIN_EXPOSURE_TIME_MS
-            or exposure_time_ms > MAX_EXPOSURE_TIME_MS
+                exposure_time_ms < MIN_EXPOSURE_TIME_MS
+                or exposure_time_ms > MAX_EXPOSURE_TIME_MS
         ):
             self.log.warning(
                 f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
@@ -108,9 +112,8 @@ class Camera(BaseCamera):
         step=STEP_WIDTH_PX,
         unit="px",
     )
-    def width_px(self):
-        """
-        Get the width of the camera region of interest in pixels.
+    def width_px(self) -> int:
+        """Get the width of the camera region of interest in pixels.
 
         :return: The width of the region of interest in pixels
         :rtype: int
@@ -119,9 +122,8 @@ class Camera(BaseCamera):
         return self._width_px
 
     @width_px.setter
-    def width_px(self, value: int):
-        """
-        Set the width of the camera region of interest in pixels.
+    def width_px(self, value: int) -> None:
+        """Set the width of the camera region of interest in pixels.
 
         :param value: The width of the region of interest in pixels
         :type value: int
@@ -129,13 +131,13 @@ class Camera(BaseCamera):
 
         self._width_px = value
         centered_offset_px = (
-            round((MAX_WIDTH_PX / 2 - value / 2) / STEP_WIDTH_PX) * STEP_WIDTH_PX
+                round((MAX_WIDTH_PX / 2 - value / 2) / STEP_WIDTH_PX) * STEP_WIDTH_PX
         )
         self._width_offset_px = centered_offset_px
         self.log.info(f"width set to: {value} px")
 
     @property
-    def width_offset_px(self):
+    def width_offset_px(self) -> int:
         """
         Get the width offset of the camera region of interest in pixels.
 
@@ -146,9 +148,12 @@ class Camera(BaseCamera):
         return self._width_offset_px
 
     @DeliminatedProperty(
-        minimum=MIN_HEIGHT_PX, maximum=MAX_HEIGHT_PX, step=STEP_HEIGHT_PX, unit="px"
+        minimum=MIN_HEIGHT_PX,
+        maximum=MAX_HEIGHT_PX,
+        step=STEP_HEIGHT_PX,
+        unit="px"
     )
-    def height_px(self):
+    def height_px(self) -> int:
         """
         Get the height of the camera region of interest in pixels.
 
@@ -159,7 +164,7 @@ class Camera(BaseCamera):
         return self._height_px
 
     @height_px.setter
-    def height_px(self, value: int):
+    def height_px(self, value: int) -> None:
         """
         Set the height of the camera region of interest in pixels.
 
@@ -168,16 +173,15 @@ class Camera(BaseCamera):
         """
 
         centered_offset_px = (
-            round((MAX_HEIGHT_PX / 2 - value / 2) / STEP_HEIGHT_PX) * STEP_HEIGHT_PX
+                round((MAX_HEIGHT_PX / 2 - value / 2) / STEP_HEIGHT_PX) * STEP_HEIGHT_PX
         )
         self._height_offset_px = centered_offset_px
         self._height_px = value
         self.log.info(f"height set to: {value} px")
 
     @property
-    def height_offset_px(self):
-        """
-        Get the height offset of the camera region of interest in pixels.
+    def height_offset_px(self) -> int:
+        """Get the height offset of the camera region of interest in pixels.
 
         :return: The height offset of the region of interest in pixels
         :rtype: int
@@ -186,7 +190,82 @@ class Camera(BaseCamera):
         return self._height_offset_px
 
     @property
-    def trigger(self):
+    def pixel_type(self) -> str:
+        """Get the pixel type of the camera.
+
+        :return: The pixel type of the camera
+        :rtype: str
+        """
+
+        pixel_type = self._pixel_type
+        # invert the dictionary and find the abstracted key to output
+        return next(key for key, value in PIXEL_TYPES.items() if value == pixel_type)
+
+    @pixel_type.setter
+    def pixel_type(self, pixel_type_bits: str) -> None:
+        """The pixel type of the camera.
+
+        :param pixel_type_bits: The pixel type
+        * **mono8**
+        * **mono16**
+        :type pixel_type_bits: str
+        :raises ValueError: Invalid pixel type
+        """
+
+        valid = list(PIXEL_TYPES.keys())
+        if pixel_type_bits not in valid:
+            raise ValueError("pixel_type_bits must be one of %r." % valid)
+
+        self._pixel_type = PIXEL_TYPES[pixel_type_bits]
+        self._line_interval_us = LINE_INTERVALS_US[pixel_type_bits]
+        self.log.info(f"pixel type set_to: {pixel_type_bits}")
+
+    @property
+    def bit_packing_mode(self) -> str:
+        """Get the bit packing mode of the camera.
+
+        :return: The bit packing mode of the camera.
+        :rtype: str
+        """
+        return ""
+
+    @bit_packing_mode.setter
+    def bit_packing_mode(self, bit_packing: str) -> None:
+        """The bit packing mode of the camera: \n
+        - lsb, msb, none
+
+        :param bit_packing: The bit packing mode
+        :type bit_packing: str
+        """
+        pass
+
+    @property
+    def line_interval_us(self) -> float:
+        """
+        Get the line interval of the camera in us. \n
+        This is the time interval between adjacnet \n
+        rows activating on the camera sensor.
+
+        :return: The line interval of the camera in us
+        :rtype: float
+        """
+
+        return self._line_interval_us
+
+    @property
+    def frame_time_ms(self) -> float:
+        """
+        Get the frame time of the camera in ms. \n
+        This is the total time to acquire a single image
+
+        :return: The frame time of the camera in ms
+        :rtype: float
+        """
+
+        return self._height_px * self._line_interval_us / 1000 + self._exposure_time_ms
+
+    @property
+    def trigger(self) -> dict:
         """
         Get the trigger mode of the camera.
 
@@ -197,7 +276,7 @@ class Camera(BaseCamera):
         return self._trigger
 
     @trigger.setter
-    def trigger(self, trigger: dict):
+    def trigger(self, trigger: dict) -> None:
         """
         Set the trigger mode of the camera.
 
@@ -233,9 +312,8 @@ class Camera(BaseCamera):
         self._trigger = dict(trigger)
 
     @property
-    def binning(self):
-        """
-        Get the binning mode of the camera. \n
+    def binning(self) -> int:
+        """Get the binning mode of the camera. \n
         Integer value, e.g. 2 is 2x2 binning
 
         :return: The binning mode of the camera
@@ -245,9 +323,8 @@ class Camera(BaseCamera):
         return self._binning
 
     @binning.setter
-    def binning(self, binning: str):
-        """
-        Set the binning of the camera. \n
+    def binning(self, binning: int) -> None:
+        """Set the binning of the camera. \n
         If the binning is not supported in hardware \n
         it will be implemented via software using the GPU. \n
         This API assumes identical binning in X and Y.
@@ -269,55 +346,8 @@ class Camera(BaseCamera):
             self.gpu_binning = DownSample2D(binning=self._binning)
 
     @property
-    def pixel_type(self):
-        """
-        Get the pixel type of the camera.
-
-        :return: The pixel type of the camera
-        :rtype: str
-        """
-
-        pixel_type = self._pixel_type
-        # invert the dictionary and find the abstracted key to output
-        return next(key for key, value in PIXEL_TYPES.items() if value == pixel_type)
-
-    @pixel_type.setter
-    def pixel_type(self, pixel_type_bits: str):
-        """
-        The pixel type of the camera.
-
-        :param pixel_type_bits: The pixel type
-        * **mono8**
-        * **mono16**
-        :type pixel_type_bits: str
-        :raises ValueError: Invalid pixel type
-        """
-
-        valid = list(PIXEL_TYPES.keys())
-        if pixel_type_bits not in valid:
-            raise ValueError("pixel_type_bits must be one of %r." % valid)
-
-        self._pixel_type = PIXEL_TYPES[pixel_type_bits]
-        self._line_interval_us = LINE_INTERVALS_US[pixel_type_bits]
-        self.log.info(f"pixel type set_to: {pixel_type_bits}")
-
-    @property
-    def line_interval_us(self):
-        """
-        Get the line interval of the camera in us. \n
-        This is the time interval between adjacnet \n
-        rows activating on the camera sensor.
-
-        :return: The line interval of the camera in us
-        :rtype: float
-        """
-
-        return self._line_interval_us
-
-    @property
-    def sensor_width_px(self):
-        """
-        Get the width of the camera sensor in pixels.
+    def sensor_width_px(self) -> int:
+        """Get the width of the camera sensor in pixels.
 
         :return: The width of the camera sensor in pixels
         :rtype: int
@@ -326,9 +356,8 @@ class Camera(BaseCamera):
         return MAX_WIDTH_PX
 
     @property
-    def sensor_height_px(self):
-        """
-        Get the height of the camera sensor in pixels.
+    def sensor_height_px(self) -> int:
+        """Get the height of the camera sensor in pixels.
 
         :return: The height of the camera sensor in pixels
         :rtype: int
@@ -337,16 +366,13 @@ class Camera(BaseCamera):
         return MAX_HEIGHT_PX
 
     @property
-    def frame_time_ms(self):
-        """
-        Get the frame time of the camera in ms. \n
-        This is the total time to acquire a single image
+    def readout_mode(self) -> str:
+        """Get the readout mode of the camera.
 
-        :return: The frame time of the camera in ms
-        :rtype: float
+        :return: The readout mode of the camera.
+        :rtype: str
         """
-
-        return self._height_px * self._line_interval_us / 1000 + self._exposure_time_ms
+        return ""
 
     def prepare(self):
         """
@@ -390,6 +416,12 @@ class Camera(BaseCamera):
         self.thread.join()
         self.terminate_frame_grab.clear()
 
+    def reset(self) -> None:
+        """Reset the camera.
+        """
+
+        self.log.info("simulated camera resetting...")
+
     def close(self):
         """
         Close the camera.
@@ -397,14 +429,14 @@ class Camera(BaseCamera):
 
         pass
 
-    def grab_frame(self):
+    def grab_frame(self) -> NDArray[np.int_]:
         """
         Grab a frame from the camera buffer. \n
         If binning is via software, the GPU binned \n
         image is computed and returned.
 
         :return: The camera frame of size (height, width).
-        :rtype: numpy.array
+        :rtype: np.array
         """
 
         while not self.buffer:
@@ -429,21 +461,22 @@ class Camera(BaseCamera):
         :rtype: dict
         """
 
-        state = {}
-        state["Frame Index"] = self.frame
-        state["Input Buffer Size"] = len(self.buffer)
-        state["Output Buffer Size"] = BUFFER_SIZE_FRAMES - len(self.buffer)
+        state = {
+            "Frame Index": self.frame,
+            "Input Buffer Size": len(self.buffer),
+            "Output Buffer Size": BUFFER_SIZE_FRAMES - len(self.buffer),
+            "Dropped Frames": self.dropped_frames,
+            "Data Rate [MB/s]": (
+                    self.frame_rate
+                    * self._width_px
+                    * self._height_px
+                    * np.dtype(self._pixel_type).itemsize
+                    / self._binning ** 2
+                    / 1e6
+            ),
+            "Frame Rate [fps]": self.frame_rate
+        }
         # number of underrun, i.e. dropped frames
-        state["Dropped Frames"] = self.dropped_frames
-        state["Data Rate [MB/s]"] = (
-            self.frame_rate
-            * self._width_px
-            * self._height_px
-            * numpy.dtype(self._pixel_type).itemsize
-            / self._binning**2
-            / 1e6
-        )
-        state["Frame Rate [fps]"] = self.frame_rate
         self.log.info(
             f"id: {self.id}, "
             f"frame: {state['Frame Index']}, "
@@ -456,8 +489,7 @@ class Camera(BaseCamera):
         return state
 
     def log_metadata(self):
-        """
-        Log all metadata from the camera to the logger.
+        """Log all metadata from the camera to the logger.
         """
 
         pass
@@ -479,11 +511,11 @@ class Camera(BaseCamera):
             start_time = time.time()
             column_count = self._width_px
             row_count = self._height_px
-            image = numpy.random.randint(
+            image = np.random.randint(
                 low=128,
                 high=256,
                 size=(row_count, column_count),
-                dtype=self._pixel_type,
+                dtype=np.dtype(PIXEL_TYPES[self._pixel_type]),
             )
             while (time.time() - start_time) < self.frame_time_ms / 1000:
                 time.sleep(0.01)
@@ -492,3 +524,16 @@ class Camera(BaseCamera):
             i = i if frame_count is None else i + 1
             end_time = time.time()
             self.frame_rate = 1 / (end_time - start_time)
+
+
+# Example usage
+if __name__ == "__main__":
+    camera = SimulatedCamera(id="main-camera", cam_id="sim-cam-001")
+    camera.prepare()
+    camera.start(10)
+    for i in range(10):
+        frame = camera.grab_frame()
+        print(frame)
+    camera.stop()
+    camera.close()
+    print("done")
