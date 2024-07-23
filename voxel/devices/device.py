@@ -18,3 +18,8 @@ class VoxelDevice(ABC):
     def close(self):
         """Close the device."""
         pass
+
+
+class DeviceConnectionError(Exception):
+    """Custom exception for camera discovery errors."""
+    pass

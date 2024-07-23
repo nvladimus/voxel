@@ -1,6 +1,9 @@
-import logging
+from typing import Any, Tuple, Dict, List, Optional
+
 import numpy
+
 from voxel.descriptors.deliminated_property import DeliminatedProperty
+from voxel.devices.device import DeviceConnectionError
 from voxel.devices.camera.base import BaseCamera
 from voxel.devices.camera.vieworks.egrabber import (
     BUFFER_INFO_BASE,
@@ -67,85 +70,101 @@ BIT_PACKING_MODES = dict()
 TRIGGERS = {"mode": dict(), "source": dict(), "polarity": dict()}
 
 
-# singleton wrapper around EGenTL
 class EGenTLSingleton(EGenTL, metaclass=Singleton):
     def __init__(self):
-        """Singleton wrapper around the EGrabber SDK. Ensures the same PCO \n
-        instance is returned anytime PCO is initialized.
-        """
-        super(EGenTLSingleton, self).__init__()
+        """Singleton wrapper around the EGrabber SDK."""
+        super().__init__()
 
 
-class Camera(BaseCamera):
-    def __init__(self, id: str):
-        """Voxel driver for EGrabber GenICam cameras. Only tested with the \n
-        Vieworks VP-151MX camera so far.
+class ViewWorksCameraDiscovery(EGrabberDiscovery):
+    def __init__(self, gentl_instance: EGenTLSingleton):
+        super().__init__(gentl_instance)
+        self.gentl_instance = gentl_instance
 
-        :param id: Serial number of the camera.
-        :type id: str
-        :raises ValueError: No camera found.
-        """
+    def discover_cameras(self) -> Dict[str, List[Dict[str, int]]]:
+        self.discover()
+        return self._get_egrabber_list()
 
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        # convert to string incase serial # is entered as int
-        self.id = str(id)
-        self.gentl = EGenTLSingleton()
-        discovery = EGrabberDiscovery(self.gentl)
-        discovery.discover()
-        # list all possible grabbers
+    def _get_egrabber_list(self) -> Dict[str, List[Dict[str, int]]]:
         egrabber_list = {"grabbers": []}
-        interface_count = discovery.interface_count()
-        for interfaceIndex in range(interface_count):
-            device_count = discovery.device_count(interfaceIndex)
-            for deviceIndex in range(device_count):
-                if (
-                    discovery.device_info(interfaceIndex, deviceIndex).deviceVendorName
-                    != ""
-                ):
-                    stream_count = discovery.stream_count(interfaceIndex, deviceIndex)
-                    for streamIndex in range(stream_count):
-                        info = {
-                            "interface": interfaceIndex,
-                            "device": deviceIndex,
-                            "stream": streamIndex,
-                        }
-                        egrabber_list["grabbers"].append(info)
+        for interface_index in range(self.interface_count()):
+            for device_index in range(self.device_count(interface_index)):
+                if self.device_info(interface_index, device_index).deviceVendorName:
+                    for stream_index in range(self.stream_count(interface_index, device_index)):
+                        egrabber_list["grabbers"].append({
+                            "interface": interface_index,
+                            "device": device_index,
+                            "stream": stream_index,
+                        })
+        return egrabber_list
 
-        # for camera in discovery.cameras:
-        del discovery
+    def get_grabber_by_serial(self, serial_number: str) -> Tuple[EGrabber, Dict[str, int]]:
+        egrabber_list = self.discover_cameras()
 
-        # identify by serial number and return correct grabber
         if not egrabber_list["grabbers"]:
-            raise ValueError(
-                "no valid cameras found. \
-                             check connections and close any software."
+            raise DeviceConnectionError("No valid cameras found. Check connections and close any software.")
+
+        for egrabber in egrabber_list["grabbers"]:
+            grabber = EGrabber(
+                self.gentl_instance,
+                egrabber["interface"],
+                egrabber["device"],
+                egrabber["stream"],
+                remote_required=True,
             )
+            if grabber.remote.get("DeviceSerialNumber") == serial_number:
+                return grabber, egrabber
 
+        raise DeviceConnectionError(f"No grabber found for S/N: {serial_number}")
+
+
+class ViewWorksCamera(BaseCamera):
+    """Voxel driver for EGrabber GenICam cameras."""
+
+    gentl = EGenTLSingleton()
+
+    def __init__(self, id: str, serial_number: str) -> None:
+        super().__init__(id)
+        self.serial_number: str = serial_number
+        self._binning: int = 1
+
+        # Declare attributes that will be set later
+        self.grabber: EGrabber
+        self.egrabber: Dict[str, int]
+
+        # Declare min/max/step attributes
+        self.min_exposure_time_ms: float
+        self.max_exposure_time_ms: float
+        self.step_exposure_time_ms: float
+        self.min_width_px: int
+        self.max_width_px: int
+        self.step_width_px: int
+        self.min_height_px: int
+        self.max_height_px: int
+        self.step_height_px: int
+        self.min_offset_x_px: int
+        self.max_offset_x_px: int
+        self.step_offset_x_px: int
+        self.min_offset_y_px: int
+        self.max_offset_y_px: int
+        self.step_offset_y_px: int
+
+        self.gpu_binning: Optional[DownSample2D] = None
+
+        self._initialize_camera()
+
+    def _initialize_camera(self) -> None:
+        """Initialize the camera using ViewWorksDiscovery and serial number. \n
+        side effect: sets grabber and egrabber attributes.
+        """
+        discovery = ViewWorksCameraDiscovery(self.gentl)
         try:
-            for egrabber in egrabber_list["grabbers"]:
-                grabber = EGrabber(
-                    self.gentl,
-                    egrabber["interface"],
-                    egrabber["device"],
-                    egrabber["stream"],
-                    remote_required=True,
-                )
-                # note the framegrabber serial number is also available with:
-                # grabber.interface.get('DeviceSerialNumber)
-                if grabber.remote.get("DeviceSerialNumber") == self.id:
-                    self.log.info(f"grabber found for S/N: {self.id}")
-                    self.grabber = grabber
-                    self.egrabber = egrabber
-                    break
-        except self.egrabber.DoesNotExist:
-            self.log.error(f"no grabber found for S/N: {self.id}")
-            raise ValueError(f"no grabber found for S/N: {self.id}")
-
-        del grabber
-        # initialize binning as 1
-        self._binning = 1
-        # initialize parameter values
-        self._update_parameters()
+            self.grabber, self.egrabber = discovery.get_grabber_by_serial(self.serial_number)
+            self.log.info(f"Grabber found for S/N: {self.serial_number}")
+            self._update_parameters()
+        except DeviceConnectionError as e:
+            self.log.error(str(e))
+            raise
 
     @DeliminatedProperty(
         minimum=lambda self: self.min_exposure_time_ms,
@@ -205,8 +224,8 @@ class Camera(BaseCamera):
         # reset offset to (0,0)
         self.grabber.remote.set("OffsetX", 0)
         centered_offset_px = (
-            round((self.max_width_px / 2 - value / 2) / self.step_width_px)
-            * self.step_width_px
+                round((self.max_width_px / 2 - value / 2) / self.step_width_px)
+                * self.step_width_px
         )
         self.grabber.remote.set("OffsetX", centered_offset_px)
         self.grabber.remote.set("Width", value)
@@ -252,8 +271,8 @@ class Camera(BaseCamera):
         # reset offset to (0,0)
         self.grabber.remote.set("OffsetY", 0)
         centered_offset_px = (
-            round((self.max_height_px / 2 - value / 2) / self.step_height_px)
-            * self.step_height_px
+                round((self.max_height_px / 2 - value / 2) / self.step_height_px)
+                * self.step_height_px
         )
         self.grabber.remote.set("OffsetY", centered_offset_px)
         self.grabber.remote.set("Height", value)
@@ -506,6 +525,15 @@ class Camera(BaseCamera):
         return self.max_height_px
 
     @property
+    def readout_mode(self) -> str:
+        """Get the readout mode of the camera.
+
+        :return: The readout mode of the camera.
+        :rtype: str
+        """
+        return ""
+
+    @property
     def signal_mainboard_temperature_c(self):
         """
         Get the mainboard temperature of the camera in deg C.
@@ -667,7 +695,7 @@ class Camera(BaseCamera):
         )
         # adjust data rate based on internal software binning
         state["Data Rate [MB/s]"] = (
-            self.grabber.stream.get("StatisticsDataRate") / self._binning**2
+                self.grabber.stream.get("StatisticsDataRate") / self._binning ** 2
         )
         state["Frame Rate [fps]"] = self.grabber.stream.get("StatisticsFrameRate")
         self.log.info(
@@ -708,8 +736,8 @@ class Camera(BaseCamera):
                     if self.grabber.remote.get(query.readable(feature)):
                         if not self.grabber.remote.get(query.command(feature)):
                             if (
-                                feature != "BalanceRatioSelector"
-                                and feature != "BalanceWhiteAuto"
+                                    feature != "BalanceRatioSelector"
+                                    and feature != "BalanceWhiteAuto"
                             ):
                                 self.log.info(
                                     f"remote, {feature}, \
@@ -789,7 +817,7 @@ class Camera(BaseCamera):
         # convert from us to ms
         try:
             self.min_exposure_time_ms = (
-                self.grabber.remote.get("ExposureTime.Min") / 1e3
+                    self.grabber.remote.get("ExposureTime.Min") / 1e3
             )
             type(self).exposure_time_ms.minimum = self.min_exposure_time_ms
             self.log.debug(
@@ -805,7 +833,7 @@ class Camera(BaseCamera):
         # convert from us to ms
         try:
             self.max_exposure_time_ms = (
-                self.grabber.remote.get("ExposureTime.Max") / 1e3
+                    self.grabber.remote.get("ExposureTime.Max") / 1e3
             )
             type(self).exposure_time_ms.maximum = self.max_exposure_time_ms
             self.log.debug(
@@ -873,7 +901,7 @@ class Camera(BaseCamera):
         # convert from us to ms
         try:
             self.step_exposure_time_ms = (
-                self.grabber.remote.get("ExposureTime.Inc") / 1e3
+                    self.grabber.remote.get("ExposureTime.Inc") / 1e3
             )
             type(self).exposure_time_ms.step = self.step_exposure_time_ms
             self.log.debug(
@@ -1017,7 +1045,7 @@ class Camera(BaseCamera):
             # note: setting TriggerMode to the already set value gives an error
             # so check the current value and only set if new value
             if (
-                self.grabber.remote.get("TriggerMode") != trigger_mode
+                    self.grabber.remote.get("TriggerMode") != trigger_mode
             ):  # set camera to external trigger mode
                 try:
                     self.grabber.remote.set("TriggerMode", trigger_mode)

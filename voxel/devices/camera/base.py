@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from voxel.descriptors.deliminated_property import DeliminatedProperty
-from voxel.devices.base import VoxelDevice
+from voxel.devices.device import VoxelDevice
 
 
 class BaseCamera(VoxelDevice):
