@@ -52,7 +52,8 @@ class ASIFilterWheel(BaseFilterWheel):
     def close(self):
         if not self._is_closed:
             self._current_filter = None
-            self.tigerbox.ser.close()
+            if self.tigerbox.ser:
+                self.tigerbox.ser.close()
             self._is_closed = True
 
 
