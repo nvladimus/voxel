@@ -43,8 +43,8 @@ class DeliminatedProperty(property, Generic[T]):
             fdel: Optional[Callable[[Any], None]] = None,
             doc: Optional[str] = None,
             *,
-            minimum: Union[T, Callable[[Any], T]] = float('-inf'),
-            maximum: Union[T, Callable[[Any], T]] = float('inf'),
+            minimum: Union[T, Callable[[], T]] = float('-inf'),
+            maximum: Union[T, Callable[[], T]] = float('inf'),
             step: Optional[T] = None,
             unit: str = "",
     ) -> None:
@@ -54,10 +54,18 @@ class DeliminatedProperty(property, Generic[T]):
                 f"Minimum value ({minimum}) cannot be greater than maximum value ({maximum})")
         if step is not None and type(step) not in (int, float, T):
             raise DeliminatedPropertyError(f"Invalid step value: {step}")
-        self.minimum = minimum
-        self.maximum = maximum
+        self._minimum = minimum
+        self._maximum = maximum
         self.step = step
         self.unit = unit
+
+    @property
+    def minimum(self) -> T:
+        return self._minimum() if callable(self._minimum) else self._minimum
+
+    @property
+    def maximum(self) -> T:
+        return self._maximum() if callable(self._maximum) else self._maximum
 
     def __set__(self, obj: Any, value: T) -> None:
         if self.fset is None:
@@ -68,8 +76,8 @@ class DeliminatedProperty(property, Generic[T]):
         original_value = value
 
         try:
-            maximum = self.maximum(obj) if callable(self.maximum) else self.maximum
-            minimum = self.minimum(obj) if callable(self.minimum) else self.minimum
+            maximum = self.maximum
+            minimum = self.minimum
         except Exception as e:
             raise DeliminatedPropertyError(f"Error getting minimum/maximum values: {e}")
 
@@ -117,8 +125,8 @@ class DeliminatedProperty(property, Generic[T]):
 
 
 def deliminated_property(
-        minimum: Union[T, Callable[[Any], T]] = float('-inf'),
-        maximum: Union[T, Callable[[Any], T]] = float('inf'),
+        minimum: Union[T, Callable[[], T]] = float('-inf'),
+        maximum: Union[T, Callable[[], T]] = float('inf'),
         step: Optional[T] = None,
         unit: str = ""
 ) -> Callable[[Callable[[Any], T]], DeliminatedProperty[T]]:
@@ -152,6 +160,28 @@ def deliminated_property(
 # Example usage
 if __name__ == "__main__":
 
+    def minimum_temperature(unit: str) -> float:
+        if unit == "°C":
+            return -273.15
+        elif unit == "°F":
+            return -459.67
+        elif unit == "K":
+            return 0.0
+        else:
+            raise ValueError(f"Unknown unit: {unit}")
+
+
+    def maximum_temperature(unit: str) -> float:
+        if unit == "°C":
+            return 1000.0
+        elif unit == "°F":
+            return 1832.0
+        elif unit == "K":
+            return 1273.15
+        else:
+            raise ValueError(f"Unknown unit: {unit}")
+
+
     class AdvancedTemperature:
         def __init__(self, initial_celsius: float = 0, significant_digits: int = 2):
             self._celsius = initial_celsius
@@ -165,7 +195,12 @@ if __name__ == "__main__":
         def celsius(self, value: float) -> None:
             self._celsius = round(value, self.significant_digits)
 
-        @deliminated_property(minimum=-459.67, maximum=1832.0, step=0.018, unit="°F")
+        @deliminated_property(
+            minimum=lambda: minimum_temperature("°F"),
+            maximum=lambda: maximum_temperature("°F"),
+            step=0.01,
+            unit="°F"
+        )
         def fahrenheit(self) -> float:
             return round((self._celsius * 9 / 5) + 32, self.significant_digits)
 
@@ -213,3 +248,6 @@ if __name__ == "__main__":
     print(f"After attempting to set to 0K: {t.display_all_units()}")
 
     print(f"{t.__class__.celsius}\n\tValue\t{t.celsius}")
+
+    print(f"Celsius max: {t.__class__.celsius.maximum}")
+    print(f"Fahrenheit max: {t.__class__.fahrenheit.maximum}")
