@@ -1,11 +1,29 @@
 import numpy
 import time
+import logging
 import math
 import threading
+import sys
 from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
 from voxel.writers.bdv import Writer
 
 if __name__ == '__main__':
+
+    # Setup logging.
+    # Create log handlers to dispatch:
+    # - User-specified level and above to print to console if specified.
+    logger = logging.getLogger()  # get the root logger.
+    # Remove any handlers already attached to the root logger.
+    logging.getLogger().handlers.clear()
+    # logger level must be set to the lowest level of any handler.
+    logger.setLevel(logging.DEBUG)
+    fmt = '%(asctime)s.%(msecs)03d %(levelname)s %(name)s: %(message)s'
+    datefmt = '%Y-%m-%d,%H:%M:%S'
+    log_formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
+    log_handler = logging.StreamHandler(sys.stdout)
+    log_handler.setLevel('INFO')
+    log_handler.setFormatter(log_formatter)
+    logger.addHandler(log_handler)
 
     chunk_size_frames = 128
     num_frames = 256
@@ -30,7 +48,7 @@ if __name__ == '__main__':
 
         # do note update filename so all tiles go into a single file
         stack_writer_worker.filename = f'test_{tile_index}.h5'
-        
+
         # move tile over 1 mm
         stack_writer_worker.x_position_mm = 0 + tile_index*1.000
         stack_writer_worker.y_position_mm = 0
@@ -79,7 +97,7 @@ if __name__ == '__main__':
             # mimic 5 fps imaging
             time.sleep(0.05)
             frame_index += 1
-            print(stack_writer_worker.signal_progress_percent)
+            stack_writer_worker.get_logs()
             # Dispatch either a full chunk of frames or the last chunk,
             # which may not be a multiple of the chunk size.
             if chunk_index == chunk_size_frames - 1 or stack_index == last_frame_index:
@@ -97,6 +115,7 @@ if __name__ == '__main__':
                     stack_writer_worker.shm_name = \
                         img_buffer.read_buf_mem_name
                     stack_writer_worker.done_reading.clear()
+                print(stack_writer_worker.signal_progress_percent)
 
         stack_writer_worker.wait_to_finish()
 
