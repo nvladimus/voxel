@@ -3,7 +3,7 @@ import os
 import sys
 from ctypes import c_wchar
 from math import ceil
-from multiprocessing import Array, Event, Process, Queue, Value
+from multiprocessing import Array, Process
 from multiprocessing.shared_memory import SharedMemory
 from pathlib import Path
 from time import perf_counter, sleep
@@ -20,185 +20,116 @@ COMPRESSION_TYPES = {"none": "none"}
 DATA_TYPES = {"uint8", "uint16"}
 
 
-class Writer(BaseWriter):
+class TiffWriter(BaseWriter):
+    """
+    Voxel driver for the Tiff writer.
+
+    Writer will save data to the following location\n
+    \n
+    path\\acquisition_name\\filename.tiff\n
+    \n
+    :param path: Path for the data writer
+    :type path: str
+    """
+
     def __init__(self, path: str):
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self._path = Path(path)
-        self._color = None
-        self._channel = None
-        self._filename = None
-        self._acquisition_name = None
-        self._data_type = "uint16"
-        self._compression = COMPRESSION_TYPES["none"]
-        self._row_count_px = None
-        self._colum_count_px = None
-        self._frame_count_px = None
-        self._z_position_mm = None
-        self._y_position_mm = None
-        self._x_position_mm = None
-        self._z_voxel_size_um = None
-        self._y_voxel_size_um = None
-        self._x_voxel_size_um = None
-        # share double value to update inside process
-        self._progress = Value("d", 0.0)
-        # share queue for passing logs out of process
-        self._log_queue = Queue()
-        # Opinioated decision on chunking dimension order
-        self.chunk_dim_order = ("z", "y", "x")
-        # Flow control attributes to synchronize inter-process communication.
-        self.done_reading = Event()
-        self.done_reading.set()  # Set after processing all data in shared mem.
-        self.deallocating = Event()
-
-    @property
-    def signal_progress_percent(self):
-        # convert to %
-        state = {"Progress [%]": self._progress.value * 100}
-        self.log.info(f"Progress [%]: {self._progress.value*100}")
-        return state
-
-    @property
-    def x_voxel_size_um(self):
-        return self._x_voxel_size_um_um
-
-    @x_voxel_size_um.setter
-    def x_voxel_size_um(self, x_voxel_size_um: float):
-        self.log.info(f"setting x voxel size to: {x_voxel_size_um} [um]")
-        self._x_voxel_size_um_um = x_voxel_size_um
-
-    @property
-    def y_voxel_size_um(self):
-        return self._y_voxel_size_um_um
-
-    @y_voxel_size_um.setter
-    def y_voxel_size_um(self, y_voxel_size_um: float):
-        self.log.info(f"setting y voxel size to: {y_voxel_size_um} [um]")
-        self._y_voxel_size_um_um = y_voxel_size_um
-
-    @property
-    def z_voxel_size_um(self):
-        return self._z_voxel_size_um_um
-
-    @z_voxel_size_um.setter
-    def z_voxel_size_um(self, z_voxel_size_um: float):
-        self.log.info(f"setting z voxel size to: {z_voxel_size_um} [um]")
-        self._z_voxel_size_um_um = z_voxel_size_um
-
-    @property
-    def x_position_mm(self):
-        return self._x_position_mm
-
-    @x_position_mm.setter
-    def x_position_mm(self, x_position_mm: float):
-        self.log.info(f"setting x position to: {x_position_mm} [mm]")
-        self._x_position_mm = x_position_mm
-
-    @property
-    def y_position_mm(self):
-        return self._y_position_mm
-
-    @y_position_mm.setter
-    def y_position_mm(self, y_position_mm: float):
-        self.log.info(f"setting y position to: {y_position_mm} [mm]")
-        self._y_position_mm = y_position_mm
-
-    @property
-    def z_position_mm(self):
-        return self._z_position_mm
-
-    @z_position_mm.setter
-    def z_position_mm(self, z_position_mm: float):
-        self.log.info(f"setting z position to: {z_position_mm} [mm]")
-        self._z_position_mm = z_position_mm
 
     @property
     def frame_count_px(self):
+        """Get the number of frames in the writer.
+
+        :return: Frame number in pixels
+        :rtype: int
+        """
+
         return self._frame_count_px_px
 
     @frame_count_px.setter
     def frame_count_px(self, frame_count_px: int):
+        """Set the number of frames in the writer.
+
+        :param value: Frame number in pixels
+        :type value: int
+        """
+
         self.log.info(f"setting frame count to: {frame_count_px} [px]")
+        frame_count_px = (
+            ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
+        )
+        self.log.info(f"adjusting frame count to: {frame_count_px} [px]")
         self._frame_count_px_px = frame_count_px
 
     @property
-    def column_count_px(self):
-        return self._column_count_px
-
-    @column_count_px.setter
-    def column_count_px(self, column_count_px: int):
-        self.log.info(f"setting column count to: {column_count_px} [px]")
-        self._column_count_px = column_count_px
-
-    @property
-    def row_count_px(self):
-        return self._row_count_px
-
-    @row_count_px.setter
-    def row_count_px(self, row_count_px: int):
-        self.log.info(f"setting row count to: {row_count_px} [px]")
-        self._row_count_px = row_count_px
-
-    @property
     def chunk_count_px(self):
+        """Get the chunk count in pixels
+
+        :return: Chunk count in pixels
+        :rtype: int
+        """
+
         return CHUNK_COUNT_PX
 
     @property
-    def data_type(self):
-        return self._data_type
+    def compression(self):
+        """Get the compression codec of the writer.
 
-    @data_type.setter
-    def data_type(self, data_type: np.unsignedinteger):
-        self.log.info(f"setting data type to: {data_type}")
-        self._data_type = data_type
+        :return: Compression codec
+        :rtype: str
+        """
 
-    @property
-    def path(self):
-        return self._path
+        return next(
+            key
+            for key, value in COMPRESSION_TYPES.items()
+            if value == self._compression
+        )
 
-    @property
-    def acquisition_name(self):
-        return self._acquisition_name
+    @compression.setter
+    def compression(self, compression: str):
+        """Set the compression codec of the writer.
 
-    @acquisition_name.setter
-    def acquisition_name(self, acquisition_name: str):
-        self._acquisition_name = Path(acquisition_name)
-        self.log.info(f"setting acquisition name to: {acquisition_name}")
+        :param value: Compression codec
+        * **none**
+        :type value: str
+        """
+
+        valid = list(COMPRESSION_TYPES.keys())
+        if compression not in valid:
+            raise ValueError("compression type must be one of %r." % valid)
+        self.log.info(f"setting compression mode to: {compression}")
+        self._compression = COMPRESSION_TYPES[compression]
 
     @property
     def filename(self):
+        """
+        The base filename of file writer.
+
+        :return: The base filename
+        :rtype: str
+        """
+
         return self._filename
 
     @filename.setter
     def filename(self, filename: str):
+        """
+        The base filename of file writer.
+
+        :param value: The base filename
+        :type value: str
+        """
+
         self._filename = filename if filename.endswith(".tiff") else f"{filename}.tiff"
         self.log.info(f"setting filename to: {filename}")
 
-    @property
-    def channel(self):
-        return self._channel
-
-    @channel.setter
-    def channel(self, channel: str):
-        self.log.info(f"setting channel name to: {channel}")
-        self._channel = channel
-
-    @property
-    def shm_name(self):
-        """Convenience getter to extract the shared memory address (string)
-        from the c array."""
-        return str(self._shm_name[:]).split("\x00")[0]
-
-    @shm_name.setter
-    def shm_name(self, name: str):
-        """Convenience setter to set the string value within the c array."""
-        for i, c in enumerate(name):
-            self._shm_name[i] = c
-        self._shm_name[len(name)] = "\x00"  # Null terminate the string.
-        self.log.info(f"setting shared memory to: {name}")
-
     def prepare(self):
-        self.p = Process(target=self._run, args=(self._progress, self._log_queue))
+        """
+        Prepare the writer.
+        """
+
+        self.log.info(f"{self._filename}: intializing writer.")
         # Specs for reconstructing the shared memory object.
         self._shm_name = Array(c_wchar, 32)  # hidden and exposed via property.
         # This is almost always going to be: (chunk_size, rows, columns).
@@ -207,21 +138,24 @@ class Writer(BaseWriter):
             "y": self._row_count_px,
             "z": CHUNK_COUNT_PX,
         }
-        self.shm_shape = [chunk_shape_map[x] for x in self.chunk_dim_order]
-        self.shm_nbytes = int(
-            np.prod(self.shm_shape, dtype=np.int64) * np.dtype(self._data_type).itemsize
+        shm_shape = [chunk_shape_map[x] for x in self.chunk_dim_order]
+        shm_nbytes = int(
+            np.prod(shm_shape, dtype=np.int64) * np.dtype(self._data_type).itemsize
         )
-        self.log.info(f"{self._filename}: intializing writer.")
+        self._process = Process(
+            target=self._run, args=(shm_nbytes, self._progress, self._log_queue)
+        )
 
-    def start(self):
-        self.log.info(f"{self._filename}: starting writer.")
-        self.p.start()
+    def _run(self, shm_nbytes, shared_progress, shared_log_queue):
+        """
+        Main run function of the Tiff writer.
 
-    def _run(self, shared_progress, shared_log_queue):
-        """Loop to wait for data from a specified location and write it to disk
-        as an Imaris file. Close up the file afterwards.
-
-        This function executes when called with the start() method.
+        :param shm_nbytes: Shared memory address bytes
+        :type shm_nbytes: int
+        :param shared_progress: Shared progress value of the writer
+        :type shared_progress: multiprocessing.Value
+        :param shared_log_queue: Shared queue for passing log statements
+        :type shared_log_queue: multiprocessing.Queue
         """
         # internal logger for process
         logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
@@ -260,7 +194,7 @@ class Writer(BaseWriter):
             while self.done_reading.is_set():
                 sleep(0.001)
             # Attach a reference to the data from shared memory.
-            shm = SharedMemory(self.shm_name, create=False, size=self.shm_nbytes)
+            shm = SharedMemory(self.shm_name, create=False, size=shm_nbytes)
             frames = np.ndarray(self.shm_shape, self._data_type, buffer=shm.buf)
             shared_log_queue.put(
                 f"{self._filename}: writing chunk "
@@ -293,12 +227,6 @@ class Writer(BaseWriter):
             )
 
         writer.close()
-
-    def wait_to_finish(self):
-        self.log.info(f"{self._filename}: waiting to finish.")
-        self.p.join()
-        # log the finished writer %
-        self.signal_progress_percent
 
     def delete_files(self):
         filepath = Path(self._path, self._acquisition_name, self._filename).absolute()

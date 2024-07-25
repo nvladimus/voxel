@@ -3,7 +3,7 @@ import os
 import sys
 from ctypes import c_wchar
 from math import ceil
-from multiprocessing import Array, Event, Process, Queue, Value
+from multiprocessing import Array, Process
 from multiprocessing.shared_memory import SharedMemory
 from pathlib import Path
 from time import perf_counter, sleep
@@ -23,45 +23,25 @@ B3D_READ_NOISE = 1.5  # e-
 
 COMPRESSION_TYPES = {"none": None, "gzip": "gzip", "lzf": "lzf", "b3d": "b3d"}
 
-DATA_TYPES = ["uint16"]
-
 # TODO ADD DOWNSAMPLE METHOD TO GET PASSED INTO NPY2BDV
 
 
-class Writer(BaseWriter):
+class BDVWriter(BaseWriter):
+    """
+    Voxel driver for the BDV writer.
+
+    Writer will save data to the following location\n
+    \n
+    path\\acquisition_name\\filename.h5\n
+    \n
+    :param path: Path for the data writer
+    :type path: str
+    """
+   
     def __init__(self, path: str):
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self._path = Path(path)
-        self._color = "#ffffff"  # initialize as white
-        self._channel = None
-        self._filename = None
-        self._acquisition_name = None
-        self._shm_name = ""
-        self._data_type = "uint16"
-        self._compression = COMPRESSION_TYPES["none"]
-        self.compression_opts = None
-        self._row_count_px = None
-        self._column_count_px = None
-        self._frame_count_px_px = None
-        # share double value to update inside process
-        self._progress = Value("d", 0.0)
-        # share queue for passing logs out of process
-        self._log_queue = Queue()
-        self._x_voxel_size_um_um = 1
-        self._y_voxel_size_um_um = 1
-        self._z_voxel_size_um_um = 1
-        self._x_position_mm = 0
-        self._y_position_mm = 0
-        self._z_position_mm = 0
-        self._theta_deg = 0
-        self._channel = None
-        # Opinioated decision on chunking dimension order
-        self.chunk_dim_order = ("z", "y", "x")
-        # Flow control attributes to synchronize inter-process communication.
-        self.done_reading = Event()
-        self.done_reading.set()  # Set after processing all data in shared mem.
-        self.deallocating = Event()
         # Lists for storing all datasets in a single BDV file
         self.current_tile_num = 0
         self.current_channel_num = 0
@@ -74,80 +54,44 @@ class Writer(BaseWriter):
         self.affine_shift_dict = dict()
 
     @property
-    def signal_progress_percent(self):
-        state = {"Progress [%]": self._progress.value * 100}
-        self.log.info(f"Progress [%]: {self._progress.value*100}")
-        return state
-
-    @property
-    def x_voxel_size_um(self):
-        return self._x_voxel_size_um_um
-
-    @x_voxel_size_um.setter
-    def x_voxel_size_um(self, x_voxel_size_um: float):
-        self.log.info(f"setting x voxel size to: {x_voxel_size_um} [um]")
-        self._x_voxel_size_um_um = x_voxel_size_um
-
-    @property
-    def y_voxel_size_um(self):
-        return self._y_voxel_size_um_um
-
-    @y_voxel_size_um.setter
-    def y_voxel_size_um(self, y_voxel_size_um: float):
-        self.log.info(f"setting y voxel size to: {y_voxel_size_um} [um]")
-        self._y_voxel_size_um_um = y_voxel_size_um
-
-    @property
-    def z_voxel_size_um(self):
-        return self._z_voxel_size_um_um
-
-    @z_voxel_size_um.setter
-    def z_voxel_size_um(self, z_voxel_size_um: float):
-        self.log.info(f"setting z voxel size to: {z_voxel_size_um} [um]")
-        self._z_voxel_size_um_um = z_voxel_size_um
-
-    @property
-    def x_position_mm(self):
-        return self._x_position_mm
-
-    @x_position_mm.setter
-    def x_position_mm(self, x_position_mm: float):
-        self.log.info(f"setting x position to: {x_position_mm} [mm]")
-        self._x_position_mm = x_position_mm
-
-    @property
-    def y_position_mm(self):
-        return self._y_position_mm
-
-    @y_position_mm.setter
-    def y_position_mm(self, y_position_mm: float):
-        self.log.info(f"setting y position to: {y_position_mm} [mm]")
-        self._y_position_mm = y_position_mm
-
-    @property
-    def z_position_mm(self):
-        return self._z_position_mm
-
-    @z_position_mm.setter
-    def z_position_mm(self, z_position_mm: float):
-        self.log.info(f"setting z position to: {z_position_mm} [mm]")
-        self._z_position_mm = z_position_mm
-
-    @property
     def theta_deg(self):
+        """Get theta value of the writer.
+
+        :return: Theta value in deg
+        :rtype: float
+        """
+
         return self._theta_deg
 
     @theta_deg.setter
     def theta_deg(self, theta_deg: float):
+        """Set the theta value of the writer.
+
+        :param value: Theta value in deg
+        :type value: float
+        """
+
         self.log.info(f"setting theta to: {theta_deg} [deg]")
         self._theta_deg = theta_deg
 
     @property
     def frame_count_px(self):
+        """Get the number of frames in the writer.
+
+        :return: Frame number in pixels
+        :rtype: int
+        """
+
         return self._frame_count_px_px
 
     @frame_count_px.setter
     def frame_count_px(self, frame_count_px: int):
+        """Set the number of frames in the writer.
+
+        :param value: Frame number in pixels
+        :type value: int
+        """
+
         self.log.info(f"setting frame count to: {frame_count_px} [px]")
         frame_count_px = (
             ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
@@ -156,29 +100,46 @@ class Writer(BaseWriter):
         self._frame_count_px_px = frame_count_px
 
     @property
-    def column_count_px(self):
-        return self._column_count_px
-
-    @column_count_px.setter
-    def column_count_px(self, column_count_px: int):
-        self.log.info(f"setting column count to: {column_count_px} [px]")
-        self._column_count_px = column_count_px
-
-    @property
-    def row_count_px(self):
-        return self._row_count_px
-
-    @row_count_px.setter
-    def row_count_px(self, row_count_px: int):
-        self.log.info(f"setting row count to: {row_count_px} [px]")
-        self._row_count_px = row_count_px
-
-    @property
     def chunk_count_px(self):
+        """Get the chunk count in pixels
+
+        :return: Chunk count in pixels
+        :rtype: int
+        """
+
         return CHUNK_COUNT_PX
 
     @property
+    def filename(self):
+        """
+        The base filename of file writer.
+
+        :return: The base filename
+        :rtype: str
+        """
+
+        return self._filename
+
+    @filename.setter
+    def filename(self, filename: str):
+        """
+        The base filename of file writer.
+
+        :param value: The base filename
+        :type value: str
+        """
+
+        self._filename = filename if filename.endswith(".h5") else f"{filename}.h5"
+        self.log.info(f"setting filename to: {filename}")
+
+    @property
     def compression(self):
+        """Get the compression codec of the writer.
+
+        :return: Compression codec
+        :rtype: str
+        """
+
         return next(
             key
             for key, value in COMPRESSION_TYPES.items()
@@ -187,6 +148,20 @@ class Writer(BaseWriter):
 
     @compression.setter
     def compression(self, compression: str):
+        """Set the compression codec of the writer.
+
+        :param value: Compression codec
+        * **gzp**
+        * **lzf**
+        * **b3d**
+        * **none**
+        :type value: str
+        :raises ValueError: Invalid compression codec
+        :raises ValueError: B3D compression only supported on Windows
+        :raises ValueError: HDF5 is not installed
+        :raises ValueError: HDF5 version is >1.8.xx
+        """
+
         valid = list(COMPRESSION_TYPES.keys())
         if compression not in valid:
             raise ValueError("compression type must be one of %r." % valid)
@@ -200,8 +175,8 @@ class Writer(BaseWriter):
             # check for hdf5 version
             try:
                 import hdf5
-            except:
-                raise ValueError("hdf5 is not installed")
+            except ValueError:
+                raise "hdf5 is not installed"
             hdf5_ver = hdf5.__version__
             if int(hdf5_ver[hdf5_ver.find(".") + 1]) > 8:
                 raise ValueError("b3d compression is only supported for hdf5 1.8.xx")
@@ -213,66 +188,12 @@ class Writer(BaseWriter):
                 int(B3D_READ_NOISE * 1000),
             )
 
-    @property
-    def data_type(self):
-        return self._data_type
-
-    @data_type.setter
-    def data_type(self, data_type: np.unsignedinteger):
-        self.log.info(f"setting data type to: {data_type}")
-        self._data_type = data_type
-
-    @property
-    def path(self):
-        return self._path
-
-    @property
-    def acquisition_name(self):
-        return self._acquisition_name
-
-    @acquisition_name.setter
-    def acquisition_name(self, acquisition_name: str):
-        self._acquisition_name = Path(acquisition_name)
-        self.log.info(f"setting acquisition name to: {acquisition_name}")
-
-    @property
-    def filename(self):
-        return self._filename
-
-    @filename.setter
-    def filename(self, filename: str):
-        self._filename = filename if filename.endswith(".h5") else f"{filename}.h5"
-        self.log.info(f"setting filename to: {filename}")
-
-    @property
-    def channel(self):
-        return self._channel
-
-    @channel.setter
-    def channel(self, channel: str):
-        self.log.info(f"setting channel name to: {channel}")
-        self._channel = channel
-
-    @property
-    def shm_name(self):
-        """Convenience getter to extract the shared memory address (string)
-        from the c array."""
-        return str(self._shm_name[:]).split("\x00")[0]
-
-    @shm_name.setter
-    def shm_name(self, name: str):
-        """Convenience setter to set the string value within the c array."""
-        for i, c in enumerate(name):
-            self._shm_name[i] = c
-        self._shm_name[len(name)] = "\x00"  # Null terminate the string.
-        self.log.info(f"setting shared memory to: {name}")
-
-    def get_logs(self):
-        while not self._log_queue.empty():
-            self.log.info(self._log_queue.get())
-
     def prepare(self):
-        self.p = Process(target=self._run, args=(self._progress, self._log_queue))
+        """
+        Prepare the writer.
+        """
+
+        self.log.info(f"{self._filename}: intializing writer.")
         # Specs for reconstructing the shared memory object.
         self._shm_name = Array(c_wchar, 32)  # hidden and exposed via property.
         # This is almost always going to be: (chunk_size, rows, columns).
@@ -281,9 +202,9 @@ class Writer(BaseWriter):
             "y": self._row_count_px,
             "z": CHUNK_COUNT_PX,
         }
-        self.shm_shape = [chunk_shape_map[x] for x in self.chunk_dim_order]
-        self.shm_nbytes = int(
-            np.prod(self.shm_shape, dtype=np.int64) * np.dtype(self._data_type).itemsize
+        shm_shape = [chunk_shape_map[x] for x in self.chunk_dim_order]
+        shm_nbytes = int(
+            np.prod(shm_shape, dtype=np.int64) * np.dtype(self._data_type).itemsize
         )
 
         # Check if tile position already exists
@@ -364,18 +285,28 @@ class Writer(BaseWriter):
         self.affine_shift_dict[(self.current_tile_num, self.current_channel_num)] = (
             affine_shift
         )
-
-        self.log.info(f"{self._filename}: intializing writer.")
+        self._process = Process(
+            target=self._run, args=(shm_nbytes, self._progress, self._log_queue)
+        )
 
     def start(self):
+        """
+        Start the writer.
+        """
+
         self.log.info(f"{self._filename}: starting writer.")
-        self.p.start()
+        self._process.start()
 
-    def _run(self, shared_progress, shared_log_queue):
-        """Loop to wait for data from a specified location and write it to disk
-        as an Imaris file. Close up the file afterwards.
+    def _run(self, shm_nbytes, shared_progress, shared_log_queue):
+        """
+        Main run function of the BDV writer.
 
-        This function executes when called with the start() method.
+        :param shm_nbytes: Shared memory address bytes
+        :type shm_nbytes: int
+        :param shared_progress: Shared progress value of the writer
+        :type shared_progress: multiprocessing.Value
+        :param shared_log_queue: Shared queue for passing log statements
+        :type shared_log_queue: multiprocessing.Queue
         """
         # internal logger for process
         logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
@@ -427,13 +358,13 @@ class Writer(BaseWriter):
                     self._z_position_mm,
                 )
             )
-        except:
+        except self.current_tile_num.DoesNotExist:
             # if does not exist, increment tile number by 1
             self.current_tile_num = len(self.tile_list) + 1
         try:
             # check if tile channel already exists
             self.current_channel_num = self.channel_list.index(self._channel)
-        except:
+        except self.current_channel_num.DoesNotExist:
             # if does not exist, increment tile channel by 1
             self.current_channel_num = len(self.channel_list) + 1
 
@@ -463,7 +394,7 @@ class Writer(BaseWriter):
             while self.done_reading.is_set():
                 sleep(0.001)
             # attach a reference to the data from shared memory.
-            shm = SharedMemory(self.shm_name, create=False, size=self.shm_nbytes)
+            shm = SharedMemory(self.shm_name, create=False, size=shm_nbytes)
             frames = np.ndarray(self.shm_shape, self._data_type, buffer=shm.buf)
             shared_log_queue.put(
                 f"{self._filename}: writing chunk "
@@ -530,12 +461,6 @@ class Writer(BaseWriter):
                 channel=append_channel,
             )
         bdv_writer.close()
-
-    def wait_to_finish(self):
-        self.log.info(f"{self._filename}: waiting to finish.")
-        self.p.join()
-        # log the finished writer %
-        self.signal_progress_percent
 
     def delete_files(self):
         filepath = Path(self._path, self._acquisition_name, self._filename).absolute()
