@@ -246,7 +246,7 @@ class BaseFileTransfer:
         self.thread.join()
 
     @abstractmethod
-    def is_alive(self):
+    def is_alive(self) -> bool:
         """
         Check if the transfer process is still running.
 
@@ -257,7 +257,7 @@ class BaseFileTransfer:
         return self.thread.is_alive()
 
     @abstractmethod
-    def _verify_file(self, local_file_path: str, external_file_path: str):
+    def _verify_file(self, local_file_path: str, external_file_path: str) -> bool:
         """
         Internal function that hash checks a transfered file.
 
