@@ -256,6 +256,7 @@ class BaseMaxProjection:
         )
         self.log.info(f"setting filename to: {filename}")
 
+    @abstractmethod
     def start(self):
         """
         Start the writer.
@@ -263,6 +264,7 @@ class BaseMaxProjection:
         self.log.info(f"{self._filename}: starting max projection process.")
         self._process.start()
 
+    @abstractmethod
     def prepare(self, shm_name):
         """
         Prepare the max projection process.
@@ -279,6 +281,7 @@ class BaseMaxProjection:
             self.shm_shape, self._data_type, buffer=self.shm.buf
         )
 
+    @abstractmethod
     def wait_to_finish(self):
         """
         Wait for the writer to finish.
