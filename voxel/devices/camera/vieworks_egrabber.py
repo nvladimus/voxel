@@ -65,6 +65,8 @@ class Camera(BaseCamera):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = str(id)  # convert to string incase serial # is entered as int
         self.gentl = EGenTLSingleton()
+        self._latest_frame = None
+
         discovery = EGrabberDiscovery(self.gentl)
         discovery.discover()
         # list all possible grabbers
@@ -333,9 +335,14 @@ class Camera(BaseCamera):
                                                                   column_count))
         # do software binning if != 1 and not a string for setting in egrabber
         if self._binning > 1 and isinstance(self._binning, int):
-            return self.gpu_binning.run(image)
+            self._latest_frame = self.gpu_binning.run(image)
+            return self._latest_frame
         else:
+            self._latest_frame = image
             return image
+    @property
+    def latest_frame(self):
+        return self._latest_frame
 
     def signal_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""

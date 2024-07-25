@@ -14,6 +14,7 @@ from datetime import datetime
 from matplotlib.colors import hex2color
 from time import sleep, perf_counter
 from math import ceil
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 CHUNK_COUNT_PX = 64
 DIVISIBLE_FRAME_COUNT_PX = 64
@@ -79,6 +80,13 @@ class Writer(BaseWriter):
         state = {'Progress [%]': self.progress*100}
         return state
 
+    @DeliminatedProperty(minimum=0, maximum=100, unit='%')
+    def progress(self):
+        return self._progress
+
+    @progress.setter
+    def progress(self, value: float):
+        self._progress = value
     @property
     def x_voxel_size_um(self):
         return self._x_voxel_size_um_um
