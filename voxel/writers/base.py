@@ -27,9 +27,9 @@ class BaseWriter:
         self._column_count_px = None
         self._frame_count_px_px = None
         self._shm_name = None
-        self._x_voxel_size_um_um = None
-        self._y_voxel_size_um_um = None
-        self._z_voxel_size_um_um = None
+        self._x_voxel_size_um = None
+        self._y_voxel_size_um = None
+        self._z_voxel_size_um = None
         self._x_position_mm = None
         self._y_position_mm = None
         self._z_position_mm = None
@@ -52,7 +52,7 @@ class BaseWriter:
         :rtype: float
         """
 
-        return self._x_voxel_size_um_um
+        return self._x_voxel_size_um
 
     @x_voxel_size_um.setter
     def x_voxel_size_um(self, x_voxel_size_um: float):
@@ -63,7 +63,7 @@ class BaseWriter:
         """
 
         self.log.info(f"setting x voxel size to: {x_voxel_size_um} [um]")
-        self._x_voxel_size_um_um = x_voxel_size_um
+        self._x_voxel_size_um = x_voxel_size_um
 
     @property
     def y_voxel_size_um(self):
@@ -73,7 +73,7 @@ class BaseWriter:
         :rtype: float
         """
 
-        return self._y_voxel_size_um_um
+        return self._y_voxel_size_um
 
     @y_voxel_size_um.setter
     def y_voxel_size_um(self, y_voxel_size_um: float):
@@ -84,7 +84,7 @@ class BaseWriter:
         """
 
         self.log.info(f"setting y voxel size to: {y_voxel_size_um} [um]")
-        self._y_voxel_size_um_um = y_voxel_size_um
+        self._y_voxel_size_um = y_voxel_size_um
 
     @property
     def z_voxel_size_um(self):
@@ -94,7 +94,7 @@ class BaseWriter:
         :rtype: float
         """
 
-        return self._z_voxel_size_um_um
+        return self._z_voxel_size_um
 
     @z_voxel_size_um.setter
     def z_voxel_size_um(self, z_voxel_size_um: float):
@@ -105,7 +105,7 @@ class BaseWriter:
         """
 
         self.log.info(f"setting z voxel size to: {z_voxel_size_um} [um]")
-        self._z_voxel_size_um_um = z_voxel_size_um
+        self._z_voxel_size_um = z_voxel_size_um
 
     @property
     def x_position_mm(self):

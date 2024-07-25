@@ -17,8 +17,6 @@ CHUNK_COUNT_PX = 64
 
 COMPRESSION_TYPES = {"none": "none"}
 
-DATA_TYPES = {"uint8", "uint16"}
-
 
 class TiffWriter(BaseWriter):
     """
@@ -33,9 +31,7 @@ class TiffWriter(BaseWriter):
     """
 
     def __init__(self, path: str):
-        super().__init__()
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self._path = Path(path)
+        super().__init__(path)
 
     @property
     def frame_count_px(self):
@@ -56,10 +52,6 @@ class TiffWriter(BaseWriter):
         """
 
         self.log.info(f"setting frame count to: {frame_count_px} [px]")
-        frame_count_px = (
-            ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
-        )
-        self.log.info(f"adjusting frame count to: {frame_count_px} [px]")
         self._frame_count_px_px = frame_count_px
 
     @property
@@ -132,24 +124,28 @@ class TiffWriter(BaseWriter):
         self.log.info(f"{self._filename}: intializing writer.")
         # Specs for reconstructing the shared memory object.
         self._shm_name = Array(c_wchar, 32)  # hidden and exposed via property.
+        # opinioated decision on chunking dimension order
+        chunk_dim_order = ("z", "y", "x")
         # This is almost always going to be: (chunk_size, rows, columns).
         chunk_shape_map = {
             "x": self._column_count_px,
             "y": self._row_count_px,
             "z": CHUNK_COUNT_PX,
         }
-        shm_shape = [chunk_shape_map[x] for x in self.chunk_dim_order]
+        shm_shape = [chunk_shape_map[x] for x in chunk_dim_order]
         shm_nbytes = int(
             np.prod(shm_shape, dtype=np.int64) * np.dtype(self._data_type).itemsize
         )
         self._process = Process(
-            target=self._run, args=(shm_nbytes, self._progress, self._log_queue)
+            target=self._run, args=(shm_shape, shm_nbytes, self._progress, self._log_queue)
         )
 
-    def _run(self, shm_nbytes, shared_progress, shared_log_queue):
+    def _run(self, shm_shape, shm_nbytes, shared_progress, shared_log_queue):
         """
         Main run function of the Tiff writer.
 
+        :param shm_shape: Shared memory address shape
+        :type shm_shape: list
         :param shm_nbytes: Shared memory address bytes
         :type shm_nbytes: int
         :param shared_progress: Shared progress value of the writer
@@ -195,7 +191,7 @@ class TiffWriter(BaseWriter):
                 sleep(0.001)
             # Attach a reference to the data from shared memory.
             shm = SharedMemory(self.shm_name, create=False, size=shm_nbytes)
-            frames = np.ndarray(self.shm_shape, self._data_type, buffer=shm.buf)
+            frames = np.ndarray(shm_shape, self._data_type, buffer=shm.buf)
             shared_log_queue.put(
                 f"{self._filename}: writing chunk "
                 f"{chunk_num+1}/{chunk_total} of size {frames.shape}."

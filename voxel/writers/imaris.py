@@ -64,7 +64,7 @@ class ImarisWriter(BaseWriter):
         :rtype: int
         """
 
-        return self._frame_count_px_px
+        return self._frame_count_px
 
     @frame_count_px.setter
     def frame_count_px(self, frame_count_px: int):
@@ -75,11 +75,12 @@ class ImarisWriter(BaseWriter):
         """
 
         self.log.info(f"setting frame count to: {frame_count_px} [px]")
-        frame_count_px = (
-            ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
-        )
-        self.log.info(f"adjusting frame count to: {frame_count_px} [px]")
-        self._frame_count_px_px = frame_count_px
+        if frame_count_px % DIVISIBLE_FRAME_COUNT_PX != 0:
+            frame_count_px = (
+                ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
+            )
+            self.log.info(f"adjusting frame count to: {frame_count_px} [px]")
+        self._frame_count_px = frame_count_px
 
     @property
     def chunk_count_px(self):
@@ -199,7 +200,7 @@ class ImarisWriter(BaseWriter):
         )
         # voxel size metadata to create the converter
         image_size_z = int(
-            ceil(self._frame_count_px_px / CHUNK_COUNT_PX) * CHUNK_COUNT_PX
+            ceil(self._frame_count_px / CHUNK_COUNT_PX) * CHUNK_COUNT_PX
         )
         image_size = pw.ImageSize(
             x=self._column_count_px, y=self._row_count_px, z=image_size_z, c=1, t=1
@@ -214,13 +215,13 @@ class ImarisWriter(BaseWriter):
         x0 = self._x_position_mm - (
             self._x_voxel_size_um_um * 0.5 * self._column_count_px
         )
-        y0 = self._y_position_mm - (self._y_voxel_size_um_um * 0.5 * self._row_count_px)
+        y0 = self._y_position_mm - (self._y_voxel_size_um * 0.5 * self._row_count_px)
         z0 = self._z_position_mm
         xf = self._x_position_mm + (
             self._x_voxel_size_um_um * 0.5 * self._column_count_px
         )
-        yf = self._y_position_mm + (self._y_voxel_size_um_um * 0.5 * self._row_count_px)
-        zf = self._z_position_mm + self._frame_count_px_px * self._z_voxel_size_um_um
+        yf = self._y_position_mm + (self._y_voxel_size_um * 0.5 * self._row_count_px)
+        zf = self._z_position_mm + self._frame_count_px * self._z_voxel_size_um
         image_extents = pw.ImageExtents(-x0, -y0, -z0, -xf, -yf, -zf)
         # c = channel, t = time. These fields are unused for now.
         # Note: ImarisWriter performs MUCH faster when the dimension sequence
@@ -352,7 +353,7 @@ class ImarisWriter(BaseWriter):
             application_version,
             self.callback_class,
         )
-        chunk_total = ceil(self._frame_count_px_px / CHUNK_COUNT_PX)
+        chunk_total = ceil(self._frame_count_px / CHUNK_COUNT_PX)
         for chunk_num in range(chunk_total):
             block_index = pw.ImageSize(x=0, y=0, z=chunk_num, c=0, t=0)
             # Wait for new data.

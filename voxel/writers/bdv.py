@@ -39,9 +39,8 @@ class BDVWriter(BaseWriter):
     """
    
     def __init__(self, path: str):
-        super().__init__()
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self._path = Path(path)
+        super().__init__(path)
+        self.compression_opts = None
         # Lists for storing all datasets in a single BDV file
         self.current_tile_num = 0
         self.current_channel_num = 0
@@ -93,10 +92,11 @@ class BDVWriter(BaseWriter):
         """
 
         self.log.info(f"setting frame count to: {frame_count_px} [px]")
-        frame_count_px = (
-            ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
-        )
-        self.log.info(f"adjusting frame count to: {frame_count_px} [px]")
+        if frame_count_px % DIVISIBLE_FRAME_COUNT_PX != 0:
+            frame_count_px = (
+                ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
+            )
+            self.log.info(f"adjusting frame count to: {frame_count_px} [px]")
         self._frame_count_px_px = frame_count_px
 
     @property
@@ -196,13 +196,15 @@ class BDVWriter(BaseWriter):
         self.log.info(f"{self._filename}: intializing writer.")
         # Specs for reconstructing the shared memory object.
         self._shm_name = Array(c_wchar, 32)  # hidden and exposed via property.
+        # opinioated decision on chunking dimension order
+        chunk_dim_order = ("z", "y", "x")
         # This is almost always going to be: (chunk_size, rows, columns).
         chunk_shape_map = {
             "x": self._column_count_px,
             "y": self._row_count_px,
             "z": CHUNK_COUNT_PX,
         }
-        shm_shape = [chunk_shape_map[x] for x in self.chunk_dim_order]
+        shm_shape = [chunk_shape_map[x] for x in chunk_dim_order]
         shm_nbytes = int(
             np.prod(shm_shape, dtype=np.int64) * np.dtype(self._data_type).itemsize
         )
@@ -230,11 +232,11 @@ class BDVWriter(BaseWriter):
 
         # Add voxel size to dictionary with key (tile#, channel#)
         # effective voxel size in x direction
-        size_x = self._x_voxel_size_um_um
+        size_x = self._x_voxel_size_um
         # effective voxel size in y direction
-        size_y = self._y_voxel_size_um_um * np.cos(self._theta_deg * np.pi / 180.0)
+        size_y = self._y_voxel_size_um * np.cos(self._theta_deg * np.pi / 180.0)
         # effective voxel size in z direction (scan)
-        size_z = self._z_voxel_size_um_um
+        size_z = self._z_voxel_size_um
         voxel_sizes = (size_z, size_y, size_x)
         self.voxel_size_dict[(self.current_tile_num, self.current_channel_num)] = (
             voxel_sizes
@@ -286,7 +288,7 @@ class BDVWriter(BaseWriter):
             affine_shift
         )
         self._process = Process(
-            target=self._run, args=(shm_nbytes, self._progress, self._log_queue)
+            target=self._run, args=(shm_shape, shm_nbytes, self._progress, self._log_queue)
         )
 
     def start(self):
@@ -297,10 +299,12 @@ class BDVWriter(BaseWriter):
         self.log.info(f"{self._filename}: starting writer.")
         self._process.start()
 
-    def _run(self, shm_nbytes, shared_progress, shared_log_queue):
+    def _run(self, shm_shape, shm_nbytes, shared_progress, shared_log_queue):
         """
         Main run function of the BDV writer.
 
+        :param shm_shape: Shared memory address shape
+        :type shm_shape: list
         :param shm_nbytes: Shared memory address bytes
         :type shm_nbytes: int
         :param shared_progress: Shared progress value of the writer
@@ -395,7 +399,7 @@ class BDVWriter(BaseWriter):
                 sleep(0.001)
             # attach a reference to the data from shared memory.
             shm = SharedMemory(self.shm_name, create=False, size=shm_nbytes)
-            frames = np.ndarray(self.shm_shape, self._data_type, buffer=shm.buf)
+            frames = np.ndarray(shm_shape, self._data_type, buffer=shm.buf)
             shared_log_queue.put(
                 f"{self._filename}: writing chunk "
                 f"{chunk_num+1}/{chunk_total} of size {frames.shape}."
