@@ -285,7 +285,7 @@ class BaseMaxProjection:
         """
 
         self.log.info(f"max projection {self.filename}: waiting to finish.")
-        self._processs.join()
+        self._process.join()
 
     @abstractmethod
     def _run(self):
