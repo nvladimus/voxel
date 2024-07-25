@@ -137,7 +137,8 @@ class TiffWriter(BaseWriter):
             np.prod(shm_shape, dtype=np.int64) * np.dtype(self._data_type).itemsize
         )
         self._process = Process(
-            target=self._run, args=(shm_shape, shm_nbytes, self._progress, self._log_queue)
+            target=self._run,
+            args=(shm_shape, shm_nbytes, self._progress, self._log_queue),
         )
 
     def _run(self, shm_shape, shm_nbytes, shared_progress, shared_log_queue):

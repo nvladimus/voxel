@@ -77,7 +77,8 @@ class ImarisWriter(BaseWriter):
         self.log.info(f"setting frame count to: {frame_count_px} [px]")
         if frame_count_px % DIVISIBLE_FRAME_COUNT_PX != 0:
             frame_count_px = (
-                ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
+                ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX)
+                * DIVISIBLE_FRAME_COUNT_PX
             )
             self.log.info(f"adjusting frame count to: {frame_count_px} [px]")
         self._frame_count_px = frame_count_px
@@ -199,9 +200,7 @@ class ImarisWriter(BaseWriter):
             np.prod(shm_shape, dtype=np.int64) * np.dtype(self._data_type).itemsize
         )
         # voxel size metadata to create the converter
-        image_size_z = int(
-            ceil(self._frame_count_px / CHUNK_COUNT_PX) * CHUNK_COUNT_PX
-        )
+        image_size_z = int(ceil(self._frame_count_px / CHUNK_COUNT_PX) * CHUNK_COUNT_PX)
         image_size = pw.ImageSize(
             x=self._column_count_px, y=self._row_count_px, z=image_size_z, c=1, t=1
         )

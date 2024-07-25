@@ -37,7 +37,7 @@ class BDVWriter(BaseWriter):
     :param path: Path for the data writer
     :type path: str
     """
-   
+
     def __init__(self, path: str):
         super().__init__(path)
         self.compression_opts = None
@@ -94,7 +94,8 @@ class BDVWriter(BaseWriter):
         self.log.info(f"setting frame count to: {frame_count_px} [px]")
         if frame_count_px % DIVISIBLE_FRAME_COUNT_PX != 0:
             frame_count_px = (
-                ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
+                ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX)
+                * DIVISIBLE_FRAME_COUNT_PX
             )
             self.log.info(f"adjusting frame count to: {frame_count_px} [px]")
         self._frame_count_px_px = frame_count_px
@@ -288,7 +289,8 @@ class BDVWriter(BaseWriter):
             affine_shift
         )
         self._process = Process(
-            target=self._run, args=(shm_shape, shm_nbytes, self._progress, self._log_queue)
+            target=self._run,
+            args=(shm_shape, shm_nbytes, self._progress, self._log_queue),
         )
 
     def start(self):
