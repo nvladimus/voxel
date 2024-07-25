@@ -45,7 +45,8 @@ class BaseWriter:
         self.deallocating = Event()
 
     @property
-    def x_voxel_size_um(self):
+    @abstractmethod
+    def x_voxel_size_um(self) -> int:
         """Get x voxel size of the writer.
 
         :return: Voxel size in the x dimension in microns
@@ -55,18 +56,20 @@ class BaseWriter:
         return self._x_voxel_size_um
 
     @x_voxel_size_um.setter
-    def x_voxel_size_um(self, x_voxel_size_um: float):
+    @abstractmethod
+    def x_voxel_size_um(self, x_voxel_size_um: float) -> None:
         """Set the x voxel size of the writer.
 
-        :param value: Voxel size in the x dimension in microns
-        :type value: float
+        :param x_voxel_size_um: Voxel size in the x dimension in microns
+        :type x_voxel_size_um: float
         """
 
         self.log.info(f"setting x voxel size to: {x_voxel_size_um} [um]")
         self._x_voxel_size_um = x_voxel_size_um
 
     @property
-    def y_voxel_size_um(self):
+    @abstractmethod
+    def y_voxel_size_um(self) -> int:
         """Get y voxel size of the writer.
 
         :return: Voxel size in the y dimension in microns
@@ -76,18 +79,20 @@ class BaseWriter:
         return self._y_voxel_size_um
 
     @y_voxel_size_um.setter
-    def y_voxel_size_um(self, y_voxel_size_um: float):
+    @abstractmethod
+    def y_voxel_size_um(self, y_voxel_size_um: float) -> None:
         """Set the x voxel size of the writer.
 
-        :param value: Voxel size in the y dimension in microns
-        :type value: float
+        :param y_voxel_size_um: Voxel size in the y dimension in microns
+        :type y_voxel_size_um: float
         """
 
         self.log.info(f"setting y voxel size to: {y_voxel_size_um} [um]")
         self._y_voxel_size_um = y_voxel_size_um
 
     @property
-    def z_voxel_size_um(self):
+    @abstractmethod
+    def z_voxel_size_um(self) -> int:
         """Get z voxel size of the writer.
 
         :return: Voxel size in the z dimension in microns
@@ -97,18 +102,20 @@ class BaseWriter:
         return self._z_voxel_size_um
 
     @z_voxel_size_um.setter
-    def z_voxel_size_um(self, z_voxel_size_um: float):
+    @abstractmethod
+    def z_voxel_size_um(self, z_voxel_size_um: float) -> None:
         """Set the z voxel size of the writer.
 
-        :param value: Voxel size in the z dimension in microns
-        :type value: float
+        :param z_voxel_size_um: Voxel size in the z dimension in microns
+        :type z_voxel_size_um: float
         """
 
         self.log.info(f"setting z voxel size to: {z_voxel_size_um} [um]")
         self._z_voxel_size_um = z_voxel_size_um
 
     @property
-    def x_position_mm(self):
+    @abstractmethod
+    def x_position_mm(self) -> float:
         """Get x position of the writer.
 
         :return: Position in the x dimension in mm
@@ -118,18 +125,20 @@ class BaseWriter:
         return self._x_position_mm
 
     @x_position_mm.setter
-    def x_position_mm(self, x_position_mm: float):
+    @abstractmethod
+    def x_position_mm(self, x_position_mm: float) -> None:
         """Set the x position of the writer.
 
-        :param value: Position in the x dimension in mm
-        :type value: float
+        :param x_position_mm: Position in the x dimension in mm
+        :type x_position_mm: float
         """
 
         self.log.info(f"setting x position to: {x_position_mm} [mm]")
         self._x_position_mm = x_position_mm
 
     @property
-    def y_position_mm(self):
+    @abstractmethod
+    def y_position_mm(self) -> float:
         """Get y position of the writer.
 
         :return: Position in the y dimension in mm
@@ -139,18 +148,20 @@ class BaseWriter:
         return self._y_position_mm
 
     @y_position_mm.setter
-    def y_position_mm(self, y_position_mm: float):
+    @abstractmethod
+    def y_position_mm(self, y_position_mm: float) -> None:
         """Set the y position of the writer.
 
-        :param value: Position in the x dimension in mm
-        :type value: float
+        :param y_position_mm: Position in the x dimension in mm
+        :type y_position_mm: float
         """
 
         self.log.info(f"setting y position to: {y_position_mm} [mm]")
         self._y_position_mm = y_position_mm
 
     @property
-    def z_position_mm(self):
+    @abstractmethod
+    def z_position_mm(self) -> float:
         """Get z position of the writer.
 
         :return: Position in the z dimension in mm
@@ -160,11 +171,12 @@ class BaseWriter:
         return self._z_position_mm
 
     @z_position_mm.setter
-    def z_position_mm(self, z_position_mm: float):
+    @abstractmethod
+    def z_position_mm(self, z_position_mm: float) -> None:
         """Set the z position of the writer.
 
-        :param value: Position in the z dimension in mm
-        :type value: float
+        :param z_position_mm: Position in the z dimension in mm
+        :type z_position_mm: float
         """
 
         self.log.info(f"setting z position to: {z_position_mm} [mm]")
@@ -172,7 +184,7 @@ class BaseWriter:
 
     @property
     @abstractmethod
-    def theta_deg(self) -> float:
+    def theta_deg(self) -> Optional[float]:
         """Get theta value of the writer.
 
         :return: Theta value in deg
@@ -183,7 +195,7 @@ class BaseWriter:
 
     @theta_deg.setter
     @abstractmethod
-    def theta_deg(self, value: float) -> None:
+    def theta_deg(self, value: float) -> Optional[None]:
         """Set the theta value of the writer.
 
         :param value: Theta value in deg
@@ -215,7 +227,8 @@ class BaseWriter:
         pass
 
     @property
-    def column_count_px(self):
+    @abstractmethod
+    def column_count_px(self) -> int:
         """Get the number of columns in the writer.
 
         :return: Column number in pixels
@@ -225,18 +238,20 @@ class BaseWriter:
         return self._column_count_px
 
     @column_count_px.setter
-    def column_count_px(self, column_count_px: int):
+    @abstractmethod
+    def column_count_px(self, column_count_px: int) -> None:
         """Set the number of columns in the writer.
 
-        :param value: Column number in pixels
-        :type value: int
+        :param column_count_px: Column number in pixels
+        :type column_count_px: int
         """
 
         self.log.info(f"setting column count to: {column_count_px} [px]")
         self._column_count_px = column_count_px
 
     @property
-    def row_count_px(self):
+    @abstractmethod
+    def row_count_px(self) -> int:
         """Get the number of rows in the writer.
 
         :return: Row number in pixels
@@ -246,11 +261,12 @@ class BaseWriter:
         return self._row_count_px
 
     @row_count_px.setter
+    @abstractmethod
     def row_count_px(self, row_count_px: int):
         """Set the number of rows in the writer.
 
-        :param value: Row number in pixels
-        :type value: int
+        :param row_count_px: Row number in pixels
+        :type row_count_px: int
         """
 
         self.log.info(f"setting row count to: {row_count_px} [px]")
@@ -290,7 +306,8 @@ class BaseWriter:
         pass
 
     @property
-    def data_type(self):
+    @abstractmethod
+    def data_type(self) -> numpy.unsignedinteger:
         """Get the data type of the writer.
 
         :return: Data type
@@ -300,18 +317,20 @@ class BaseWriter:
         return self._data_type
 
     @data_type.setter
-    def data_type(self, data_type: numpy.unsignedinteger):
+    @abstractmethod
+    def data_type(self, data_type: numpy.unsignedinteger) -> None:
         """Set the data type of the writer.
 
-        :param value: Data type
-        :type value: numpy.unsignedinteger
+        :param data_type: Data type
+        :type data_type: numpy.unsignedinteger
         """
 
         self.log.info(f"setting data type to: {data_type}")
         self._data_type = data_type
 
     @property
-    def path(self):
+    @abstractmethod
+    def path(self) -> Path:
         """Get the path of the writer.
 
         :return: Path
@@ -321,7 +340,8 @@ class BaseWriter:
         return self._path
 
     @property
-    def acquisition_name(self):
+    @abstractmethod
+    def acquisition_name(self) -> str:
         """
         The base acquisition name of the writer.
 
@@ -332,12 +352,13 @@ class BaseWriter:
         return self._acquisition_name
 
     @acquisition_name.setter
-    def acquisition_name(self, acquisition_name: str):
+    @abstractmethod
+    def acquisition_name(self, acquisition_name: str) -> None:
         """
         The base acquisition name of writer.
 
-        :param value: The base acquisition name
-        :type value: str
+        :param acquisition_name: The base acquisition name
+        :type acquisition_name: str
         """
 
         self._acquisition_name = Path(acquisition_name)
@@ -368,7 +389,8 @@ class BaseWriter:
         pass
 
     @property
-    def channel(self):
+    @abstractmethod
+    def channel(self) -> str:
         """
         The channel of the writer.
 
@@ -379,12 +401,13 @@ class BaseWriter:
         return self._channel
 
     @channel.setter
-    def channel(self, channel: str):
+    @abstractmethod
+    def channel(self, channel: str) -> None:
         """
         The channel of the writer.
 
-        :param value: Channel
-        :type value: str
+        :param channel: Channel
+        :type channel: str
         """
 
         self.log.info(f"setting channel name to: {channel}")
@@ -413,7 +436,8 @@ class BaseWriter:
         pass
 
     @property
-    def shm_name(self):
+    @abstractmethod
+    def shm_name(self) -> str:
         """
         The shared memory address (string) from the c array.
 
@@ -424,12 +448,13 @@ class BaseWriter:
         return str(self._shm_name[:]).split("\x00")[0]
 
     @shm_name.setter
-    def shm_name(self, name: str):
+    @abstractmethod
+    def shm_name(self, name: str) -> None:
         """
         The shared memory address (string) from the c array.
 
-        :param value: Shared memory address
-        :type: str
+        :param name: Shared memory address
+        :type name: str
         """
 
         for i, c in enumerate(name):
@@ -438,7 +463,8 @@ class BaseWriter:
         self.log.info(f"setting shared memory to: {name}")
 
     @property
-    def signal_progress_percent(self):
+    @abstractmethod
+    def signal_progress_percent(self) -> float:
         """Get the progress of the writer.
 
         :return: Progress in percent
@@ -449,6 +475,7 @@ class BaseWriter:
         self.log.info(f"Progress [%]: {self._progress.value*100}")
         return state
 
+    @abstractmethod
     def get_logs(self):
         """
         Get logs from the writer run process.
@@ -456,6 +483,7 @@ class BaseWriter:
         while not self._log_queue.empty():
             self.log.info(self._log_queue.get())
 
+    @abstractmethod
     def start(self):
         """
         Start the writer.
@@ -463,6 +491,7 @@ class BaseWriter:
         self.log.info(f"{self._filename}: starting writer.")
         self._process.start()
 
+    @abstractmethod
     def wait_to_finish(self):
         """
         Wait for the writer to finish.
