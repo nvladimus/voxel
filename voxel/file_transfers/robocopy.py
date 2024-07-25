@@ -1,14 +1,8 @@
-"""File Transfer process in a separate class for Win/Linux compatibility."""
-
-import logging
 import os
 import shutil
-import threading
 import time
 from pathlib import Path
 from subprocess import DEVNULL, Popen
-
-from imohash import hashfile
 
 from voxel.file_transfers.base import BaseFileTransfer
 
@@ -17,258 +11,21 @@ class RobocopyFileTransfer(BaseFileTransfer):
     """
     Voxel driver for Robocopy file transfer process.
 
-    Process will transfer files with the following regex\n
-    format:\n
-    \n
-    From -> \\local_path\\acquisition_name\\filename*\n
-    To -> \\external_path\\acquisition_name\\filename*\n
-    \n
+    Process will transfer files with the following regex
+    format:
+
+    From -> \\local_path\\acquisition_name\\filename*
+    To -> \\external_path\\acquisition_name\\filename*
+
     :param external_path: External path of files to be transferred
     :param local_path: Local path of files to be transferred
     :type external_path: str
     :type local_path: str
-    :raise ValueError: Same external and local path
     """
 
     def __init__(self, external_path: str, local_path: str):
-        super().__init__()
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self._external_path = Path(external_path)
-        self._local_path = Path(local_path)
-        if self._external_path == self._local_path:
-            raise ValueError(
-                "External path and local path cannot be the same"
-            )
-        self._filename = None
-        self._max_retry = 0
-        self._acquisition_name = Path()
+        super().__init__(external_path, local_path)
         self._protocol = "robocopy"
-        self._verify_transfer = False
-        self._num_tries = 1
-        self._timeout_s = 60
-        self.progress = 0
-
-    @property
-    def filename(self):
-        """
-        The base filename of files to be transferred.
-
-        :return: The base filename
-        :rtype: str
-        """
-
-        return self._filename
-
-    @filename.setter
-    def filename(self, filename: str):
-        """
-        The base filename of files to be transferred.\n
-
-        :param value: The base filename
-        :type value: str
-        """
-
-        self.log.info(f"setting filename to: {filename}")
-        self._filename = filename
-
-    @property
-    def acquisition_name(self):
-        """
-        The base acquisition name of files to be transferred.
-
-        :return: The base filename
-        :rtype: str
-        """
-
-        return self._acquisition_name
-
-    @acquisition_name.setter
-    def acquisition_name(self, acquisition_name: str):
-        """
-        The base acquisition name of files to be transferred.
-
-        :param value: The base acquisition_name
-        :type value: str
-        """
-
-        self._acquisition_name = Path(acquisition_name)
-        self.log.info(f"setting acquisition name to: {acquisition_name}")
-
-    @property
-    def local_path(self):
-        """
-        The local path of files to be transferred.
-
-        :return: The local path
-        :rtype: str
-        """
-
-        return self._local_path
-
-    @local_path.setter
-    def local_path(self, local_path: str):
-        """
-        The local path of files to be transferred.
-
-        :param value: The local path
-        :type value: str
-        """
-
-        self._local_path = Path(local_path)
-        self.log.info(f"setting local path to: {local_path}")
-
-    @property
-    def external_path(self):
-        """
-        The external path of files to be transferred.
-
-        :return: The external path
-        :rtype: str
-        """
-
-        return self._external_path
-
-    @external_path.setter
-    def external_path(self, external_path: str):
-        """
-        The external path of files to be transferred.
-
-        :param value: The external path
-        :type value: str
-        """
-
-        self._external_path = Path(external_path)
-        self.log.info(f"setting local path to: {external_path}")
-
-    @property
-    def verify_transfer(self):
-        """
-        State of transfer process.
-
-        :return: The transfer process state
-        :rtype: str
-        """
-
-        return self._verify_transfer
-
-    @verify_transfer.setter
-    def verify_transfer(self, verify_transfer: bool):
-        """
-        State of transfer process.
-
-        :param value: The transfer process state
-        :type value: bool
-        """
-
-        self._verify_transfer = verify_transfer
-        self.log.info(f"setting verify transfer to: {verify_transfer}")
-
-    @property
-    def max_retry(self):
-        """
-        Number of times to retry the transfer process.
-
-        :return: Number of retry attempts
-        :rtype: int
-        """
-
-        return self._max_retry
-
-    @max_retry.setter
-    def max_retry(self, max_retry: int):
-        """
-        Number of times to retry the transfer process.
-
-        :param value: Number of retry attempts
-        :type value: int
-        """
-
-        self._max_retry = max_retry
-        self.log.info(f"setting max retry to: {max_retry}")
-
-    @property
-    def timeout_s(self):
-        """
-        Timeout for the transfer process.
-
-        :return: Timeout in seconds
-        :rtype: float
-        """
-
-        return self._timeout_s
-
-    @timeout_s.setter
-    def timeout_s(self, timeout_s: float):
-        """
-        Timeout for the transfer process.
-
-        :param value: Timeout in seconds
-        :type value: float
-        """
-
-        self._timeout_s = timeout_s
-        self.log.info(f"setting timeout to: {timeout_s}")
-
-    @property
-    def signal_progress_percent(self):
-        """
-        Get the progress of the transfer process.
-
-        :return: Progress in percent
-        :rtype: float
-        """
-
-        state = {}
-        state["Transfer Progress [%]"] = self.progress
-        self.log.info(f"{self._filename} transfer progress: {self.progress:.2f} [%]")
-        return state
-
-    def start(self):
-        """
-        Start the transfer process.
-        """
-
-        self.log.info(f"transferring from {self._local_path} to {self._external_path}")
-        self.thread = threading.Thread(target=self._run)
-        self.thread.start()
-
-    def wait_until_finished(self):
-        """
-        Wait for the transfer process to finish.
-        """
-
-        self.thread.join()
-
-    def is_alive(self):
-        """
-        Check if the transfer process is still running.
-        """
-
-        return self.thread.is_alive()
-
-    def _verify_file(self, local_file_path: str, external_file_path: str):
-        """
-        Internal function that hash checks a transfered file.
-
-        :return: State of transfered file
-        :rtype: bool
-        """
-        # verifying large files with a full checksum is too time consuming
-        # verifying based on file size alone is not thorough
-        # use imohash library to perform hasing on small subset of file
-        # imohash defaults to reading 16K bits (i.e. 1<<14) from beginning, middle, and end
-        local_hash = hashfile(local_file_path, sample_size=1 << 14)
-        external_hash = hashfile(external_file_path, sample_size=1 << 14)
-        if local_hash == external_hash:
-            self.log.info(f"{local_file_path} and {external_file_path} hashes match")
-            return True
-        else:
-            self.log.info(
-                f"hash mismatch for {local_file_path} and {external_file_path}"
-            )
-            self.log.info(f"{local_file_path} hash = {local_hash}")
-            self.log.info(f"{external_file_path} hash = {external_hash}")
-            return False
 
     def _run(self):
         """
