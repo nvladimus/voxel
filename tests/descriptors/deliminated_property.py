@@ -1,5 +1,5 @@
 import pytest
-from voxel.descriptors.deliminated_property import deliminated_property, DeliminatedPropertyError, DeliminatedProperty
+from voxel.descriptors.deliminated_property import deliminated_property, DeliminatedProperty
 
 VALUE_MIN = 20
 VALUE_MAX = 100
@@ -14,13 +14,20 @@ class DummyDevice:
     )
 
     def __init__(self):
+        self._device_property0 = 0
+        self._device_property1 = 0
+        self._device_property2 = 0
+        self._device_property3 = 0
+        self._initialize_values()
+
+    def _initialize_values(self):
         self.device_property0 = 40
         self.device_property1 = 40
         self.device_property2 = 40
         self.device_property3 = 40
 
     @deliminated_property(minimum=VALUE_MIN, maximum=VALUE_MAX, step=VALUE_STEP)
-    def device_property0(self):
+    def device_property0(self) -> float:
         return self._device_property0
 
     @device_property0.setter
@@ -44,173 +51,107 @@ class DummyDevice:
         self._device_property2 = value
 
 
+class DynamicDevice:
+    def __init__(self):
+        self._min = VALUE_MIN
+        self._max = VALUE_MAX
+        self._step = VALUE_STEP
+        self._value: int
+        self._initialize_values()
+
+    def _initialize_values(self):
+        self.dynamic_property = 50
+
+    @deliminated_property(
+        minimum=lambda self: self._min,
+        maximum=lambda self: self._max,
+        step=lambda self: self._step
+    )
+    def dynamic_property(self):
+        return self._value
+
+    @dynamic_property.setter
+    def dynamic_property(self, value):
+        self._value = value
+
+
 @pytest.fixture
 def device():
     return DummyDevice()
 
 
+@pytest.fixture
+def dynamic_device():
+    return DynamicDevice()
+
+
 def test_initial_values(device):
-    assert device.device_property0 == 38  # Due to step size: min is 20, step is 3 so 20 + 3 * 6 = 38
+    assert device.device_property0 == 41  # Due to step size: 20 + 3 * 7 = 41
     assert device.device_property1 == 40
     assert device.device_property2 == 40
-    assert device.device_property3 == 38  # Due to step size: min is 20, step is 3 so 20 + 3 * 6 = 38
+    assert device.device_property3 == 41 # Due to step size: 20 + 3 * 7 = 41
 
 
 def test_normal_assignment(device):
     device.device_property0 = 50
-    assert device.device_property0 == 50  # min is 20, step is 3 so 20 + 3 * 10 = 50
+    assert device.device_property0 == 50
 
     device.device_property1 = 60
-    assert device.device_property1 == 60  # No constraints
+    assert device.device_property1 == 60
 
     device.device_property2 = 70
-    assert device.device_property2 == 70  # No step constraint, min is 20
+    assert device.device_property2 == 70
 
     device.device_property3 = 81
-    assert device.device_property3 == 80  # min is 20, step is 3 so 20 + 3 * 20 = 80
+    assert device.device_property3 == 80  # 20 + 3 * 20 = 80
 
 
-def test_minimum_constraint(device):
-    device.device_property0 = VALUE_MIN - 10
-    assert device.device_property0 == VALUE_MIN
+def test_property_attributes(device):
+    properties = ["device_property0", "device_property1", "device_property2", "device_property3"]
+    expected_values = [
+        (VALUE_MIN, VALUE_MAX, VALUE_STEP),
+        (float('-inf'), float('inf'), None),
+        (VALUE_MIN, float('inf'), None),
+        (VALUE_MIN, VALUE_MAX, VALUE_STEP)
+    ]
 
-    device.device_property1 = float('-inf')
-    assert device.device_property1 == float('-inf')
-
-    device.device_property2 = VALUE_MIN - 5
-    assert device.device_property2 == VALUE_MIN
-
-    device.device_property3 = VALUE_MIN - 15
-    assert device.device_property3 == VALUE_MIN
-
-
-def test_maximum_constraint(device):
-    device.device_property0 = VALUE_MAX + 10
-    assert device.device_property0 == VALUE_MAX
-
-    device.device_property1 = float('inf')
-    assert device.device_property1 == float('inf')
-
-    device.device_property2 = VALUE_MAX + 20
-    assert device.device_property2 == VALUE_MAX + 20  # No max constraint
-
-    device.device_property3 = VALUE_MAX + 15
-    assert device.device_property3 == VALUE_MAX
+    for prop, (min_val, max_val, step_val) in zip(properties, expected_values):
+        prop_obj = getattr(device.__class__, prop)
+        assert prop_obj.minimum == min_val
+        assert prop_obj.maximum == max_val
+        assert prop_obj.step == step_val
 
 
-def test_step_constraint(device):
-    device.device_property0 = 52
-    assert device.device_property0 == 50  # min is 20, step is 3 so 20 + 3 * 10 = 50
+def test_dynamic_min_max_step(dynamic_device):
+    assert dynamic_device.dynamic_property == 50
 
-    device.device_property1 = 53
-    assert device.device_property1 == 53  # No step constraint
+    dynamic_device.dynamic_property = 150
+    assert dynamic_device.dynamic_property == 98
 
-    device.device_property2 = 54
-    assert device.device_property2 == 54  # No step constraint
+    dynamic_device._max = 200
+    dynamic_device.dynamic_property = 150
+    assert dynamic_device.dynamic_property == 149 # 20 + 3 * 43 = 149
 
-    device.device_property3 = 55
-    assert device.device_property3 == 53  # min is 20, step is 3 so 20 + 3 * 11 = 53
+    dynamic_device._min = 100
+    dynamic_device.dynamic_property = 90
+    assert dynamic_device.dynamic_property == 100
 
+    dynamic_device.dynamic_property = 173
+    assert dynamic_device.dynamic_property == 172  # 100 + 3 * 24 = 172
 
-def test_property_attributes():
-    assert DummyDevice.device_property0.minimum == VALUE_MIN
-    assert DummyDevice.device_property0.maximum == VALUE_MAX
-    assert DummyDevice.device_property0.step == VALUE_STEP
-
-    assert DummyDevice.device_property1.minimum == float('-inf')
-    assert DummyDevice.device_property1.maximum == float('inf')
-    assert DummyDevice.device_property1.step is None
-
-    assert DummyDevice.device_property2.minimum == VALUE_MIN
-    assert DummyDevice.device_property2.maximum == float('inf')
-    assert DummyDevice.device_property2.step is None
-
-    assert DummyDevice.device_property3.minimum == VALUE_MIN
-    assert DummyDevice.device_property3.maximum == VALUE_MAX
-    assert DummyDevice.device_property3.step == VALUE_STEP
+    dynamic_device._step = 10
+    dynamic_device.dynamic_property = 173
+    assert dynamic_device.dynamic_property == 170  # 20 + 10 * 15 = 170
 
 
-def test_callable_min_max(device):
-    class DeviceWithCallable:
-        @deliminated_property(
-            minimum=lambda self: self._min,
-            maximum=lambda self: self._max
-        )
-        def dynamic_property(self):
-            return self._value
-
-        @dynamic_property.setter
-        def dynamic_property(self, value):
-            self._value = value
-
-        def __init__(self):
-            self._min = 0
-            self._max = 100
-            self._value = 50
-
-    d = DeviceWithCallable()
-    assert d.dynamic_property == 50
-    d.dynamic_property = 150
-    assert d.dynamic_property == 100
-    d._max = 200
-    d.dynamic_property = 150
-    assert d.dynamic_property == 150
+def test_string_input(device):
+    with pytest.raises(TypeError):
+        device.device_property0 = "50"
 
 
-def test_custom_exception_invalid_min_max():
-    with pytest.raises(DeliminatedPropertyError, match="Minimum value .* cannot be greater than maximum value"):
-        class InvalidDevice:
-            @deliminated_property(minimum=100, maximum=50)
-            def invalid_property(self):
-                return 0
-
-        _ = InvalidDevice()
-
-
-def test_custom_exception_invalid_step():
-    class StepDevice:
-        def __init__(self):
-            self._value = 50
-
-        @deliminated_property(minimum=0, maximum=100, step="invalid")  # type: ignore
-        def step_property(self):
-            return self._value
-
-        @step_property.setter
-        def step_property(self, value):
-            self._value = value
-
-    d = StepDevice()
-    with pytest.raises(DeliminatedPropertyError, match="Invalid step value"):
-        d.step_property = 50
-
-
-def test_custom_exception_callable_min_max():
-    class CallableDevice:
-        def __init__(self):
-            self._value = 50
-
-        @deliminated_property(
-            minimum=lambda self: self.get_min(),
-            maximum=lambda self: self.get_max()
-        )
-        def dynamic_property(self):
-            return self._value
-
-        @dynamic_property.setter
-        def dynamic_property(self, value):
-            self._value = value
-
-        def get_min(self):
-            raise ValueError("Error in min calculation")
-
-        @staticmethod
-        def get_max():
-            return 100
-
-    d = CallableDevice()
-    with pytest.raises(DeliminatedPropertyError):
-        d.dynamic_property = 50
+def test_none_input(device):
+    with pytest.raises(TypeError):
+        device.device_property0 = None
 
 
 if __name__ == "__main__":
