@@ -1,20 +1,22 @@
 import logging
-from typing import Union, Callable, Optional, Any, Literal, TypeVar, Generic
+from typing import Union, Callable, Optional, Any, Literal
 
 logging.basicConfig(level=logging.DEBUG)
 
-T = TypeVar('T', int, float)
+Number = Union[int, float]
+StaticOrCallableNumber = Union[Number, Callable[[Any], Number]]
 
-class DeliminatedProperty(Generic[T], property):
+
+class DeliminatedProperty(property):
     def __init__(
             self,
-            fget: Optional[Callable[[Any], T]] = None,
-            fset: Optional[Callable[[Any, T], None]] = None,
+            fget: Optional[Callable[[Any], Number]] = None,
+            fset: Optional[Callable[[Any, Number], None]] = None,
             fdel: Optional[Callable[[Any], None]] = None,
             *,
-            minimum: Union[T, Callable[[Any], T]] = float('-inf'),
-            maximum: Union[T, Callable[[Any], T]] = float('inf'),
-            step: Optional[Union[T, Callable[[Any], T]]] = None,
+            minimum: StaticOrCallableNumber = float('-inf'),
+            maximum: StaticOrCallableNumber = float('inf'),
+            step: Optional[StaticOrCallableNumber] = None,
             unit: str = ''
     ):
         super().__init__(fget, fset, fdel)
@@ -26,7 +28,7 @@ class DeliminatedProperty(Generic[T], property):
 
         self.log = logging.getLogger(f"{__name__} - {self.__class__.__name__}")
 
-    def __get__(self, instance: Any, owner=None) -> Union['DeliminatedProperty[T]', 'DeliminatedPropertyProxy[T]']:
+    def __get__(self, instance: Any, owner=None) -> Union['DeliminatedProperty', 'DeliminatedPropertyProxy']:
         if instance is None:
             return self
 
@@ -38,7 +40,7 @@ class DeliminatedProperty(Generic[T], property):
         value = self.fget(instance)
         return DeliminatedPropertyProxy(value, self)
 
-    def __set__(self, instance: Any, value: T) -> None:
+    def __set__(self, instance: Any, value: Number) -> None:
         if self.fset is None:
             raise AttributeError("can't set attribute")
         self._instance = instance
@@ -55,21 +57,21 @@ class DeliminatedProperty(Generic[T], property):
             raise AttributeError("can't delete attribute")
         self.fdel(instance)
 
-    def getter(self, fget: Callable[[Any], T]) -> 'DeliminatedProperty[T]':
+    def getter(self, fget: Callable[[Any], Number]) -> 'DeliminatedProperty':
         return type(self)(
             fget, self.fset, self.fdel,
             minimum=self._minimum, maximum=self._maximum,
             step=self._step, unit=self._unit
         )
 
-    def setter(self, fset: Callable[[Any, T], None]) -> 'DeliminatedProperty[T]':
+    def setter(self, fset: Callable[[Any, Number], None]) -> 'DeliminatedProperty':
         return type(self)(
             self.fget, fset, self.fdel,
             minimum=self._minimum, maximum=self._maximum,
             step=self._step, unit=self._unit
         )
 
-    def deleter(self, fdel: Callable[[Any], None]) -> 'DeliminatedProperty[T]':
+    def deleter(self, fdel: Callable[[Any], None]) -> 'DeliminatedProperty':
         return type(self)(
             self.fget, self.fset, fdel,
             minimum=self._minimum, maximum=self._maximum,
@@ -77,22 +79,22 @@ class DeliminatedProperty(Generic[T], property):
         )
 
     @property
-    def minimum(self) -> T:
+    def minimum(self) -> Number:
         return self._safe_call(self._minimum)
 
     @property
-    def maximum(self) -> T:
+    def maximum(self) -> Number:
         return self._safe_call(self._maximum)
 
     @property
-    def step(self) -> Optional[T]:
+    def step(self) -> Optional[Number]:
         return self._safe_call(self._step) if self._step is not None else None
 
     @property
     def unit(self) -> str:
         return self._unit
 
-    def _get_closest_step_multiple(self, value: T) -> T:
+    def _get_closest_step_multiple(self, value: Number) -> Number:
         step = self.step
         if step is None:
             return value
@@ -102,7 +104,7 @@ class DeliminatedProperty(Generic[T], property):
             return int(round((value - min_val) / step) * step + min_val)
         return round((value - min_val) / step) * step + min_val
 
-    def _clamp(self, value: T) -> T:
+    def _clamp(self, value: Number) -> Number:
         max_val = self.maximum
         min_val = self.minimum
         step = self.step
@@ -111,8 +113,7 @@ class DeliminatedProperty(Generic[T], property):
         else:
             return max(min_val, min(value, max_val))
 
-
-    def _safe_call(self, value: Union[T, Callable[[Any], T]]) -> T:
+    def _safe_call(self, value: StaticOrCallableNumber) -> Number:
         if callable(value):
             if self._instance is None:
                 raise ValueError("Cannot evaluate callable without an instance")
@@ -132,8 +133,8 @@ class DeliminatedProperty(Generic[T], property):
         )
 
 
-class DeliminatedPropertyProxy(Generic[T]):
-    def __init__(self, value: T, descriptor: DeliminatedProperty[T]):
+class DeliminatedPropertyProxy:
+    def __init__(self, value: Number, descriptor: DeliminatedProperty):
         self._value = value
         self._descriptor = descriptor
 
@@ -203,12 +204,12 @@ class DeliminatedPropertyProxy(Generic[T]):
 
 
 def deliminated_property(
-        minimum: Union[T, Callable[[Any], T]] = float('-inf'),
-        maximum: Union[T, Callable[[Any], T]] = float('inf'),
-        step: Optional[Union[T, Callable[[Any], T]]] = None,
+        minimum: StaticOrCallableNumber = float('-inf'),
+        maximum: StaticOrCallableNumber = float('inf'),
+        step: Optional[StaticOrCallableNumber] = None,
         unit: str = ''
-) -> Callable[[Callable[[Any], T]], DeliminatedProperty[T]]:
-    def decorator(func: Callable[[Any], T]) -> DeliminatedProperty[T]:
+) -> Callable[[Callable[[Any], Number]], DeliminatedProperty]:
+    def decorator(func: Callable[[Any], Number]) -> DeliminatedProperty:
         return DeliminatedProperty(func, minimum=minimum, maximum=maximum, step=step, unit=unit)
 
     return decorator
@@ -241,6 +242,7 @@ if __name__ == "__main__":
         def min_celsius(self) -> float:
             return -10 if self.season == 'winter' else 20
 
+
     class Counter:
         def __init__(self):
             self._value: int = 0
@@ -255,8 +257,9 @@ if __name__ == "__main__":
             return self._value
 
         @count.setter
-        def count(self, value: int) -> None:
+        def count(self, value) -> None:
             self._value = value
+
 
     def print_temperature(t: Temperature):
         print(f"Season is: {t.season}")
@@ -265,11 +268,13 @@ if __name__ == "__main__":
         print(f"Celsius max: {t.celsius.maximum}{t.celsius.unit}")
         print(f"Celsius val: {t.celsius}{t.celsius.unit}\n")
 
+
     def print_counter(c: Counter):
         print(f"Counter step: {c.count.step}{c.count.unit}")
         print(f"Counter min: {c.count.minimum}{c.count.unit}")
         print(f"Counter max: {c.count.maximum}{c.count.unit}")
         print(f"Counter val: {c.count}{c.count.unit}\n")
+
 
     # Test with float (Temperature)
     temp = Temperature()
