@@ -45,9 +45,7 @@ class DeliminatedProperty(property):
             raise AttributeError("can't set attribute")
         self._instance = instance
         original_value = value
-        value = self._clamp(value)
-        if self.step is not None:
-            value = self._get_closest_step_multiple(value)
+        value = self._adjust_value(value)
         if value != original_value:
             self.log.warning(f"Value {original_value} was adjusted to {value}\n\t{self}")
         self.fset(instance, value)
@@ -94,24 +92,21 @@ class DeliminatedProperty(property):
     def unit(self) -> str:
         return self._unit
 
-    def _get_closest_step_multiple(self, value: Number) -> Number:
-        step = self.step
-        if step is None:
-            return value
-        min_val = self.minimum
+    # TODO: Determine what the appropriate way to handle this is
+    def _adjust_value(self, value: Number) -> Number:
         max_val = self.maximum
-        if isinstance(value, int) and isinstance(step, int) and isinstance(min_val, int):
-            return int(round((value - min_val) / step) * step + min_val)
-        return round((value - min_val) / step) * step + min_val
+        min_val = self.minimum
 
-    def _clamp(self, value: Number) -> Number:
-        max_val = self.maximum
-        min_val = self.minimum
-        step = self.step
-        if step is not None and value > max_val:
-            return (max_val - min_val) // step * step + min_val
+        if self.step is None:
+            return min(max_val, max(min_val, value))
+
+        new_value = round((value - min_val) / self.step) * self.step + min_val
+        if new_value > max_val:
+            return (max_val - min_val) // self.step * self.step + min_val
+        elif new_value < min_val:
+            return min_val
         else:
-            return max(min_val, min(value, max_val))
+            return new_value
 
     def _safe_call(self, value: StaticOrCallableNumber) -> Number:
         if callable(value):
