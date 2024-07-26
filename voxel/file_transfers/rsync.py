@@ -50,7 +50,7 @@ class RsyncFileTransfer(BaseFileTransfer):
         transfer_complete = False
         retry_num = 0
         # loop over number of attempts in the event that a file transfer fails
-        while transfer_complete == False and retry_num <= self._max_retry - 1:
+        while transfer_complete is False and retry_num <= self._max_retry - 1:
             # generate a list of subdirs and files in the parent local dir to delete at the end
             delete_list = []
             for name in os.listdir(local_directory.absolute()):
@@ -143,7 +143,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                                 # a location with % has been found
                                 if index != -1:
                                     # grab the string of the % progress
-                                    value = line[index - 4 : index]
+                                    value = line[index - 4: index]
                                     # strip and convert to float
                                     file_progress = float(value.rstrip())
                                 # we must be at the last line of the file
@@ -155,11 +155,11 @@ class RsyncFileTransfer(BaseFileTransfer):
                                     # grab the index of the % symbol
                                     index = line.find("%")
                                     # grab the string of the % progress
-                                    value = line[index - 4 : index]
+                                    value = line[index - 4: index]
                                     # strip and convert to float
                                     file_progress = float(value.rstrip())
                             # no lines in the file yet
-                            except:
+                            except Exception:
                                 file_progress = 0
                             # sum to transferred amount to track progress
                             self.progress = (
@@ -243,7 +243,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                         self.log.warning(
                             f"{local_file_path} is not a file or directory."
                         )
-                self.log.info(f"transfer finished")
+                self.log.info("transfer finished")
                 subprocess.kill()
                 retry_num += 1
 
