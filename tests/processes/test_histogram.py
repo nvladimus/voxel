@@ -19,6 +19,12 @@ if __name__ == '__main__':
     histogram_projection.z_bins = 1024
     histogram_projection.y_bins = 512
     histogram_projection.x_bins = 256
+    histogram_projection.z_min_value = 0
+    histogram_projection.y_min_value = 0
+    histogram_projection.x_min_value = 0
+    histogram_projection.z_max_value = 1024
+    histogram_projection.y_max_value = 512
+    histogram_projection.x_max_value = 256
     histogram_projection.data_type = 'uint16'
     histogram_projection.filename = 'data'
     histogram_projection.acquisition_name = 'test'
@@ -35,8 +41,8 @@ if __name__ == '__main__':
     for stack_index in range(num_frames):
         frame = \
         numpy.random.normal(
-            loc=30000,
-            scale=5000,
+            loc=100,
+            scale=50,
             size=img_shape
         ).astype(numpy.uint16)
 

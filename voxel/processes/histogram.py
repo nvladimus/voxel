@@ -4,21 +4,27 @@ from multiprocessing.shared_memory import SharedMemory
 from pathlib import Path
 
 import numpy as np
-import tifffile
 from fast_histogram import histogram1d
 
 
 class HistogramProjection:
     """
     Voxel driver for performing histogram projections along the x, y, and z axes.
+    Data is saved in a csv file with the following format:
+    The first column contains the bin centers for intensity.
+    The first row contains the bin centers for the spatial projection.
+    The remaining data is the histogram projection data.
+
+    [0, spatial_bin_1, spatial_bin_2, ...
+    intensity_bin_1, data_1_1, data_1_2, ...
+    intensity_bin_2, data_2_1, data_2_2, ...
+    ...]
 
     :param path: Path for the histogram projection process
     :type path: str
     """
 
     def __init__(self, path: str):
-
-        super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self._path = Path(path)
         self._column_count_px = None
@@ -30,6 +36,12 @@ class HistogramProjection:
         self._x_bins = None
         self._y_bins = None
         self._z_bins = None
+        self._x_min_value = None
+        self._y_min_value = None
+        self._z_min_value = None
+        self._x_max_value = None
+        self._y_max_value = None
+        self._z_max_value = None
         self._filename = None
         self._acquisition_name = Path()
         self._data_type = None
@@ -37,7 +49,7 @@ class HistogramProjection:
         self.new_image.clear()
 
     @property
-    def column_count_px(self) -> int:
+    def column_count_px(self):
         """Get the number of columns in the writer.
 
         :return: Column number in pixels
@@ -47,7 +59,7 @@ class HistogramProjection:
         return self._column_count_px
 
     @column_count_px.setter
-    def column_count_px(self, column_count_px: int) -> None:
+    def column_count_px(self, column_count_px: int):
         """Set the number of columns in the writer.
 
         :param column_count_px: Column number in pixels
@@ -58,7 +70,7 @@ class HistogramProjection:
         self._column_count_px = column_count_px
 
     @property
-    def row_count_px(self) -> int:
+    def row_count_px(self):
         """Get the number of rows in the writer.
 
         :return: Row number in pixels
@@ -68,7 +80,7 @@ class HistogramProjection:
         return self._row_count_px
 
     @row_count_px.setter
-    def row_count_px(self, row_count_px: int) -> None:
+    def row_count_px(self, row_count_px: int):
         """Set the number of rows in the writer.
 
         :param row_count_px: Row number in pixels
@@ -79,7 +91,7 @@ class HistogramProjection:
         self._row_count_px = row_count_px
 
     @property
-    def frame_count_px(self) -> int:
+    def frame_count_px(self):
         """Get the number of frames in the writer.
 
         :return: Frame number in pixels
@@ -89,7 +101,7 @@ class HistogramProjection:
         return self._frame_count_px
 
     @frame_count_px.setter
-    def frame_count_px(self, frame_count_px: int) -> None:
+    def frame_count_px(self, frame_count_px: int):
         """Set the number of frames in the writer.
 
         :param frame_count_px: Frame number in pixels
@@ -226,6 +238,132 @@ class HistogramProjection:
         self._z_bins = z_bins
 
     @property
+    def x_min_value(self):
+        """Get the minimum histogram intensity for the x direction.
+
+        :return: Minimum histogram intensity for the x direction
+        :rtype: int
+        """
+
+        return self._x_min_value
+
+    @x_min_value.setter
+    def x_min_value(self, x_min_value: int):
+        """Set the minimum histogram intensity for the x direction.
+
+        :param x_min_value: Minimum histogram intensity for the x direction
+        :type x_min_value: int
+        """
+
+        self.log.info(f'setting x min value to: {x_min_value}')
+        self._x_min_value = x_min_value
+
+    @property
+    def y_min_value(self):
+        """Get the minimum histogram intensity for the y direction.
+
+        :return: Minimum histogram intensity for the y direction
+        :rtype: int
+        """
+
+        return self._y_min_value
+
+    @y_min_value.setter
+    def y_min_value(self, y_min_value: int):
+        """Set the minimum histogram intensity for the y direction.
+
+        :param y_min_value: Minimum histogram intensity for the y direction
+        :type y_min_value: int
+        """
+
+        self.log.info(f'setting y min value to: {y_min_value}')
+        self._y_min_value = y_min_value
+
+    @property
+    def z_min_value(self):
+        """Get the minimum histogram intensity for the z direction.
+
+        :return: Minimum histogram intensity for the z direction
+        :rtype: int
+        """
+
+        return self._z_min_value
+
+    @z_min_value.setter
+    def z_min_value(self, z_min_value: int):
+        """Set the minimum histogram intensity for the z direction.
+
+        :param z_min_value: Minimum histogram intensity for the z direction
+        :type z_min_value: int
+        """
+
+        self.log.info(f'setting z min value to: {z_min_value}')
+        self._z_min_value = z_min_value
+
+    @property
+    def x_max_value(self):
+        """Get the maximum histogram intensity for the x direction.
+
+        :return: Maximum histogram intensity for the x direction
+        :rtype: int
+        """
+
+        return self._x_max_value
+
+    @x_max_value.setter
+    def x_max_value(self, x_max_value: int):
+        """Set the maximum histogram intensity for the x direction.
+
+        :param x_max_value: Maximum histogram intensity for the x direction
+        :type x_max_value: int
+        """
+
+        self.log.info(f'setting x max value to: {x_max_value}')
+        self._x_max_value = x_max_value
+
+    @property
+    def y_max_value(self):
+        """Get the maximum histogram intensity for the y direction.
+
+        :return: Maximum histogram intensity for the y direction
+        :rtype: int
+        """
+
+        return self._y_max_value
+
+    @y_max_value.setter
+    def y_max_value(self, y_max_value: int):
+        """Set the maximum histogram intensity for the y direction.
+
+        :param y_max_value: Maximum histogram intensity for the y direction
+        :type y_max_value: int
+        """
+
+        self.log.info(f'setting y max value to: {y_max_value}')
+        self._y_max_value = y_max_value
+
+    @property
+    def z_max_value(self):
+        """Get the maximum histogram intensity for the z direction.
+
+        :return: Maximum histogram intensity for the z direction
+        :rtype: int
+        """
+
+        return self._z_max_value
+
+    @z_max_value.setter
+    def z_max_value(self, z_max_value: int):
+        """Set the maximum histogram intensity for the z direction.
+
+        :param z_max_value: Maximum histogram intensity for the z direction
+        :type z_max_value: int
+        """
+
+        self.log.info(f'setting z max value to: {z_max_value}')
+        self._z_max_value = z_max_value
+
+    @property
     def data_type(self):
         """Get the data type of the writer.
 
@@ -280,7 +418,7 @@ class HistogramProjection:
         self.log.info(f"setting acquisition name to: {acquisition_name}")
 
     @property
-    def filename(self) -> str:
+    def filename(self):
         """
         The base filename of file writer.
 
@@ -291,7 +429,7 @@ class HistogramProjection:
         return self._filename
 
     @filename.setter
-    def filename(self, filename: str) -> None:
+    def filename(self, filename: str):
         """
         The base filename of file writer.
 
@@ -321,7 +459,7 @@ class HistogramProjection:
         self.latest_img = np.ndarray(
             self.shm_shape, self._data_type, buffer=self.shm.buf
         )
- 
+
     def start(self):
         """
         Start the writer.
@@ -330,12 +468,12 @@ class HistogramProjection:
         self._process.start()
 
     def _run(self):
-        """_summary_
+        """Internal run function for histogram projection.
 
-        :raises ValueError: _description_
-        :raises ValueError: _description_
-        :raises ValueError: _description_
-        """        
+        :raises ValueError: x projection must be > 0 and < total columns
+        :raises ValueError: y projection must be > 0 and < total rows
+        :raises ValueError: z projection must be > 0 and < total frames
+        """
         # check if projection counts were set
         # if not, set to max possible values based on tile
         if self._x_bin_count_px is None:
@@ -347,7 +485,7 @@ class HistogramProjection:
             x_index_list = np.arange(0, self._column_count_px, self._x_bin_count_px)
             if self._column_count_px not in x_index_list:
                 x_index_list = np.append(x_index_list, self._column_count_px)
-            self.histogram_x = np.zeros((self._x_bins, len(x_index_list)-1), dtype='float32')
+            self.histogram_x = np.zeros((self._x_bins, len(x_index_list)-1), dtype='float')
         if self._y_bin_count_px is None:
             y_projection = False
         else:
@@ -357,7 +495,7 @@ class HistogramProjection:
             y_index_list = np.arange(0, self._row_count_px, self._y_bin_count_px)
             if self._row_count_px not in y_index_list:
                 y_index_list = np.append(y_index_list, self._row_count_px)
-            self.histogram_y = np.zeros((self._y_bins, len(y_index_list)-1), dtype='float32')
+            self.histogram_y = np.zeros((self._y_bins, len(y_index_list)-1), dtype='float')
         if self._z_bin_count_px is None:
             z_projection = False
         else:
@@ -367,7 +505,7 @@ class HistogramProjection:
             z_index_list = np.arange(0, self._frame_count_px_px, self._z_bin_count_px)
             if self._frame_count_px_px not in z_index_list:
                 z_index_list = np.append(z_index_list, self._frame_count_px_px)
-            self.histogram_z = np.zeros((self._z_bins, len(z_index_list)-1), dtype='float32')
+            self.histogram_z = np.zeros((self._z_bins, len(z_index_list)-1), dtype='float')
 
         frame_index = 0
         z_chunk_number = 0
@@ -381,25 +519,49 @@ class HistogramProjection:
                     chunk_index = frame_index % self._z_bin_count_px
                     if chunk_index == self._z_bin_count_px - 1 or frame_index == self._frame_count_px_px - 1:
                         self.histogram_z[:, z_chunk_number] = histogram1d(self.latest_img,
-                                                                          bins=self._z_bins, range=[0, self._max_value])
+                                                                          bins=self._z_bins,
+                                                                          range=[self._z_min_value, self._z_max_value])
                         z_chunk_number += 1
                 if x_projection:
                     for i in range(0, len(x_index_list)-1):
                         self.histogram_x[:, i] = histogram1d(self.latest_img[:, x_index_list[i]:x_index_list[i+1]],
-                                                             bins=self._x_bins, range=[0, self._max_value])
+                                                             bins=self._x_bins,
+                                                             range=[self._x_min_value, self._x_max_value])
                 if y_projection:
                     for i in range(0, len(y_index_list)-1):
                         self.histogram_y[:, i] = histogram1d(self.latest_img[y_index_list[i]:y_index_list[i+1], :],
-                                                             bins=self._y_bins, range=[0, self._max_value])
+                                                             bins=self._y_bins,
+                                                             range=[self._y_min_value, self._y_max_value])
                 frame_index += 1
                 self.new_image.clear()
-        # save projections
+        # save projections as csv files
         self.log.info(f'saving {self.filename}_histogram_x.tiff')
-        tifffile.imwrite(Path(self._processath, self._acquisition_name, f"{self.filename}_histogram_x.tiff"), self.histogram_x)
+        x_bin_step = (self._x_max_value - self._x_min_value)/self._x_bins
+        x_bin_centers = np.linspace(self._x_min_value + x_bin_step / 2,
+                                    self._x_max_value - x_bin_step / 2, self._x_bins)
+        x_projection_centers = np.zeros(shape=(1, len(x_index_list)), dtype='float')
+        x_projection_centers[0, 1:] = (x_index_list[1:] + x_index_list[:-1]) / 2
+        np.savetxt(Path(self._path, self._acquisition_name, f"{self.filename}_histogram_x.csv"),
+                   np.row_stack((x_projection_centers, np.column_stack((x_bin_centers, self.histogram_x)))),
+                   delimiter=',', fmt='%f')
         self.log.info(f'saving {self.filename}_histogram_y.tiff')
-        tifffile.imwrite(Path(self._processath, self._acquisition_name, f"{self.filename}_histogram_y.tiff"), self.histogram_y)
+        y_bin_step = (self._y_max_value - self._y_min_value)/self._y_bins
+        y_bin_centers = np.linspace(self._y_min_value + y_bin_step / 2,
+                                    self._y_max_value - y_bin_step / 2, self._y_bins)
+        y_projection_centers = np.zeros(shape=(1, len(y_index_list)), dtype='float')
+        y_projection_centers[0, 1:] = (y_index_list[1:] + y_index_list[:-1]) / 2
+        np.savetxt(Path(self._path, self._acquisition_name, f"{self.filename}_histogram_y.csv"),
+                   np.row_stack((y_projection_centers, np.column_stack((y_bin_centers, self.histogram_y)))),
+                   delimiter=',', fmt='%f')
         self.log.info(f'saving {self.filename}_histogram_z.tiff')
-        tifffile.imwrite(Path(self._processath, self._acquisition_name, f"{self.filename}_histogram_z.tiff"), self.histogram_z)
+        z_bin_step = (self._z_max_value - self._z_min_value)/self._z_bins
+        z_bin_centers = np.linspace(self._z_min_value + z_bin_step / 2,
+                                    self._z_max_value - z_bin_step / 2, self._z_bins)
+        z_projection_centers = np.zeros(shape=(1, len(z_index_list)), dtype='float')
+        z_projection_centers[0, 1:] = (z_index_list[1:] + z_index_list[:-1]) / 2
+        np.savetxt(Path(self._path, self._acquisition_name, f"{self.filename}_histogram_z.csv"),
+                   np.row_stack((z_projection_centers, np.column_stack((z_bin_centers, self.histogram_z)))),
+                   delimiter=',', fmt='%f')
 
     def wait_to_finish(self):
         """
