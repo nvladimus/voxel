@@ -41,10 +41,10 @@ class ImarisWriter(BaseWriter):
     """
     Voxel driver for the Imaris writer.
 
-    Writer will save data to the following location\n
-    \n
-    path\\acquisition_name\\filename.ims\n
-    \n
+    Writer will save data to the following location
+
+    path\\acquisition_name\\filename.ims
+
     :param path: Path for the data writer
     :type path: str
     """

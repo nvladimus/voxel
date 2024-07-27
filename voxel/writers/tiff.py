@@ -22,10 +22,10 @@ class TiffWriter(BaseWriter):
     """
     Voxel driver for the Tiff writer.
 
-    Writer will save data to the following location\n
-    \n
-    path\\acquisition_name\\filename.tiff\n
-    \n
+    Writer will save data to the following location
+
+    path\\acquisition_name\\filename.tiff
+
     :param path: Path for the data writer
     :type path: str
     """

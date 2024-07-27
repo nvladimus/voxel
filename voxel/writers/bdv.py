@@ -30,10 +30,10 @@ class BDVWriter(BaseWriter):
     """
     Voxel driver for the BDV writer.
 
-    Writer will save data to the following location\n
-    \n
-    path\\acquisition_name\\filename.h5\n
-    \n
+    Writer will save data to the following location
+
+    path\\acquisition_name\\filename.h5
+
     :param path: Path for the data writer
     :type path: str
     """
