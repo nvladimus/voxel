@@ -13,8 +13,8 @@ class BaseFileTransfer:
     Process will transfer files with the following regex
     format:
 
-    From -> \\local_path\\acquisition_name\\filename*
-    To -> \\external_path\\acquisition_name\\filename*
+    From -> \\\\local_path\\\\acquisition_name\\\\filename*
+    To -> \\\\external_path\\\\acquisition_name\\\\filename*
 
     :param external_path: External path of files to be transferred
     :param local_path: Local path of files to be transferred
