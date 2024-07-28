@@ -1,3 +1,4 @@
+from typing import Optional
 from pylablib.devices import Thorlabs
 
 from voxel.devices.error import VoxelDeviceError
@@ -29,7 +30,7 @@ class ThorlabsRotationAxis(BaseRotationAxis):
         try:
             devices = Thorlabs.list_kinesis_devices()
             for device in devices:
-                instance = Thorlabs.Kinesis(conn=device[0], scale=model)
+                instance = Thorlabs.Kinesis(conn=device[0], scale=model) # type: ignore
                 info = instance.get_device_info()
                 if info.serial_no == serial_number:
                     self._instance = instance
@@ -91,7 +92,7 @@ class ThorlabsRotationAxis(BaseRotationAxis):
         status = self._instance.get_status()
         return status.is_moving
 
-    def wait_until_stopped(self, timeout: float = None, check_interval: float = 0.1):
+    def wait_until_stopped(self, timeout: Optional[float] = None, check_interval: float = 0.1):
         """Wait until the rotation axis has stopped moving.
         :param timeout: Maximum time to wait for the rotation axis to stop moving
         :param check_interval: Time interval between checks

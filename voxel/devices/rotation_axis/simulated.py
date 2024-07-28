@@ -1,11 +1,12 @@
 import time
+from typing import Optional
 from voxel.devices.rotation_axis import BaseRotationAxis
 
 
 class SimulatedRotationAxis(BaseRotationAxis):
     """Simulated rotation axis implementation.
     :param id: Unique identifier for the device
-    :type id: str    
+    :type id: str
     """
     def __init__(self, id: str) -> None:
         """Constructor for the SimulatedRotationAxis class."""
@@ -71,7 +72,7 @@ class SimulatedRotationAxis(BaseRotationAxis):
         """
         return self._movement_start_time is not None
 
-    def wait_until_stopped(self, timeout: float = None, check_interval: float = 1) -> None:
+    def wait_until_stopped(self, timeout: Optional[float] = None, check_interval: float = 1) -> None:
         """Wait until the rotation axis has stopped moving.
         :param timeout: Maximum time to wait for the rotation axis to stop moving
         :param check_interval: Time interval between checks
