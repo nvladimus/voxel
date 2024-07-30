@@ -1,7 +1,7 @@
 import time
 from typing import Dict, Optional
 from tigerasi.tiger_controller import TigerController
-from voxel.devices.filters import BaseFilter, BaseFilterWheel, VoxelFilterError
+from voxel.devices.filter import BaseFilter, BaseFilterWheel, VoxelFilterError
 
 SWITCH_TIME_S = 0.1  # estimated timing
 
@@ -28,18 +28,24 @@ class ASIFilterWheel(BaseFilterWheel):
         if self._is_closed:
             raise VoxelFilterError("Filter wheel is closed and cannot be operated.")
         if filter_name not in self.filters:
-            raise VoxelFilterError(f"Attempted to set filter wheel {self.wheel_id} to {filter_name}\n"
-                                   f"\tAvailable filters: {self.filters}")
+            raise VoxelFilterError(
+                f"Attempted to set filter wheel {self.wheel_id} to {filter_name}\n"
+                f"\tAvailable filters: {self.filters}"
+            )
         if self._current_filter == filter_name:
             return  # Filter is already active, no need to change
         if self._current_filter:
-            raise VoxelFilterError(f"Unable to enable filter {filter_name} in filter wheel {self.wheel_id}\n"
-                                   f"\tFilter {self._current_filter} is still active")
+            raise VoxelFilterError(
+                f"Unable to enable filter {filter_name} in filter wheel {self.wheel_id}\n"
+                f"\tFilter {self._current_filter} is still active"
+            )
 
         position = self.filters[filter_name]
         cmd_str = f"MP {position}\r\n"
-        self.log.info(f'Setting filter to {filter_name}')
-        self.tigerbox.send(f"FW {self.wheel_id}\r\n", read_until=f"\n\r{self.wheel_id}>")
+        self.log.info(f"Setting filter to {filter_name}")
+        self.tigerbox.send(
+            f"FW {self.wheel_id}\r\n", read_until=f"\n\r{self.wheel_id}>"
+        )
         self.tigerbox.send(cmd_str, read_until=f"\n\r{self.wheel_id}>")
         time.sleep(SWITCH_TIME_S)
         self._current_filter = filter_name

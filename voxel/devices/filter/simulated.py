@@ -1,6 +1,6 @@
 import time
 from typing import Dict, Optional
-from voxel.devices.filters import BaseFilter, BaseFilterWheel, VoxelFilterError
+from voxel.devices.filter import BaseFilter, BaseFilterWheel, VoxelFilterError
 
 SWITCH_TIME_S = 0.1  # simulated switching time
 
@@ -28,14 +28,18 @@ class SimulatedFilterWheel(BaseFilterWheel):
         if self._is_closed:
             raise VoxelFilterError("Filter wheel is closed and cannot be operated.")
         if filter_name not in self.filters:
-            raise VoxelFilterError(f"Attempted to set filter wheel {self.wheel_id} to {filter_name}\n"
-                                   f"\tAvailable filters: {self.filters}")
+            raise VoxelFilterError(
+                f"Attempted to set filter wheel {self.wheel_id} to {filter_name}\n"
+                f"\tAvailable filters: {self.filters}"
+            )
         if self._current_filter == filter_name:
             self.log.info(f"Filter '{filter_name}' is already active")
             return
         if self._current_filter:
-            raise VoxelFilterError(f"Unable to enable filter {filter_name} in filter wheel {self.wheel_id}\n"
-                                   f"\tFilter {self._current_filter} is still active")
+            raise VoxelFilterError(
+                f"Unable to enable filter {filter_name} in filter wheel {self.wheel_id}\n"
+                f"\tFilter {self._current_filter} is still active"
+            )
 
         self.log.info(f"Setting filter to '{filter_name}'")
         time.sleep(SWITCH_TIME_S)  # Simulate switching time
@@ -100,6 +104,7 @@ def print_active_filter(wheel: SimulatedFilterWheel):
 # Usage example
 if __name__ == "__main__":
     import logging
+
     logging.basicConfig(level=logging.INFO)
 
     red, green, blue, wheel = setup_simulated_filter_system()
