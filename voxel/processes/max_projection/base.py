@@ -35,7 +35,7 @@ class BaseMaxProjection:
     @property
     @abstractmethod
     def column_count_px(self) -> int:
-        """Get the number of columns in the writer.
+        """Get the number of columns in the process.
 
         :return: Column number in pixels
         :rtype: int
@@ -46,7 +46,7 @@ class BaseMaxProjection:
     @column_count_px.setter
     @abstractmethod
     def column_count_px(self, column_count_px: int) -> None:
-        """Set the number of columns in the writer.
+        """Set the number of columns in the process.
 
         :param column_count_px: Column number in pixels
         :type column_count_px: int
@@ -58,7 +58,7 @@ class BaseMaxProjection:
     @property
     @abstractmethod
     def row_count_px(self) -> int:
-        """Get the number of rows in the writer.
+        """Get the number of rows in the process.
 
         :return: Row number in pixels
         :rtype: int
@@ -69,7 +69,7 @@ class BaseMaxProjection:
     @row_count_px.setter
     @abstractmethod
     def row_count_px(self, row_count_px: int) -> None:
-        """Set the number of rows in the writer.
+        """Set the number of rows in the process.
 
         :param row_count_px: Row number in pixels
         :type row_count_px: int
@@ -81,7 +81,7 @@ class BaseMaxProjection:
     @property
     @abstractmethod
     def frame_count_px(self) -> int:
-        """Get the number of frames in the writer.
+        """Get the number of frames in the process.
 
         :return: Frame number in pixels
         :rtype: int
@@ -92,7 +92,7 @@ class BaseMaxProjection:
     @frame_count_px.setter
     @abstractmethod
     def frame_count_px(self, frame_count_px: int) -> None:
-        """Set the number of frames in the writer.
+        """Set the number of frames in the process.
 
         :param frame_count_px: Frame number in pixels
         :type frame_count_px: int
@@ -173,7 +173,7 @@ class BaseMaxProjection:
     @property
     @abstractmethod
     def data_type(self) -> numpy.unsignedinteger:
-        """Get the data type of the writer.
+        """Get the data type of the process.
 
         :return: Data type
         :rtype: numpy.unsignedinteger
@@ -184,7 +184,7 @@ class BaseMaxProjection:
     @data_type.setter
     @abstractmethod
     def data_type(self, data_type: numpy.unsignedinteger) -> None:
-        """Set the data type of the writer.
+        """Set the data type of the process.
 
         :param data_type: Data type
         :type data_type: numpy.unsignedinteger
@@ -196,7 +196,7 @@ class BaseMaxProjection:
     @property
     @abstractmethod
     def path(self):
-        """Get the path of the writer.
+        """Get the path of the process.
 
         :return: Path
         :rtype: Path
@@ -207,7 +207,7 @@ class BaseMaxProjection:
     @property
     def acquisition_name(self):
         """
-        The base acquisition name of the writer.
+        The base acquisition name of the process.
 
         :return: The base acquisition name
         :rtype: str
@@ -218,7 +218,7 @@ class BaseMaxProjection:
     @acquisition_name.setter
     def acquisition_name(self, acquisition_name: str):
         """
-        The base acquisition name of writer.
+        The base acquisition name of process.
 
         :param value: The base acquisition name
         :type value: str
@@ -231,7 +231,7 @@ class BaseMaxProjection:
     @abstractmethod
     def filename(self) -> str:
         """
-        The base filename of file writer.
+        The base filename of file proess.
 
         :return: The base filename
         :rtype: str
@@ -243,7 +243,7 @@ class BaseMaxProjection:
     @abstractmethod
     def filename(self, filename: str) -> None:
         """
-        The base filename of file writer.
+        The base filename of file process.
 
         :param filename: The base filename
         :type filename: str
@@ -259,7 +259,7 @@ class BaseMaxProjection:
     @abstractmethod
     def start(self):
         """
-        Start the writer.
+        Start the process.
         """
         self.log.info(f"{self._filename}: starting max projection process.")
         self._process.start()
@@ -284,7 +284,7 @@ class BaseMaxProjection:
     @abstractmethod
     def wait_to_finish(self):
         """
-        Wait for the writer to finish.
+        Wait for the process to finish.
         """
 
         self.log.info(f"max projection {self.filename}: waiting to finish.")
@@ -293,6 +293,6 @@ class BaseMaxProjection:
     @abstractmethod
     def _run(self):
         """
-        Internal run function of the writer.
+        Internal run function of the process.
         """
         pass

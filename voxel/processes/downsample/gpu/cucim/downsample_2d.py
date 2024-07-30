@@ -10,7 +10,7 @@ class CucimDownSample2D(BaseDownSample):
     Voxel 2D downsampling with cucim.
 
     :param binning: Binning factor
-    :type image: int
+    :type binning: int
     """
 
     def __init__(self, binning: int):

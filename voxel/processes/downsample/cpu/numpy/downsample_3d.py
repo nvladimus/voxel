@@ -8,7 +8,7 @@ class NPDownSample3D(BaseDownSample):
     Voxel 3D downsampling with numpy.
 
     :param binning: Binning factor
-    :type image: int
+    :type binning: int
     :raise ValueError: Invalid binning factor
     """
 

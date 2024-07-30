@@ -10,7 +10,7 @@ class CucimDownSample3D(BaseDownSample):
     Voxel 3D downsampling with cucim.
 
     :param binning: Binning factor
-    :type image: int
+    :type binning: int
     """
 
     def __init__(self, binning: int):
