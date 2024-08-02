@@ -262,8 +262,7 @@ class Acquisition:
             writer.delete_files()
         else:
             compression_ratio = 1.0
-        self.log.info(f'compression ratio for camera: {camera_id} writer:\
-                        {writer_id} ~ {compression_ratio:.1f}')
+        self.log.info(f'compression ratio for camera: {camera_id} writer: {writer_id} ~ {compression_ratio:.1f}')
         return compression_ratio
 
     def check_local_acquisition_disk_space(self):

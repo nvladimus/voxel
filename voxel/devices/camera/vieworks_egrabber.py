@@ -6,6 +6,8 @@ from voxel.devices.camera.sdks.egrabber import *
 from voxel.devices.utils.singleton import Singleton
 from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
 from voxel.descriptors.deliminated_property import DeliminatedProperty
+import numpy as np
+# from copy import deepcopy
 
 BUFFER_SIZE_MB = 2400
 
@@ -335,14 +337,14 @@ class Camera(BaseCamera):
                                                                   column_count))
         # do software binning if != 1 and not a string for setting in egrabber
         if self._binning > 1 and isinstance(self._binning, int):
-            self._latest_frame = self.gpu_binning.run(image)
-            return self._latest_frame
-        else:
-            self._latest_frame = image
-            return image
+            image = np.copy(self.gpu_binning.run(image))
+        self._latest_frame = np.copy(image)
+        return image
+
     @property
     def latest_frame(self):
         return self._latest_frame
+        #return np.random.rand(self.height_px,self.width_px)
 
     def signal_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""
