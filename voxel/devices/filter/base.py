@@ -32,7 +32,7 @@ class BaseFilter(VoxelDevice):
 
     @property
     @abstractmethod
-    def is_active(self) -> bool:
+    def enabled(self) -> bool:
         """Check if the filter is currently enabled
         """
         pass

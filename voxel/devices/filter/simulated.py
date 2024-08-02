@@ -73,12 +73,12 @@ class SimulatedFilter(BaseFilter):
 
     def disable(self) -> None:
         """Disable this filter if it's active."""
-        if self.is_active:
+        if self.enabled:
             self.log.info(f"Disabling filter '{self.name}'")
             self.wheel._current_filter = None
 
     @property
-    def is_active(self) -> bool:
+    def enabled(self) -> bool:
         """Check if this filter is currently active."""
         return self.wheel.current_filter == self.name
 
