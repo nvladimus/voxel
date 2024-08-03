@@ -130,6 +130,17 @@ class DeliminatedProperty(property):
 
 class DeliminatedPropertyProxy:
     def __init__(self, value: Number, descriptor: DeliminatedProperty):
+        """
+        Proxy object for DeliminatedProperty.
+        Allows access to the value and descriptor of a DeliminatedProperty.
+        If an attribute of the property is accessed, the proxy forwards the call to the descriptor.
+        If the value (float or int) is accessed, the proxy forwards the call to the value.
+        When the proxy is used in an operation, the operation is forwarded to the value.
+        :param value: The value of the property.
+        :param descriptor: The descriptor of the property.
+        :type value: Number (float or int)
+        :type descriptor: DeliminatedProperty
+        """
         self._value = value
         self._descriptor = descriptor
 
