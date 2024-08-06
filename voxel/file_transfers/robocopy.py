@@ -1,129 +1,32 @@
-"""File Transfer process in a separate class for Win/Linux compatibility."""
 import os
-import time
-import logging
-import threading
 import shutil
-from imohash import hashfile
-from subprocess import Popen, DEVNULL
+import time
 from pathlib import Path
 from voxel.descriptors.deliminated_property import DeliminatedProperty
+from subprocess import DEVNULL, Popen
 
-class FileTransfer():
+from voxel.file_transfers.base import BaseFileTransfer
+
+
+class RobocopyFileTransfer(BaseFileTransfer):
+    """
+    Voxel driver for Robocopy file transfer process.
+
+    Process will transfer files with the following regex
+    format:
+
+    From -> \\\\local_path\\\\acquisition_name\\\\filename*
+    To -> \\\\external_path\\\\acquisition_name\\\\filename*
+
+    :param external_path: External path of files to be transferred
+    :param local_path: Local path of files to be transferred
+    :type external_path: str
+    :type local_path: str
+    """
 
     def __init__(self, external_path: str, local_path: str):
-        super().__init__()
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self._external_path = Path(external_path)
-        self._local_path = Path(local_path)
-        if self._external_path == self._local_path:
-            raise ValueError('External directory and local directory cannot be the same')
-        self._progress = 0
-        self._filename = None
-        self._max_retry = 1
-        self._acquisition_name = Path()
-        self._protocol = 'robocopy'
-        self._verify_transfer = False
-        self._num_tries = 1
-        self._timeout_s = 60
-
-    @property
-    def filename(self):
-        return self._filename
-
-    @filename.setter
-    def filename(self, filename: str):
-        self.log.info(f'setting filename to: {filename}')
-        self._filename = filename
-
-    @property
-    def acquisition_name(self):
-        return self._acquisition_name
-
-    @acquisition_name.setter
-    def acquisition_name(self, acquisition_name: str):
-        self._acquisition_name = Path(acquisition_name)
-        self.log.info(f'setting acquisition name to: {acquisition_name}')
-
-    @property
-    def local_path(self):
-        return self._local_path
-
-    @local_path.setter
-    def local_path(self, local_path: str):
-        self._local_path = Path(local_path)
-        self.log.info(f'setting local path to: {local_path}')
-
-    @property
-    def external_path(self):
-        return self._external_path
-
-    @external_path.setter
-    def external_path(self, external_path: str):
-        self._external_path = Path(external_path)
-        self.log.info(f'setting local path to: {external_path}')
-
-    @property
-    def verify_transfer(self):
-        return self._verify_transfer
-
-    @verify_transfer.setter
-    def verify_transfer(self, verify_transfer: bool):
-        self._verify_transfer = verify_transfer
-        self.log.info(f'setting verify transfer to: {verify_transfer}')
-
-    @property
-    def max_retry(self):
-        return self._max_retry
-
-    @max_retry.setter
-    def max_retry(self, max_retry: int):
-        self._max_retry = max_retry
-        self.log.info(f'setting max retry to: {max_retry}')
-
-    @property
-    def timeout_s(self):
-        return self._timeout_s
-
-    @timeout_s.setter
-    def timeout_s(self, timeout_s: float):
-        self._timeout_s = timeout_s
-        self.log.info(f'setting timeout to: {timeout_s}')
-
-    @DeliminatedProperty(minimum=0, maximum=100, unit='%')
-    def progress(self):
-        return self._progress
-
-    @progress.setter
-    def progress(self, value: float):
-        self._progress = value
-
-    def _verify_file(self, local_file_path: str, external_file_path: str):
-        # verifying large files with a full checksum is too time consuming
-        # verifying based on file size alone is not thorough
-        # use imohash library to perform hasing on small subset of file
-        # imohash defaults to reading 16K bits (i.e. 1<<14) from beginning, middle, and end
-        local_hash = hashfile(local_file_path, sample_size=1<<14)
-        external_hash = hashfile(external_file_path, sample_size=1<<14)
-        if local_hash == external_hash:
-            self.log.info(f'{local_file_path} and {external_file_path} hashes match')
-            return True
-        else:
-            self.log.info(f'hash mismatch for {local_file_path} and {external_file_path}')
-            self.log.info(f'{local_file_path} hash = {local_hash}')
-            self.log.info(f'{external_file_path} hash = {external_hash}')
-            return False
-
-    def start(self):
-        self.log.info(f"transferring from {self._local_path} to {self._external_path}")
-        self.thread = threading.Thread(target=self._run)
-        self.thread.start()
-
-    def wait_until_finished(self):
-        self.thread.join()
-
-    def is_alive(self):
-        return self.thread.is_alive()
+        super().__init__(external_path, local_path)
+        self._protocol = "robocopy"
 
     def _run(self):
         start_time = time.time()
@@ -139,7 +42,7 @@ class FileTransfer():
             for name in os.listdir(local_directory.absolute()):
                 if self.filename in name:
                     delete_list.append(name)
-                        # generate a list of files to copy
+            # generate a list of files to copy
             # path is the entire experiment path
             # subdirs is any tile specific subdir i.e. zarr store
             # files are any tile specific files
