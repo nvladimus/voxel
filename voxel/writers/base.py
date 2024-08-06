@@ -6,6 +6,8 @@ from typing import Optional
 
 import numpy
 
+from voxel.descriptors.deliminated_property import DeliminatedProperty
+
 
 class BaseWriter:
     """
@@ -462,7 +464,7 @@ class BaseWriter:
         self._shm_name[len(name)] = "\x00"  # Null terminate the string.
         self.log.info(f"setting shared memory to: {name}")
 
-    @property
+    @DeliminatedProperty(minimum=0, maximum=100, unit='%')
     @abstractmethod
     def signal_progress_percent(self) -> float:
         """Get the progress of the writer.
