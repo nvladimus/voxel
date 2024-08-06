@@ -1,5 +1,7 @@
-import numpy
+import logging
 from abc import abstractmethod
+
+import numpy
 
 
 class BaseDownSample():
@@ -12,6 +14,7 @@ class BaseDownSample():
 
     def __init__(self, binning: int) -> None:
         self._binning = binning
+        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     @abstractmethod
     def run(self, method, image: numpy.array):

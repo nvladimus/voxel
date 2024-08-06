@@ -9,7 +9,7 @@ class GPUToolsDownSample3D(BaseDownSample):
     Voxel 3D downsampling with gputools.
 
     :param binning: Binning factor
-    :type image: int
+    :type binning: int
     """
 
     def __init__(self, binning: int):
@@ -35,7 +35,7 @@ class GPUToolsDownSample3D(BaseDownSample):
         """
 
         self._prog = OCLProgram(src_str=self._kernel,
-                               build_options=['-D', f'BLOCK={self._block_size}'])
+                                build_options=['-D', f'BLOCK={self._binning}'])
 
     def run(self, image: numpy.array):
         """
@@ -48,7 +48,7 @@ class GPUToolsDownSample3D(BaseDownSample):
         """
 
         x_g = OCLArray.from_array(image)
-        y_g = OCLArray.empty(tuple(s // self._block_size for s in image.shape), image.dtype)
-        self._prog.run_kernel(f'downsample3d', y_g.shape[::-1],
-                                None, x_g.data, y_g.data)
+        y_g = OCLArray.empty(tuple(s // self._binning for s in image.shape), image.dtype)
+        self._prog.run_kernel('downsample3d', y_g.shape[::-1],
+                              None, x_g.data, y_g.data)
         return y_g.get()
