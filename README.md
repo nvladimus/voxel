@@ -140,7 +140,7 @@ instrument:
       driver: voxel.devices.camera.simulated
       module: SimulatedCamera
       init:
-        id: sim000
+        id: 123456
       settings:
         exposure_time_ms: 20.0
         pixel_type: mono16
@@ -149,16 +149,15 @@ instrument:
         width_offset_px: 6528
         width_px: 1152
         trigger:
-          mode: 'off'
+          mode: off
           polarity: rising
           source: external
     488 nm laser:
       type: laser
       driver: voxel.devices.lasers.simulated
       module: SimulatedLaser
-      color: blue
       init:
-        port: COM3
+        id: COM1
     x axis stage:
       type: scanning_stage
       driver: voxel.devices.stage.simulated
