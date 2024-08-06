@@ -44,9 +44,10 @@ class RsyncFileTransfer(BaseFileTransfer):
         Internal function that runs the transfer process.
         """
 
+        start_time = time.time()
         local_directory = Path(self._local_path, self._acquisition_name)
         external_directory = Path(self._external_path, self._acquisition_name)
-
+        log_path = Path(local_directory, f"{self._filename}.log")
         transfer_complete = False
         retry_num = 0
         # loop over number of attempts in the event that a file transfer fails
@@ -64,7 +65,7 @@ class RsyncFileTransfer(BaseFileTransfer):
             for path, subdirs, files in os.walk(local_directory.absolute()):
                 for name in files:
                     # check and only add if filename matches tranfer's filename
-                    if self.filename in name:
+                    if self.filename in name and name != log_path:
                         file_list[os.path.join(path, name)] = (
                             os.path.getsize(os.path.join(path, name)) / 1024**2
                         )
@@ -84,6 +85,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                     # transfer just one file and iterate
                     # split filename and path
                     [local_dir, filename] = os.path.split(file_path)
+                    self.log.info(f'transfering {filename}')
                     # specify external directory
                     # need to change directories to str because they are Path objects
                     external_dir = local_dir.replace(
@@ -93,7 +95,6 @@ class RsyncFileTransfer(BaseFileTransfer):
                     if not os.path.isdir(external_dir):
                         os.makedirs(external_dir)
                     # setup log file
-                    log_path = Path(local_directory, f"{self._filename}.txt")
                     self._log_file = open(log_path, "w")
                     self.log.info(
                         f"transferring {file_path} from {local_directory} to {external_directory}"
@@ -125,6 +126,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                     time.sleep(1.0)
                     # lets monitor the progress of the individual file if size > 1 GB
                     if file_size_mb > 1024:
+                        self.log.info(f'{filename} is > 1 GB')
                         # wait for subprocess to start otherwise log file won't exist yet
                         time.sleep(10.0)
                         file_progress = 0
@@ -193,6 +195,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                         self.log.info(
                             f"file transfer is {self.progress:.2f} % complete."
                         )
+                    self.log.info(f'{filename} transfer complete')
                     # wait for process to finish before cleaning log file
                     time.sleep(10.0)
                     # clean up and remove the temporary log file
@@ -243,7 +246,9 @@ class RsyncFileTransfer(BaseFileTransfer):
                         self.log.warning(
                             f"{local_file_path} is not a file or directory."
                         )
-                self.log.info("transfer finished")
+                end_time = time.time()
+                total_time = end_time - start_time
+                self.log.info(f'transfer complete, total time: {total_time} sec')
                 subprocess.kill()
                 retry_num += 1
 
