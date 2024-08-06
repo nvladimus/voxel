@@ -1,11 +1,19 @@
 import numpy
-from gputools import OCLProgram, OCLArray, get_device
+from gputools import OCLArray, OCLProgram
 
-class DownSample3D:
+from voxel.processes.downsample.base import BaseDownSample
 
-    def __init__(self, binning: int = 2):
-        # downscaling factor
-        self._block_size = binning
+
+class GPUToolsDownSample3D(BaseDownSample):
+    """
+    Voxel 3D downsampling with gputools.
+
+    :param binning: Binning factor
+    :type image: int
+    """
+
+    def __init__(self, binning: int):
+        super().__init__(binning)
         # opencl kernel
         self._kernel = """
         __kernel void downsample3d(__global short * input,
@@ -30,8 +38,17 @@ class DownSample3D:
                                build_options=['-D', f'BLOCK={self._block_size}'])
 
     def run(self, image: numpy.array):
-            x_g = OCLArray.from_array(image)
-            y_g = OCLArray.empty(tuple(s // self._block_size for s in image.shape), image.dtype)
-            self._prog.run_kernel(f'downsample3d', y_g.shape[::-1],
-                                 None, x_g.data, y_g.data)
-            return y_g.get()
+        """
+        Run function for image downsampling.
+
+        :param image: Input image
+        :type image: numpy.array
+        :return: Downsampled image
+        :rtype: numpy.array
+        """
+
+        x_g = OCLArray.from_array(image)
+        y_g = OCLArray.empty(tuple(s // self._block_size for s in image.shape), image.dtype)
+        self._prog.run_kernel(f'downsample3d', y_g.shape[::-1],
+                                None, x_g.data, y_g.data)
+        return y_g.get()
