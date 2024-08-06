@@ -8,13 +8,13 @@ import os
 import subprocess
 import platform
 from ruamel.yaml import YAML
-from pathlib import Path
+from pathlib import Path, WindowsPath
 from psutil import virtual_memory
 from gputools import get_device
 from voxel.instruments.instrument import Instrument
 from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
 import inflection
-
+import inspect
 
 class Acquisition:
 
@@ -23,7 +23,8 @@ class Acquisition:
         self.log.setLevel(log_level)
 
         self.config_path = Path(config_filename)
-        self.config = YAML(typ='safe', pure=True).load(Path(self.config_path))
+        self.config = YAML().load(Path(self.config_path))
+
         self.instrument = instrument
 
         # initialize metadata attribute. NOT a dictionary since only one metadata class can exist in acquisition
@@ -43,15 +44,18 @@ class Acquisition:
         device_class = getattr(sys.modules[driver], module)
         return device_class(**kwds)
 
-    def _setup_class(self, device: object, settings: dict):
-        """Setup device based on settings dictionary
+    def _setup_class(self, device: object, properties: dict):
+        """Setup device based on properties dictionary
         :param device: device to be setup
-        :param settings: dictionary of attributes, values to set according to config"""
+        :param properties: dictionary of attributes, values to set according to config"""
 
         self.log.info(f'setting up {device}')
-        # successively iterate through settings keys
-        for key, value in settings.items():
-            setattr(device, key, value)
+        # successively iterate through properties keys and if there is setter, set
+        for key, value in properties.items():
+            try:
+                setattr(device, key, value)
+            except (TypeError, AttributeError):
+                self.log.info(f'{device} property {key} has no setter')
 
     def _construct_operations(self, device_name: str, operation_dictionary: dict):
         """Load and setup operations of an acquisition
@@ -77,9 +81,9 @@ class Acquisition:
         module = class_specs['module']
         init = class_specs.get('init', {})
         class_object = self._load_class(driver, module, init)
-        settings = class_specs.get('settings', {})
+        properties = class_specs.get('properties', {})
         self.log.info(f'constructing {driver}')
-        self._setup_class(class_object, settings)
+        self._setup_class(class_object, properties)
 
         return class_object
 
@@ -532,6 +536,30 @@ class Acquisition:
             raise ValueError(f'{memory_gb} [GB] \
                                 GPU RAM requested but only \
                                 {total_gpu_memory_gb} [GB] available')
+
+    def update_current_state_config(self):
+        """Capture current state of instrument in config form"""
+
+        for device_name, op_dict in self.config['acquisition']['operations'].items():
+            for op_name, op_specs in op_dict.items():
+                op = getattr(self, inflection.pluralize(op_specs['type']))[device_name][op_name]
+                properties = {}
+                for attr_name in dir(op):
+                    attr = getattr(type(op), attr_name, None)
+                    if isinstance(attr, property) or isinstance(inspect.unwrap(attr), property):
+                        value = getattr(op, attr_name)
+                        if hasattr(value, 'as_posix'):  # path value
+                            properties[attr_name] = str(value)
+                        else:
+                            properties[attr_name] = value
+                op_specs['properties'] = properties
+
+    def save_config(self, path: Path):
+        """Save current config to path provided
+        :param path: path to save config to"""
+
+        with path.open("w") as f:
+            YAML().dump(self.config, f)
 
     def stop_acquisition(self):
         """Method to force quit acquisition by raising error"""
