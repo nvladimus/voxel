@@ -2,5 +2,5 @@ writer:
   driver: imaris
   compression: lz4shuffle
   data_type: uint16
-  path: .
-  color: "#00ff92"
+  path: '.'
+  acquisition_name: 'test'

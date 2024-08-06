@@ -88,6 +88,7 @@ class Camera(BaseCamera):
         self._trigger = {'mode': 'on',
                          'source': 'internal',
                          'polarity': 'rising'}
+        self._latest_frame = None
 
     @DeliminatedProperty(minimum=MIN_EXPOSURE_TIME_MS, maximum=MAX_EXPOSURE_TIME_MS, step=0.001)
     def exposure_time_ms(self):
@@ -224,74 +225,53 @@ class Camera(BaseCamera):
 
     def prepare(self):
         self.log.info('simulated camera preparing...')
-        # self.buffer = Queue(BUFFER_SIZE_FRAMES)  # buffer to store lastest image
-        # above breaks other parts of code since self.buffer becomes a Queue object
-        self.buffer = list()
+
 
     def start(self, frame_count: int = float('inf')):
         self.log.info('simulated camera starting...')
-        self.thread = Thread(target=self.generate_frames, args=(frame_count,))
-        self.thread.daemon = True
-        self.thread.start()
+        self.frame = 0
+
 
     def stop(self):
         self.log.info('simulated camera stopping...')
-        self.terminate_frame_grab.set()
-        self.thread.join()
-        self.terminate_frame_grab.clear()
+        self.frame = 0
 
     def grab_frame(self):
-        while not self.buffer:
-            time.sleep(0.01)
-        image = self.buffer.pop(0)
+
+        self.frame += 1
+        image = numpy.random.randint(low=128, high=256, size=(self._height_px, self._width_px), dtype=self._pixel_type)
+        self._latest_frame = image
         if self._binning > 1:
             return self.gpu_binning.run(image)
         else:
             return image
 
-    def signal_acquisition_state(self):
-        """return a dict with the state of the acquisition buffers"""
-        state = {}
-        state['Frame Index'] = self.frame
-        state['Input Buffer Size'] = len(self.buffer)
-        state['Output Buffer Size'] = BUFFER_SIZE_FRAMES - len(self.buffer)
-        # number of underrun, i.e. dropped frames
-        state['Dropped Frames'] = self.dropped_frames
-        state['Data Rate [MB/s]'] = self.frame_rate * self._width_px * self._height_px * numpy.dtype(
-            self._pixel_type).itemsize / self._binning ** 2 / 1e6
-        state['Frame Rate [fps]'] = self.frame_rate
-        self.log.info(f"id: {self.id}, "
-                      f"frame: {state['Frame Index']}, "
-                      f"input: {state['Input Buffer Size']}, "
-                      f"output: {state['Output Buffer Size']}, "
-                      f"dropped: {state['Dropped Frames']}, "
-                      f"data rate: {state['Data Rate [MB/s]']:.2f} [MB/s], "
-                      f"frame rate: {state['Frame Rate [fps]']:.2f} [fps].")
-        return state
+    @property
+    def latest_frame(self):
+        return self._latest_frame
 
-    def generate_frames(self, frame_count: int):
-        self.frame = 0
-        self.frame_rate = 0
-        self.dropped_frames = 0
-        i = 1
-        frame_count = frame_count if frame_count is not None else 1
-        while i <= frame_count and not self.terminate_frame_grab.is_set():
-            start_time = time.time()
-            column_count = self._width_px
-            row_count = self._height_px
-            image = numpy.random.randint(low=128, high=256, size=(row_count, column_count), dtype=self._pixel_type)
-            while (time.time() - start_time) < self.frame_time_ms / 1000:
-                time.sleep(0.01)
-            self.buffer.append(image)
-            self.frame += 1
-            i = i if frame_count is None else i + 1
-            end_time = time.time()
-            self.frame_rate = 1 / (end_time - start_time)
+    # def signal_acquisition_state(self):
+    #     """return a dict with the state of the acquisition buffers"""
+    #     state = {}
+    #     state['Frame Index'] = self.frame
+    #     state['Input Buffer Size'] = len(self.buffer)
+    #     state['Output Buffer Size'] = BUFFER_SIZE_FRAMES - len(self.buffer)
+    #     # number of underrun, i.e. dropped frames
+    #     state['Dropped Frames'] = self.dropped_frames
+    #     state['Data Rate [MB/s]'] = self.frame_rate * self._width_px * self._height_px * numpy.dtype(
+    #         self._pixel_type).itemsize / self._binning ** 2 / 1e6
+    #     state['Frame Rate [fps]'] = self.frame_rate
+    #     self.log.info(f"id: {self.id}, "
+    #                   f"frame: {state['Frame Index']}, "
+    #                   f"input: {state['Input Buffer Size']}, "
+    #                   f"output: {state['Output Buffer Size']}, "
+    #                   f"dropped: {state['Dropped Frames']}, "
+    #                   f"data rate: {state['Data Rate [MB/s]']:.2f} [MB/s], "
+    #                   f"frame rate: {state['Frame Rate [fps]']:.2f} [fps].")
+    #     return state
 
     def abort(self):
-        self.terminate_frame_grab.set()
-        self.thread.join()
-        self.terminate_frame_grab.clear()
+        pass
 
     def close(self):
         pass
