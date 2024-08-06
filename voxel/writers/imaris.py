@@ -82,6 +82,13 @@ class Writer(BaseWriter):
         self.log.info(f"Progress [%]: {self._progress.value * 100}")
         return self._progress.value * 100
 
+    @DeliminatedProperty(minimum=0, maximum=100, unit='%')
+    def progress(self):
+        return self._progress
+
+    @progress.setter
+    def progress(self, value: float):
+        self._progress = value
     @property
     def x_voxel_size_um(self):
         return self._x_voxel_size_um_um

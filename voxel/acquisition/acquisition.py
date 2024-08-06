@@ -29,6 +29,7 @@ class Acquisition:
         # initialize metadata attribute. NOT a dictionary since only one metadata class can exist in acquisition
         # TODO: Validation of config should check that metadata exists and only one
         self.metadata = self._construct_class(self.config['acquisition']['metadata'])
+        self.acquisition_name = None    # initialize acquisition_name that will be populated at start of acquisition
 
         # initialize operations
         for operation_type, operation_dict in self.config['acquisition']['operations'].items():
@@ -108,24 +109,40 @@ class Acquisition:
     def run(self):
         """Run function. This method must be overwritten for each specific microscope"""
 
+        self.acquisition_name = self.metadata.acquisition_name
+        self._set_acquisition_name()
         self._verify_acquisition()
-        self._verify_directories()
+        self._create_directories()
 
-    def _verify_directories(self):
+    def _create_directories(self):
+        """Using the latest metadata derived acquisition_name, correctly set writers and transfer and create
+        directories if needed"""
+
         self.log.info(f'verifying local and external directories')
-        # check if local directories exist
+
+        # check if local directories exist and create if not
         for writer_dictionary in self.writers.values():
             for writer in writer_dictionary.values():
-                local_path = Path(writer.path, self.metadata.acquisition_name)
+                local_path = Path(writer.path, self.acquisition_name)
                 if not os.path.isdir(local_path):
                     os.makedirs(local_path)
-        # check if external directories exist
+        # check if external directories exist and create if not
         if hasattr(self, 'transfers'):
             for transfer_dictionary in self.transfers.values():
                 for transfer in transfer_dictionary.values():
-                    external_path = Path(transfer.external_path, self.metadata.acquisition_name)
+                    external_path = Path(transfer.external_path, self.acquisition_name)
                     if not os.path.isdir(external_path):
                         os.makedirs(external_path)
+
+    def _set_acquisition_name(self):
+        """Iterate through operations and set acquisition name if it has attr"""
+
+        for device_name, operation_dict in self.config['acquisition']['operations'].items():
+            for op_name, op_specs in operation_dict.items():
+                op_type = inflection.pluralize(op_specs['type'])
+                operation = getattr(self, op_type)[device_name][op_name]
+                if hasattr(operation, 'acquisition_name'):
+                    setattr(operation, 'acquisition_name', self.acquisition_name)
 
     def _verify_acquisition(self):
 
@@ -204,6 +221,7 @@ class Acquisition:
             frame_index = 0
             for frame_index in range(writer.chunk_count_px):
                 # grab camera frame
+
                 current_frame = camera.grab_frame()
                 # put into image buffer
                 img_buffer.write_buf[frame_index] = current_frame
@@ -244,8 +262,7 @@ class Acquisition:
             writer.delete_files()
         else:
             compression_ratio = 1.0
-        self.log.info(f'compression ratio for camera: {camera_id} writer:\
-                        {writer_id} ~ {compression_ratio:.1f}')
+        self.log.info(f'compression ratio for camera: {camera_id} writer: {writer_id} ~ {compression_ratio:.1f}')
         return compression_ratio
 
     def check_local_acquisition_disk_space(self):
@@ -321,20 +338,21 @@ class Acquisition:
         self.log.info(f"checking local storage directory space for next tile")
         drives = dict()
         for camera_id, camera in self.instrument.cameras.items():
-            data_size_gb = 0
-            # if windows
-            if platform.system() == 'Windows':
-                local_drive = os.path.splitdrive(self.writers[camera_id].path)[0]
-            # if unix
-            else:
-                abs_path = os.path.abspath(self.writers[camera_id].path)
-                local_drive = '/'
+            for writer_id, writer in self.writers[camera_id].items():
+                data_size_gb = 0
+                # if windows
+                if platform.system() == 'Windows':
+                    local_drive = os.path.splitdrive(writer.path)[0]
+                # if unix
+                else:
+                    abs_path = os.path.abspath(self.writer.path)
+                    local_drive = '/'
 
-            frame_size_mb = self._frame_size_mb(camera_id)
-            frame_count_px = tile['steps']
-            data_size_gb += frame_count_px * frame_size_mb / 1024
+                frame_size_mb = self._frame_size_mb(camera_id, writer_id)
+                frame_count_px = tile['steps']
+                data_size_gb += frame_count_px * frame_size_mb / 1024
 
-            drives.setdefault(local_drive, []).append(data_size_gb)
+                drives.setdefault(local_drive, []).append(data_size_gb)
 
         for drive in drives:
             required_size_gb = sum(drives[drive])
@@ -342,9 +360,10 @@ class Acquisition:
             free_size_gb = shutil.disk_usage(drive).free / 1024 ** 3
             if data_size_gb >= free_size_gb:
                 self.log.error(f"only {free_size_gb:.1f} available on drive: {drive}")
-                raise ValueError(f"only {free_size_gb:.1f} available on drive: {drive}")
+                return False  # not enough local disk space
             else:
                 self.log.info(f'available disk space = {free_size_gb:.1f} [GB] on drive {drive}')
+                return True  # enough local disk space
 
     def check_external_tile_disk_space(self, tile: dict):
         """Checks local and ext disk space before scan to see if disk has enough space scan
@@ -438,7 +457,8 @@ class Acquisition:
                             external_drive_letter = '/'
                         # add into drives dictionary append to list if same drive letter
                         drives.setdefault(external_drive_letter, []).append(external_path)
-                        camera_speed_mb_s.setdefault(external_drive_letter, []).append(acquisition_rate_hz * frame_size_mb)
+                        camera_speed_mb_s.setdefault(external_drive_letter, []).append(
+                            acquisition_rate_hz * frame_size_mb)
 
         for drive in drives:
             # if more than one stream on this drive, just test the first directory location
@@ -517,6 +537,8 @@ class Acquisition:
 
     def stop_acquisition(self):
         """Method to force quit acquisition by raising error"""
-
         raise RuntimeError
 
+    def close(self):
+        """Close functionality"""
+        pass

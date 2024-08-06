@@ -220,7 +220,12 @@ class Stage(BaseStage):
         step_size_steps = step_size_um * STEPS_PER_UM
         self.tigerbox.reset_ring_buffer()
         self.tigerbox.setup_ring_buffer(self.hardware_axis, mode=RingBufferMode.TTL)
-        self.tigerbox.queue_buffered_move({self.hardware_axis: step_size_steps})
+        self.tigerbox.queue_buffered_move(**{self.hardware_axis: step_size_steps})
+        # TTL mode dictates whether ring buffer move is relative or absolute.
+        self.tigerbox.set_ttl_pin_modes(TTLIn0Mode.MOVE_TO_NEXT_REL_POSITION,
+                                        TTLOut0Mode.PULSE_AFTER_MOVING,
+                                        aux_io_mode=0, aux_io_mask=0,
+                                        aux_io_state=0)
         
     def start(self):
         """initiate a finite tile scan that has already been setup with

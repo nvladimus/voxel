@@ -50,6 +50,8 @@ class Camera(BaseCamera):
         # check valid readout modes
         self._query_readout_modes()
 
+        self._latest_frame = None
+
     def reset(self):
         if self.pco:
             self.pco.close()
@@ -259,7 +261,12 @@ class Camera(BaseCamera):
         self.pco.wait_for_new_image(delay=True, timeout=timeout_s)
         # always use 0 index for ring buffer buffer
         image, metadata = self.pco.image(image_index=0)
+        self._latest_frame = image
         return image
+
+    @property
+    def latest_frame(self):
+        return self._latest_frame
 
     def signal_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""

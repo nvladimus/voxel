@@ -7,6 +7,7 @@ import shutil
 from imohash import hashfile
 from subprocess import Popen, DEVNULL
 from pathlib import Path
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 class FileTransfer():
 
@@ -17,14 +18,14 @@ class FileTransfer():
         self._local_path = Path(local_path)
         if self._external_path == self._local_path:
             raise ValueError('External directory and local directory cannot be the same')
+        self._progress = 0
         self._filename = None
-        self._max_retry = 0
+        self._max_retry = 1
         self._acquisition_name = Path()
         self._protocol = 'robocopy'
         self._verify_transfer = False
         self._num_tries = 1
         self._timeout_s = 60
-        self.progress = 0
 
     @property
     def filename(self):
@@ -89,12 +90,13 @@ class FileTransfer():
         self._timeout_s = timeout_s
         self.log.info(f'setting timeout to: {timeout_s}')
 
-    @property
-    def signal_progress_percent(self):
-        state = {}
-        state['Transfer Progress [%]'] = self.progress
-        self.log.info(f'{self._filename} transfer progress: {self.progress:.2f} [%]')
-        return state
+    @DeliminatedProperty(minimum=0, maximum=100, unit='%')
+    def progress(self):
+        return self._progress
+
+    @progress.setter
+    def progress(self, value: float):
+        self._progress = value
 
     def _verify_file(self, local_file_path: str, external_file_path: str):
         # verifying large files with a full checksum is too time consuming
@@ -124,10 +126,10 @@ class FileTransfer():
         return self.thread.is_alive()
 
     def _run(self):
-        
+        start_time = time.time()
         local_directory = Path(self._local_path, self._acquisition_name)
         external_directory = Path(self._external_path, self._acquisition_name)
-        
+        log_path = Path(local_directory, f"{self._filename}.log")
         transfer_complete = False
         retry_num = 0
         # loop over number of attempts in the event that a file transfer fails
@@ -137,15 +139,15 @@ class FileTransfer():
             for name in os.listdir(local_directory.absolute()):
                 if self.filename in name:
                     delete_list.append(name)
-            # generate a list of files to copy
+                        # generate a list of files to copy
             # path is the entire experiment path
             # subdirs is any tile specific subdir i.e. zarr store
             # files are any tile specific files
             file_list = dict()
             for path, subdirs, files in os.walk(local_directory.absolute()):
                 for name in files:
-                    # check and only add if filename matches tranfer's filename
-                    if self.filename in name:
+                    # check and only add if filename matches tranfer's filename but not the log file
+                    if self.filename in name and name != log_path:
                         file_list[os.path.join(path, name)] = os.path.getsize(os.path.join(path, name))/1024**2
             total_size_mb = sum(file_list.values())
             # sort the file list based on the file sizes and create a list for transfers
@@ -162,6 +164,7 @@ class FileTransfer():
                     # transfer just one file and iterate
                     # split filename and path
                     [local_dir, filename] = os.path.split(file_path)
+                    self.log.info(f'transfering {filename}')
                     # specify external directory
                     # need to change directories to str because they are Path objects
                     external_dir = local_dir.replace(str(local_directory), str(external_directory))
@@ -171,7 +174,6 @@ class FileTransfer():
                     # /if move only the specified filename
                     # /njh no job header in log file
                     # /njs no job summary in log file
-                    log_path = Path(local_directory, f"{self._filename}.txt")
                     cmd_with_args = f'{self._protocol} {local_dir} {external_dir} \
                         /j /if {filename} /njh /njs /log:{log_path}'
                     # stdout to PIPE will cause malloc errors on exist
@@ -182,6 +184,7 @@ class FileTransfer():
                     time.sleep(1.0)
                     # lets monitor the progress of the individual file if size > 1 GB
                     if file_size_mb > 1024:
+                        self.log.info(f'{filename} is > 1 GB')
                         # wait for subprocess to start otherwise log file won't exist yet
                         time.sleep(1.0)
                         file_progress = 0
@@ -209,7 +212,6 @@ class FileTransfer():
                             # keep track of how long stuck at same progress
                             if self.progress == previous_progress:
                                 stuck_time_s += (end_time_s - start_time_s)
-                                self.log.info(stuck_time_s)
                                 # break if exceeds timeout
                                 if stuck_time_s >= self._timeout_s:
                                     self.log.info('timeout exceeded, restarting file transfer.')
@@ -224,6 +226,7 @@ class FileTransfer():
                         subprocess.wait()
                         self.progress = (total_transferred_mb + file_size_mb) / total_size_mb * 100
                         self.log.info(f'file transfer is {self.progress:.2f} % complete.')
+                    self.log.info(f'{filename} transfer complete')
                     # wait for process to finish before cleaning log file
                     time.sleep(10.0)
                     # clean up and remove the temporary log file
@@ -263,6 +266,8 @@ class FileTransfer():
                             os.remove(local_file_path)
                     else:
                         raise ValueError(f'{local_file_path} is not a file or directory.')
-                self.log.info(f"transfer finished")
+                end_time = time.time()
+                total_time = end_time - start_time
+                self.log.info(f'transfer complete, total time: {total_time} sec')
                 subprocess.kill()
                 retry_num += 1
