@@ -473,9 +473,8 @@ class BaseWriter:
         :rtype: float
         """
         # convert to %
-        state = {"Progress [%]": self._progress.value * 100}
         self.log.info(f"Progress [%]: {self._progress.value*100}")
-        return state
+        return self._progress.value*100
 
     @abstractmethod
     def get_logs(self):
