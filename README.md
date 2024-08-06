@@ -175,7 +175,7 @@ can be accessed with. The above example uses all simulated device classes.
 from voxel.instruments.instrument import Instrument
 
 instrument = Instrument(config_path='example.yaml')
-instrument.cameras['vp-151mx camera]
+instrument.cameras['vp-151mx camera']
 instrument.lasers['488 nm laser']
 instrument.scanning_stages['x axis stage']
 ```
