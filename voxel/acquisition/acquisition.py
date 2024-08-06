@@ -338,20 +338,21 @@ class Acquisition:
         self.log.info(f"checking local storage directory space for next tile")
         drives = dict()
         for camera_id, camera in self.instrument.cameras.items():
-            data_size_gb = 0
-            # if windows
-            if platform.system() == 'Windows':
-                local_drive = os.path.splitdrive(self.writers[camera_id].path)[0]
-            # if unix
-            else:
-                abs_path = os.path.abspath(self.writers[camera_id].path)
-                local_drive = '/'
+            for writer_id, writer in self.writers[camera_id].items():
+                data_size_gb = 0
+                # if windows
+                if platform.system() == 'Windows':
+                    local_drive = os.path.splitdrive(writer.path)[0]
+                # if unix
+                else:
+                    abs_path = os.path.abspath(self.writer.path)
+                    local_drive = '/'
 
-            frame_size_mb = self._frame_size_mb(camera_id)
-            frame_count_px = tile['steps']
-            data_size_gb += frame_count_px * frame_size_mb / 1024
+                frame_size_mb = self._frame_size_mb(camera_id, writer_id)
+                frame_count_px = tile['steps']
+                data_size_gb += frame_count_px * frame_size_mb / 1024
 
-            drives.setdefault(local_drive, []).append(data_size_gb)
+                drives.setdefault(local_drive, []).append(data_size_gb)
 
         for drive in drives:
             required_size_gb = sum(drives[drive])
@@ -359,9 +360,10 @@ class Acquisition:
             free_size_gb = shutil.disk_usage(drive).free / 1024 ** 3
             if data_size_gb >= free_size_gb:
                 self.log.error(f"only {free_size_gb:.1f} available on drive: {drive}")
-                raise ValueError(f"only {free_size_gb:.1f} available on drive: {drive}")
+                return False  # not enough local disk space
             else:
                 self.log.info(f'available disk space = {free_size_gb:.1f} [GB] on drive {drive}')
+                return True  # enough local disk space
 
     def check_external_tile_disk_space(self, tile: dict):
         """Checks local and ext disk space before scan to see if disk has enough space scan
