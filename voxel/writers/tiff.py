@@ -11,6 +11,7 @@ from time import perf_counter, sleep
 import numpy as np
 import tifffile
 
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 from voxel.writers.base import BaseWriter
 
 CHUNK_COUNT_PX = 64
@@ -21,8 +22,6 @@ COMPRESSION_TYPES = {"none": "none"}
 class TiffWriter(BaseWriter):
     """
     Voxel driver for the Tiff writer.
-
-    Writer will save data to the following location
 
     path\\acquisition_name\\filename.tiff
 

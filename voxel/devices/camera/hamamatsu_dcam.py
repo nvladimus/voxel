@@ -124,6 +124,9 @@ class Camera(BaseCamera):
     def __init__(self, id: str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = str(id) # convert to string incase serial # is entered as int
+
+        self._latest_frame = None
+
         if DcamapiSingleton.init() is not False:
             num_cams = DcamapiSingleton.get_devicecount()
             for cam in range(0, num_cams):
@@ -235,12 +238,12 @@ class Camera(BaseCamera):
         # refresh parameter values
         self._update_parameters()
 
-    @property
-    def frame_time_ms(self):
-        if 'light sheet' in self.readout_mode:
-            return (self.line_interval_us * self.height_px)/1000 + self.exposure_time_ms
-        else:
-            return (self.line_interval_us * self.height_px/2)/1000 + self.exposure_time_ms
+    # @property
+    # def frame_time_ms(self):
+    #     if 'light sheet' in self.readout_mode:
+    #         return (self.line_interval_us * self.height_px)/1000 + self.exposure_time_ms
+    #     else:
+    #         return (self.line_interval_us * self.height_px/2)/1000 + self.exposure_time_ms
             
     @property
     def trigger(self):
@@ -387,8 +390,12 @@ class Camera(BaseCamera):
         #   pool back to the input pool, so it can be reused.
         timeout_ms = 1000
         if self.dcam.wait_capevent_frameready(timeout_ms) is not False:
-            image = self.dcam.buf_getlastframedata()
+            image = self._latest_frame = self.dcam.buf_getlastframedata()
             return image
+
+    @property
+    def latest_frame(self):
+        return self._latest_frame
 
     def signal_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""

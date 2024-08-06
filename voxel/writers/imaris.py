@@ -14,6 +14,7 @@ import os
 from matplotlib.colors import hex2color
 from PyImarisWriter import PyImarisWriter as pw
 
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 from voxel.writers.base import BaseWriter
 
 CHUNK_COUNT_PX = 64

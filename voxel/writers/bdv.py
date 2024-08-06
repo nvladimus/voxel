@@ -12,6 +12,7 @@ import numpy as np
 
 from voxel.writers.base import BaseWriter
 from voxel.writers.bdv_writer import npy2bdv
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 CHUNK_COUNT_PX = 64
 DIVISIBLE_FRAME_COUNT_PX = 64
