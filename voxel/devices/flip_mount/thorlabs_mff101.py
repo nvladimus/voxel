@@ -1,82 +1,93 @@
-import logging
-import time
+from time import sleep
+from typing import Optional
+
 from pylablib.devices import Thorlabs
 
-MIN_SWITCH_TIME_S = 0.3
-MAX_SWITCH_TIME_S = 2.8
+from voxel.descriptors.deliminated_property import DeliminatedProperty
+from . import BaseFlipMount
+
 VALID_POSITIONS = [0, 1]
+FLIP_TIME_RANGE_MS = (500, 2800, 100)
 
+class ThorlabsFlipMount(BaseFlipMount):
+    def __init__(self, id, conn, positions):
+        """
+        Initialize the Thorlabs flip mount. \n
 
-class FlipMount:
-    def __init__(self, id: str, positions: dict):
-        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.id = id  # serial number of flip mount
-        self.positions = positions   # dict of names and their positions
-        # check that all positions are valid
-        if not all([pos in VALID_POSITIONS
-                    for _,pos in self.positions.items()]):
-            raise ValueError(f'positions must be {VALID_POSITIONS}')
-        # lets find the device using pyvisa
-        devices = Thorlabs.list_kinesis_devices()
-        # device = [(serial number, name)]
+        @param id: Provide a unique device id
+        @param conn: Connection string - serial no.
+        @param positions: Dictionary of positions and their corresponding index
+        """
+        super().__init__(id)
+        self._conn = conn
+        self._positions = positions
+        self._inst: Optional[Thorlabs.MFF] = None
+        self._connect()
+
+    def _connect(self):
         try:
-            for device in devices:
-                # uses the MFF class within
-                # devices/Thorlabs/kinesis of pylablib
-                flip_mount = Thorlabs.MFF(conn=device[0])
-                info = flip_mount.get_device_info()
-                if info.serial_no == id:
-                    self.flip_mount = flip_mount
-                    break
-        except:
-            self.log.debug(f'{id} is not a valid thorabs flip mount')
-            raise ValueError(f'could not find flip mount with id {id}')
+            self._inst = Thorlabs.MFF(conn=self._conn)
+            self.position = next(iter(self._positions.keys())) # set to first position
+            self.flip_time_ms = FLIP_TIME_RANGE_MS[0] # min flip time
+        except Exception as e:
+            self.log.error(f'Could not connect to flip mount {self.id}: {e}')
+            raise e
+
+    def _disconnect(self):
+        if self._inst is not None:
+            self._inst.close()
+            self._inst = None
+            self.log.info(f'Flip mount {self.id} disconnected')
+
+    def wait(self):
+        sleep(self.flip_time_ms * 1e-3) # type: ignore
+
+    def toggle(self, wait=False):
+        if self._inst is None: raise ValueError('Flip mount not connected')
+        new_pos = 0 if self._inst.get_state() == 1 else 1
+        self._inst.move_to_state(new_pos)
+        if wait:
+            self.wait()
 
     @property
-    def position(self):
-        # returns 0 or 1 for position of flip mount
-        position = self.flip_mount.get_state()
-        return next(key for key, value in
-                    self.positions.items() if value == position)
+    def position(self) -> str | None:
+        if self._inst is None: raise ValueError(f'Position not found for {self.id} Flip mount not connected')
+        pos_idx =  self._inst.get_state()
+        return next((key for key, value in self._positions.items() if value == pos_idx), 'Unknown')
 
     @position.setter
-    def position(self, position_name: str, wait=False):
-        # returns 0 or 1 for position of flip mount
-        if position_name not in self.positions.keys():
-            raise ValueError(f'position {position_name}'
-                             f'not in {self.positions.keys()}')
-        self.flip_mount.move_to_state(self.positions[position_name])
-        self.log.info(f'flip mount {self.id}'
-                      f'moved to position {position_name}')
-        if wait:
-            time.sleep(self.switch_time_ms)
-    
-    @property
-    def switch_time_ms(self):
-        # returns the time it takes to switch between states
-        parameters = self.flip_mount.get_flipper_parameters()
-        # returns TFlipperParameters(
-        # transit_time*1E-3, # converted from ms to s
-        # io1_oper_mode,
-        # io1_sig_mode,
-        # io1_pulse_width*1E-3,
-        # io2_oper_mode,
-        # io2_sig_mode,
-        # io2_pulse_width*1E-3)
-        # we only care about the transit time, return in ms
-        return parameters.transit_time*1000
-    
-    @switch_time_ms.setter
-    def switch_time_ms(self, time_ms: float):
-        # set the time it takes to switch between states
-        if time_ms < MIN_SWITCH_TIME_S * 1000 or \
-           time_ms > MAX_SWITCH_TIME_S * 1000:
-            raise ValueError(f'switch time {time_ms} must be <'
-                             f'{MAX_SWITCH_TIME_S} and > {MIN_SWITCH_TIME_S}')
-        self.flip_mount.setup_flipper(transit_time=time_ms/1000)
-        self.log.info(f'flip mount {self.id} switch time set to {time_ms} ms')
+    def position(self, position_name: str):
+        if self._inst is None:
+            raise ValueError('Flip mount not connected')
+        if position_name not in self._positions:
+            raise ValueError(f'Invalid position {position_name}. Valid positions are {list(self._positions.keys())}')
+        self._inst.move_to_state(self._positions[position_name])
+        self.log.info(f'Flip mount {self.id} moved to position {position_name}')
+
+    @DeliminatedProperty(minimum=FLIP_TIME_RANGE_MS[0], maximum=FLIP_TIME_RANGE_MS[1], step=FLIP_TIME_RANGE_MS[2])
+    def flip_time_ms(self) -> int:
+        if self._inst is None:
+            raise ValueError('Flip mount not connected')
+        try:
+            parameters = self._inst.get_flipper_parameters()
+            flip_time_ms: int = int((parameters.transit_time) * 1e3)
+        except Exception:
+            # flip_time_ms = float((FLIP_TIME_RANGE_MS[0] + FLIP_TIME_RANGE_MS[1]) / 2) # sets to mid value
+            raise ValueError('Could not get flip time')
+        return flip_time_ms
+
+    @flip_time_ms.setter
+    def flip_time_ms(self, time_ms: float):
+        if self._inst is None: raise ValueError('Flip mount not connected')
+        if not isinstance(time_ms, (int, float)) or time_ms <= 0:
+            raise ValueError('Switch time must be a positive number')
+        clamped_time_ms = int(max(FLIP_TIME_RANGE_MS[0], min(time_ms, FLIP_TIME_RANGE_MS[1])))
+        try:
+            self._inst.setup_flipper(transit_time=clamped_time_ms/1000)
+            self.log.info(f'Flip mount {self.id} switch time set to {clamped_time_ms} ms')
+        except Exception as e:
+            raise ValueError(f'Could not set flip time: {e}')
 
     def close(self):
-        # inherited close property from kinesis in pylablib
-        self.close()
-        self.log.info(f'power meter {self.id} closed')
+        self._disconnect()
+        self.log.info(f'Flip mount {self.id} shutdown')

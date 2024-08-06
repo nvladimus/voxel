@@ -1,10 +1,9 @@
-import array
 import logging
 import numpy as np
-import os
 import tifffile
 from pathlib import Path
 from voxel.devices.camera.base import BaseCamera
+
 
 class BackgroundCollection:
 
@@ -12,12 +11,10 @@ class BackgroundCollection:
 
         super().__init__()
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        # check path for forward slashes
-        if '\\' in path or '/' not in path:
-            assert ValueError('path string should only contain / not \\')
-        self._path = path
+        self._path = Path(path)
         self._frame_count_px_px = 1
         self._filename = None
+        self._acquisition_name = Path()
         self._data_type = None
 
     @property
@@ -42,12 +39,19 @@ class BackgroundCollection:
         return self._path
 
     @path.setter
-    def path(self, path: str or path):
-        if '\\' in str(path) or '/' not in str(path):
-            self.log.error('path string should only contain / not \\')
-        else:
-            self._path = str(path)
+    def path(self, path: str):
+        self._path = Path(path)
+        self.log.info(f'setting path to: {path}')
 
+    @property
+    def acquisition_name(self):
+        return self._acquisition_name
+
+    @acquisition_name.setter
+    def acquisition_name(self, acquisition_name: str):
+        self._acquisition_name = Path(acquisition_name)
+        self.log.info(f'setting acquisition name to: {acquisition_name}')
+        
     @property
     def filename(self):
         return self._filename
@@ -58,7 +62,8 @@ class BackgroundCollection:
             if filename.endswith(".tiff") or filename.endswith(".tif") else f"{filename}"
         self.log.info(f'setting filename to: {filename}')
 
-    def start(self, device: BaseCamera):    #TODO: Change to device so routine set up can be more routine hehe
+    #TODO: Change to device so routine set up can be more routine hehe
+    def start(self, device: BaseCamera):
         camera = device
         # store initial trigger mode
         initial_trigger = camera.trigger
@@ -69,7 +74,7 @@ class BackgroundCollection:
         # prepare and start camera
         camera.prepare()
         camera.start()
-        background_stack = np.zeros((self._frame_count_px_px, camera.roi['height_px'], camera.roi['width_px']), dtype = self._data_type)
+        background_stack = np.zeros((self._frame_count_px_px, camera.height_px // camera.binning, camera.width_px // camera.binning), dtype=self._data_type)
         for frame in range(self._frame_count_px_px):
             background_stack[frame] = camera.grab_frame()
         # close writer and camera
@@ -78,4 +83,4 @@ class BackgroundCollection:
         camera.trigger = initial_trigger
         # average and save the image
         background_image = np.median(background_stack, axis=0)
-        tifffile.imwrite(self.path / Path(f"{self.filename}_background.tiff"), background_image.astype(self._data_type))
+        tifffile.imwrite(Path(self.path, self._acquisition_name, f"{self.filename}.tiff"), background_image.astype(self._data_type))

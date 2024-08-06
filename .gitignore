@@ -125,3 +125,6 @@ bootstrap.*
 
 # Mac OSX
 .DS_Store
+
+# IDE
+.vscode/

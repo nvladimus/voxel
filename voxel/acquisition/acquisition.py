@@ -1,6 +1,5 @@
 import numpy
 import time
-import math
 import threading
 import logging
 import sys
@@ -11,9 +10,7 @@ import platform
 from ruamel.yaml import YAML
 from pathlib import Path
 from psutil import virtual_memory
-from threading import Event, Thread
-from gputools import get_device, init_device
-from multiprocessing.shared_memory import SharedMemory
+from gputools import get_device
 from voxel.instruments.instrument import Instrument
 from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
 import inflection
@@ -21,46 +18,49 @@ import inflection
 
 class Acquisition:
 
-    def __init__(self, instrument: Instrument, config_filename: str):
+    def __init__(self, instrument: Instrument, config_filename: str, log_level='INFO'):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        # TODO should we store tile metadata in the acquisition?
+        self.log.setLevel(log_level)
+
         self.config_path = Path(config_filename)
         self.config = YAML(typ='safe', pure=True).load(Path(self.config_path))
-        self.acquisition = self.config['acquisition']
         self.instrument = instrument
-        for device_name, operation_dictionary in self.config['acquisition']['operations'].items():
-            self._construct_operations(device_name, operation_dictionary)
 
-    def _load_device(self, driver: str, module: str, kwds: dict = dict()):
+        # initialize metadata attribute. NOT a dictionary since only one metadata class can exist in acquisition
+        # TODO: Validation of config should check that metadata exists and only one
+        self.metadata = self._construct_class(self.config['acquisition']['metadata'])
+        self.acquisition_name = None    # initialize acquisition_name that will be populated at start of acquisition
+
+        # initialize operations
+        for operation_type, operation_dict in self.config['acquisition']['operations'].items():
+            setattr(self, operation_type, dict())
+            self._construct_operations(operation_type, operation_dict)
+
+    def _load_class(self, driver: str, module: str, kwds: dict = dict()):
         """Load in device based on config. Expecting driver, module, and kwds input"""
         self.log.info(f'loading {driver}.{module}')
         __import__(driver)
         device_class = getattr(sys.modules[driver], module)
         return device_class(**kwds)
 
-    def _setup_device(self, device: object, settings: dict):
+    def _setup_class(self, device: object, settings: dict):
         """Setup device based on settings dictionary
         :param device: device to be setup
         :param settings: dictionary of attributes, values to set according to config"""
+
         self.log.info(f'setting up {device}')
         # successively iterate through settings keys
         for key, value in settings.items():
             setattr(device, key, value)
 
-    def _construct_operations(self, device_name, operation_dictionary):
+    def _construct_operations(self, device_name: str, operation_dictionary: dict):
         """Load and setup operations of an acquisition
         :param device_name: name of device which operation pertain to
         :param operation_dictionary: dictionary of operation pertaining to device"""
 
         for operation_name, operation_specs in operation_dictionary.items():
             operation_type = inflection.pluralize(operation_specs['type'])
-            driver = operation_specs['driver']
-            module = operation_specs['module']
-            init = operation_specs.get('init', {})
-            operation_object = self._load_device(driver, module, init)
-            settings = operation_specs.get('settings', {})
-            self.log.info(f'constructing {driver}')
-            self._setup_device(operation_object, settings)
+            operation_object = self._construct_class(operation_specs)
 
             # create operation dictionary if it doesn't already exist and add operation to dictionary
             if not hasattr(self, operation_type):
@@ -69,68 +69,19 @@ class Acquisition:
                 getattr(self, operation_type)[device_name] = {}
             getattr(self, operation_type)[device_name][operation_name] = operation_object
 
-    def _verify_directories(self):
-        self.log.info(f'verifying local and external directories')
-        # check if local directories exist
-        for writer_dictionary in self.writers.values():
-            for writer in writer_dictionary.values():
-                local_directory = writer.path
-                if not os.path.isdir(local_directory):
-                    os.mkdir(local_directory)
-        # check if external directories exist
-        if hasattr(self, 'transfers'):
-            for transfer_dictionary in self.transfers.values():
-                for transfer in transfer_dictionary.values():
-                    external_directory = transfer.external_directory
-                    if not os.path.isdir(external_directory):
-                        os.mkdir(external_directory)
+    def _construct_class(self, class_specs: dict):
+        """Construct a class object based on dictionary specifications
+        :param """
 
-    def _verify_acquisition(self):
+        driver = class_specs['driver']
+        module = class_specs['module']
+        init = class_specs.get('init', {})
+        class_object = self._load_class(driver, module, init)
+        settings = class_specs.get('settings', {})
+        self.log.info(f'constructing {driver}')
+        self._setup_class(class_object, settings)
 
-        self.log.info(f'verifying acquisition configuration')
-
-        # check that there is an associated writer for each camera
-        for camera_id, camera in self.instrument.cameras.items():
-            if camera_id not in self.writers.keys():
-                raise ValueError(f'no writer found for camera {camera_id}. check yaml files.')
-
-        # check that files won't be overwritten if multiple writers/transfers per device
-        for device_name, writers in self.writers.items():
-            paths = [write.path for write in writers.values()]
-            if len(paths) != len(set(paths)):
-                raise ValueError(f'More than one operation for device {device_name} is writing to the same folder. '
-                                 f'This will cause data to be overwritten.')
-        # check that files won't be overwritten if multiple writers/transfers per device
-        for device_name, transfers in getattr(self, 'transfers', {}).items():
-            external_directories = [transfer.external_directory for transfer in transfers.values()]
-            if len(external_directories) != len(set(external_directories)):
-                raise ValueError(f'More than one operation for device {device_name} is transferring to the same folder.'
-                                 f' This will cause data to be overwritten.')
-
-        # check tile parameters
-        for tile in self.config['acquisition']['tiles']:
-            number_axes = list(tile['tile_number'].keys())
-            if number_axes.sort() != self.instrument.stage_axes.sort():
-                raise ValueError(f'not all stage axes are defined for tile numbers')
-            position_axes = list(tile['position_mm'].keys())
-            if position_axes.sort() != self.instrument.stage_axes.sort():
-                raise ValueError(f'not all stage axes are defined for tile positions')
-            tile_channel = tile['channel']
-            if tile_channel not in self.instrument.channels:
-                raise ValueError(f'channel {tile_channel} is not in {self.instrument.channels}')
-
-    def _frame_size_mb(self, camera_id: str, writer_id: str):
-        row_count_px = self.instrument.cameras[camera_id].height_px
-        column_count_px = self.instrument.cameras[camera_id].width_px
-        data_type = self.writers[camera_id][writer_id].data_type
-        frame_size_mb = row_count_px * column_count_px * numpy.dtype(data_type).itemsize / 1024 ** 2
-        return frame_size_mb
-
-    def _pyramid_factor(self, levels: int):
-        pyramid_factor = 0
-        for level in range(levels):
-            pyramid_factor += (1 / (2 ** level)) ** 3
-        return pyramid_factor
+        return class_object
 
     @property
     def _acquisition_rate_hz(self):
@@ -154,6 +105,88 @@ class Acquisition:
         else:
             raise ValueError(f'master device type {master_device_type} is not supported.')
         return acquisition_rate_hz
+
+    def run(self):
+        """Run function. This method must be overwritten for each specific microscope"""
+
+        self.acquisition_name = self.metadata.acquisition_name
+        self._set_acquisition_name()
+        self._verify_acquisition()
+        self._create_directories()
+
+    def _create_directories(self):
+        """Using the latest metadata derived acquisition_name, correctly set writers and transfer and create
+        directories if needed"""
+
+        self.log.info(f'verifying local and external directories')
+
+        # check if local directories exist and create if not
+        for writer_dictionary in self.writers.values():
+            for writer in writer_dictionary.values():
+                local_path = Path(writer.path, self.acquisition_name)
+                if not os.path.isdir(local_path):
+                    os.makedirs(local_path)
+        # check if external directories exist and create if not
+        if hasattr(self, 'transfers'):
+            for transfer_dictionary in self.transfers.values():
+                for transfer in transfer_dictionary.values():
+                    external_path = Path(transfer.external_path, self.acquisition_name)
+                    if not os.path.isdir(external_path):
+                        os.makedirs(external_path)
+
+    def _set_acquisition_name(self):
+        """Iterate through operations and set acquisition name if it has attr"""
+
+        for device_name, operation_dict in self.config['acquisition']['operations'].items():
+            for op_name, op_specs in operation_dict.items():
+                op_type = inflection.pluralize(op_specs['type'])
+                operation = getattr(self, op_type)[device_name][op_name]
+                if hasattr(operation, 'acquisition_name'):
+                    setattr(operation, 'acquisition_name', self.acquisition_name)
+
+    def _verify_acquisition(self):
+
+        self.log.info(f'verifying acquisition configuration')
+
+        # check that there is an associated writer for each camera
+        for camera_id, camera in self.instrument.cameras.items():
+            if camera_id not in self.writers.keys():
+                raise ValueError(f'no writer found for camera {camera_id}. check yaml files.')
+
+        # check that files won't be overwritten if multiple writers/transfers per device
+        for device_name, writers in self.writers.items():
+            paths = [write.path for write in writers.values()]
+            if len(paths) != len(set(paths)):
+                raise ValueError(f'More than one operation for device {device_name} is writing to the same folder. '
+                                 f'This will cause data to be overwritten.')
+        # check that files won't be overwritten if multiple writers/transfers per device
+        for device_name, transfers in getattr(self, 'transfers', {}).items():
+            external_directories = [transfer.external_path for transfer in transfers.values()]
+            if len(external_directories) != len(set(external_directories)):
+                raise ValueError(f'More than one operation for device {device_name} is transferring to the same folder.'
+                                 f' This will cause data to be overwritten.')
+
+        # check tile parameters
+        for tile in self.config['acquisition']['tiles']:
+            position_axes = list(tile['position_mm'].keys())
+            if position_axes.sort() != self.instrument.stage_axes.sort():
+                raise ValueError(f'not all stage axes are defined for tile positions')
+            tile_channel = tile['channel']
+            if tile_channel not in self.instrument.channels:
+                raise ValueError(f'channel {tile_channel} is not in {self.instrument.channels}')
+
+    def _frame_size_mb(self, camera_id: str, writer_id: str):
+        row_count_px = self.instrument.cameras[camera_id].height_px
+        column_count_px = self.instrument.cameras[camera_id].width_px
+        data_type = self.writers[camera_id][writer_id].data_type
+        frame_size_mb = row_count_px * column_count_px * numpy.dtype(data_type).itemsize / 1024 ** 2
+        return frame_size_mb
+
+    def _pyramid_factor(self, levels: int):
+        pyramid_factor = 0
+        for level in range(levels):
+            pyramid_factor += (1 / (2 ** level)) ** 3
+        return pyramid_factor
 
     def _check_compression_ratio(self, camera_id: str, writer_id: str):
         self.log.info(f'estimating acquisition compression ratio')
@@ -188,6 +221,7 @@ class Acquisition:
             frame_index = 0
             for frame_index in range(writer.chunk_count_px):
                 # grab camera frame
+
                 current_frame = camera.grab_frame()
                 # put into image buffer
                 img_buffer.write_buf[frame_index] = current_frame
@@ -228,8 +262,7 @@ class Acquisition:
             writer.delete_files()
         else:
             compression_ratio = 1.0
-        self.log.info(f'compression ratio for camera: {camera_id} writer:\
-                        {writer_id} ~ {compression_ratio:.1f}')
+        self.log.info(f'compression ratio for camera: {camera_id} writer: {writer_id} ~ {compression_ratio:.1f}')
         return compression_ratio
 
     def check_local_acquisition_disk_space(self):
@@ -250,7 +283,7 @@ class Acquisition:
                     local_drive = '/'
                 for tile in self.config['acquisition']['tiles']:
                     frame_size_mb = self._frame_size_mb(camera_id, writer_id)
-                    frame_count_px = tile['frame_count_px']
+                    frame_count_px = tile['steps']
                     data_size_gb += frame_count_px * frame_size_mb / 1024
                 drives.setdefault(local_drive, []).append(data_size_gb)
 
@@ -276,15 +309,15 @@ class Acquisition:
                         data_size_gb = 0
                         # if windows
                         if platform.system() == 'Windows':
-                            external_drive = os.path.splitdrive(transfer.external_directory)[0]
+                            external_drive = os.path.splitdrive(transfer.external_path)[0]
                         # if unix
                         else:
-                            abs_path = os.path.abspath(transfer.external_directory)
+                            abs_path = os.path.abspath(transfer.external_path)
                             # TODO FIX THIS, SYNTAX FOR UNIX DRIVES?
                             external_drive = '/'
                         for tile in self.config['acquisition']['tiles']:
                             frame_size_mb = self._frame_size_mb(camera_id, writer_id)
-                            frame_count_px = tile['frame_count_px']
+                            frame_count_px = tile['steps']
                             data_size_gb += frame_count_px * frame_size_mb / 1024
                         drives.setdefault(external_drive, []).append(data_size_gb)
             for drive in drives:
@@ -305,20 +338,21 @@ class Acquisition:
         self.log.info(f"checking local storage directory space for next tile")
         drives = dict()
         for camera_id, camera in self.instrument.cameras.items():
-            data_size_gb = 0
-            # if windows
-            if platform.system() == 'Windows':
-                local_drive = os.path.splitdrive(self.writers[camera_id].path)[0]
-            # if unix
-            else:
-                abs_path = os.path.abspath(self.writers[camera_id].path)
-                local_drive = '/'
+            for writer_id, writer in self.writers[camera_id].items():
+                data_size_gb = 0
+                # if windows
+                if platform.system() == 'Windows':
+                    local_drive = os.path.splitdrive(writer.path)[0]
+                # if unix
+                else:
+                    abs_path = os.path.abspath(self.writer.path)
+                    local_drive = '/'
 
-            frame_size_mb = self._frame_size_mb(camera_id)
-            frame_count_px = tile['frame_count_px']
-            data_size_gb += frame_count_px * frame_size_mb / 1024
+                frame_size_mb = self._frame_size_mb(camera_id, writer_id)
+                frame_count_px = tile['steps']
+                data_size_gb += frame_count_px * frame_size_mb / 1024
 
-            drives.setdefault(local_drive, []).append(data_size_gb)
+                drives.setdefault(local_drive, []).append(data_size_gb)
 
         for drive in drives:
             required_size_gb = sum(drives[drive])
@@ -326,9 +360,10 @@ class Acquisition:
             free_size_gb = shutil.disk_usage(drive).free / 1024 ** 3
             if data_size_gb >= free_size_gb:
                 self.log.error(f"only {free_size_gb:.1f} available on drive: {drive}")
-                raise ValueError(f"only {free_size_gb:.1f} available on drive: {drive}")
+                return False  # not enough local disk space
             else:
                 self.log.info(f'available disk space = {free_size_gb:.1f} [GB] on drive {drive}')
+                return True  # enough local disk space
 
     def check_external_tile_disk_space(self, tile: dict):
         """Checks local and ext disk space before scan to see if disk has enough space scan
@@ -340,14 +375,14 @@ class Acquisition:
                 data_size_gb = 0
                 # if windows
                 if platform.system() == 'Windows':
-                    external_drive = os.path.splitdrive(self.transfers[camera_id].external_directory)[0]
+                    external_drive = os.path.splitdrive(self.transfers[camera_id].external_path)[0]
                 # if unix
                 else:
-                    abs_path = os.path.abspath(self.transfers[camera_id].external_directory)
+                    abs_path = os.path.abspath(self.transfers[camera_id].external_path)
                     # TODO FIX THIS
                     external_drive = '/'
                 frame_size_mb = self._frame_size_mb(camera_id)
-                frame_count_px = tile['frame_count_px']
+                frame_count_px = tile['steps']
                 data_size_gb += frame_count_px * frame_size_mb / 1024
                 drives.setdefault(external_drive, []).append(data_size_gb)
             for drive in drives:
@@ -394,40 +429,41 @@ class Acquisition:
                 # grab the frame size and acquisition rate
                 frame_size_mb = self._frame_size_mb(camera_id, writer_id)
                 acquisition_rate_hz = self._acquisition_rate_hz
-                local_directory = writer.path
+                local_path = writer.path
                 # strip drive letters from paths so that we can combine
                 # cameras acquiring to the same drives
                 if platform.system() == 'Windows':
-                    local_drive_letter = os.path.splitdrive(local_directory)[0]
+                    local_drive_letter = os.path.splitdrive(local_path)[0]
                 # if unix
                 else:
                     # TODO FIX THIS -> what is syntax for unix drives?
-                    local_abs_path = os.path.abspath(local_directory)
+                    local_abs_path = os.path.abspath(local_path)
                     local_drive_letter = '/'
                 # add into drives dictionary append to list if same drive letter
-                drives.setdefault(local_drive_letter, []).append(local_directory)
+                drives.setdefault(local_drive_letter, []).append(local_path)
                 camera_speed_mb_s.setdefault(local_drive_letter, []).append(
                     acquisition_rate_hz * frame_size_mb / compression_ratio)
                 if self.transfers:
                     for transfer_id, transfer in self.transfers[camera_id].items():
-                        external_directory = transfer.external_directory
+                        external_path = transfer.external_path
                         # strip drive letters from paths so that we can combine
                         # cameras acquiring to the same drives
                         if platform.system() == 'Windows':
-                            external_drive_letter = os.path.splitdrive(local_directory)[0]
+                            external_drive_letter = os.path.splitdrive(local_path)[0]
                         # if unix
                         else:
                             # TODO FIX THIS -> what is syntax for unix drives?
-                            external_abs_path = os.path.abspath(local_directory)
+                            external_abs_path = os.path.abspath(local_path)
                             external_drive_letter = '/'
                         # add into drives dictionary append to list if same drive letter
-                        drives.setdefault(external_drive_letter, []).append(external_directory)
-                        camera_speed_mb_s.setdefault(external_drive_letter, []).append(acquisition_rate_hz * frame_size_mb)
+                        drives.setdefault(external_drive_letter, []).append(external_path)
+                        camera_speed_mb_s.setdefault(external_drive_letter, []).append(
+                            acquisition_rate_hz * frame_size_mb)
 
         for drive in drives:
             # if more than one stream on this drive, just test the first directory location
-            local_directory = drives[drive][0]
-            test_filename = Path(f'{local_directory}/iotest')
+            local_path = drives[drive][0]
+            test_filename = Path(f'{local_path}/iotest')
             f = open(test_filename, 'a')  # Create empty file to check reading/writing speed
             f.close()
             try:
@@ -501,6 +537,8 @@ class Acquisition:
 
     def stop_acquisition(self):
         """Method to force quit acquisition by raising error"""
-
         raise RuntimeError
 
+    def close(self):
+        """Close functionality"""
+        pass

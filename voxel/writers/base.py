@@ -2,6 +2,7 @@ import inspect
 import numpy as np
 from pathlib import Path
 
+
 class BaseWriter():
 
     @property
@@ -166,6 +167,16 @@ class BaseWriter():
 
     @property
     def path(self):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @property
+    def acquisition_name(self):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @acquisition_name.setter
+    def acquisition_name(self, acquisition_name: str):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 

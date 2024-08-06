@@ -5,7 +5,7 @@ import re
 import os
 import sys
 from voxel.writers.base import BaseWriter
-from multiprocessing import Process, Array, Value, Event
+from multiprocessing import Process, Array, Event
 from multiprocessing.shared_memory import SharedMemory
 from ctypes import c_wchar
 from PyImarisWriter import PyImarisWriter as pw
@@ -14,9 +14,10 @@ from datetime import datetime
 from matplotlib.colors import hex2color
 from time import sleep, perf_counter
 from math import ceil
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 CHUNK_COUNT_PX = 64
-DIVISIBLE_frame_count_px_PX = 64
+DIVISIBLE_FRAME_COUNT_PX = 64
 
 COMPRESSION_TYPES = {
     "lz4shuffle":  pw.eCompressionAlgorithmShuffleLZ4,
@@ -43,18 +44,18 @@ class Writer(BaseWriter):
     def __init__(self, path: str):
  
         super().__init__()
-        # check path for forward slashes
-        if '\\' in path or '/' not in path:
-            assert ValueError('path string should only contain / not \\')
-        self._path = path
+        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self._path = Path(path)
         self._color = '#ffffff' # initialize as white
         self._channel = None
         self._filename = None
+        self._acquisition_name = Path()
         self._data_type = 'uint16'
         self._compression = COMPRESSION_TYPES["none"]
         self._row_count_px = None
-        self._colum_count_px_px = None
+        self._column_count_px = None
         self._frame_count_px_px = None
+        self._shm_name = ''
         self._x_voxel_size_um_um = 1
         self._y_voxel_size_um_um = 1
         self._z_voxel_size_um_um = 1
@@ -64,8 +65,6 @@ class Writer(BaseWriter):
         self._theta_deg = 0
         self._channel = None
         self.progress = 0
-
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         # Opinioated decision on chunking dimension order
         self.chunk_dim_order = ('z', 'y', 'x')
         # Flow control attributes to synchronize inter-process communication.
@@ -81,6 +80,13 @@ class Writer(BaseWriter):
         state = {'Progress [%]': self.progress*100}
         return state
 
+    @DeliminatedProperty(minimum=0, maximum=100, unit='%')
+    def progress(self):
+        return self._progress
+
+    @progress.setter
+    def progress(self, value: float):
+        self._progress = value
     @property
     def x_voxel_size_um(self):
         return self._x_voxel_size_um_um
@@ -142,7 +148,7 @@ class Writer(BaseWriter):
     @frame_count_px.setter
     def frame_count_px(self, frame_count_px: int):
         self.log.info(f'setting frame count to: {frame_count_px} [px]')
-        frame_count_px = ceil(frame_count_px / DIVISIBLE_frame_count_px_PX) * DIVISIBLE_frame_count_px_PX
+        frame_count_px = ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
         self.log.info(f'adjusting frame count to: {frame_count_px} [px]')
         self._frame_count_px_px = frame_count_px
 
@@ -193,12 +199,14 @@ class Writer(BaseWriter):
     def path(self):
         return self._path
 
-    @path.setter
-    def path(self, path: str or path):
-        if '\\' in str(path) or '/' not in str(path):
-            self.log.error('path string should only contain / not \\')
-        else:
-            self._path = str(path)
+    @property
+    def acquisition_name(self):
+        return self._acquisition_name
+
+    @acquisition_name.setter
+    def acquisition_name(self, acquisition_name: str):
+        self._acquisition_name = Path(acquisition_name)
+        self.log.info(f'setting acquisition name to: {acquisition_name}')
 
     @property
     def filename(self):
@@ -322,7 +330,7 @@ class Writer(BaseWriter):
         log_handler = logging.StreamHandler(sys.stdout)
         log_handler.setFormatter(log_formatter)
         logger.addHandler(log_handler)
-        filepath = str((Path(self._path) / self._filename).absolute())
+        filepath = Path(self._path, self._acquisition_name, self._filename).absolute()
         converter = \
             pw.ImageConverter(self._data_type, self.image_size, self.sample_size,
                               self.dimension_sequence, self.block_size, filepath, 
@@ -371,5 +379,5 @@ class Writer(BaseWriter):
         self.signal_progress_percent
 
     def delete_files(self):
-        filepath = str((self._path / Path(f"{self._filename}")).absolute())
+        filepath = Path(self._path, self._acquisition_name, self._filename).absolute()
         os.remove(filepath)

@@ -30,14 +30,12 @@ class Writer(BaseWriter):
     def __init__(self, path: str):
  
         super().__init__()
-
-        # check path for forward slashes
-        if '\\' in path or '/' not in path:
-            assert ValueError('path string should only contain / not \\')
-        self._path = path
+        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self._path = Path(path)
         self._color = None
         self._channel = None
         self._filename = None
+        self._acquisition_name = None
         self._data_type = 'uint16'
         self._compression = COMPRESSION_TYPES["none"]
         self._row_count_px = None
@@ -49,8 +47,6 @@ class Writer(BaseWriter):
         self._z_voxel_size_um = None
         self._y_voxel_size_um = None
         self._x_voxel_size_um = None
-
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         # Opinioated decision on chunking dimension order
         self.chunk_dim_order = ('z', 'y', 'x')
         # Flow control attributes to synchronize inter-process communication.
@@ -162,12 +158,14 @@ class Writer(BaseWriter):
     def path(self):
         return self._path
 
-    @path.setter
-    def path(self, path: str or path):
-        if '\\' in str(path) or '/' not in str(path):
-            self.log.error('path string should only contain / not \\')
-        else:
-            self._path = str(path)
+    @property
+    def acquisition_name(self):
+        return self._acquisition_name
+
+    @acquisition_name.setter
+    def acquisition_name(self, acquisition_name: str):
+        self._acquisition_name = Path(acquisition_name)
+        self.log.info(f'setting acquisition name to: {acquisition_name}')
 
     @property
     def filename(self):
@@ -234,7 +232,7 @@ class Writer(BaseWriter):
         log_handler = logging.StreamHandler(sys.stdout)
         log_handler.setFormatter(log_formatter)
         logger.addHandler(log_handler)
-        filepath = str((Path(self._path) / self._filename).absolute())
+        filepath = Path(self._path, self._acquisition_name, self._filename).absolute()
 
         writer = tifffile.TiffWriter(filepath,
                                      bigtiff=True)
@@ -242,11 +240,11 @@ class Writer(BaseWriter):
 
         metadata = {
             'axes': 'ZYX',
-            'PhysicalSizeX': self._x_voxel_size_um_um,
+            'PhysicalSizeX': self._x_voxel_size_um,
             'PhysicalSizeXUnit': 'um',
-            'PhysicalSizeY': self._y_voxel_size_um_um,
+            'PhysicalSizeY': self._y_voxel_size_um,
             'PhysicalSizeYUnit': 'um',
-            'PhysicalSizeZ': self._z_voxel_size_um_um,
+            'PhysicalSizeZ': self._z_voxel_size_um,
             'PhysicalSizeZUnit': 'um',
             'Channel': {'Name': [self._channel]},
             'Plane': {
@@ -298,5 +296,5 @@ class Writer(BaseWriter):
         self.signal_progress_percent
 
     def delete_files(self):
-        filepath = str((self._path / Path(f"{self._filename}")).absolute())
+        filepath = Path(self._path, self._acquisition_name, self._filename).absolute()
         os.remove(filepath)

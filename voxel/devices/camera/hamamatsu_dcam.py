@@ -1,5 +1,4 @@
 import logging
-import numpy
 import time
 from voxel.devices.utils.singleton import Singleton
 from voxel.devices.camera.base import BaseCamera
@@ -34,18 +33,21 @@ PROPERTIES = {
     "sensor_temperature": 2097936  # 0x00200310, R/O, celsius,"SENSOR TEMPERATURE"
 }
 
-# TODO BUILD BY QUERYING DCAM
-PIXEL_TYPES = {
-    "mono8": DCAM_PIXELTYPE.MONO8,
-    "mono16": DCAM_PIXELTYPE.MONO16
-}
+# generate valid pixel types by querying dcam
+# should be of the form
+# {"mono8": DCAM_PIXELTYPE.MONO8,
+#  "mono12": DCAM_PIXELTYPE.MONO12,
+#  "mono16": DCAM_PIXELTYPE.MONO16 ...
+# }
+PIXEL_TYPES = dict()
 
-# TODO BUILD BY QUERYING DCAM
-BINNING = [
-    1,
-    2,
-    4
-]
+# generate valid binning by querying dcam
+# should be of the form
+# {"1x1": 1,
+#  "2x2": 2,
+#  "4x4": 4 ...
+# }
+BINNING = dict()
 
 # full dcam trigger modes mapping
 # NORMAL = 1
@@ -65,23 +67,32 @@ BINNING = [
 # SYNCREADOUT = 3
 # POINT = 4
 
-# TODO BUILD BY QUERYING DCAM
+# generate valid triggers by querying dcam
+# full dcam trigger modes mapping
+# NORMAL = 1
+# PIV = 3
+# START = 6
+# full dcam trigger sources mapping
+# INTERNAL = 1
+# EXTERNAL = 2
+# SOFTWARE = 3
+# MASTERPULSE = 4
+# full dcam trigger polarity mapping
+# NEGATIVE = 1
+# POSITIVE = 2
+# full dcam trigger active mapping
+# EDGE = 1
+# LEVEL = 2
+# SYNCREADOUT = 3
+# POINT = 4
 TRIGGERS = {
-    "mode": {
-        "on": DCAMPROP.TRIGGER_MODE.NORMAL, #in synchronous readout trigger mode (normal?), the camera ends each exposure, starts the readout and also, at the same time, starts the next exposure at the edge of the input trigger signal (rising / falling edge)
-        "off": DCAMPROP.TRIGGER_MODE.START, # Start trigger mode, the camera starts exposure and switches to internal trigger mode by the edge of an external trigger signal
-    },
-    "source": {
-        "internal": DCAMPROP.TRIGGERSOURCE.INTERNAL,
-        "external": DCAMPROP.TRIGGERSOURCE.EXTERNAL,
-    },
-    "polarity": {
-        "rising": DCAMPROP.TRIGGERPOLARITY.POSITIVE,
-        "falling": DCAMPROP.TRIGGERPOLARITY.NEGATIVE,
-    }
+    "mode": dict(),
+    "source": dict(),
+    "polarity": dict()
 }
 
-# full dcam readout modes mapping
+# generate valid sensor modes by querying dcam
+# full dcam sensor modes mapping
 # AREA = 1
 # LINE = 3
 # TDI = 4
@@ -91,6 +102,9 @@ TRIGGERS = {
 # DUALLIGHTSHEET = 16
 # PHOTONNUMBERRESOLVING = 18
 # WHOLELINES = 19
+SENSOR_MODES = dict()
+
+# generate valid readout directions by querying dcam
 # full dcam readout directions  mapping
 # FORWARD = 1
 # BACKWARD = 2
@@ -98,13 +112,7 @@ TRIGGERS = {
 # DIVERGE = 5
 # FORWARDBIDIRECTION = 6
 # REVERSEBIDIRECTION = 7
-
-# TODO BUILD BY QUERYING DCAM
-READOUT_MODES = {
-    "rolling": DCAMPROP.SENSORMODE.AREA,
-    "light sheet forward": DCAMPROP.READOUT_DIRECTION.FORWARD,
-    "light sheet backward": DCAMPROP.READOUT_DIRECTION.BACKWARD
-}
+READOUT_DIRECTIONS = dict()
 
 # singleton wrapper around Dcamapi
 class DcamapiSingleton(Dcamapi, metaclass=Singleton):
@@ -113,9 +121,12 @@ class DcamapiSingleton(Dcamapi, metaclass=Singleton):
 
 class Camera(BaseCamera):
 
-    def __init__(self, id = str):
+    def __init__(self, id: str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self.id = id
+        self.id = str(id) # convert to string incase serial # is entered as int
+
+        self._latest_frame = None
+
         if DcamapiSingleton.init() is not False:
             num_cams = DcamapiSingleton.get_devicecount()
             for cam in range(0, num_cams):
@@ -133,18 +144,9 @@ class Camera(BaseCamera):
                     raise ValueError(f"no camera found for S/N: {self.id}")
             del dcam
         else:
-            self.log.error('DcamapiSingleton.init() fails with error {}'.format(DcamapiSingleton.lasterr()))
-        # grab parameter values
-        self._get_min_max_step_values()
-
-    def reset(self):
-        if self.dcam.is_opened():
-            self.dcam.dev_close()
-            DcamapiSingleton.uninit()
-            del self.dcam
-            if DcamapiSingleton.init() is not False:
-                self.dcam = Dcam(self.cam_num)
-                self.dcam.dev_open()
+            self.log.error('DcamapiSingleton.init() fails with error {}'.format(DCAMERR(DcamapiSingleton.lasterr()).name))
+        # initialize parameter values
+        self._update_parameters()
 
     @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
     def exposure_time_ms(self):
@@ -157,11 +159,11 @@ class Camera(BaseCamera):
         self.dcam.prop_setvalue(PROPERTIES["exposure_time"], exposure_time_ms / 1000)
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
         # refresh parameter values
-        self._get_min_max_step_values()
+        self._update_parameters()
 
     @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
     def width_px(self):
-        return self.dcam.prop_getvalue(PROPERTIES["subarray_hsize"])
+        return int(self.dcam.prop_getvalue(PROPERTIES["subarray_hsize"]))
 
     @width_px.setter
     def width_px(self, value: int):
@@ -173,16 +175,17 @@ class Camera(BaseCamera):
 
         centered_offset_px = round((self.max_width_px / 2 - value / 2) / self.step_width_px) * self.step_width_px
         self.dcam.prop_setvalue(PROPERTIES["subarray_hpos"], centered_offset_px)
-
         self.log.info(f"width set to: {value} px")
+        # refresh parameter values
+        self._update_parameters()
 
     @property
     def width_offset_px(self):
-        return self.dcam.prop_getvalue(PROPERTIES["subarray_hpos"])
+        return int(self.dcam.prop_getvalue(PROPERTIES["subarray_hpos"]))
 
     @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
     def height_px(self):
-        return self.dcam.prop_getvalue(PROPERTIES["subarray_vsize"])
+        return int(self.dcam.prop_getvalue(PROPERTIES["subarray_vsize"]))
 
     @height_px.setter
     def height_px(self, value: int):
@@ -195,10 +198,12 @@ class Camera(BaseCamera):
         centered_offset_px = round((self.max_height_px / 2 - value / 2) / self.step_height_px) * self.step_height_px
         self.dcam.prop_setvalue(PROPERTIES["subarray_vpos"], centered_offset_px)
         self.log.info(f"height set to: {value} px")
+        # refresh parameter values
+        self._update_parameters()
 
     @property
     def height_offset_px(self):
-        return self.dcam.prop_getvalue(PROPERTIES["subarray_vpos"])
+        return int(self.dcam.prop_getvalue(PROPERTIES["subarray_vpos"]))
 
     @property
     def pixel_type(self):
@@ -216,7 +221,7 @@ class Camera(BaseCamera):
         self.dcam.prop_setvalue(PROPERTIES["pixel_type"], PIXEL_TYPES[pixel_type_bits])
         self.log.info(f"pixel type set to: {pixel_type_bits}")
         # refresh parameter values
-        self._get_min_max_step_values()
+        self._update_parameters()
 
     @DeliminatedProperty(minimum=float('-inf'), maximum=float('inf'))
     def line_interval_us(self):
@@ -231,14 +236,14 @@ class Camera(BaseCamera):
         self.dcam.prop_setvalue(PROPERTIES["line_interval"], line_interval_us/1e6)
         self.log.info(f"line interval set to: {line_interval_us} us")
         # refresh parameter values
-        self._get_min_max_step_values()
+        self._update_parameters()
 
-    @property
-    def frame_time_ms(self):
-        if 'light sheet' in self.readout_mode:
-            return (self.line_interval_us * self.height_px)/1000 + self.exposure_time_ms
-        else:
-            return (self.line_interval_us * self.height_px/2)/1000 + self.exposure_time_ms
+    # @property
+    # def frame_time_ms(self):
+    #     if 'light sheet' in self.readout_mode:
+    #         return (self.line_interval_us * self.height_px)/1000 + self.exposure_time_ms
+    #     else:
+    #         return (self.line_interval_us * self.height_px/2)/1000 + self.exposure_time_ms
             
     @property
     def trigger(self):
@@ -246,9 +251,9 @@ class Camera(BaseCamera):
         source = self.dcam.prop_getvalue(PROPERTIES["trigger_source"])
         mode = self.dcam.prop_getvalue(PROPERTIES["trigger_mode"])
         polarity = self.dcam.prop_getvalue(PROPERTIES["trigger_polarity"])
-        return {"mode": {v.value:k for k, v in TRIGGERS['mode'].items()}[mode],
-                "source": {v.value:k for k, v in TRIGGERS['source'].items()}[source],
-                "polarity": {v.value: k for k, v in TRIGGERS['polarity'].items()}[polarity]}
+        return {"mode": {v:k for k, v in TRIGGERS['mode'].items()}[mode],
+                "source": {v:k for k, v in TRIGGERS['source'].items()}[source],
+                "polarity": {v: k for k, v in TRIGGERS['polarity'].items()}[polarity]}
 
     @trigger.setter
     def trigger(self, trigger: dict):
@@ -274,7 +279,7 @@ class Camera(BaseCamera):
 
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
         # refresh parameter values
-        self._get_min_max_step_values()
+        self._update_parameters()
 
     @property
     def binning(self):
@@ -285,10 +290,11 @@ class Camera(BaseCamera):
     def binning(self, binning: str):
         if binning not in BINNING:
             raise ValueError("binning must be one of %r." % BINNING)
-        self.dcam.prop_setvalue(PROPERTIES["binning"], binning)
-        self.log.info(f"binning set to: {binning}")
-        # refresh parameter values
-        self._get_min_max_step_values()
+        else:
+            self.dcam.prop_setvalue(PROPERTIES["binning"], binning)
+            self.log.info(f"binning set to: {binning}")
+            # refresh parameter values
+            self._update_parameters()
 
     @property
     def sensor_width_px(self):
@@ -306,32 +312,36 @@ class Camera(BaseCamera):
         return state
 
     @property
-    def readout_mode(self):
+    def sensor_mode(self):
         sensor_mode = self.dcam.prop_getvalue(PROPERTIES['sensor_mode'])
-        readout_direction = self.dcam.prop_getvalue(PROPERTIES['readout_direction'])
-        if sensor_mode == DCAMPROP.SENSORMODE.AREA:
-            readout_mode = "rolling"
-        if sensor_mode == DCAMPROP.SENSORMODE.PROGRESSIVE:
-            if readout_direction == DCAMPROP.READOUT_DIRECTION.FORWARD:
-                readout_mode = "light sheet forward"
-            if readout_direction == DCAMPROP.READOUT_DIRECTION.BACKWARD:
-                readout_mode = "light sheet backward"
-        return readout_mode
+        return next(key for key, value in SENSOR_MODES.items() if value == sensor_mode)
 
-    @readout_mode.setter
-    def readout_mode(self, readout_mode: str):
-        valid_mode = list(READOUT_MODES.keys())
-        if readout_mode not in valid_mode:
-            raise ValueError("readout_mode must be one of %r." % valid_mode)
-        if readout_mode == "rolling":
-            self.dcam.prop_setvalue(PROPERTIES['sensor_mode'], READOUT_MODES[readout_mode])
+    @sensor_mode.setter
+    def sensor_mode(self, sensor_mode: str):
+        valid_mode = list(SENSOR_MODES.keys())
+        if sensor_mode not in valid_mode:
+            raise ValueError("sensor_mode must be one of %r." % valid_mode)
         else:
-            # set sensor mode to light-sheet -> 12
-            self.dcam.prop_setvalue(PROPERTIES['sensor_mode'], DCAMPROP.SENSORMODE.PROGRESSIVE)
-            # set readout direction to forward or backward
-            self.dcam.prop_setvalue(PROPERTIES['readout_direction'], READOUT_MODES[readout_mode])
+            self.dcam.prop_setvalue(PROPERTIES['sensor_mode'], SENSOR_MODES[sensor_mode])
+        self.log.info(f"sensor mode set to: {sensor_mode}")
         # refresh parameter values
-        self._get_min_max_step_values()
+        self._update_parameters()
+
+    @property
+    def readout_direction(self):
+        readout_direction = self.dcam.prop_getvalue(PROPERTIES['readout_direction'])
+        return next(key for key, value in READOUT_DIRECTIONS.items() if value == readout_direction)
+
+    @readout_direction.setter
+    def readout_direction(self, readout_direction: str):
+        valid_direction = list(READOUT_DIRECTIONS.keys())
+        if readout_direction not in valid_direction:
+            raise ValueError("readout_direction must be one of %r." % valid_direction)
+        else:
+            self.dcam.prop_setvalue(PROPERTIES['readout_direction'], READOUT_DIRECTIONS[readout_direction])
+        self.log.info(f"readout direction set to: {readout_direction}")
+        # refresh parameter values
+        self._update_parameters()
 
     def prepare(self):
         # determine bits to bytes
@@ -345,15 +355,12 @@ class Camera(BaseCamera):
         self.dcam.buf_alloc(self.buffer_size_frames)
         self.log.info(f"buffer set to: {self.buffer_size_frames} frames")
 
-    def start(self, frames):
+    def start(self):
         # initialize variables for acquisition run
         self.dropped_frames = 0
         self.pre_frame_time = 0
         self.pre_frame_count_px = 0
-        if frames > 1:
-            self.dcam.cap_start()
-        elif frames == 1:
-            self.dcam.cap_start(bSequence=False)    # Snapshot
+        self.dcam.cap_start()
 
     def abort(self):
         self.stop()
@@ -367,6 +374,15 @@ class Camera(BaseCamera):
             self.dcam.dev_close()
             DcamapiSingleton.uninit()
 
+    def reset(self):
+        if self.dcam.is_opened():
+            self.dcam.dev_close()
+            DcamapiSingleton.uninit()
+            del self.dcam
+            if DcamapiSingleton.init() is not False:
+                self.dcam = Dcam(self.cam_num)
+                self.dcam.dev_open()
+                
     def grab_frame(self):
         """Retrieve a frame as a 2D numpy array with shape (rows, cols)."""
         # Note: creating the buffer and then "pushing" it at the end has the
@@ -374,8 +390,12 @@ class Camera(BaseCamera):
         #   pool back to the input pool, so it can be reused.
         timeout_ms = 1000
         if self.dcam.wait_capevent_frameready(timeout_ms) is not False:
-            image = self.dcam.buf_getlastframedata()
+            image = self._latest_frame = self.dcam.buf_getlastframedata()
             return image
+
+    @property
+    def latest_frame(self):
+        return self._latest_frame
 
     def signal_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""
@@ -426,6 +446,24 @@ class Camera(BaseCamera):
             self.log.info(f'{propname}, {propvalue}')
             idprop = self.dcam.prop_getnextid(idprop)
 
+    def _update_parameters(self):
+        # grab parameter values
+        self._get_min_max_step_values()
+        # check binning options
+        self._query_binning()
+        # check pixel type options
+        self._query_pixel_types()
+        # check trigger mode options
+        self._query_trigger_modes()
+        # check trigger source options
+        self._query_trigger_sources()
+        # check trigger polarity options
+        self._query_trigger_polarities()
+        # check sensor mode options
+        self._query_sensor_modes()
+        # check readout direction options
+        self._query_readout_directions()
+
     def _get_min_max_step_values(self):
         # gather min max values
         # convert from s to ms
@@ -468,3 +506,59 @@ class Camera(BaseCamera):
         self.log.debug(f"step height is: {self.step_height_px} px")
         self.log.debug(f"step offset x is: {self.step_offset_x_px} px")
         self.log.debug(f"step offset y is: {self.step_offset_y_px} px")
+
+    def _query_trigger_modes(self):
+        min_prop_value = int(self.dcam.prop_getattr(PROPERTIES['trigger_mode']).valuemin)
+        max_prop_value = int(self.dcam.prop_getattr(PROPERTIES['trigger_mode']).valuemax)
+        for prop_value in range(min_prop_value, max_prop_value+1):
+           reply = self.dcam.prop_getvaluetext(PROPERTIES['trigger_mode'], prop_value)
+           if reply != False:
+               TRIGGERS['mode'][reply.lower()] = prop_value
+
+    def _query_trigger_sources(self):
+        min_prop_value = int(self.dcam.prop_getattr(PROPERTIES['trigger_source']).valuemin)
+        max_prop_value = int(self.dcam.prop_getattr(PROPERTIES['trigger_source']).valuemax)
+        for prop_value in range(min_prop_value, max_prop_value+1):
+           reply = self.dcam.prop_getvaluetext(PROPERTIES['trigger_source'], prop_value)
+           if reply != False:
+               TRIGGERS['source'][reply.lower()] = prop_value
+
+    def _query_trigger_polarities(self):
+        min_prop_value = int(self.dcam.prop_getattr(PROPERTIES['trigger_polarity']).valuemin)
+        max_prop_value = int(self.dcam.prop_getattr(PROPERTIES['trigger_polarity']).valuemax)
+        for prop_value in range(min_prop_value, max_prop_value+1):
+           reply = self.dcam.prop_getvaluetext(PROPERTIES['trigger_polarity'], prop_value)
+           if reply != False:
+               TRIGGERS['polarity'][reply.lower()] = prop_value
+
+    def _query_sensor_modes(self):
+        min_prop_value = int(self.dcam.prop_getattr(PROPERTIES['sensor_mode']).valuemin)
+        max_prop_value = int(self.dcam.prop_getattr(PROPERTIES['sensor_mode']).valuemax)
+        for prop_value in range(min_prop_value, max_prop_value+1):
+           reply = self.dcam.prop_getvaluetext(PROPERTIES['sensor_mode'], prop_value)
+           if reply != False:
+               SENSOR_MODES[reply.lower()] = prop_value
+
+    def _query_readout_directions(self):
+        min_prop_value = int(self.dcam.prop_getattr(PROPERTIES['readout_direction']).valuemin)
+        max_prop_value = int(self.dcam.prop_getattr(PROPERTIES['readout_direction']).valuemax)
+        for prop_value in range(min_prop_value, max_prop_value+1):
+           reply = self.dcam.prop_getvaluetext(PROPERTIES['readout_direction'], prop_value)
+           if reply != False:
+               READOUT_DIRECTIONS[reply.lower()] = prop_value
+
+    def _query_binning(self):
+        min_prop_value = int(self.dcam.prop_getattr(PROPERTIES['binning']).valuemin)
+        max_prop_value = int(self.dcam.prop_getattr(PROPERTIES['binning']).valuemax)
+        for prop_value in range(min_prop_value, max_prop_value+1):
+           reply = self.dcam.prop_getvaluetext(PROPERTIES['binning'], prop_value)
+           if reply != False:
+               BINNING[reply.lower()] = prop_value
+
+    def _query_pixel_types(self):
+        min_prop_value = int(self.dcam.prop_getattr(PROPERTIES['pixel_type']).valuemin)
+        max_prop_value = int(self.dcam.prop_getattr(PROPERTIES['pixel_type']).valuemax)
+        for prop_value in range(min_prop_value, max_prop_value+1):
+           reply = self.dcam.prop_getvaluetext(PROPERTIES['pixel_type'], prop_value)
+           if reply != False:
+               PIXEL_TYPES[reply.lower()] = prop_value

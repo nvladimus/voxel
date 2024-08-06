@@ -11,7 +11,7 @@ JOYSTICK_AXES = {
     "joystick_y": 1,
     "wheel_z": 2,
     "wheel_f": 3,
-    "None":4
+    "None": 4
 }
 
 POLARITY = {
@@ -24,6 +24,7 @@ POLARITY = {
 class AxesMappingSingleton(AxesMapping, metaclass=Singleton):
     def __init__(self):
         super(AxesMappingSingleton, self).__init__()
+
 
 class Stage(BaseStage):
 
@@ -39,24 +40,25 @@ class Stage(BaseStage):
         self._speed = 1.0
         self._limits = [-10000, 10000]
 
-
-    def move_relative_mm(self, position: float, wait: bool = True):
+    def move_relative_mm(self, position: float, wait: bool = False):
         w_text = "" if wait else "NOT "
         self.log.info(f"relative move by: {self.hardware_axis}={position} mm and {w_text}waiting.")
         move_time_s = position / self._speed
         self.move_end_time_s = time.time() + move_time_s
         self._position_mm += position
-        # while time.time() < self.move_end_time_s:
-        #     time.sleep(0.01)
+        if wait:
+            while time.time() < self.move_end_time_s:
+                time.sleep(0.01)
 
-    def move_absolute_mm(self, position: float, wait: bool = True):
+    def move_absolute_mm(self, position: float, wait: bool = False):
         w_text = "" if wait else "NOT "
         self.log.info(f"absolute move to: {self.hardware_axis}={position} mm and {w_text}waiting.")
         move_time_s = abs(self._position_mm - position) / self._speed
         self.move_end_time_s = time.time() + move_time_s
         self._position_mm = position
-        # while time.time() < self.move_end_time_s:
-        #     time.sleep(0.01)
+        if wait:
+            while time.time() < self.move_end_time_s:
+                time.sleep(0.01)
 
     def setup_stage_scan(self, fast_axis_start_position: float,
                          slow_axis_start_position: float,
@@ -83,8 +85,11 @@ class Stage(BaseStage):
 
     @property
     def position_mm(self):
-        self._position_mm = 0#random.randint(0, 10)
         return self._position_mm
+
+    @position_mm.setter
+    def position_mm(self, value):
+        self._position_mm = value
 
     @property
     def speed_mm_s(self):
@@ -172,6 +177,6 @@ class Joystick(BaseJoystick):
                     f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis.")
 
         self._joystick_mapping = joystick_mapping
+
     def close(self):
         pass
-
