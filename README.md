@@ -1,4 +1,4 @@
-# Voxel![Voxel](logo.png =100x100)
+# Voxel![Voxel](./logo.png =100x100)
 
 Voxel is a general microscope control repository designed to simplify the 
 process of configuring and controling different microscopy systems. Microscopes
