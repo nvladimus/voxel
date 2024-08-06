@@ -5,51 +5,54 @@ process of configuring and controling different microscopy systems. Microscopes
 can be defined as a collection of any set of devices through a configuraiton
 YAML file. Currently supported device types and models are listed below.
 
-* **Cameras**
-    * eGrabber GenICam cameras
-        * Vieworks VP-151MX tested
-        * Vieworks VNP-604MX tested
-    * Hamamatsu cameras
-        * ORCA-Flash4.0 V3 tested
-        * ORCA-Fusion BT tested
-    * PCO cameras (untested)
-    * Simulated camera
-* **Stages**
-    * ASI
-    * Simulated stage
-* **Lasers**
-    * Coherent OBIS
-    * Coherent Genesis
-    * Vortran Stradus
-    * Oxxius LBX and LCX
-    * Cobolt
-    * Simulated laser
-* **AOTF**
-    * AAOpto
-    * Simulated AOTF
-* **Filterwheel**
-    * ASI FW-1000
-    * Simulated filter wheel
-* **Flip mount**
-    * Thorlabs MFF101
-    * Simulated flip mount
-* **Power meter**
-    * Thorlabs PM100D
-    * Simulated power meter
-* **Rotation mount**
-    * Thorlabs K10CR1
-    * Simulated rotation mount
-* **Tunable lens**
-    * ASI TGTLC
-    * Optotune ELE41
-    * Optotune ICC4C
-    * Simulated tunable lens
-* **DAQ**
-    * National Instruments
-        * PCIe-6738 tested
-    * Simulated DAQ
+```yaml
+Cameras
+    eGrabber GenICam cameras
+        Vieworks VP-151MX tested
+        Vieworks VNP-604MX tested
+    Hamamatsu cameras
+        ORCA-Flash4.0 V3 tested
+        ORCA-Fusion BT tested
+    PCO cameras (untested)
+    Simulated camera
+Stages
+    ASI
+    Simulated stage
+Lasers
+    Coherent OBIS
+    Coherent Genesis
+    Vortran Stradus
+    Oxxius LBX and LCX
+    Cobolt
+    Simulated laser
+AOTF
+    AAOpto
+    Simulated AOTF
+Filterwheel
+    ASI FW-1000
+    Simulated filter wheel
+Flip mount
+    Thorlabs MFF101
+    Simulated flip mount
+Power meter
+    Thorlabs PM100D
+    Simulated power meter
+Rotation mount  
+    Thorlabs K10CR1
+    Simulated rotation mount
+Tunable lens
+    ASI TGTLC
+    Optotune ELE41
+    Optotune ICC4C
+    Simulated tunable lens
+DAQ
+    National Instruments
+        PCIe-6738 tested
+    Simulated DAQ
+```
 
-**Documentation**: coming soon
+### Documentation
+coming soon
 
 ### Prerequisites
 - **Python==3.11** (tested) 
