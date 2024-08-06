@@ -12,6 +12,7 @@ import numpy as np
 
 from voxel.writers.base import BaseWriter
 from voxel.writers.bdv_writer import npy2bdv
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 CHUNK_COUNT_PX = 64
 DIVISIBLE_FRAME_COUNT_PX = 64
@@ -73,11 +74,11 @@ class Writer(BaseWriter):
         self.affine_scale_dict = dict()
         self.affine_shift_dict = dict()
 
-    @property
+    @DeliminatedProperty(minimum=0, maximum=100)
     def signal_progress_percent(self):
-        state = {"Progress [%]": self._progress.value * 100}
-        self.log.info(f"Progress [%]: {self._progress.value*100}")
-        return state
+        # convert to %
+        self.log.info(f"Progress [%]: {self._progress.value * 100}")
+        return self._progress.value * 100
 
     @property
     def x_voxel_size_um(self):

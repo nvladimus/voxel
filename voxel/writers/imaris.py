@@ -15,6 +15,7 @@ import numpy as np
 from matplotlib.colors import hex2color
 from PyImarisWriter import PyImarisWriter as pw
 
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 from voxel.writers.base import BaseWriter
 
 CHUNK_COUNT_PX = 64
@@ -75,12 +76,11 @@ class Writer(BaseWriter):
         # Internal flow control attributes to monitor compression progress.
         self.callback_class = ImarisProgressChecker()
 
-    @property
+    @DeliminatedProperty(minimum=0, maximum=100)
     def signal_progress_percent(self):
         # convert to %
-        state = {"Progress [%]": self._progress.value * 100}
-        self.log.info(f"Progress [%]: {self._progress.value*100}")
-        return state
+        self.log.info(f"Progress [%]: {self._progress.value * 100}")
+        return self._progress.value * 100
 
     @property
     def x_voxel_size_um(self):
