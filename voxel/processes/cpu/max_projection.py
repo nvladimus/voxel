@@ -160,7 +160,7 @@ class MaxProjection:
         else:
             z_projection = True
             if self._z_projection_count_px < 0 or self._z_projection_count_px > self._frame_count_px_px:
-                raise ValueError(f'z projection must be > 0 and < {self._frame_count_px}')
+                raise ValueError(f'z projection must be > 0 and < {self._frame_count_px_px}')
             self.mip_xy = np.zeros((self._row_count_px, self._column_count_px), dtype=self._data_type)
 
         frame_index = 0

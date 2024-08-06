@@ -2,6 +2,7 @@ import os
 import shutil
 import time
 from pathlib import Path
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 from subprocess import DEVNULL, Popen
 
 from voxel.file_transfers.base import BaseFileTransfer
@@ -28,10 +29,6 @@ class RobocopyFileTransfer(BaseFileTransfer):
         self._protocol = "robocopy"
 
     def _run(self):
-        """
-        Internal function that runs the transfer process.
-        """
-
         start_time = time.time()
         local_directory = Path(self._local_path, self._acquisition_name)
         external_directory = Path(self._external_path, self._acquisition_name)
@@ -45,7 +42,7 @@ class RobocopyFileTransfer(BaseFileTransfer):
             for name in os.listdir(local_directory.absolute()):
                 if self.filename in name:
                     delete_list.append(name)
-                        # generate a list of files to copy
+            # generate a list of files to copy
             # path is the entire experiment path
             # subdirs is any tile specific subdir i.e. zarr store
             # files are any tile specific files

@@ -5,6 +5,9 @@ import importlib
 from serial import Serial
 from ruamel.yaml import YAML
 import inflection
+from threading import Lock, RLock
+from functools import wraps
+from voxel.descriptors.deliminated_property import _DeliminatedProperty
 
 class Instrument:
 
@@ -48,19 +51,25 @@ class Instrument:
                     raise ValueError(f'filter {filter} not associated with any filter wheel: {self.filter_wheels}')
         self.channels = self.config['instrument']['channels']
 
-    def _construct_device(self, device_name, device_specs):
-        """Load, setup, and add any subdevices or tasks of a device
+    def _construct_device(self, device_name, device_specs, lock: Lock = None):
+        """Load, setup, and add any sub-devices or tasks of a device. Also wrap class methods and properties with
+        thread safe locking function
+
         :param device_name: name of device
-        :param device_specs: dictionary dictating how device should be set up"""
+        :param device_specs: dictionary dictating how device should be set up
+        :param lock: lock to be used for device and sub-devices
+        """
 
         self.log.info(f'constructing {device_name}')
+        lock = RLock() if lock is None else lock
         device_type = inflection.pluralize(device_specs['type'])
         driver = device_specs['driver']
         module = device_specs['module']
         init = device_specs.get('init', {})
-        device_object = self._load_device(driver, module, init)
+        device_object = self._load_device(driver, module, init, lock)
         settings = device_specs.get('settings', {})
         self._setup_device(device_object, settings)
+
         # create device dictionary if it doesn't already exist and add device to dictionary
         if not hasattr(self, device_type):
             setattr(self, device_type, {})
@@ -76,13 +85,14 @@ class Instrument:
 
         # Add subdevices under device and fill in any needed keywords to init
         for subdevice_name, subdevice_specs in device_specs.get('subdevices', {}).items():
-            self._construct_subdevice(device_object, subdevice_name, subdevice_specs)
+            self._construct_subdevice(device_object, subdevice_name, subdevice_specs, lock)
 
-    def _construct_subdevice(self, device_object, subdevice_name, subdevice_specs):
+    def _construct_subdevice(self, device_object, subdevice_name, subdevice_specs, lock):
         """Handle the case where devices share serial ports or device objects
-        :param device_object: parent device setup before subdevice
-        :param subdevice_name: name of subdevice
-        :param subdevice_specs: dictionary dictating how subdevice should be set up"""
+        :param device_object: parent device setup before sub-device
+        :param subdevice_name: name of sub-device
+        :param subdevice_specs: dictionary dictating how sub-device should be set up
+        :param lock: lock to be used for device and sub-devices"""
 
         # Import subdevice class in order to access keyword argument required in the init of the device
         subdevice_class = getattr(importlib.import_module(subdevice_specs['driver']), subdevice_specs['module'])
@@ -95,22 +105,60 @@ class Instrument:
             # If subdevice init needs parent object type, add device object to init arguments
             elif parameter.annotation == type(device_object):
                 subdevice_specs['init'][name] = device_object
-        self._construct_device(subdevice_name, subdevice_specs)
+        self._construct_device(subdevice_name, subdevice_specs, lock)
 
-    def _load_device(self, driver: str, module: str, kwds):
-        """Load device based on driver, module, and kwds specified
+    def _load_device(self, driver: str, module: str, kwds, lock: Lock):
+        """Load device based on driver, module, and kwds specified. Also wrap class methods and properties with
+        thread safe locking function
+
         :param driver: driver of device
         :param module: specific class of device within driver
-        :param kwds: keyword argument required in the init of the device"""
+        :param kwds: keyword argument required in the init of the device,
+        :param lock: lock to be used for device and sub-devices """
+
         self.log.info(f'loading {driver}.{module}')
         device_class = getattr(importlib.import_module(driver), module)
-        return device_class(**kwds)
+        thread_safe_device_class = for_all_methods(lock, device_class)
+        return thread_safe_device_class(**kwds)
+
 
     def _setup_device(self, device: object, settings: dict):
         """Setup device based on settings dictionary
         :param device: device to be setup
         :param settings: dictionary of attributes, values to set according to config"""
+
         self.log.info(f'setting up {device}')
         # successively iterate through settings keys
         for key, value in settings.items():
             setattr(device, key, value)
+
+    def close(self):
+        """Close functionality"""
+        pass
+
+
+def for_all_methods(lock, cls):
+    """Function that iterates through callable methods and properties in a class and wraps with lock_methods"""
+    for attr_name in cls.__dict__:
+        if attr_name == '__init__':
+            continue
+        attr = getattr(cls, attr_name)
+        if type(attr) == _DeliminatedProperty:
+            attr._fset = lock_methods(attr._fset, lock)
+            attr._fget = lock_methods(attr._fget, lock)
+        elif isinstance(attr, property):
+            wrapped_getter = lock_methods(getattr(attr, 'fget'), lock)
+            wrapped_setter = lock_methods(getattr(attr, 'fset'), lock)
+            setattr(cls, attr_name, property(wrapped_getter, wrapped_setter))
+        elif callable(attr) and not isinstance(inspect.getattr_static(cls, attr_name), staticmethod):
+            setattr(cls, attr_name, lock_methods(attr, lock))
+    return cls
+
+def lock_methods(fn, lock):
+    """Wrapper that locks lock shared by all methods and properties so class is thread safe"""
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        with lock:
+            return fn(*args, **kwargs)
+    return wrapper
