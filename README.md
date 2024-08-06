@@ -1,4 +1,5 @@
 <img src="logo.png" width="100" height="100">
+
 # Voxel
 
 Voxel is a general microscope control repository designed to simplify the 
