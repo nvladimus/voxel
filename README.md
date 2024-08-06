@@ -52,7 +52,7 @@ DAQ:
 ```
 
 ### Documentation
-coming soon
+*(coming soon)*
 
 ### Prerequisites
 - **Python==3.11** (tested) 
@@ -77,7 +77,7 @@ To control Hamamatsu cameras you will need
 [DCAM API](https://dcam-api.com/) installed for your particular system.
 - **Coherent HOPS** (Windows only)
 To control Coherent Genesis series lasers, you will need to install 
-Coherent HOPS (instructions coming soon).
+Coherent HOPS *(instructions coming soon)*.
 
 ### Installation
 1. Create a virtual environment and activate it:
