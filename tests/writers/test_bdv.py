@@ -1,13 +1,15 @@
-import numpy
-import time
 import logging
 import math
-import threading
 import sys
-from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
-from voxel.writers.bdv import Writer
+import threading
+import time
 
-if __name__ == '__main__':
+import numpy
+
+from voxel.writers.bdv import BDVWriter
+from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
+
+if __name__ == "__main__":
 
     # Setup logging.
     # Create log handlers to dispatch:
@@ -17,11 +19,11 @@ if __name__ == '__main__':
     logging.getLogger().handlers.clear()
     # logger level must be set to the lowest level of any handler.
     logger.setLevel(logging.DEBUG)
-    fmt = '%(asctime)s.%(msecs)03d %(levelname)s %(name)s: %(message)s'
-    datefmt = '%Y-%m-%d,%H:%M:%S'
+    fmt = "%(asctime)s.%(msecs)03d %(levelname)s %(name)s: %(message)s"
+    datefmt = "%Y-%m-%d,%H:%M:%S"
     log_formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
     log_handler = logging.StreamHandler(sys.stdout)
-    log_handler.setLevel('INFO')
+    log_handler.setLevel("INFO")
     log_handler.setFormatter(log_formatter)
     logger.addHandler(log_handler)
 
@@ -29,7 +31,7 @@ if __name__ == '__main__':
     num_frames = 256
     num_tiles = 1
 
-    stack_writer_worker = Writer('.')
+    stack_writer_worker = BDVWriter(".")
     stack_writer_worker.row_count_px = 2048
     stack_writer_worker.column_count_px = 2048
     stack_writer_worker.x_voxel_size_um = 0.748
@@ -37,20 +39,20 @@ if __name__ == '__main__':
     stack_writer_worker.z_voxel_size_um = 1
     stack_writer_worker.theta_deg = 45
     stack_writer_worker.frame_count_px = num_frames
-    stack_writer_worker.compression = 'none'
-    stack_writer_worker.data_type = 'uint16'
-    stack_writer_worker.channel = '488'
-    stack_writer_worker.acquisition_name = 'test'
+    stack_writer_worker.compression = "none"
+    stack_writer_worker.data_type = "uint16"
+    stack_writer_worker.channel = "488"
+    stack_writer_worker.acquisition_name = "test"
     frame_index = 0
     tile_index = 0
 
     for tile_index in range(num_tiles):
 
         # do note update filename so all tiles go into a single file
-        stack_writer_worker.filename = f'test_{tile_index}.h5'
+        stack_writer_worker.filename = f"test_{tile_index}.h5"
 
         # move tile over 1 mm
-        stack_writer_worker.x_position_mm = 0 + tile_index*1.000
+        stack_writer_worker.x_position_mm = 0 + tile_index * 1.000
         stack_writer_worker.y_position_mm = 0
         stack_writer_worker.z_position_mm = 0
         stack_writer_worker.prepare()
@@ -61,12 +63,13 @@ if __name__ == '__main__':
         last_chunk_size = chunk_size_frames if not remainder else remainder
         last_frame_index = num_frames - 1
 
-        mem_shape = (chunk_size_frames,
-                     stack_writer_worker.row_count_px,
-                     stack_writer_worker.column_count_px)
+        mem_shape = (
+            chunk_size_frames,
+            stack_writer_worker.row_count_px,
+            stack_writer_worker.column_count_px,
+        )
 
-        img_buffer = SharedDoubleBuffer(mem_shape,
-                                        dtype='uint16')
+        img_buffer = SharedDoubleBuffer(mem_shape, dtype="uint16")
 
         chunk_lock = threading.Lock()
 
@@ -79,21 +82,29 @@ if __name__ == '__main__':
                 remaining_chunks = chunk_count - chunks_filled
             # Grab simulated frame
             if chunks_filled % 2 == 0:
-                img_buffer.add_image( \
-                numpy.random.randint(
-                    low=0,
-                    high=256,
-                    size=(stack_writer_worker.row_count_px, stack_writer_worker.column_count_px),
-                    dtype = 'uint16'
-                ))
+                img_buffer.add_image(
+                    numpy.random.randint(
+                        low=0,
+                        high=256,
+                        size=(
+                            stack_writer_worker.row_count_px,
+                            stack_writer_worker.column_count_px,
+                        ),
+                        dtype="uint16",
+                    )
+                )
             else:
-                img_buffer.add_image( \
+                img_buffer.add_image(
                     numpy.random.randint(
                         low=0,
                         high=32,
-                        size=(stack_writer_worker.row_count_px, stack_writer_worker.column_count_px),
-                        dtype = 'uint16'
-                    ))
+                        size=(
+                            stack_writer_worker.row_count_px,
+                            stack_writer_worker.column_count_px,
+                        ),
+                        dtype="uint16",
+                    )
+                )
             # mimic 5 fps imaging
             time.sleep(0.05)
             frame_index += 1
@@ -112,10 +123,8 @@ if __name__ == '__main__':
                 # written yet.
                 with chunk_lock:
                     img_buffer.toggle_buffers()
-                    stack_writer_worker.shm_name = \
-                        img_buffer.read_buf_mem_name
+                    stack_writer_worker.shm_name = img_buffer.read_buf_mem_name
                     stack_writer_worker.done_reading.clear()
-                print(stack_writer_worker.signal_progress_percent)
 
         stack_writer_worker.wait_to_finish()
 
