@@ -79,7 +79,8 @@ File transfers:
 ```
 
 ### Documentation
-*(coming soon)*
+
+    *(coming soon)*
 
 ### Prerequisites
 - **Python>=3.7** (tested) 
@@ -108,108 +109,110 @@ Coherent HOPS. *(instructions coming soon)*
 
 ### Installation
 1. Create a virtual environment and activate it:
-- On Windows:
-```bash
-conda create -n voxel
-conda activate voxel
-```
+    - On Windows:
+    ```bash
+    conda create -n voxel
+    conda activate voxel
+    ```
 
 2. Clone the repository:
-```bash
-git clone https://github.com/AllenNeuralDynamics/voxel.git
-```
+    ```bash
+    git clone https://github.com/AllenNeuralDynamics/voxel.git
+    ```
 
-3. To use the software, in the root directory, run
-```bash
-pip install -e .
-```
+3. To use the software, in the root directory, run:
+    ```bash
+    pip install -e .
+    ```
 
-4. To develop the code, run
-```bash
-pip install -e .[dev]
-```
+4. To develop the code, run:
+    ```bash
+    pip install -e .[dev]
+    ```
 
 ### Usage
 1. Instantiating a single device:
 
-Individual device can be instantiated by importing the appropriate driver
-class with the expected arguments. For example a camera object for a Vieworks
-VP-151MX can be invoked as:
-```python
-from voxel.devices.camera.vieworks_egrabber import VieworksCamera
+    Individual device can be instantiated by importing the appropriate driver
+    class with the expected arguments. For example a camera object for a Vieworks
+    VP-151MX can be invoked as:
+    ```python
+    from voxel.devices.camera.vieworks_egrabber import VieworksCamera
 
-camera = VieworksCamera(id='123456')
-```
-Camera properties can then be queried and set by accessing attributes of the
-camera object:
-```python
-camera.exposure_time ms = 10.0
-camera.pixel_type = 'mono16'
-camera.bit_packing_mode = 'lsb'
-camera.binning = 1
-camera.width_px = 14192
-camera.height_px = 10640
-camera.trigger = {'mode': 'on', 'source': 'line0', 'polarity': 'risingedge'}
-```
-The camera can then be operated with:
-```python
-camera.prepare() # this function arms and creates the camera buffer
-camera.start()
-image = camera.grab_frame()
-camera.stop()
-camera.close()
-```
+    camera = VieworksCamera(id='123456')
+    ```
+    Camera properties can then be queried and set by accessing attributes of the
+    camera object:
+    ```python
+    camera.exposure_time ms = 10.0
+    camera.pixel_type = 'mono16'
+    camera.bit_packing_mode = 'lsb'
+    camera.binning = 1
+    camera.width_px = 14192
+    camera.height_px = 10640
+    camera.trigger = {'mode': 'on', 'source': 'line0', 'polarity': 'risingedge'}
+    ```
+    The camera can then be operated with:
+    ```python
+    camera.prepare() # this function arms and creates the camera buffer
+    camera.start()
+    image = camera.grab_frame()
+    camera.stop()
+    camera.close()
+    ```
+
 2. Voxel facilitates defining entire instruments through a YAML file:
 
-```yaml
-instrument:
-  devices:
-    vp-151mx camera:
-      type: camera
-      driver: voxel.devices.camera.simulated
-      module: SimulatedCamera
-      init:
-        id: 123456
-      settings:
-        exposure_time_ms: 10.0
-        pixel_type: mono16
-        height_offest_px: 0
-        height_px: 2048
-        width_offset_px: 0
-        width_px: 2048
-        trigger:
-          mode: off
-          polarity: rising
-          source: external
-    488 nm laser:
-      type: laser
-      driver: voxel.devices.lasers.simulated
-      module: SimulatedLaser
-      init:
-        id: COM1
-    x axis stage:
-      type: scanning_stage
-      driver: voxel.devices.stage.simulated
-      module: Stage
-      init:
-        hardware_axis: x
-        instrument_axis: z
-      settings:
-        speed_mm_s: 1.0
-```
-An instrument can be invoked by loading the YAML file with and the loaded devices
-can be accessed with. The above example uses all simulated device classes.
-```python
-from voxel.instruments.instrument import Instrument
+    ```yaml
+    instrument:
+    devices:
+        vp-151mx camera:
+        type: camera
+        driver: voxel.devices.camera.simulated
+        module: SimulatedCamera
+        init:
+            id: 123456
+        settings:
+            exposure_time_ms: 10.0
+            pixel_type: mono16
+            height_offest_px: 0
+            height_px: 2048
+            width_offset_px: 0
+            width_px: 2048
+            trigger:
+            mode: off
+            polarity: rising
+            source: external
+        488 nm laser:
+        type: laser
+        driver: voxel.devices.lasers.simulated
+        module: SimulatedLaser
+        init:
+            id: COM1
+        x axis stage:
+        type: scanning_stage
+        driver: voxel.devices.stage.simulated
+        module: Stage
+        init:
+            hardware_axis: x
+            instrument_axis: z
+        settings:
+            speed_mm_s: 1.0
+    ```
+    An instrument can be invoked by loading the YAML file with and the loaded devices
+    can be accessed with. The above example uses all simulated device classes.
+    ```python
+    from voxel.instruments.instrument import Instrument
 
-instrument = Instrument(config_path='example.yaml')
-instrument.cameras['vp-151mx camera']
-instrument.lasers['488 nm laser']
-instrument.scanning_stages['x axis stage']
+    instrument = Instrument(config_path='example.yaml')
+    instrument.cameras['vp-151mx camera']
+    instrument.lasers['488 nm laser']
+    instrument.scanning_stages['x axis stage']
 ```
 3. Experimental workflows may then be scripted by using the full instrument object
 and the contained device objects as needed:
-*(example coming soon)*
+
+    *(example coming soon)*
 
 ### Support and Contribution
 If you encounter any problems or would like to contribute to the project, 
