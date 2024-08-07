@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 import time
 import threading
 import logging
@@ -22,8 +22,15 @@ class Acquisition:
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.log.setLevel(log_level)
 
+        # create yaml object to use when loading and dumping config
+        self.yaml = YAML()
+        self.yaml.representer.add_representer(np.int64, lambda obj, val: obj.represent_int(int(val)))
+        self.yaml.representer.add_representer(np.float64, lambda obj, val: obj.represent_scalar(float(val)))
+        self.yaml.representer.add_representer(Path, lambda obj, val: obj.represent_str(str(val)))
+        self.yaml.representer.add_representer(WindowsPath, lambda obj, val: obj.represent_str(str(val)))
+
         self.config_path = Path(config_filename)
-        self.config = YAML().load(Path(self.config_path))
+        self.config = self.yaml.load(Path(self.config_path))
 
         self.instrument = instrument
 
@@ -183,7 +190,7 @@ class Acquisition:
         row_count_px = self.instrument.cameras[camera_id].height_px
         column_count_px = self.instrument.cameras[camera_id].width_px
         data_type = self.writers[camera_id][writer_id].data_type
-        frame_size_mb = row_count_px * column_count_px * numpy.dtype(data_type).itemsize / 1024 ** 2
+        frame_size_mb = row_count_px * column_count_px * np.dtype(data_type).itemsize / 1024 ** 2
         return frame_size_mb
 
     def _pyramid_factor(self, levels: int):
@@ -341,21 +348,22 @@ class Acquisition:
         """
         self.log.info(f"checking local storage directory space for next tile")
         drives = dict()
+        data_size_gb = 0
         for camera_id, camera in self.instrument.cameras.items():
-            data_size_gb = 0
-            # if windows
-            if platform.system() == 'Windows':
-                local_drive = os.path.splitdrive(self.writers[camera_id].path)[0]
-            # if unix
-            else:
-                abs_path = os.path.abspath(self.writers[camera_id].path)
-                local_drive = '/'
+            for writer_id, writer in self.writers[camera_id].items():
+                # if windows
+                if platform.system() == 'Windows':
+                    local_drive = os.path.splitdrive(writer.path)[0]
+                # if unix
+                else:
+                    abs_path = os.path.abspath(writer.path)
+                    local_drive = '/'
 
-            frame_size_mb = self._frame_size_mb(camera_id)
-            frame_count_px = tile['steps']
-            data_size_gb += frame_count_px * frame_size_mb / 1024
+                frame_size_mb = self._frame_size_mb(camera_id, writer_id)
+                frame_count_px = tile['steps']
+                data_size_gb += frame_count_px * frame_size_mb / 1024
 
-            drives.setdefault(local_drive, []).append(data_size_gb)
+                drives.setdefault(local_drive, []).append(data_size_gb)
 
         for drive in drives:
             required_size_gb = sum(drives[drive])
@@ -363,10 +371,10 @@ class Acquisition:
             free_size_gb = shutil.disk_usage(drive).free / 1024 ** 3
             if data_size_gb >= free_size_gb:
                 self.log.error(f"only {free_size_gb:.1f} available on drive: {drive}")
-                raise ValueError(f"only {free_size_gb:.1f} available on drive: {drive}")
+                return False
             else:
                 self.log.info(f'available disk space = {free_size_gb:.1f} [GB] on drive {drive}')
-
+                return True
     def check_external_tile_disk_space(self, tile: dict):
         """Checks local and ext disk space before scan to see if disk has enough space scan
         """
@@ -540,26 +548,32 @@ class Acquisition:
     def update_current_state_config(self):
         """Capture current state of instrument in config form"""
 
+        # update properties of operations
         for device_name, op_dict in self.config['acquisition']['operations'].items():
             for op_name, op_specs in op_dict.items():
                 op = getattr(self, inflection.pluralize(op_specs['type']))[device_name][op_name]
-                properties = {}
-                for attr_name in dir(op):
-                    attr = getattr(type(op), attr_name, None)
-                    if isinstance(attr, property) or isinstance(inspect.unwrap(attr), property):
-                        value = getattr(op, attr_name)
-                        if hasattr(value, 'as_posix'):  # path value
-                            properties[attr_name] = str(value)
-                        else:
-                            properties[attr_name] = value
-                op_specs['properties'] = properties
+                op_specs['properties'] = self._collect_properties(op)
+        # update properties of metadata
+        self.config['acquisition']['metadata']['properties'] = self._collect_properties(self.metadata)
+
+    @staticmethod
+    def _collect_properties(obj: object):
+        """Scan through object and return dictionary of properties
+        :param obj: object to find properties from """
+
+        properties = {}
+        for attr_name in dir(obj):
+            attr = getattr(type(obj), attr_name, None)
+            if isinstance(attr, property) or isinstance(inspect.unwrap(attr), property):
+                properties[attr_name] = getattr(obj, attr_name)
+        return properties
 
     def save_config(self, path: Path):
         """Save current config to path provided
         :param path: path to save config to"""
 
         with path.open("w") as f:
-            YAML().dump(self.config, f)
+            self.yaml.dump(self.config, f)
 
     def stop_acquisition(self):
         """Method to force quit acquisition by raising error"""
