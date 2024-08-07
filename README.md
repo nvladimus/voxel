@@ -82,7 +82,7 @@ File transfers:
 *(coming soon)*
 
 ### Prerequisites
-- **Python==3.11** (tested) 
+- **Python>=3.7** (tested) 
 (Recommended to install via 
 [Anaconda](https://www.anaconda.com/products/individual) or 
 [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
@@ -94,11 +94,11 @@ an account. After downloading and installing eGrabber, you will need to install
 the eGrabber python package (stored as a wheel file). For more info installing 
 the Python wheel file, see the [notes from Euresys](https://documentation.euresys.com/Products/COAXLINK/COAXLINK/en-us/Content/04_eGrabber/programmers-guide/Python.htm).
 
-Generally, the process should be as simple as finding the wheel package in the 
-eGrabber subfolder and invoking:
-````
-pip install egrabber-xx.xx.x.xx-py2.py3-none-any.whl
-````
+    Generally, the process should be as simple as finding the wheel package in the 
+    eGrabber subfolder and invoking:
+    ````
+    pip install egrabber-xx.xx.x.xx-py2.py3-none-any.whl
+    ````
 - **DCAM** (Windows only)
 To control Hamamatsu cameras you will need 
 [DCAM API](https://dcam-api.com/) installed for your particular system.
@@ -119,18 +119,19 @@ conda activate voxel
 git clone https://github.com/AllenNeuralDynamics/voxel.git
 ```
 
-4. To use the software, in the root directory, run
+3. To use the software, in the root directory, run
 ```bash
 pip install -e .
 ```
 
-5. To develop the code, run
+4. To develop the code, run
 ```bash
 pip install -e .[dev]
 ```
 
 ### Usage
-1. Instantiating a single device
+1. Instantiating a single device:
+
 Individual device can be instantiated by importing the appropriate driver
 class with the expected arguments. For example a camera object for a Vieworks
 VP-151MX can be invoked as:
@@ -158,7 +159,8 @@ image = camera.grab_frame()
 camera.stop()
 camera.close()
 ```
-2. Voxel facilitates defining entire instruments through a YAML file
+2. Voxel facilitates defining entire instruments through a YAML file:
+
 ```yaml
 instrument:
   devices:
@@ -169,12 +171,12 @@ instrument:
       init:
         id: 123456
       settings:
-        exposure_time_ms: 20.0
+        exposure_time_ms: 10.0
         pixel_type: mono16
-        height_offest_px: 4744
-        height_px: 1152
-        width_offset_px: 6528
-        width_px: 1152
+        height_offest_px: 0
+        height_px: 2048
+        width_offset_px: 0
+        width_px: 2048
         trigger:
           mode: off
           polarity: rising
@@ -206,7 +208,8 @@ instrument.lasers['488 nm laser']
 instrument.scanning_stages['x axis stage']
 ```
 3. Experimental workflows may then be scripted by using the full instrument object
-and the contained device objects as needed. *(example coming soon)*
+and the contained device objects as needed:
+*(example coming soon)*
 
 ### Support and Contribution
 If you encounter any problems or would like to contribute to the project, 
