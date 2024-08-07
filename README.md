@@ -109,7 +109,7 @@ Coherent HOPS. *(instructions coming soon)*
 
 ### Installation
 1. Create a virtual environment and activate it:
-    - On Windows:
+    On Windows:
     ```bash
     conda create -n voxel
     conda activate voxel
@@ -208,7 +208,8 @@ Coherent HOPS. *(instructions coming soon)*
     instrument.cameras['vp-151mx camera']
     instrument.lasers['488 nm laser']
     instrument.scanning_stages['x axis stage']
-```
+    ```
+    
 3. Experimental workflows may then be scripted by using the full instrument object
 and the contained device objects as needed:
 
