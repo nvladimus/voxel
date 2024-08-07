@@ -51,8 +51,7 @@ class ImarisWriter(BaseWriter):
     """
 
     def __init__(self, path: str):
-        super().__init__()
-        self._path = Path(path)
+        super().__init__(path)
         self._color = "#ffffff"  # initialize as white
         # Internal flow control attributes to monitor compression progress
         self.callback_class = ImarisProgressChecker()
@@ -213,12 +212,12 @@ class ImarisWriter(BaseWriter):
         # (x0, y0, z0) position (in [um]) of the beginning of the first voxel,
         # (xf, yf, zf) position (in [um]) of the end of the last voxel.
         x0 = self._x_position_mm - (
-            self._x_voxel_size_um_um * 0.5 * self._column_count_px
+            self._x_voxel_size_um * 0.5 * self._column_count_px
         )
         y0 = self._y_position_mm - (self._y_voxel_size_um * 0.5 * self._row_count_px)
         z0 = self._z_position_mm
         xf = self._x_position_mm + (
-            self._x_voxel_size_um_um * 0.5 * self._column_count_px
+            self._x_voxel_size_um * 0.5 * self._column_count_px
         )
         yf = self._y_position_mm + (self._y_voxel_size_um * 0.5 * self._row_count_px)
         zf = self._z_position_mm + self._frame_count_px * self._z_voxel_size_um

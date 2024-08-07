@@ -62,15 +62,13 @@ class BackgroundCollection:
             if filename.endswith(".tiff") or filename.endswith(".tif") else f"{filename}"
         self.log.info(f'setting filename to: {filename}')
 
-    #TODO: Change to device so routine set up can be more routine hehe
     def start(self, device: BaseCamera):
         camera = device
         # store initial trigger mode
-        initial_trigger = camera.trigger
+        trigger_dict = camera.trigger
         # turn trigger off
-        new_trigger = initial_trigger
-        new_trigger['mode'] = 'off'
-        camera.trigger = new_trigger
+        trigger_dict['mode'] = 'off'
+        camera.trigger = trigger_dict
         # prepare and start camera
         camera.prepare()
         camera.start()
@@ -80,7 +78,8 @@ class BackgroundCollection:
         # close writer and camera
         camera.stop()
         # reset the trigger
-        camera.trigger = initial_trigger
+        trigger_dict['mode'] = 'on'
+        camera.trigger = trigger_dict
         # average and save the image
         background_image = np.median(background_stack, axis=0)
         tifffile.imwrite(Path(self.path, self._acquisition_name, f"{self.filename}.tiff"), background_image.astype(self._data_type))

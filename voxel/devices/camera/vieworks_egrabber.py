@@ -4,7 +4,7 @@ from functools import wraps
 from voxel.devices.camera.base import BaseCamera
 from voxel.devices.camera.sdks.egrabber import *
 from voxel.devices.utils.singleton import Singleton
-from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
+from voxel.processes.downsample.gpu.gputools.downsample_2d import GPUToolsDownSample2D
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 import numpy as np
 # from copy import deepcopy
@@ -258,7 +258,7 @@ class Camera(BaseCamera):
             self.grabber.remote.set("BinningVertical", BINNING[binning])
         # initialize the opencl binning program
         else:
-            self.gpu_binning = DownSample2D(binning=int(self._binning))
+            self.gpu_binning = GPUToolsDownSample2D(binning=int(self._binning))
         # refresh parameter values
         self._get_min_max_step_values()
 
