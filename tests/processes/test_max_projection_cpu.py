@@ -1,22 +1,24 @@
 import numpy
 import time
-from ruamel.yaml import YAML
 from multiprocessing.shared_memory import SharedMemory
-from voxel.processes.max_projection import MaxProjection
+from voxel.processes.max_projection.cpu.max_projection import CPUMaxProjection
 
 if __name__ == '__main__':
 
     num_frames = 256
-    img_shape = (14192, 10640)
-        
-    max_projection = MaxProjection(path='.')
+    img_shape = (1024, 1024)
+
+    max_projection = CPUMaxProjection(path='.')
 
     max_projection.row_count_px = img_shape[0]
     max_projection.column_count_px = img_shape[1]
     max_projection.frame_count_px = num_frames
-    max_projection.projection_count_px = 64
+    max_projection.z_projection_count_px = 256
+    max_projection.x_projection_count_px = 256
+    max_projection.y_projection_count_px = 256
     max_projection.data_type = 'uint16'
-    max_projection.filename = 'test'
+    max_projection.filename = 'image'
+    max_projection.acquisition_name = 'test'
 
     img_bytes = numpy.prod(img_shape)*numpy.dtype('uint16').itemsize
 

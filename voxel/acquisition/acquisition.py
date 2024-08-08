@@ -372,6 +372,7 @@ class Acquisition:
             else:
                 self.log.info(f'available disk space = {free_size_gb:.1f} [GB] on drive {drive}')
                 return True
+
     def check_external_tile_disk_space(self, tile: dict):
         """Checks local and ext disk space before scan to see if disk has enough space scan
         """
