@@ -8,7 +8,7 @@ import os
 import subprocess
 import platform
 from ruamel.yaml import YAML
-from pathlib import Path, WindowsPath
+from pathlib import Path
 from psutil import virtual_memory
 from gputools import get_device
 from voxel.instruments.instrument import Instrument
@@ -18,17 +18,13 @@ import inspect
 
 class Acquisition:
 
-    def __init__(self, instrument: Instrument, config_filename: str, log_level='INFO'):
+    def __init__(self, instrument: Instrument, config_filename: str, yaml_handler: YAML = None, log_level='INFO'):
+
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.log.setLevel(log_level)
 
         # create yaml object to use when loading and dumping config
-        self.yaml = YAML()
-        self.yaml.representer.add_representer(np.int32, lambda obj, val: obj.represent_int(int(val)))
-        self.yaml.representer.add_representer(np.str_, lambda obj, val: obj.represent_str(str(val)))
-        self.yaml.representer.add_representer(np.float64, lambda obj, val: obj.represent_float(float(val)))
-        self.yaml.representer.add_representer(Path, lambda obj, val: obj.represent_str(str(val)))
-        self.yaml.representer.add_representer(WindowsPath, lambda obj, val: obj.represent_str(str(val)))
+        self.yaml = yaml_handler if yaml_handler is not None else YAML()
 
         self.config_path = Path(config_filename)
         self.config = self.yaml.load(Path(self.config_path))

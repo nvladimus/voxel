@@ -12,12 +12,15 @@ import copy
 
 class Instrument:
 
-    def __init__(self, config_path: str, log_level='INFO'):
+    def __init__(self, config_path: str, yaml_handler: YAML = None, log_level='INFO'):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.log.setLevel(log_level)
 
+        # create yaml object to use when loading and dumping config
+        self.yaml = yaml_handler if yaml_handler is not None else YAML()
+
         self.config_path = Path(config_path)
-        self.config = YAML().load(self.config_path)
+        self.config = self.yaml.load(self.config_path)
 
         # store a dict of {device name: device type} for convenience
         self.channels = {}
@@ -153,7 +156,7 @@ class Instrument:
         """Save current config to path provided
         :param path: path to save config to"""
         with path.open("w") as f:
-            YAML().dump(self.config, f)
+            self.yaml.dump(self.config, f)
 
     def close(self):
         """Close functionality"""
