@@ -24,8 +24,9 @@ class Acquisition:
 
         # create yaml object to use when loading and dumping config
         self.yaml = YAML()
-        self.yaml.representer.add_representer(np.int64, lambda obj, val: obj.represent_int(int(val)))
-        self.yaml.representer.add_representer(np.float64, lambda obj, val: obj.represent_scalar(float(val)))
+        self.yaml.representer.add_representer(np.int32, lambda obj, val: obj.represent_int(int(val)))
+        self.yaml.representer.add_representer(np.str_, lambda obj, val: obj.represent_str(str(val)))
+        self.yaml.representer.add_representer(np.float64, lambda obj, val: obj.represent_float(float(val)))
         self.yaml.representer.add_representer(Path, lambda obj, val: obj.represent_str(str(val)))
         self.yaml.representer.add_representer(WindowsPath, lambda obj, val: obj.represent_str(str(val)))
 
