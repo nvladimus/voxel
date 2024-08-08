@@ -45,7 +45,6 @@ class GPUToolsDownSample2D(BaseDownSample):
         :return: Downsampled image
         :rtype: numpy.array
         """
-        start_time = time.time()
         x_g = OCLArray.from_array(image)
         y_g = OCLArray.empty(
             tuple(s // self._binning for s in image.shape), image.dtype
@@ -53,6 +52,4 @@ class GPUToolsDownSample2D(BaseDownSample):
         self._prog.run_kernel(
             "downsample2d", y_g.shape[::-1], None, x_g.data, y_g.data
         )
-        end_time = time.time()
-        print(end_time - start_time)
         return y_g.get()
