@@ -56,7 +56,7 @@ class DynamicDevice:
         self._min = VALUE_MIN
         self._max = VALUE_MAX
         self._step = VALUE_STEP
-        self._value: int
+        self._value: int = 0
         self._initialize_values()
 
     def _initialize_values(self):
@@ -86,15 +86,15 @@ def dynamic_device():
 
 
 def test_initial_values(device):
-    assert device.device_property0 == 41  # Due to step size: 20 + 3 * 7 = 41
+    assert device.device_property0 == 39  # Due to step size:  3 *  13 = 39
     assert device.device_property1 == 40
     assert device.device_property2 == 40
-    assert device.device_property3 == 41 # Due to step size: 20 + 3 * 7 = 41
+    assert device.device_property3 == 39  # Due to step size: 3 * 13 = 39
 
 
 def test_normal_assignment(device):
     device.device_property0 = 50
-    assert device.device_property0 == 50
+    assert device.device_property0 == 51  # 3 * 17 = 51
 
     device.device_property1 = 60
     assert device.device_property1 == 60
@@ -103,7 +103,7 @@ def test_normal_assignment(device):
     assert device.device_property2 == 70
 
     device.device_property3 = 81
-    assert device.device_property3 == 80  # 20 + 3 * 20 = 80
+    assert device.device_property3 == 81  # 3 * 27 = 81
 
 
 def test_property_attributes(device):
@@ -123,21 +123,21 @@ def test_property_attributes(device):
 
 
 def test_dynamic_min_max_step(dynamic_device):
-    assert dynamic_device.dynamic_property == 50
+    assert dynamic_device.dynamic_property == 51
 
     dynamic_device.dynamic_property = 150
-    assert dynamic_device.dynamic_property == 98
+    assert dynamic_device.dynamic_property == 100  # max value
 
     dynamic_device._max = 200
-    dynamic_device.dynamic_property = 150
-    assert dynamic_device.dynamic_property == 149 # 20 + 3 * 43 = 149
+    dynamic_device.dynamic_property = 148
+    assert dynamic_device.dynamic_property == 147  # 3 * 49 = 147
 
     dynamic_device._min = 100
     dynamic_device.dynamic_property = 90
     assert dynamic_device.dynamic_property == 100
 
     dynamic_device.dynamic_property = 173
-    assert dynamic_device.dynamic_property == 172  # 100 + 3 * 24 = 172
+    assert dynamic_device.dynamic_property == 174  # 3 * 58 = 174
 
     dynamic_device._step = 10
     dynamic_device.dynamic_property = 173

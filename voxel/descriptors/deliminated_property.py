@@ -94,19 +94,9 @@ class DeliminatedProperty(property):
 
     # TODO: Determine what the appropriate way to handle this is
     def _adjust_value(self, value: Number) -> Number:
-        max_val = self.maximum
-        min_val = self.minimum
-
-        if self.step is None:
-            return min(max_val, max(min_val, value))
-
-        new_value = round((value - min_val) / self.step) * self.step + min_val
-        if new_value > max_val:
-            return (max_val - min_val) // self.step * self.step + min_val
-        elif new_value < min_val:
-            return min_val
-        else:
-            return new_value
+        if self.step:
+            value = round(value / self.step) * self.step
+        return max(self.minimum, min(self.maximum, value))
 
     def _safe_call(self, value: StaticOrCallableNumber) -> Number:
         if callable(value):
