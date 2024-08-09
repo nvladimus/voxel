@@ -6,7 +6,6 @@ import os
 from acquire import DeviceKind, Runtime, StorageDimension, DimensionType
 from voxel.writers.base import BaseWriter
 
-
 os.environ["ZARR_V3_EXPERIMENTAL_API"] = "1"
 os.environ["ZARR_V3_SHARDING"] = "1"
 
@@ -32,9 +31,9 @@ class AcquireZarrWriter(BaseWriter):
     :type path: str
     """
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, runtime: Runtime):
         super().__init__(path)
-        self.runtime = Runtime()
+        self.runtime = runtime
         self.acquire_api = self.runtime.get_configuration()
 
     @property
@@ -305,3 +304,5 @@ class AcquireZarrWriter(BaseWriter):
         self.acquire_api.video[0].storage.settings.acquisition_dimensions = [x_dimension, y_dimension, z_dimension]
 
         self.acquire_api = self.runtime.set_configuration(self.acquire_api)  # set the new configuration
+
+        print(self.acquire_api.video[0].storage.settings)

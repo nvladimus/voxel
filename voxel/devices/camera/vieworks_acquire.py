@@ -231,6 +231,7 @@ class Camera(BaseCamera):
 
     def start(self, frame_count: int = 2**64 - 1):
         self.acquire_api.video[0].max_frame_count = frame_count
+        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
         self.runtime.start()
 
     def stop(self):
