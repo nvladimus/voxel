@@ -184,7 +184,7 @@ class Camera(BaseCamera):
         step=lambda self: self.step_width_px,
         unit="px",
     )
-    def width_px(self):
+    def roi_width_px(self):
         """
         Get the width of the camera region of interest in pixels.
 
@@ -194,8 +194,8 @@ class Camera(BaseCamera):
 
         return int(self.dcam.prop_getvalue(PROPERTIES["subarray_hsize"]))
 
-    @width_px.setter
-    def width_px(self, value: int):
+    @roi_width_px.setter
+    def roi_width_px(self, value: int):
         """
         Set the width of the camera region of interest in pixels.
 
@@ -215,7 +215,7 @@ class Camera(BaseCamera):
         self._update_parameters()
 
     @property
-    def width_offset_px(self):
+    def roi_width_offset_px(self):
         """
         Get the width offset of the camera region of interest in pixels.
 
@@ -232,7 +232,7 @@ class Camera(BaseCamera):
         unit="px",
     )
     @DeliminatedProperty(minimum=float("-inf"), maximum=float("inf"))
-    def height_px(self):
+    def roi_height_px(self):
         """
         Get the height of the camera region of interest in pixels.
 
@@ -242,8 +242,8 @@ class Camera(BaseCamera):
 
         return int(self.dcam.prop_getvalue(PROPERTIES["subarray_vsize"]))
 
-    @height_px.setter
-    def height_px(self, value: int):
+    @roi_height_px.setter
+    def roi_height_px(self, value: int):
         """
         Set the height of the camera region of interest in pixels.
 
@@ -263,7 +263,7 @@ class Camera(BaseCamera):
         self._update_parameters()
 
     @property
-    def height_offset_px(self):
+    def roi_height_offset_px(self):
         """
         Get the height offset of the camera region of interest in pixels.
 
@@ -357,11 +357,11 @@ class Camera(BaseCamera):
 
         if "light sheet" in self.readout_mode:
             return (
-                self.line_interval_us * self.height_px
+                self.line_interval_us * self.roi_height_px
             ) / 1000 + self.exposure_time_ms
         else:
             return (
-                self.line_interval_us * self.height_px / 2
+                    self.line_interval_us * self.roi_height_px / 2
             ) / 1000 + self.exposure_time_ms
 
     @property
@@ -599,7 +599,7 @@ class Camera(BaseCamera):
         else:
             bit_to_byte = 2
         frame_size_mb = (
-            self.width_px * self.height_px / self.binning**2 * bit_to_byte / 1e6
+                self.roi_width_px * self.roi_height_px / self.binning ** 2 * bit_to_byte / 1e6
         )
         self.buffer_size_frames = round(BUFFER_SIZE_MB / frame_size_mb)
         self.dcam.buf_alloc(self.buffer_size_frames)
@@ -699,8 +699,8 @@ class Camera(BaseCamera):
             bit_to_byte = 2
         data_rate = (
             frame_rate
-            * self.width_px
-            * self.height_px
+            * self.roi_width_px
+            * self.roi_height_px
             / self.binning**2
             * bit_to_byte
             / 1e6

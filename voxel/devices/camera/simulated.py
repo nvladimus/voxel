@@ -1,4 +1,5 @@
 import time
+from dataclasses import dataclass
 from multiprocessing import Event
 from threading import Thread
 
@@ -42,6 +43,24 @@ TRIGGERS = {
 }
 
 
+@dataclass
+class Plane:
+    width: int | float
+    height: int | float
+
+    def __mul__(self, other):
+        if isinstance(other, Plane):
+            return Plane(self.width * other.width, self.height * other.height)
+        if isinstance(other, int):
+            return Plane(self.width * other, self.height * other)
+
+    def __truediv__(self, other):
+        return Plane(self.width / other, self.height / other)
+
+    def __floordiv__(self, other):
+        return Plane(self.width // other, self.height // other)
+
+
 class SimulatedCamera(BaseCamera):
     """Voxel driver for a simulated camera. Camera constants are for a \n
     Vieworks VP-151MX camera.
@@ -50,11 +69,10 @@ class SimulatedCamera(BaseCamera):
     :type id: str
     """
 
-    def __init__(self, id: str, cam_id: str):
-        """ Constructor for the SimulatedCamera class.
-        """
+    def __init__(self, id: str, serial_number: str):
+        """Constructor for the SimulatedCamera class."""
         super().__init__(id)
-        self.cam_id = cam_id
+        self.serial_number = serial_number
         self.terminate_frame_grab = Event()
         self.terminate_frame_grab.clear()
         self._pixel_type = "mono16"
@@ -71,64 +89,69 @@ class SimulatedCamera(BaseCamera):
         self.buffer = list()
         self.thread = None
 
-    @DeliminatedProperty(
-        minimum=MIN_EXPOSURE_TIME_MS,
-        maximum=MAX_EXPOSURE_TIME_MS,
-        step=STEP_EXPOSURE_TIME_MS,
-        unit="ms",
-    )
-    def exposure_time_ms(self) -> float:
-        """Get the exposure time of the camera in ms.
+    # Image size properties  ########################################################
+    @property
+    def binning(self) -> int:
+        """Get the binning mode of the camera. \n
+        Integer value, e.g. 2 is 2x2 binning
 
-        :return: The exposure time in ms
-        :rtype: float
+        :return: The binning mode of the camera
+        :rtype: int
         """
-        return self._exposure_time_ms
 
-    @exposure_time_ms.setter
-    def exposure_time_ms(self, exposure_time_ms: float) -> None:
-        """Set the exposure time of the camera in ms.
+        return self._binning
 
-        :param exposure_time_ms: The exposure time in ms
-        :type exposure_time_ms: float
+    @binning.setter
+    def binning(self, binning: int) -> None:
+        """Set the binning of the camera. \n
+        If the binning is not supported in hardware \n
+        it will be implemented via software using the GPU. \n
+        This API assumes identical binning in X and Y.
+
+        :param binning: The binning mode of the camera
+        * **1**
+        * **2**
+        * **4**
+        :type binning: int
+        :raises ValueError: Invalid binning setting
         """
-        if (
-                exposure_time_ms < MIN_EXPOSURE_TIME_MS
-                or exposure_time_ms > MAX_EXPOSURE_TIME_MS
-        ):
-            self.log.warning(
-                f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
-                             and <{MAX_EXPOSURE_TIME_MS} ms. Setting exposure \
-                                time to {MAX_EXPOSURE_TIME_MS} ms"
-            )
 
-        # Note: round ms to nearest us
-        self._exposure_time_ms = exposure_time_ms
-        self.log.info(f"exposure time set to: {exposure_time_ms} ms")
+        valid_binning = list(BINNING.keys())
+        if binning not in valid_binning:
+            raise ValueError("binning must be one of %r." % BINNING)
+        else:
+            self._binning = BINNING[binning]
+            # initialize the downsampling in 2d
+            self.gpu_binning = DownSample2D(binning=self._binning)
 
-    @DeliminatedProperty(
-        minimum=MIN_WIDTH_PX,
-        maximum=MAX_WIDTH_PX,
-        step=STEP_WIDTH_PX,
-        unit="px",
-    )
-    def width_px(self) -> int:
+    @property
+    def sensor_width_px(self) -> int:
+        """Get the width of the camera sensor in pixels.
+
+        :return: The width of the camera sensor in pixels
+        :rtype: int
+        """
+
+        return MAX_WIDTH_PX
+
+    @DeliminatedProperty(minimum=MIN_WIDTH_PX, maximum=MAX_WIDTH_PX, step=STEP_WIDTH_PX, unit="px")
+    def roi_width_px(self) -> int:
         """Get the width of the camera region of interest in pixels.
 
         :return: The width of the region of interest in pixels
         :rtype: int
         """
-
+        self.log.debug(f"getting width: {self._width_px}")
         return self._width_px
 
-    @width_px.setter
-    def width_px(self, value: int) -> None:
+    @roi_width_px.setter
+    def roi_width_px(self, value: int) -> None:
         """Set the width of the camera region of interest in pixels.
 
         :param value: The width of the region of interest in pixels
         :type value: int
         """
-
+        self.log.debug(f"setting width: {value}")
         self._width_px = value
         centered_offset_px = (
                 round((MAX_WIDTH_PX / 2 - value / 2) / STEP_WIDTH_PX) * STEP_WIDTH_PX
@@ -137,34 +160,47 @@ class SimulatedCamera(BaseCamera):
         self.log.info(f"width set to: {value} px")
 
     @property
-    def width_offset_px(self) -> int:
+    def roi_width_offset_px(self) -> int:
         """
         Get the width offset of the camera region of interest in pixels.
 
         :return: The width offset of the region of interest in pixels
         :rtype: int
         """
-
         return self._width_offset_px
 
-    @DeliminatedProperty(
-        minimum=MIN_HEIGHT_PX,
-        maximum=MAX_HEIGHT_PX,
-        step=STEP_HEIGHT_PX,
-        unit="px"
-    )
-    def height_px(self) -> int:
+    @property
+    def image_width_px(self) -> int:
+        """Get the width of the camera image in pixels.
+
+        :return: The width of the camera image in pixels
+        :rtype: int
+        """
+        return self._width_px // self._binning
+
+    @property
+    def sensor_height_px(self) -> int:
+        """Get the height of the camera sensor in pixels.
+
+        :return: The height of the camera sensor in pixels
+        :rtype: int
+        """
+
+        return MAX_HEIGHT_PX
+
+    @DeliminatedProperty(minimum=MIN_HEIGHT_PX, maximum=MAX_HEIGHT_PX, step=STEP_HEIGHT_PX, unit="px")
+    def roi_height_px(self) -> int:
         """
         Get the height of the camera region of interest in pixels.
 
         :return: The height of the region of interest in pixels
         :rtype: int
         """
-
+        self.log.debug(f"getting height: {self._height_px}")
         return self._height_px
 
-    @height_px.setter
-    def height_px(self, value: int) -> None:
+    @roi_height_px.setter
+    def roi_height_px(self, value: int) -> None:
         """
         Set the height of the camera region of interest in pixels.
 
@@ -180,7 +216,7 @@ class SimulatedCamera(BaseCamera):
         self.log.info(f"height set to: {value} px")
 
     @property
-    def height_offset_px(self) -> int:
+    def roi_height_offset_px(self) -> int:
         """Get the height offset of the camera region of interest in pixels.
 
         :return: The height offset of the region of interest in pixels
@@ -189,6 +225,16 @@ class SimulatedCamera(BaseCamera):
 
         return self._height_offset_px
 
+    @property
+    def image_height_px(self) -> int:
+        """Get the height of the camera image in pixels.
+
+        :return: The height of the camera image in pixels
+        :rtype: int
+        """
+        return self._height_px // self._binning
+
+    # Image Format Properties  ##########################################################################
     @property
     def pixel_type(self) -> str:
         """Get the pixel type of the camera.
@@ -238,6 +284,38 @@ class SimulatedCamera(BaseCamera):
         :type bit_packing: str
         """
         pass
+
+    # Acquisition Properties  ###########################################################################
+    @DeliminatedProperty(
+        minimum=MIN_EXPOSURE_TIME_MS, maximum=MAX_EXPOSURE_TIME_MS, step=STEP_EXPOSURE_TIME_MS, unit="ms")
+    def exposure_time_ms(self) -> float:
+        """Get the exposure time of the camera in ms.
+
+        :return: The exposure time in ms
+        :rtype: float
+        """
+        return self._exposure_time_ms
+
+    @exposure_time_ms.setter
+    def exposure_time_ms(self, exposure_time_ms: float) -> None:
+        """Set the exposure time of the camera in ms.
+
+        :param exposure_time_ms: The exposure time in ms
+        :type exposure_time_ms: float
+        """
+        if (
+                exposure_time_ms < MIN_EXPOSURE_TIME_MS
+                or exposure_time_ms > MAX_EXPOSURE_TIME_MS
+        ):
+            self.log.warning(
+                f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
+                             and <{MAX_EXPOSURE_TIME_MS} ms. Setting exposure \
+                                time to {MAX_EXPOSURE_TIME_MS} ms"
+            )
+
+        # Note: round ms to nearest us
+        self._exposure_time_ms = exposure_time_ms
+        self.log.info(f"exposure time set to: {exposure_time_ms} ms")
 
     @property
     def line_interval_us(self) -> float:
@@ -312,60 +390,6 @@ class SimulatedCamera(BaseCamera):
         self._trigger = dict(trigger)
 
     @property
-    def binning(self) -> int:
-        """Get the binning mode of the camera. \n
-        Integer value, e.g. 2 is 2x2 binning
-
-        :return: The binning mode of the camera
-        :rtype: int
-        """
-
-        return self._binning
-
-    @binning.setter
-    def binning(self, binning: int) -> None:
-        """Set the binning of the camera. \n
-        If the binning is not supported in hardware \n
-        it will be implemented via software using the GPU. \n
-        This API assumes identical binning in X and Y.
-
-        :param binning: The binning mode of the camera
-        * **1**
-        * **2**
-        * **4**
-        :type binning: int
-        :raises ValueError: Invalid binning setting
-        """
-
-        valid_binning = list(BINNING.keys())
-        if binning not in valid_binning:
-            raise ValueError("binning must be one of %r." % BINNING)
-        else:
-            self._binning = BINNING[binning]
-            # initialize the downsampling in 2d
-            self.gpu_binning = DownSample2D(binning=self._binning)
-
-    @property
-    def sensor_width_px(self) -> int:
-        """Get the width of the camera sensor in pixels.
-
-        :return: The width of the camera sensor in pixels
-        :rtype: int
-        """
-
-        return MAX_WIDTH_PX
-
-    @property
-    def sensor_height_px(self) -> int:
-        """Get the height of the camera sensor in pixels.
-
-        :return: The height of the camera sensor in pixels
-        :rtype: int
-        """
-
-        return MAX_HEIGHT_PX
-
-    @property
     def readout_mode(self) -> str:
         """Get the readout mode of the camera.
 
@@ -374,6 +398,7 @@ class SimulatedCamera(BaseCamera):
         """
         return ""
 
+    # Acquisition Methods  ###########################################################################
     def prepare(self):
         """
         Prepare the camera to acquire images. \n
@@ -383,14 +408,14 @@ class SimulatedCamera(BaseCamera):
         self.log.info("simulated camera preparing...")
         self.buffer = list()
 
-    def start(self, frame_count: int = float("inf")):
+    def start(self, frame_count: float = float("inf")):
         """
         Start the camera to acquire a certain number of frames. \n
         If frame number is not specified, acquires infinitely until stopped. \n
         Initializes the camera buffer.
 
         :param frame_count: The number of frames to acquire
-        :type frame_count: int
+        :type frame_count: float
         """
 
         self.log.info("simulated camera starting...")
@@ -405,7 +430,7 @@ class SimulatedCamera(BaseCamera):
 
         self.log.info("simulated camera stopping...")
         self.terminate_frame_grab.set()
-        self.thread.join()
+        self.thread.join() if self.thread else None
         self.terminate_frame_grab.clear()
 
     def abort(self):
@@ -413,12 +438,12 @@ class SimulatedCamera(BaseCamera):
         Abort the camera.
         """
         self.terminate_frame_grab.set()
-        self.thread.join()
+        if self.thread is not None:
+            self.thread.join()
         self.terminate_frame_grab.clear()
 
     def reset(self) -> None:
-        """Reset the camera.
-        """
+        """Reset the camera."""
 
         self.log.info("simulated camera resetting...")
 
@@ -474,7 +499,7 @@ class SimulatedCamera(BaseCamera):
                     / self._binning ** 2
                     / 1e6
             ),
-            "Frame Rate [fps]": self.frame_rate
+            "Frame Rate [fps]": self.frame_rate,
         }
         # number of underrun, i.e. dropped frames
         self.log.info(
@@ -489,8 +514,7 @@ class SimulatedCamera(BaseCamera):
         return state
 
     def log_metadata(self):
-        """Log all metadata from the camera to the logger.
-        """
+        """Log all metadata from the camera to the logger."""
 
         pass
 
@@ -528,7 +552,14 @@ class SimulatedCamera(BaseCamera):
 
 # Example usage
 if __name__ == "__main__":
-    camera = SimulatedCamera(id="main-camera", cam_id="sim-cam-001")
+    import logging
+
+    logging.basicConfig(level=logging.DEBUG)
+    camera = SimulatedCamera(id="main-camera", serial_number="sim-cam-001")
+    camera.binning = 2
+    camera.roi_width_px = 14170
+    camera.roi_height_px = 10624
+    camera.binning = 4
     camera.prepare()
     camera.start(10)
     for i in range(10):

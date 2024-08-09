@@ -64,7 +64,7 @@ class BackgroundCollection:
         # prepare and start camera
         camera.prepare()
         camera.start()
-        background_stack = np.zeros((self._frame_count_px_px, camera.height_px, camera.width_px), dtype=self._data_type)
+        background_stack = np.zeros((self._frame_count_px_px, camera.roi_height_px, camera.roi_width_px), dtype=self._data_type)
         for frame in range(self._frame_count_px_px):
             background_stack[frame] = camera.grab_frame()
         # close writer and camera

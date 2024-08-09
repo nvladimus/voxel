@@ -19,8 +19,8 @@ exec(f"from voxel.devices.camera import {driver}")
 exec(f"camera = {driver}.Camera('{camera_id}')")
 # init values from config
 camera.roi = {
-	'width_px': camera_config['region of interest']['width_px'], 
-	'height_px': camera_config['region of interest']['height_px']
+	'roi_width_px': camera_config['region of interest']['roi_width_px'],
+	'roi_height_px': camera_config['region of interest']['roi_height_px']
 }
 camera.exposure_time_ms = camera_config['timing']['exposure_time_ms']
 camera.bit_packing_mode = camera_config['image format']['bit_packing_mode']
@@ -39,17 +39,17 @@ for pixel_type in pixel_types:
 	camera.pixel_type = pixel_type
 	print(camera.pixel_type)
 
-	mean_image = numpy.zeros((camera.roi['height_px'], camera.roi['width_px']), dtype = 'float32')
-	median_image = numpy.zeros((camera.roi['height_px'], camera.roi['width_px']), dtype = 'float32')
-	std_image = numpy.zeros((camera.roi['height_px'], camera.roi['width_px']), dtype = 'float32')
-	max_image = numpy.zeros((camera.roi['height_px'], camera.roi['width_px']), dtype = 'float32')
-	min_image = numpy.zeros((camera.roi['height_px'], camera.roi['width_px']), dtype = 'float32')
+	mean_image = numpy.zeros((camera.roi['roi_height_px'], camera.roi['roi_width_px']), dtype = 'float32')
+	median_image = numpy.zeros((camera.roi['roi_height_px'], camera.roi['roi_width_px']), dtype = 'float32')
+	std_image = numpy.zeros((camera.roi['roi_height_px'], camera.roi['roi_width_px']), dtype = 'float32')
+	max_image = numpy.zeros((camera.roi['roi_height_px'], camera.roi['roi_width_px']), dtype = 'float32')
+	min_image = numpy.zeros((camera.roi['roi_height_px'], camera.roi['roi_width_px']), dtype = 'float32')
 
 	loops = 1
 	frames = 100
 
 	for j in range(loops):
-		im = numpy.zeros((frames, camera.roi['height_px'], camera.roi['width_px']), dtype = 'uint16')
+		im = numpy.zeros((frames, camera.roi['roi_height_px'], camera.roi['roi_width_px']), dtype = 'uint16')
 		camera.prepare()
 		camera.start()
 		for i in range(frames):

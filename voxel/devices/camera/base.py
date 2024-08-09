@@ -8,8 +8,7 @@ from voxel.devices.device import VoxelDevice
 
 
 class BaseCamera(VoxelDevice):
-    """Base class for all voxel supported cameras.
-    """
+    """Base class for all voxel supported cameras."""
 
     @DeliminatedProperty
     @abstractmethod
@@ -33,7 +32,7 @@ class BaseCamera(VoxelDevice):
 
     @DeliminatedProperty
     @abstractmethod
-    def width_px(self) -> int:
+    def roi_width_px(self) -> int:
         """Get the width of the camera region of interest in pixels.
 
         :return: The width of the region of interest in pixels.
@@ -41,9 +40,9 @@ class BaseCamera(VoxelDevice):
         """
         pass
 
-    @width_px.setter
+    @roi_width_px.setter
     @abstractmethod
-    def width_px(self, width_px: int) -> None:
+    def roi_width_px(self, width_px: int) -> None:
         """Set the width of the camera region of interest in pixels.
 
         :param width_px: The width of the region of interest in pixels.
@@ -53,7 +52,7 @@ class BaseCamera(VoxelDevice):
 
     @property
     @abstractmethod
-    def width_offset_px(self) -> int:
+    def roi_width_offset_px(self) -> int:
         """Get the width offset of the camera region of interest in pixels.
 
         :return: The width offset of the region of interest in pixels.
@@ -63,7 +62,7 @@ class BaseCamera(VoxelDevice):
 
     @DeliminatedProperty
     @abstractmethod
-    def height_px(self) -> int:
+    def roi_height_px(self) -> int:
         """Get the height of the camera region of interest in pixels.
 
         :return: The height of the region of interest in pixels.
@@ -71,9 +70,9 @@ class BaseCamera(VoxelDevice):
         """
         pass
 
-    @height_px.setter
+    @roi_height_px.setter
     @abstractmethod
-    def height_px(self, height_px: int) -> None:
+    def roi_height_px(self, height_px: int) -> None:
         """Set the height of the camera region of interest in pixels.
 
         :param height_px: The height of the region of interest in pixels.
@@ -83,7 +82,7 @@ class BaseCamera(VoxelDevice):
 
     @property
     @abstractmethod
-    def height_offset_px(self) -> int:
+    def roi_height_offset_px(self) -> int:
         """Get the height offset of the camera region of interest in pixels.
 
         :return: The height offset of the region of interest in pixels.
@@ -256,14 +255,12 @@ class BaseCamera(VoxelDevice):
 
     @abstractmethod
     def stop(self) -> None:
-        """Stop the camera.
-        """
+        """Stop the camera."""
         pass
 
     @abstractmethod
     def reset(self) -> None:
-        """Reset the camera.
-        """
+        """Reset the camera."""
         pass
 
     @abstractmethod
@@ -280,26 +277,26 @@ class BaseCamera(VoxelDevice):
     # TODO: Determine whether to have signals as abstract properties that must be implemented by the child class
     #  or as methods that can be implemented by the child class
     #  or leave it to the discretion of the child class to add whatever signals they want
-    @property
+    # @property
     # @abstractmethod
-    def signal_mainboard_temperature_c(self) -> float:
-        """Get the mainboard temperature of the camera in deg C.
+    # def signal_mainboard_temperature_c(self) -> float:
+    #     """Get the mainboard temperature of the camera in deg C.
 
-        :return: The mainboard temperature of the camera in deg C.
-        :rtype: float
-        """
-        pass
+    #     :return: The mainboard temperature of the camera in deg C.
+    #     :rtype: float
+    #     """
+    #     pass
 
-    @property
-    # @abstractmethod
-    def signal_sensor_temperature_c(self) -> float:
-        """
-        Get the sensor temperature of the camera in deg C.
+    # @property
+    # # @abstractmethod
+    # def signal_sensor_temperature_c(self) -> float:
+    #     """
+    #     Get the sensor temperature of the camera in deg C.
 
-        :return: The sensor temperature of the camera in deg C.
-        :rtype: float
-        """
-        pass
+    #     :return: The sensor temperature of the camera in deg C.
+    #     :rtype: float
+    #     """
+    #     pass
 
     @abstractmethod
     def signal_acquisition_state(self) -> dict:
@@ -318,6 +315,5 @@ class BaseCamera(VoxelDevice):
 
     @abstractmethod
     def log_metadata(self) -> None:
-        """Log all metadata from the camera to the logger.
-        """
+        """Log all metadata from the camera to the logger."""
         pass

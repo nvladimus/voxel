@@ -5,8 +5,8 @@ exec(f"from voxel.devices.camera import {driver}")
 exec(f"camera = ({driver}.Camera('{camera_id}'))")
 # init values from config
 camera.roi = {
-    'width_px': camera['region of interest']['width_px'], 
-    'height_px': camera['region of interest']['height_px']
+    'roi_width_px': camera['region of interest']['roi_width_px'],
+    'roi_height_px': camera['region of interest']['roi_height_px']
 }
 camera.exposure_time_ms = camera['exposure_time_ms']
 camera.pixel_type = camera['bit_depth']

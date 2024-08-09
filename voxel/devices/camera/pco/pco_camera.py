@@ -96,7 +96,7 @@ class Camera(BaseCamera):
         step=lambda self: self.step_width_px,
         unit="px",
     )
-    def width_px(self):
+    def roi_width_px(self):
         """
         Get the width of the camera region of interest in pixels.
 
@@ -107,8 +107,8 @@ class Camera(BaseCamera):
         roi = self.pco.sdk.get_roi()
         return roi["x1"] - roi["x0"] + 1
 
-    @width_px.setter
-    def width_px(self, value: int):
+    @roi_width_px.setter
+    def roi_width_px(self, value: int):
         """
         Set the width of the camera region of interest in pixels.
 
@@ -116,7 +116,7 @@ class Camera(BaseCamera):
         :type value: int
         """
         # reset offset to (0,0)
-        self.pco.sdk.set_roi(1, self.height_offset_px, self.width_px, self.height_px)
+        self.pco.sdk.set_roi(1, self.roi_height_offset_px, self.roi_width_px, self.roi_height_px)
 
         centered_width_offset_px = (
             round((self.max_width_px / 2 - value / 2) / self.step_width_px)
@@ -124,14 +124,14 @@ class Camera(BaseCamera):
         )
         self.pco.sdk.set_roi(
             centered_width_offset_px + 1,
-            self.height_offset_px,
+            self.roi_height_offset_px,
             centered_width_offset_px + value,
-            self.height_px,
+            self.roi_height_px,
         )
         self.log.info(f"width set to: {value} px")
 
     @property
-    def width_offset_px(self):
+    def roi_width_offset_px(self):
         """
         Get the width offset of the camera region of interest in pixels.
 
@@ -147,7 +147,7 @@ class Camera(BaseCamera):
         step=lambda self: self.step_height_px,
         unit="px",
     )
-    def height_px(self):
+    def roi_height_px(self):
         """
         Get the height of the camera region of interest in pixels.
 
@@ -159,8 +159,8 @@ class Camera(BaseCamera):
         height_px = roi["y1"] - roi["y0"] + 1
         return height_px
 
-    @height_px.setter
-    def height_px(self, value: int):
+    @roi_height_px.setter
+    def roi_height_px(self, value: int):
         """
         Set the height of the camera region of interest in pixels.
 
@@ -169,7 +169,7 @@ class Camera(BaseCamera):
         """
         # reset offset to (0,0)
         # reset offset to (0,0)
-        self.pco.sdk.set_roi(self.width_offset_px, 1, self.width_px, self.height_px)
+        self.pco.sdk.set_roi(self.roi_width_offset_px, 1, self.roi_width_px, self.roi_height_px)
 
         centered_height_offset_px = (
             round((self.max_height_px / 2 - value / 2) / self.step_height_px)
@@ -177,15 +177,15 @@ class Camera(BaseCamera):
         )
 
         self.pco.sdk.set_roi(
-            self.width_offset_px,
+            self.roi_width_offset_px,
             centered_height_offset_px,
-            self.width_px,
+            self.roi_width_px,
             centered_height_offset_px + value,
         )
         self.log.info(f"height set to: {value} px")
 
     @property
-    def height_offset_px(self):
+    def roi_height_offset_px(self):
         """
         Get the height offset of the camera region of interest in pixels.
 
@@ -246,11 +246,11 @@ class Camera(BaseCamera):
 
         if "light sheet" in self.readout_mode:
             return (
-                self.line_interval_us * self.height_px
+                self.line_interval_us * self.roi_height_px
             ) / 1000 + self.exposure_time_ms
         else:
             return (
-                self.line_interval_us * self.height_px / 2
+                    self.line_interval_us * self.roi_height_px / 2
             ) / 1000 + self.exposure_time_ms
 
     @property
@@ -496,7 +496,7 @@ class Camera(BaseCamera):
         # pco only 16-bit A/D
         bit_to_byte = 2
         frame_size_mb = (
-            self.width_px * self.height_px / self.binning**2 * bit_to_byte / 1e6
+                self.roi_width_px * self.roi_height_px / self.binning ** 2 * bit_to_byte / 1e6
         )
         self.buffer_size_frames = round(BUFFER_SIZE_MB / frame_size_mb)
         self.log.info(f"buffer set to: {self.buffer_size_frames} frames")
@@ -568,7 +568,7 @@ class Camera(BaseCamera):
         # in_buffer_size = self.buffer_size_frames - out_buffer_size
         # dropped_frames = self.pco.rec.get_status()["bFIFOOverflow"]
         # frame_rate = out_buffer_size/(self.pre_frame_time - self.post_frame_time)
-        # data_rate = frame_rate*self.roi['width_px']*self.roi['height_px']/BINNING[self.binning]**2/1e6
+        # data_rate = frame_rate*self.roi['roi_width_px']*self.roi['roi_height_px']/BINNING[self.binning]**2/1e6
         # state = {}
         # state['Frame Index'] = frame_index
         # state['Input Buffer Size'] = in_buffer_size
@@ -615,22 +615,22 @@ class Camera(BaseCamera):
         self.step_exposure_time_ms = type(self).exposure_time_ms.step = (
             self.pco.description["min exposure step"] * 1e3
         )
-        self.min_width_px = type(self).width_px.minimum = self.pco.description[
+        self.min_width_px = type(self).roi_width_px.minimum = self.pco.description[
             "min width"
         ]
-        self.max_width_px = type(self).width_px.maximum = self.pco.description[
+        self.max_width_px = type(self).roi_width_px.maximum = self.pco.description[
             "max width"
         ]
-        self.min_height_px = type(self).height_px.minimum = self.pco.description[
+        self.min_height_px = type(self).roi_height_px.minimum = self.pco.description[
             "min height"
         ]
-        self.max_height_px = type(self).height_px.maximum = self.pco.description[
+        self.max_height_px = type(self).roi_height_px.maximum = self.pco.description[
             "max height"
         ]
-        self.step_width_px = type(self).width_px.step = self.pco.description[
+        self.step_width_px = type(self).roi_width_px.step = self.pco.description[
             "roi steps"
         ][0]
-        self.step_height_px = type(self).height_px.step = self.pco.description[
+        self.step_height_px = type(self).roi_height_px.step = self.pco.description[
             "roi steps"
         ][1]
         self.min_line_interval_us = type(self).line_interval_us.minimum = 20.0

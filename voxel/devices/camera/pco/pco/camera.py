@@ -166,16 +166,16 @@ class Camera:
         roi = self.sdk.get_roi()
         width_px = roi['x1']-roi['x0']+1
         height_px = roi['y1']-roi['y0']+1
-        return {'width_px': width_px,
-                'height_px': height_px,
-                'width_offset_px': roi['x0']-1,
+        return {'roi_width_px': width_px,
+                'roi_height_px': height_px,
+                'roi_width_offset_px': roi['x0']-1,
                 'height_offest_px': roi['y0']-1}
 
     @roi.setter
     def roi(self, roi: dict):
 
-        width_px = roi['width_px']
-        height_px = roi['height_px']
+        width_px = roi['roi_width_px']
+        height_px = roi['roi_height_px']
 
         sensor_height_px = self.max_height_px
         sensor_width_px = self.max_width_px
@@ -335,7 +335,7 @@ class Camera:
         # pco api prepares buffer and autostarts. api call is in start()
         # pco only 16-bit A/D
         bit_to_byte = 2
-        frame_size_mb = self.roi['width_px']*self.roi['height_px']/BINNING[self.binning]**2*bit_to_byte/1e6
+        frame_size_mb = self.roi['roi_width_px']*self.roi['roi_height_px']/BINNING[self.binning]**2*bit_to_byte/1e6
         self.buffer_size_frames = round(BUFFER_SIZE_MB / frame_size_mb)
         logger.info(f"buffer set to: {self.buffer_size_frames} frames")
         self.record(number_of_images=100, mode='fifo')

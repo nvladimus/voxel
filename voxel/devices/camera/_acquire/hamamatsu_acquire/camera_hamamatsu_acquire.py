@@ -90,9 +90,9 @@ class CameraHamamatsuAcquire(BaseCamera):
 
     @property
     def roi(self):
-        return {'width_px': self.p.video[0].camera.settings.shape[0],
-                'height_px': self.p.video[0].camera.settings.shape[1],
-                'width_offset_px': self.p.video[0].camera.settings.offset[0],
+        return {'roi_width_px': self.p.video[0].camera.settings.shape[0],
+                'roi_height_px': self.p.video[0].camera.settings.shape[1],
+                'roi_width_offset_px': self.p.video[0].camera.settings.offset[0],
                 'height_offest_px': self.p.video[0].camera.settings.offset[1]}
 
     @roi.setter

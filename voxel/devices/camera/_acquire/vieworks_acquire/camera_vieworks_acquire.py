@@ -95,9 +95,9 @@ class Camera(BaseCamera):
 
     @property
     def roi(self):
-        return {'width_px': self.p.video[0].camera.settings.shape[0],
-                'height_px': self.p.video[0].camera.settings.shape[1],
-                'width_offset_px': self.p.video[0].camera.settings.offset[0],
+        return {'roi_width_px': self.p.video[0].camera.settings.shape[0],
+                'roi_height_px': self.p.video[0].camera.settings.shape[1],
+                'roi_width_offset_px': self.p.video[0].camera.settings.offset[0],
                 'height_offest_px': self.p.video[0].camera.settings.offset[1]}
 
     @roi.setter
@@ -140,10 +140,10 @@ class Camera(BaseCamera):
         self.p.video[0].camera.settings.offset[1] = centered_height_offset_px
         self.p = self.runtime.set_configuration(self.p)
 
-        self.camera_cfg['region of interest']['width_px'] = width_px
-        self.camera_cfg['region of interest']['height_px'] = height_px
-        self.camera_cfg['region of interest']['width_offset_px'] = centered_width_offset_px
-        self.camera_cfg['region of interest']['height_offset_px'] = centered_height_offset_px
+        self.camera_cfg['region of interest']['roi_width_px'] = width_px
+        self.camera_cfg['region of interest']['roi_height_px'] = height_px
+        self.camera_cfg['region of interest']['roi_width_offset_px'] = centered_width_offset_px
+        self.camera_cfg['region of interest']['roi_height_offset_px'] = centered_height_offset_px
 
         self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
         self.log.info(f"roi offset set to: {centered_offset_x_px} x {centered_offset_y_px} [width x height]")

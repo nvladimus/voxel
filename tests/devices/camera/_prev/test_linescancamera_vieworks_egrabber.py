@@ -19,8 +19,8 @@ for camera in config['devices']['cameras']:
 	exec(f"cameras.append({driver}.Camera('{camera_id}'))")
 	# init values from config
 	cameras[-1].roi = {
-		'width_px': camera['region of interest']['width_px'], 
-		'height_px': camera['region of interest']['height_px']
+		'roi_width_px': camera['region of interest']['roi_width_px'],
+		'roi_height_px': camera['region of interest']['roi_height_px']
 	}
 	cameras[-1].exposure_time_ms = camera['timing']['exposure_time_ms']
 	cameras[-1].pixel_type = camera['image format']['bit_depth']
@@ -32,8 +32,8 @@ for camera in config['devices']['cameras']:
 	}
 
 cameras[-1].roi = {
-	'width_px': 14192, 
-	'height_px': 10640
+	'roi_width_px': 14192,
+	'roi_height_px': 10640
 }
 
 cameras[-1].binning = 1
