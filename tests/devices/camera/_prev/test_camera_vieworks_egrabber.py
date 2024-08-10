@@ -44,7 +44,7 @@ cameras[-1].start()
 
 for i in range(frames):
 	cameras[-1].grab_frame()
-	print(cameras[-1].signal_acquisition_state())
+	print(cameras[-1].acquisition_state())
 
 cameras[-1].stop()
 

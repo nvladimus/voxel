@@ -681,7 +681,7 @@ class VieworksCamera(BaseCamera):
         else:
             return image
 
-    def signal_acquisition_state(self):
+    def acquisition_state(self):
         """
         Return a dictionary of the acquisition state: \n
         - Frame Index - frame number of the acquisition \n

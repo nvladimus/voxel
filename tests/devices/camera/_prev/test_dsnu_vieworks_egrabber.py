@@ -54,7 +54,7 @@ for pixel_type in pixel_types:
 		camera.start()
 		for i in range(frames):
 			im[i] = camera.grab_frame()
-			print(camera.signal_acquisition_state())
+			print(camera.acquisition_state())
 		camera.stop()
 		mean_image += numpy.mean(im, axis = 0)
 		median_image += numpy.median(im, axis = 0)

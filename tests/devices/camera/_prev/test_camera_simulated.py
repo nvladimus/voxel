@@ -33,7 +33,7 @@ print(f'binning is: {cameras[0].binning}')
 cameras[0].prepare()
 cameras[0].start(10)
 for frame in range(10):
-    print(cameras[0].signal_acquisition_state())
+    print(cameras[0].acquisition_state())
     image = cameras[0].grab_frame()
 cameras[0].stop()
 cameras[0].log_metadata()

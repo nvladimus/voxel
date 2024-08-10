@@ -2,6 +2,8 @@
 from abc import ABC, abstractmethod
 import logging
 
+LOGGING_LEVEL = logging.INFO
+
 
 class VoxelDevice(ABC):
     """Base class for all voxel devices."""
@@ -13,6 +15,7 @@ class VoxelDevice(ABC):
         """
         self.id = id
         self.log = logging.getLogger(f'{__name__}.{self.__class__.__name__}[{self.id}]')
+        self.log.setLevel(LOGGING_LEVEL)
 
     @abstractmethod
     def close(self):

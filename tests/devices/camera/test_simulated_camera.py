@@ -183,7 +183,7 @@ def test_grab_frame(simulated_camera):
 
 
 def test_signal_acquisition_state(simulated_camera):
-    state = simulated_camera.signal_acquisition_state()
+    state = simulated_camera.acquisition_state()
     assert "Frame Index" in state
     assert "Input Buffer Size" in state
     assert "Output Buffer Size" in state

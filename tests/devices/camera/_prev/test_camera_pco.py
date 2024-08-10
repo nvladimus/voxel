@@ -22,7 +22,7 @@ camera.start()
 
 for i in range(frames):
     camera.grab_frame()
-    print(camera.signal_acquisition_state())
+    print(camera.acquisition_state())
 
 camera.log_metadata()
 camera.stop()

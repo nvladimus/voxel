@@ -1,13 +1,18 @@
+import queue
 import time
-from dataclasses import dataclass
-from multiprocessing import Event
-from threading import Thread
+from threading import Thread, Lock, Event
+from typing import Any, Tuple
 
 import numpy as np
 from numpy.typing import NDArray
 
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 from voxel.devices.camera.base import BaseCamera
+from voxel.devices.camera.codes import (
+    TriggerMode, TriggerPolarity, TriggerSource, TriggerSettings, TriggerLUT, PixelType, PixelTypeLUT,
+    BinningLUT, Binning, BitPackingModeLUT, BitPackingMode, PixelTypeInfo, AcquisitionState
+)
+from voxel.devices.utils.geometry import Vec2D
 from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
 
 BUFFER_SIZE_FRAMES = 8
@@ -21,550 +26,435 @@ MIN_EXPOSURE_TIME_MS = 0.001
 MAX_EXPOSURE_TIME_MS = 6e4
 STEP_EXPOSURE_TIME_MS = 1
 
-BINNING = {1: 1, 2: 2, 4: 4}
 
-PIXEL_TYPES = {"mono8": "uint8", "mono16": "uint16"}
+class SimulatedCameraInstance:
+    line_interval_us_lut = {np.uint8: 10.00, np.uint16: 20.00}
 
-LINE_INTERVALS_US = {"mono8": 10.00, "mono16": 20.00}
+    def __init__(self):
+        self.sensor_width_px: int = MAX_WIDTH_PX
+        self.sensor_height_px: int = MAX_HEIGHT_PX
+        self.roi_width_px: int = MAX_WIDTH_PX
+        self.roi_height_px: int = MAX_HEIGHT_PX
+        self.roi_step_width_px: int = STEP_WIDTH_PX
+        self.roi_step_height_px: int = STEP_HEIGHT_PX
+        self.roi_width_offset_px: int = 0
+        self.roi_height_offset_px: int = 0
+        self.binning: int = 1
+        self.pixel_type: Any = np.uint16
+        self.bit_packing_mode: str = "lsb"
+        self.min_exposure_time_ms: float = MIN_EXPOSURE_TIME_MS
+        self.max_exposure_time_ms: float = MAX_EXPOSURE_TIME_MS
+        self.step_exposure_time_ms: float = STEP_EXPOSURE_TIME_MS
+        self.exposure_time_ms: float = MIN_EXPOSURE_TIME_MS * 1e2
+        self.readout_mode: str = "default"
+        self.trigger_mode: str = "On"
+        self.trigger_source: str = "None"
+        self.trigger_activation: str = "RisingEdge"
 
-TRIGGERS = {
-    "mode": {
-        "on": "On",
-        "off": "Off",
-    },
-    "source": {
-        "internal": "None",
-        "external": "Line0",
-    },
-    "polarity": {
-        "rising": "RisingEdge",
-        "falling": "FallingEdge",
-    },
-}
+        self.is_running: bool = False
+        self.frame_buffer = queue.Queue(maxsize=BUFFER_SIZE_FRAMES)
+        self.queue_lock = Lock()
+        self.generation_thread = None
+        self.stop_event = Event()
+        self.frame_rate = 0.0
+        self.dropped_frames = 0
+        self.frame_count = 0
+        self.start_time = None
 
+    def start_acquisition(self, frame_count: int = -1):
+        if self.is_running:
+            return
+        self.frame_rate = 0.0
+        self.dropped_frames = 0
+        self.frame_count = 0
+        self.start_time = None
+        self.is_running = True
+        self.stop_event.clear()
+        self.generation_thread = Thread(
+            target=self._generate_frames_thread,
+            args=(frame_count,)
+        )
+        self.generation_thread.start()
 
-@dataclass
-class Plane:
-    width: int | float
-    height: int | float
+    def _generate_frames_thread(self, frame_count: int = -1):
+        frame_time_ms = ((self.line_interval_us_lut[self.pixel_type] * self.roi_height_px / 1000)
+                         + self.exposure_time_ms)
+        frame_time_s = frame_time_ms / 1000
+        frame_shape = (self.roi_height_px, self.roi_width_px)
+        frames_generated = 0
+        self.start_time = time.perf_counter()
 
-    def __mul__(self, other):
-        if isinstance(other, Plane):
-            return Plane(self.width * other.width, self.height * other.height)
-        if isinstance(other, int):
-            return Plane(self.width * other, self.height * other)
+        while self.is_running and (frame_count == -1 or frames_generated < frame_count):
+            frame_start_time = time.perf_counter()
 
-    def __truediv__(self, other):
-        return Plane(self.width / other, self.height / other)
+            # Generate frame with a timestamp and frame count
+            frame = np.random.randint(128, 256, size=frame_shape, dtype=self.pixel_type)
+            timestamp = time.time()
+            self.frame_count += 1
+            frame_with_metadata = (frame, timestamp, self.frame_count)
 
-    def __floordiv__(self, other):
-        return Plane(self.width // other, self.height // other)
+            with self.queue_lock:
+                if self.frame_buffer.full():
+                    try:
+                        self.frame_buffer.get_nowait()
+                        self.dropped_frames += 1
+                    except queue.Empty:
+                        pass
+                self.frame_buffer.put(frame_with_metadata)
+
+            frames_generated += 1
+
+            # Calculate time to sleep
+            elapsed_time = time.perf_counter() - frame_start_time
+            sleep_time = frame_time_s - elapsed_time
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+
+            self.frame_rate = frames_generated / (time.perf_counter() - self.start_time)
+
+            if self.stop_event.is_set():
+                break
+
+    def grab_frame(self) -> Tuple[NDArray[np.int_], float, int]:
+        """Grab a frame from the queue."""
+        try:
+            with self.queue_lock:
+                return self.frame_buffer.get_nowait()
+        except queue.Empty:
+            return np.zeros((self.roi_height_px, self.roi_width_px), dtype=self.pixel_type), time.time(), 0
+
+    def stop_acquisition(self):
+        """Stop frame acquisition."""
+        self.is_running = False
+        self.stop_event.set()
+        if self.generation_thread:
+            self.generation_thread.join()
+        self.generation_thread = None
+
+    def close(self):
+        """Clean up resources."""
+        self.stop_acquisition()
 
 
 class SimulatedCamera(BaseCamera):
-    """Voxel driver for a simulated camera. Camera constants are for a \n
-    Vieworks VP-151MX camera.
-
-    :param id: Serial number of the camera.
-    :type id: str
-    """
 
     def __init__(self, id: str, serial_number: str):
-        """Constructor for the SimulatedCamera class."""
         super().__init__(id)
         self.serial_number = serial_number
-        self.terminate_frame_grab = Event()
-        self.terminate_frame_grab.clear()
-        self._pixel_type = "mono16"
-        self._line_interval_us = LINE_INTERVALS_US[self._pixel_type]
-        self._exposure_time_ms = 10
-        self._width_px = MAX_WIDTH_PX
-        self._height_px = MAX_HEIGHT_PX
-        self._width_offset_px = 0
-        self._height_offset_px = 0
-        self._binning = 1
-        self._trigger = {"mode": "on", "source": "internal", "polarity": "rising"}
+        self.instance = SimulatedCameraInstance()
 
-        self.gpu_binning = DownSample2D(binning=self._binning)
-        self.buffer = list()
-        self.thread = None
+        # Property LUTs
+        self.trigger_lut = TriggerLUT
+        self.pixel_type_lut: PixelTypeLUT
+        self.binning_lut: BinningLUT
+        self.bit_packing_lut: BitPackingModeLUT
 
-    # Image size properties  ########################################################
-    @property
-    def binning(self) -> int:
-        """Get the binning mode of the camera. \n
-        Integer value, e.g. 2 is 2x2 binning
+        self._generate_luts()
 
-        :return: The binning mode of the camera
-        :rtype: int
-        """
+        # cache properties
+        self._trigger_cache = None
+        self._pixel_type_cache = None
+        self._binning_cache = None
+        self._bit_packing_mode_cache = None
 
-        return self._binning
+        self.gpu_binning = DownSample2D(binning=self.binning)
 
-    @binning.setter
-    def binning(self, binning: int) -> None:
-        """Set the binning of the camera. \n
-        If the binning is not supported in hardware \n
-        it will be implemented via software using the GPU. \n
-        This API assumes identical binning in X and Y.
+        self.log.debug(f"simulated camera initialized with id: {id}, serial number: {serial_number}")
+        self.log.debug(f"   simulated camera instance: {self.instance}")
 
-        :param binning: The binning mode of the camera
-        * **1**
-        * **2**
-        * **4**
-        :type binning: int
-        :raises ValueError: Invalid binning setting
-        """
+    def _generate_luts(self):
+        self.trigger_lut = TriggerLUT(
+            mode={TriggerMode.ON: "On", TriggerMode.OFF: "Off"},
+            source={TriggerSource.INTERNAL: "None", TriggerSource.EXTERNAL: "Line0"},
+            polarity={TriggerPolarity.RISING: "RisingEdge", TriggerPolarity.FALLING: "FallingEdge"},
+        )
+        self.pixel_type_lut: PixelTypeLUT = {
+            PixelType.MONO8: PixelTypeInfo(np.uint8, self.instance.line_interval_us_lut[np.uint8]),
+            PixelType.MONO16: PixelTypeInfo(np.uint16, self.instance.line_interval_us_lut[np.uint16]),
+        }
+        self.binning_lut: BinningLUT = {
+            1: 1,
+            2: 2,
+            4: 4
+        }
+        self.bit_packing_lut: BitPackingModeLUT = {
+            BitPackingMode.LSB: "lsb",
+            BitPackingMode.MSB: "msb",
+            BitPackingMode.NONE: "none"
+        }
 
-        valid_binning = list(BINNING.keys())
-        if binning not in valid_binning:
-            raise ValueError("binning must be one of %r." % BINNING)
-        else:
-            self._binning = BINNING[binning]
-            # initialize the downsampling in 2d
-            self.gpu_binning = DownSample2D(binning=self._binning)
-
-    @property
-    def sensor_width_px(self) -> int:
-        """Get the width of the camera sensor in pixels.
-
-        :return: The width of the camera sensor in pixels
-        :rtype: int
-        """
-
-        return MAX_WIDTH_PX
-
-    @DeliminatedProperty(minimum=MIN_WIDTH_PX, maximum=MAX_WIDTH_PX, step=STEP_WIDTH_PX, unit="px")
+    # TODO: Update DeliminatedProperty to use callables
+    @DeliminatedProperty(
+        minimum=MIN_WIDTH_PX,
+        maximum=MAX_WIDTH_PX,
+        step=STEP_WIDTH_PX, unit="px"
+    )
     def roi_width_px(self) -> int:
-        """Get the width of the camera region of interest in pixels.
-
-        :return: The width of the region of interest in pixels
-        :rtype: int
-        """
-        self.log.debug(f"getting width: {self._width_px}")
-        return self._width_px
+        return self.instance.roi_width_px
 
     @roi_width_px.setter
     def roi_width_px(self, value: int) -> None:
-        """Set the width of the camera region of interest in pixels.
-
-        :param value: The width of the region of interest in pixels
-        :type value: int
-        """
-        self.log.debug(f"setting width: {value}")
-        self._width_px = value
+        self.instance.roi_width_px = value
         centered_offset_px = (
-                round((MAX_WIDTH_PX / 2 - value / 2) / STEP_WIDTH_PX) * STEP_WIDTH_PX
+                round((self.instance.sensor_width_px / 2 - value / 2) / self.instance.roi_step_width_px)
+                * self.instance.roi_step_width_px
         )
-        self._width_offset_px = centered_offset_px
-        self.log.info(f"width set to: {value} px")
+        self.instance.roi_width_offset_px = centered_offset_px
+        self.log.debug(f'ROI width set to: {value} px')
 
     @property
     def roi_width_offset_px(self) -> int:
-        """
-        Get the width offset of the camera region of interest in pixels.
-
-        :return: The width offset of the region of interest in pixels
-        :rtype: int
-        """
-        return self._width_offset_px
+        return self.instance.roi_width_offset_px
 
     @property
-    def image_width_px(self) -> int:
-        """Get the width of the camera image in pixels.
+    def sensor_width_px(self) -> int:
+        return self.instance.sensor_width_px
 
-        :return: The width of the camera image in pixels
-        :rtype: int
-        """
-        return self._width_px // self._binning
-
-    @property
-    def sensor_height_px(self) -> int:
-        """Get the height of the camera sensor in pixels.
-
-        :return: The height of the camera sensor in pixels
-        :rtype: int
-        """
-
-        return MAX_HEIGHT_PX
-
-    @DeliminatedProperty(minimum=MIN_HEIGHT_PX, maximum=MAX_HEIGHT_PX, step=STEP_HEIGHT_PX, unit="px")
+    @DeliminatedProperty(
+        minimum=MIN_HEIGHT_PX,
+        maximum=MAX_HEIGHT_PX,
+        step=STEP_HEIGHT_PX, unit="px"
+    )
     def roi_height_px(self) -> int:
-        """
-        Get the height of the camera region of interest in pixels.
-
-        :return: The height of the region of interest in pixels
-        :rtype: int
-        """
-        self.log.debug(f"getting height: {self._height_px}")
-        return self._height_px
+        return self.instance.roi_height_px
 
     @roi_height_px.setter
     def roi_height_px(self, value: int) -> None:
-        """
-        Set the height of the camera region of interest in pixels.
-
-        :param value: The height of the region of interest in pixels
-        :type value: int
-        """
-
+        self.instance.roi_height_px = value
         centered_offset_px = (
-                round((MAX_HEIGHT_PX / 2 - value / 2) / STEP_HEIGHT_PX) * STEP_HEIGHT_PX
+                round((self.instance.sensor_height_px / 2 - value / 2) / self.instance.roi_step_height_px)
+                * self.instance.roi_step_height_px
         )
-        self._height_offset_px = centered_offset_px
-        self._height_px = value
-        self.log.info(f"height set to: {value} px")
+        self.instance.roi_height_offset_px = centered_offset_px
+        self.log.debug(f'ROI height set to: {value} px')
 
     @property
     def roi_height_offset_px(self) -> int:
-        """Get the height offset of the camera region of interest in pixels.
-
-        :return: The height offset of the region of interest in pixels
-        :rtype: int
-        """
-
-        return self._height_offset_px
+        return self.instance.roi_height_offset_px
 
     @property
-    def image_height_px(self) -> int:
-        """Get the height of the camera image in pixels.
+    def sensor_height_px(self) -> int:
+        return self.instance.sensor_height_px
 
-        :return: The height of the camera image in pixels
-        :rtype: int
-        """
-        return self._height_px // self._binning
-
-    # Image Format Properties  ##########################################################################
     @property
-    def pixel_type(self) -> str:
-        """Get the pixel type of the camera.
+    def binning(self) -> Binning:
+        self._binning_cache = self._get_binning()
+        return self._binning_cache
 
-        :return: The pixel type of the camera
-        :rtype: str
-        """
+    def _get_binning(self) -> Binning:
+        try:
+            return next(key for key, value in self.binning_lut.items() if value == self.instance.binning)
+        except KeyError:
+            self.log.error(f"Invalid binning from  device: {self.instance.binning}")
+            return 1
 
-        pixel_type = self._pixel_type
-        # invert the dictionary and find the abstracted key to output
-        return next(key for key, value in PIXEL_TYPES.items() if value == pixel_type)
+    @binning.setter
+    def binning(self, value: Binning) -> None:
+        try:
+            self.instance.binning = self.binning_lut[value]
+            self.gpu_binning = DownSample2D(binning=self.binning)
+        except KeyError as e:
+            self.log.error(f"Invalid binning: {e}")
+            return
+
+        self.log.debug(f"Binning set to: {value}")
+
+        # Invalidate the cached property
+        self._binning_cache = None
+
+    @property
+    def image_size_px(self) -> Vec2D:
+        return Vec2D(self.instance.roi_width_px, self.instance.roi_height_px) // self.binning
+
+    @property
+    def pixel_type(self) -> PixelType:
+        self._pixel_type_cache = self._get_pixel_type()
+        return self._pixel_type_cache
+
+    def _get_pixel_type(self) -> PixelType:
+        try:
+            return next(key for key, value in self.pixel_type_lut.items() if value.repr == self.instance.pixel_type)
+        except KeyError:
+            self.log.error(f"Invalid pixel type: {self.instance.pixel_type}")
+            return PixelType.MONO16
 
     @pixel_type.setter
-    def pixel_type(self, pixel_type_bits: str) -> None:
-        """The pixel type of the camera.
+    def pixel_type(self, pixel_type: PixelType) -> None:
+        try:
+            self.instance.pixel_type = self.pixel_type_lut[pixel_type]
+        except KeyError as e:
+            self.log.error(f"Invalid pixel type: {e}")
+            return
 
-        :param pixel_type_bits: The pixel type
-        * **mono8**
-        * **mono16**
-        :type pixel_type_bits: str
-        :raises ValueError: Invalid pixel type
-        """
+        self.log.debug(f"Pixel type set to: {pixel_type.name}")
 
-        valid = list(PIXEL_TYPES.keys())
-        if pixel_type_bits not in valid:
-            raise ValueError("pixel_type_bits must be one of %r." % valid)
-
-        self._pixel_type = PIXEL_TYPES[pixel_type_bits]
-        self._line_interval_us = LINE_INTERVALS_US[pixel_type_bits]
-        self.log.info(f"pixel type set_to: {pixel_type_bits}")
+        # Invalidate the cached property
+        self._pixel_type_cache = None
 
     @property
-    def bit_packing_mode(self) -> str:
-        """Get the bit packing mode of the camera.
+    def bit_packing_mode(self) -> BitPackingMode:
+        self._bit_packing_mode_cache = self._get_bit_packing_mode()
+        return self._bit_packing_mode_cache
 
-        :return: The bit packing mode of the camera.
-        :rtype: str
-        """
-        return ""
+    def _get_bit_packing_mode(self) -> BitPackingMode:
+        try:
+            return next(key for key, value in self.bit_packing_lut.items() if value == self.instance.bit_packing_mode)
+        except KeyError:
+            self.log.error(f"Invalid bit packing mode: {self.instance.bit_packing_mode}")
+            return BitPackingMode.NONE
 
     @bit_packing_mode.setter
-    def bit_packing_mode(self, bit_packing: str) -> None:
-        """The bit packing mode of the camera: \n
-        - lsb, msb, none
+    def bit_packing_mode(self, bit_packing_mode: BitPackingMode) -> None:
+        try:
+            self.instance.bit_packing_mode = self.bit_packing_lut[bit_packing_mode]
+        except KeyError as e:
+            self.log.error(f"Invalid bit packing mode: {e}")
+            return
 
-        :param bit_packing: The bit packing mode
-        :type bit_packing: str
-        """
-        pass
+        self.log.debug(f"Bit packing mode set to: {bit_packing_mode.name}")
 
-    # Acquisition Properties  ###########################################################################
+        # Invalidate the cached property
+        self._bit_packing_mode_cache = None
+
     @DeliminatedProperty(
-        minimum=MIN_EXPOSURE_TIME_MS, maximum=MAX_EXPOSURE_TIME_MS, step=STEP_EXPOSURE_TIME_MS, unit="ms")
+        minimum=MIN_EXPOSURE_TIME_MS,
+        maximum=MAX_EXPOSURE_TIME_MS,
+        step=STEP_EXPOSURE_TIME_MS, unit="ms"
+    )
     def exposure_time_ms(self) -> float:
-        """Get the exposure time of the camera in ms.
-
-        :return: The exposure time in ms
-        :rtype: float
-        """
-        return self._exposure_time_ms
+        return self.instance.exposure_time_ms
 
     @exposure_time_ms.setter
-    def exposure_time_ms(self, exposure_time_ms: float) -> None:
-        """Set the exposure time of the camera in ms.
-
-        :param exposure_time_ms: The exposure time in ms
-        :type exposure_time_ms: float
-        """
-        if (
-                exposure_time_ms < MIN_EXPOSURE_TIME_MS
-                or exposure_time_ms > MAX_EXPOSURE_TIME_MS
-        ):
-            self.log.warning(
-                f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
-                             and <{MAX_EXPOSURE_TIME_MS} ms. Setting exposure \
-                                time to {MAX_EXPOSURE_TIME_MS} ms"
-            )
-
-        # Note: round ms to nearest us
-        self._exposure_time_ms = exposure_time_ms
-        self.log.info(f"exposure time set to: {exposure_time_ms} ms")
+    def exposure_time_ms(self, value: float) -> None:
+        self.instance.exposure_time_ms = value
+        self.log.debug(f'Exposure time set to: {value} ms')
 
     @property
     def line_interval_us(self) -> float:
-        """
-        Get the line interval of the camera in us. \n
-        This is the time interval between adjacnet \n
-        rows activating on the camera sensor.
-
-        :return: The line interval of the camera in us
-        :rtype: float
-        """
-
-        return self._line_interval_us
+        return self.pixel_type_lut[self.pixel_type].line_interval_us
 
     @property
     def frame_time_ms(self) -> float:
-        """
-        Get the frame time of the camera in ms. \n
-        This is the total time to acquire a single image
-
-        :return: The frame time of the camera in ms
-        :rtype: float
-        """
-
-        return self._height_px * self._line_interval_us / 1000 + self._exposure_time_ms
+        return (self.line_interval_us * self.roi_height_px) / 1000 + self.exposure_time_ms
 
     @property
-    def trigger(self) -> dict:
-        """
-        Get the trigger mode of the camera.
-
-        :return: The trigger mode of the camera.
-        :rtype: dict
-        """
-
-        return self._trigger
+    def trigger(self) -> TriggerSettings:
+        self._trigger_cache = self._get_trigger_mode()
+        return self._trigger_cache
 
     @trigger.setter
-    def trigger(self, trigger: dict) -> None:
-        """
-        Set the trigger mode of the camera.
+    def trigger(self, trigger: TriggerSettings) -> None:
+        try:
+            self.instance.trigger_mode = self.trigger_lut.mode[trigger.mode]
+            self.instance.trigger_source = self.trigger_lut.source[trigger.source]
+            self.instance.trigger_activation = self.trigger_lut.polarity[trigger.polarity]
+        except KeyError as e:
+            self.log.error(f"Invalid trigger setting: {e}")
+            return
 
-        :param trigger: The trigger mode of the camera
-        **Trigger modes**
-        * **on**
-        * **off**
-        **Trigger sources**
-        * **line0**
-        * **software**
-        **Trigger polarities**
-        * **risingedge**
-        * **fallingedge**
-        :type trigger: dict
-        :raises ValueError: Invalid trigger mode
-        :raises ValueError: Invalid trigger source
-        :raises ValueError: Invalid trigger polarity
-        """
+        self.log.debug(f"Trigger set to: mode={trigger.mode.name}, "
+                       f"source={trigger.source.name}, polarity={trigger.polarity.name}")
 
-        mode = trigger["mode"]
-        source = trigger["source"]
-        polarity = trigger["polarity"]
+        # Invalidate the cached property
+        self._trigger_cache = None
 
-        valid_mode = list(TRIGGERS["mode"].keys())
-        if mode not in valid_mode:
-            raise ValueError("mode must be one of %r." % valid_mode)
-        valid_source = list(TRIGGERS["source"].keys())
-        if source not in valid_source:
-            raise ValueError("source must be one of %r." % valid_source)
-        valid_polarity = list(TRIGGERS["polarity"].keys())
-        if polarity not in valid_polarity:
-            raise ValueError("polarity must be one of %r." % valid_polarity)
-        self._trigger = dict(trigger)
+    def _get_trigger_mode(self):
+        try:
+            return TriggerSettings(
+                mode=next(
+                    key for key, value in self.trigger_lut.mode.items() if value == self.instance.trigger_mode),
+                source=next(
+                    key for key, value in self.trigger_lut.source.items() if value == self.instance.trigger_source),
+                polarity=next(key for key, value in self.trigger_lut.polarity.items() if
+                              value == self.instance.trigger_activation)
+            )
+        except StopIteration:
+            self.log.error(f"Invalid trigger settings recieved from camera: mode={self.instance.trigger_mode}, "
+                           f"source={self.instance.trigger_source}, activation={self.instance.trigger_activation}")
+            return TriggerSettings(TriggerMode.OFF, TriggerSource.INTERNAL, TriggerPolarity.RISING)
 
-    @property
-    def readout_mode(self) -> str:
-        """Get the readout mode of the camera.
+    def prepare(self) -> None:
+        pass
 
-        :return: The readout mode of the camera.
-        :rtype: str
-        """
-        return ""
+    def start(self, frame_count: int) -> None:
+        self.instance.start_acquisition(frame_count)
 
-    # Acquisition Methods  ###########################################################################
-    def prepare(self):
-        """
-        Prepare the camera to acquire images. \n
-        Initializes the camera buffer.
-        """
-
-        self.log.info("simulated camera preparing...")
-        self.buffer = list()
-
-    def start(self, frame_count: float = float("inf")):
-        """
-        Start the camera to acquire a certain number of frames. \n
-        If frame number is not specified, acquires infinitely until stopped. \n
-        Initializes the camera buffer.
-
-        :param frame_count: The number of frames to acquire
-        :type frame_count: float
-        """
-
-        self.log.info("simulated camera starting...")
-        self.thread = Thread(target=self._generate_frames, args=(frame_count,))
-        self.thread.daemon = True
-        self.thread.start()
-
-    def stop(self):
-        """
-        Stop the camera.
-        """
-
-        self.log.info("simulated camera stopping...")
-        self.terminate_frame_grab.set()
-        self.thread.join() if self.thread else None
-        self.terminate_frame_grab.clear()
-
-    def abort(self):
-        """
-        Abort the camera.
-        """
-        self.terminate_frame_grab.set()
-        if self.thread is not None:
-            self.thread.join()
-        self.terminate_frame_grab.clear()
+    def stop(self) -> None:
+        self.instance.stop_acquisition()
 
     def reset(self) -> None:
-        """Reset the camera."""
-
-        self.log.info("simulated camera resetting...")
-
-    def close(self):
-        """
-        Close the camera.
-        """
-
-        pass
+        self.stop()
+        self._generate_luts()
+        self._binning_cache = None
+        self._pixel_type_cache = None
+        self._bit_packing_mode_cache = None
+        self._trigger_cache = None
+        self.trigger = TriggerSettings(TriggerMode.OFF, TriggerSource.INTERNAL, TriggerPolarity.RISING)
 
     def grab_frame(self) -> NDArray[np.int_]:
-        """
-        Grab a frame from the camera buffer. \n
-        If binning is via software, the GPU binned \n
-        image is computed and returned.
+        frame, timestamp, frame_count = self.instance.grab_frame()
+        return frame if self.binning == 1 else self.gpu_binning.run(frame)
 
-        :return: The camera frame of size (height, width).
-        :rtype: np.array
-        """
-
-        while not self.buffer:
-            time.sleep(0.01)
-        image = self.buffer.pop(0)
-        if self._binning > 1:
-            return self.gpu_binning.run(image)
-        else:
-            return image
-
-    def signal_acquisition_state(self):
-        """
-        Return a dictionary of the acquisition state: \n
-        - Frame Index - frame number of the acquisition \n
-        - Input Buffer Size - number of free frames in buffer \n
-        - Output Buffer Size - number of frames to grab from buffer \n
-        - Dropped Frames - number of dropped frames
-        - Data Rate [MB/s] - data rate of acquisition
-        - Frame Rate [fps] - frames per second of acquisition
-
-        :return: The acquisition state
-        :rtype: dict
-        """
-
-        state = {
-            "Frame Index": self.frame,
-            "Input Buffer Size": len(self.buffer),
-            "Output Buffer Size": BUFFER_SIZE_FRAMES - len(self.buffer),
-            "Dropped Frames": self.dropped_frames,
-            "Data Rate [MB/s]": (
-                    self.frame_rate
-                    * self._width_px
-                    * self._height_px
-                    * np.dtype(self._pixel_type).itemsize
-                    / self._binning ** 2
-                    / 1e6
-            ),
-            "Frame Rate [fps]": self.frame_rate,
-        }
-        # number of underrun, i.e. dropped frames
-        self.log.info(
-            f"id: {self.id}, "
-            f"frame: {state['Frame Index']}, "
-            f"input: {state['Input Buffer Size']}, "
-            f"output: {state['Output Buffer Size']}, "
-            f"dropped: {state['Dropped Frames']}, "
-            f"data rate: {state['Data Rate [MB/s]']:.2f} [MB/s], "
-            f"frame rate: {state['Frame Rate [fps]']:.2f} [fps]."
+    @property
+    def acquisition_state(self) -> AcquisitionState:
+        return AcquisitionState(
+            frame_index=self.instance.frame_count,
+            input_buffer_size=self.instance.frame_buffer.qsize(),
+            output_buffer_size=self.instance.frame_buffer.qsize(),
+            dropped_frames=self.instance.dropped_frames,
+            data_rate_mbs=self.instance.frame_rate * self.roi_width_px * self.roi_height_px * (
+                16 if self.pixel_type == PixelType.MONO16 else 8) / 8 / 1e6,
+            frame_rate_fps=self.instance.frame_rate
         )
-        return state
 
-    def log_metadata(self):
-        """Log all metadata from the camera to the logger."""
-
+    def log_metadata(self) -> None:
         pass
 
-    def _generate_frames(self, frame_count: int):
-        """
-        Internal function that generates simulated camera frames.
-
-        :param frame_count: The number of frames to generate
-        :type frame_count: int
-        """
-
-        self.frame = 0
-        self.frame_rate = 0
-        self.dropped_frames = 0
-        i = 1
-        frame_count = frame_count if frame_count is not None else 1
-        while i <= frame_count and not self.terminate_frame_grab.is_set():
-            start_time = time.time()
-            column_count = self._width_px
-            row_count = self._height_px
-            image = np.random.randint(
-                low=128,
-                high=256,
-                size=(row_count, column_count),
-                dtype=np.dtype(PIXEL_TYPES[self._pixel_type]),
-            )
-            while (time.time() - start_time) < self.frame_time_ms / 1000:
-                time.sleep(0.01)
-            self.buffer.append(image)
-            self.frame += 1
-            i = i if frame_count is None else i + 1
-            end_time = time.time()
-            self.frame_rate = 1 / (end_time - start_time)
+    def close(self):
+        self.instance.close()
 
 
 # Example usage
 if __name__ == "__main__":
-    import logging
-
-    logging.basicConfig(level=logging.DEBUG)
     camera = SimulatedCamera(id="main-camera", serial_number="sim-cam-001")
-    camera.binning = 2
-    camera.roi_width_px = 14170
-    camera.roi_height_px = 10624
-    camera.binning = 4
-    camera.prepare()
-    camera.start(10)
-    for i in range(10):
+
+    num_frames = 15
+    print(f'\nStarting acquisition of {num_frames} frames')
+
+    frame_time_s = camera.frame_time_ms / 1000
+    wait_time = frame_time_s * 1.5  # Add 25% buffer
+    print(f'Frame time:{frame_time_s}, Wait_time: {wait_time!s}')
+
+    camera.start(-1)
+
+    # Wait for the first frame to be generated
+    time.sleep(frame_time_s * 2)
+    print(len(camera.instance.frame_buffer.queue))
+
+    sample_frames = []
+    dropped_frames = []
+    frame_rates = []
+    empty_frames = 0
+
+    for i in range(num_frames):
         frame = camera.grab_frame()
-        print(frame)
+        sample_frames.append(frame[:1, :5])
+        frame_rate = camera.acquisition_state.frame_rate_fps
+        wait_time = 1 / frame_rate * 1.1
+        frame_rates.append(camera.acquisition_state.frame_rate_fps)
+        dropped_frames.append(camera.acquisition_state.dropped_frames)
+        if frame[0, 0] == 0:
+            empty_frames += 1
+
+        time.sleep(wait_time)
+
     camera.stop()
+
+    for i, frame in enumerate(sample_frames):
+        print(f'frame {i}:  {frame}, dropped frames: {dropped_frames[i]}, frame_time: {1 / frame_rates[i]}')
+
+    print(f'Empty frames: {empty_frames}')
+    print(f'Dropped frames: {camera.acquisition_state.dropped_frames}')
+
     camera.close()
     print("done")

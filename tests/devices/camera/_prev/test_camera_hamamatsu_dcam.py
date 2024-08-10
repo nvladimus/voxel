@@ -36,7 +36,7 @@ cameras[-1].start()
 
 for i in range(frames):
     cameras[-1].grab_frame()
-    print(cameras[-1].signal_acquisition_state())
+    print(cameras[-1].acquisition_state())
     print(cameras[-1].signal_sensor_temperature_c)
 
 cameras[-1].log_metadata()
