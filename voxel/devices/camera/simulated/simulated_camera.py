@@ -1,147 +1,36 @@
-import queue
-import time
-from threading import Thread, Lock, Event
-from typing import Any, Tuple
-
 import numpy as np
-from numpy.typing import NDArray
 
 from voxel.descriptors.deliminated_property import DeliminatedProperty
-from voxel.devices.camera.base import BaseCamera
+from voxel.devices.camera import VoxelCamera
 from voxel.devices.camera.codes import (
-    TriggerMode, TriggerPolarity, TriggerSource, TriggerSettings, TriggerLUT, PixelType, PixelTypeLUT,
-    BinningLUT, Binning, BitPackingModeLUT, BitPackingMode, PixelTypeInfo, AcquisitionState
+    Binning, BinningLUT,
+    PixelType, PixelTypeInfo, PixelTypeLUT,
+    BitPackingMode, BitPackingModeLUT,
+    TriggerSettings, TriggerMode, TriggerSource, TriggerPolarity, TriggerLUT,
+    VoxelFrame, AcquisitionState,
+)
+from voxel.devices.camera.simulated.simulated_hardware import (
+    SimulatedCameraHardware,
+    MIN_WIDTH_PX,
+    MAX_WIDTH_PX,
+    STEP_WIDTH_PX,
+    MIN_HEIGHT_PX,
+    MAX_HEIGHT_PX,
+    STEP_HEIGHT_PX,
+    MIN_EXPOSURE_TIME_MS,
+    MAX_EXPOSURE_TIME_MS,
+    STEP_EXPOSURE_TIME_MS,
 )
 from voxel.devices.utils.geometry import Vec2D
 from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
 
-BUFFER_SIZE_FRAMES = 8
-MIN_WIDTH_PX = 64
-MAX_WIDTH_PX = 14192
-STEP_WIDTH_PX = 16
-MIN_HEIGHT_PX = 2
-MAX_HEIGHT_PX = 10640
-STEP_HEIGHT_PX = 2
-MIN_EXPOSURE_TIME_MS = 0.001
-MAX_EXPOSURE_TIME_MS = 6e4
-STEP_EXPOSURE_TIME_MS = 1
 
-
-class SimulatedCameraInstance:
-    line_interval_us_lut = {np.uint8: 10.00, np.uint16: 20.00}
-
-    def __init__(self):
-        self.sensor_width_px: int = MAX_WIDTH_PX
-        self.sensor_height_px: int = MAX_HEIGHT_PX
-        self.roi_width_px: int = MAX_WIDTH_PX
-        self.roi_height_px: int = MAX_HEIGHT_PX
-        self.roi_step_width_px: int = STEP_WIDTH_PX
-        self.roi_step_height_px: int = STEP_HEIGHT_PX
-        self.roi_width_offset_px: int = 0
-        self.roi_height_offset_px: int = 0
-        self.binning: int = 1
-        self.pixel_type: Any = np.uint16
-        self.bit_packing_mode: str = "lsb"
-        self.min_exposure_time_ms: float = MIN_EXPOSURE_TIME_MS
-        self.max_exposure_time_ms: float = MAX_EXPOSURE_TIME_MS
-        self.step_exposure_time_ms: float = STEP_EXPOSURE_TIME_MS
-        self.exposure_time_ms: float = MIN_EXPOSURE_TIME_MS * 1e2
-        self.readout_mode: str = "default"
-        self.trigger_mode: str = "On"
-        self.trigger_source: str = "None"
-        self.trigger_activation: str = "RisingEdge"
-
-        self.is_running: bool = False
-        self.frame_buffer = queue.Queue(maxsize=BUFFER_SIZE_FRAMES)
-        self.queue_lock = Lock()
-        self.generation_thread = None
-        self.stop_event = Event()
-        self.frame_rate = 0.0
-        self.dropped_frames = 0
-        self.frame_count = 0
-        self.start_time = None
-
-    def start_acquisition(self, frame_count: int = -1):
-        if self.is_running:
-            return
-        self.frame_rate = 0.0
-        self.dropped_frames = 0
-        self.frame_count = 0
-        self.start_time = None
-        self.is_running = True
-        self.stop_event.clear()
-        self.generation_thread = Thread(
-            target=self._generate_frames_thread,
-            args=(frame_count,)
-        )
-        self.generation_thread.start()
-
-    def _generate_frames_thread(self, frame_count: int = -1):
-        frame_time_ms = ((self.line_interval_us_lut[self.pixel_type] * self.roi_height_px / 1000)
-                         + self.exposure_time_ms)
-        frame_time_s = frame_time_ms / 1000
-        frame_shape = (self.roi_height_px, self.roi_width_px)
-        frames_generated = 0
-        self.start_time = time.perf_counter()
-
-        while self.is_running and (frame_count == -1 or frames_generated < frame_count):
-            frame_start_time = time.perf_counter()
-
-            # Generate frame with a timestamp and frame count
-            frame = np.random.randint(128, 256, size=frame_shape, dtype=self.pixel_type)
-            timestamp = time.time()
-            self.frame_count += 1
-            frame_with_metadata = (frame, timestamp, self.frame_count)
-
-            with self.queue_lock:
-                if self.frame_buffer.full():
-                    try:
-                        self.frame_buffer.get_nowait()
-                        self.dropped_frames += 1
-                    except queue.Empty:
-                        pass
-                self.frame_buffer.put(frame_with_metadata)
-
-            frames_generated += 1
-
-            # Calculate time to sleep
-            elapsed_time = time.perf_counter() - frame_start_time
-            sleep_time = frame_time_s - elapsed_time
-            if sleep_time > 0:
-                time.sleep(sleep_time)
-
-            self.frame_rate = frames_generated / (time.perf_counter() - self.start_time)
-
-            if self.stop_event.is_set():
-                break
-
-    def grab_frame(self) -> Tuple[NDArray[np.int_], float, int]:
-        """Grab a frame from the queue."""
-        try:
-            with self.queue_lock:
-                return self.frame_buffer.get_nowait()
-        except queue.Empty:
-            return np.zeros((self.roi_height_px, self.roi_width_px), dtype=self.pixel_type), time.time(), 0
-
-    def stop_acquisition(self):
-        """Stop frame acquisition."""
-        self.is_running = False
-        self.stop_event.set()
-        if self.generation_thread:
-            self.generation_thread.join()
-        self.generation_thread = None
-
-    def close(self):
-        """Clean up resources."""
-        self.stop_acquisition()
-
-
-class SimulatedCamera(BaseCamera):
+class SimulatedCamera(VoxelCamera):
 
     def __init__(self, id: str, serial_number: str):
         super().__init__(id)
         self.serial_number = serial_number
-        self.instance = SimulatedCameraInstance()
+        self.instance = SimulatedCameraHardware()
 
         # Property LUTs
         self.trigger_lut = TriggerLUT
@@ -151,10 +40,12 @@ class SimulatedCamera(BaseCamera):
 
         self._generate_luts()
 
+        # private properties
+        self._binning: Binning = 1
+
         # cache properties
         self._trigger_cache = None
         self._pixel_type_cache = None
-        self._binning_cache = None
         self._bit_packing_mode_cache = None
 
         self.gpu_binning = DownSample2D(binning=self.binning)
@@ -238,29 +129,23 @@ class SimulatedCamera(BaseCamera):
 
     @property
     def binning(self) -> Binning:
-        self._binning_cache = self._get_binning()
-        return self._binning_cache
-
-    def _get_binning(self) -> Binning:
         try:
-            return next(key for key, value in self.binning_lut.items() if value == self.instance.binning)
+            binning: Binning =  next(key for key, value in self.binning_lut.items() if value == self._binning)
         except KeyError:
-            self.log.error(f"Invalid binning from  device: {self.instance.binning}")
-            return 1
+            self.log.error(f"Invalid binning: {self._binning}")
+            binning: Binning = 1
+        return binning
 
     @binning.setter
     def binning(self, value: Binning) -> None:
         try:
-            self.instance.binning = self.binning_lut[value]
+            self._binning = self.binning_lut[value]
             self.gpu_binning = DownSample2D(binning=self.binning)
         except KeyError as e:
             self.log.error(f"Invalid binning: {e}")
             return
 
         self.log.debug(f"Binning set to: {value}")
-
-        # Invalidate the cached property
-        self._binning_cache = None
 
     @property
     def image_size_px(self) -> Vec2D:
@@ -391,14 +276,14 @@ class SimulatedCamera(BaseCamera):
         self._trigger_cache = None
         self.trigger = TriggerSettings(TriggerMode.OFF, TriggerSource.INTERNAL, TriggerPolarity.RISING)
 
-    def grab_frame(self) -> NDArray[np.int_]:
+    def grab_frame(self) -> VoxelFrame:
         frame, timestamp, frame_count = self.instance.grab_frame()
         return frame if self.binning == 1 else self.gpu_binning.run(frame)
 
     @property
     def acquisition_state(self) -> AcquisitionState:
         return AcquisitionState(
-            frame_index=self.instance.frame_count,
+            frame_index=self.instance.frame_index,
             input_buffer_size=self.instance.frame_buffer.qsize(),
             output_buffer_size=self.instance.frame_buffer.qsize(),
             dropped_frames=self.instance.dropped_frames,
@@ -412,49 +297,3 @@ class SimulatedCamera(BaseCamera):
 
     def close(self):
         self.instance.close()
-
-
-# Example usage
-if __name__ == "__main__":
-    camera = SimulatedCamera(id="main-camera", serial_number="sim-cam-001")
-
-    num_frames = 15
-    print(f'\nStarting acquisition of {num_frames} frames')
-
-    frame_time_s = camera.frame_time_ms / 1000
-    wait_time = frame_time_s * 1.5  # Add 25% buffer
-    print(f'Frame time:{frame_time_s}, Wait_time: {wait_time!s}')
-
-    camera.start(-1)
-
-    # Wait for the first frame to be generated
-    time.sleep(frame_time_s * 2)
-    print(len(camera.instance.frame_buffer.queue))
-
-    sample_frames = []
-    dropped_frames = []
-    frame_rates = []
-    empty_frames = 0
-
-    for i in range(num_frames):
-        frame = camera.grab_frame()
-        sample_frames.append(frame[:1, :5])
-        frame_rate = camera.acquisition_state.frame_rate_fps
-        wait_time = 1 / frame_rate * 1.1
-        frame_rates.append(camera.acquisition_state.frame_rate_fps)
-        dropped_frames.append(camera.acquisition_state.dropped_frames)
-        if frame[0, 0] == 0:
-            empty_frames += 1
-
-        time.sleep(wait_time)
-
-    camera.stop()
-
-    for i, frame in enumerate(sample_frames):
-        print(f'frame {i}:  {frame}, dropped frames: {dropped_frames[i]}, frame_time: {1 / frame_rates[i]}')
-
-    print(f'Empty frames: {empty_frames}')
-    print(f'Dropped frames: {camera.acquisition_state.dropped_frames}')
-
-    camera.close()
-    print("done")
