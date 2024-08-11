@@ -1,7 +1,7 @@
 import logging
 import time
 from voxel.descriptors.deliminated_property import DeliminatedProperty
-from voxel.devices.camera.base import BaseCamera
+from voxel.devices.camera.base import VoxelCamera
 from voxel.devices.camera.hamamatsu.dcam.dcam import (
     DCAM_IDSTR,
     DCAMCAP_TRANSFERINFO,
@@ -111,7 +111,7 @@ class DcamapiSingleton(Dcamapi, metaclass=Singleton):
         super(DcamapiSingleton, self).__init__()
 
 
-class Camera(BaseCamera):
+class Camera(VoxelCamera):
     def __init__(self, id: str):
         """Voxel driver for Hamamatsu cameras.
 

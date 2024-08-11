@@ -2,7 +2,7 @@ import logging
 import numpy as np
 import tifffile
 from pathlib import Path
-from voxel.devices.camera.base import BaseCamera
+from voxel.devices.camera.base import VoxelCamera
 
 
 class BackgroundCollection:
@@ -53,7 +53,7 @@ class BackgroundCollection:
         self.log.info(f'setting filename to: {filename}')
 
     #TODO: Change to device so routine set up can be more routine hehe
-    def start(self, device: BaseCamera):
+    def start(self, device: VoxelCamera):
         camera = device
         # store initial trigger mode
         initial_trigger = camera.trigger

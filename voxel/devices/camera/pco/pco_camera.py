@@ -1,7 +1,7 @@
 import logging
 import time
 from voxel.descriptors.deliminated_property import DeliminatedProperty
-from voxel.devices.camera.base import BaseCamera
+from voxel.devices.camera.base import VoxelCamera
 from voxel.devices.camera.pco import pco
 from voxel.devices.utils.singleton import Singleton
 
@@ -32,7 +32,7 @@ class pcoSingleton(pco, metaclass=Singleton):
         super(pcoSingleton, self).__init__()
 
 
-class Camera(BaseCamera):
+class Camera(VoxelCamera):
     def __init__(self, id=str):
         """Voxel driver for PCO cameras.
 

@@ -1,6 +1,6 @@
 import logging
 from acquire import DeviceKind, SampleType, Trigger, Direction, Runtime
-from voxel.devices.camera.base import BaseCamera
+from voxel.devices.camera.base import VoxelCamera
 
 # constants for Hamamatsu C15440-20UP camera
 
@@ -42,7 +42,7 @@ TRIGGERS = {
 }
 
 
-class CameraHamamatsuAcquire(BaseCamera):
+class CameraHamamatsuAcquire(VoxelCamera):
 
     def __init__(self, camera_id):
         """Connect to hardware.

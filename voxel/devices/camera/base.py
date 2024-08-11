@@ -10,7 +10,7 @@ from voxel.devices.device import VoxelDevice
 from voxel.devices.utils.geometry import Vec2D
 
 
-class BaseCamera(VoxelDevice):
+class VoxelCamera(VoxelDevice):
     """Base class for all voxel supported cameras."""
 
     def __init__(self, id: str):

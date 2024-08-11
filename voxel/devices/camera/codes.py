@@ -2,6 +2,15 @@
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import TypeAlias, Dict, Union, Literal
+import numpy as np
+
+from numpy.typing import NDArray
+
+# Type aliases
+VoxelFrame: TypeAlias = NDArray[np.uint8 | np.uint16]
+
+Binning: TypeAlias = Literal[1, 2, 4]
+BinningLUT: TypeAlias = Dict[Binning, Union[str, int]]
 
 
 class PixelType(Enum):
@@ -23,11 +32,7 @@ class PixelTypeInfo:
     line_interval_us: int | float
 
 
-# class Binning(Enum):
-#     BIN_1X1 = 1
-#     BIN_2X2 = 2
-#     BIN_4X4 = 4
-Binning: TypeAlias = Literal[1, 2, 4]
+PixelTypeLUT: TypeAlias = Dict[PixelType, PixelTypeInfo]
 
 
 class BitPackingMode(Enum):
@@ -36,8 +41,6 @@ class BitPackingMode(Enum):
     NONE = auto()
 
 
-PixelTypeLUT: TypeAlias = Dict[PixelType, PixelTypeInfo]
-BinningLUT: TypeAlias = Dict[Binning, Union[str, int]]
 BitPackingModeLUT: TypeAlias = Dict[BitPackingMode, str]
 
 

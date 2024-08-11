@@ -9,10 +9,10 @@ Import the specific camera class from the appropriate sub-module.
 e.g. from voxel.devices.camera.vieworks import VieworksCamera
 """
 
-from .base import BaseCamera
+from .base import VoxelCamera
 from .simulated import SimulatedCamera
 
 __all__ = [
-    'BaseCamera',
+    'VoxelCamera',
     'SimulatedCamera',
 ]

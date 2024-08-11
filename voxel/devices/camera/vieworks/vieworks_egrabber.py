@@ -3,7 +3,7 @@ from typing import Any, Tuple, Dict, List, Optional
 import numpy
 
 from voxel.descriptors.deliminated_property import DeliminatedProperty
-from voxel.devices.camera.base import BaseCamera
+from voxel.devices.camera.base import VoxelCamera
 from voxel.devices.camera.vieworks.egrabber import (
     BUFFER_INFO_BASE,
     GENTL_INFINITE,
@@ -127,7 +127,7 @@ class VieworksCameraDiscovery(EGrabberDiscovery):
         raise DeviceConnectionError(f"No grabber found for S/N: {serial_number}")
 
 
-class VieworksCamera(BaseCamera):
+class VieworksCamera(VoxelCamera):
     """Voxel driver for EGrabber GenICam cameras."""
 
     gentl = EGenTLSingleton()

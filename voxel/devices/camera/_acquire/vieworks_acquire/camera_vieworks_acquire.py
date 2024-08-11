@@ -1,6 +1,6 @@
 import logging
 import acquire
-from voxel.devices.camera.base import BaseCamera
+from voxel.devices.camera.base import VoxelCamera
 from acquire import DeviceKind, SampleType
 from acquire.acquire import Trigger
 
@@ -48,7 +48,7 @@ TRIGGERS = {
     }
 }
 
-class Camera(BaseCamera):
+class Camera(VoxelCamera):
 
     def __init__(self, camera_cfg, runtime: acquire.Runtime()):
         """Connect to hardware.
