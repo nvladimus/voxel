@@ -2,9 +2,9 @@ from math import ceil
 from pathlib import Path
 
 import os
-
-from acquire import DeviceKind, Runtime, StorageDimension, DimensionType
+from acquire import DeviceKind, StorageDimension, DimensionType
 from voxel.writers.base import BaseWriter
+import acquire
 
 os.environ["ZARR_V3_EXPERIMENTAL_API"] = "1"
 os.environ["ZARR_V3_SHARDING"] = "1"
@@ -31,9 +31,11 @@ class AcquireZarrWriter(BaseWriter):
     :type path: str
     """
 
-    def __init__(self, path: str, runtime: Runtime):
+    def __init__(self, path: str):
         super().__init__(path)
-        self.runtime = runtime
+        # get global runtime instance, i.e. singleton
+        # see __init__.py in acquire-python
+        self.runtime = acquire._get_runtime()
         self.acquire_api = self.runtime.get_configuration()
 
     @property
@@ -250,6 +252,11 @@ class AcquireZarrWriter(BaseWriter):
         filepath = Path(self._path, self._acquisition_name, self._filename).absolute()
         os.remove(filepath)
 
+    def start(self, frame_count = 2**64 - 1):
+        self.acquire_api.video[0].max_frame_count = frame_count
+        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
+        self.runtime.start()
+
     def prepare(self):
         """
         Prepare the ZarrV3 writer. Shards can be ragged, i.e. greater than or equal to the frame size in x or y.
@@ -275,7 +282,7 @@ class AcquireZarrWriter(BaseWriter):
         self.log.info(f"{self._filename}: intializing writer.")
         filepath = str(Path(self._path, self._acquisition_name, self._filename).absolute())
         device_manager = self.runtime.device_manager()
-        self.acquire_api.video[0].storage.identifier = device_manager.select(DeviceKind.Storage, "ZarrV3Blosc1ZstdByteShuffle")
+        self.acquire_api.video[0].storage.identifier = device_manager.select(DeviceKind.Storage, self._compression)
         self.acquire_api.video[0].storage.settings.filename = filepath
         self.acquire_api.video[0].storage.settings.pixel_scale_um = (self._x_voxel_size_um, self._y_voxel_size_um)
         self.acquire_api.video[0].storage.settings.enable_multiscale = False  # not enabled for zarrv3 yet
@@ -304,5 +311,3 @@ class AcquireZarrWriter(BaseWriter):
         self.acquire_api.video[0].storage.settings.acquisition_dimensions = [x_dimension, y_dimension, z_dimension]
 
         self.acquire_api = self.runtime.set_configuration(self.acquire_api)  # set the new configuration
-
-        print(self.acquire_api.video[0].storage.settings)

@@ -1,11 +1,12 @@
 import logging
 
 import numpy as np
-from acquire import DeviceKind, Runtime, SampleType, Trigger, TriggerEdge
+from acquire import DeviceKind, Runtime, SampleType, Trigger, TriggerEdge, StorageDimension, DimensionType
 
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 from voxel.devices.camera.base import BaseCamera
 from voxel.processes.downsample.gpu.gputools.downsample_2d import GPUToolsDownSample2D
+import acquire
 
 MAX_WIDTH_PX = 14192
 MIN_WIDTH_PX = 64
@@ -43,7 +44,9 @@ class Camera(BaseCamera):
     def __init__(self, id: str):
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.id = str(id)  # convert to string incase serial # is entered as int
-        self.runtime = Runtime()
+        # get global runtime instance, i.e. singleton
+        # see __init__.py in acquire-python
+        self.runtime = acquire._get_runtime()
         self.acquire_api = self.runtime.get_configuration()
         self._latest_frame = None
 
@@ -227,7 +230,38 @@ class Camera(BaseCamera):
         return MAX_HEIGHT_PX
 
     def prepare(self):
-        pass
+        
+        filepath = 'D:\\test\\data.zarr'
+        device_manager = self.runtime.device_manager()
+        self.acquire_api.video[0].storage.identifier = device_manager.select(DeviceKind.Storage, "ZarrV3Blosc1ZstdByteShuffle")
+        self.acquire_api.video[0].storage.settings.filename = filepath
+        self.acquire_api.video[0].storage.settings.pixel_scale_um = (1.0, 1.0)
+        self.acquire_api.video[0].storage.settings.enable_multiscale = False  # not enabled for zarrv3 yet
+
+        x_dimension = StorageDimension()
+        x_dimension.name = 'x'
+        x_dimension.kind = DimensionType.Space
+        x_dimension.array_size_px = self.width_px
+        x_dimension.chunk_size_px = 128
+        x_dimension.shard_size_chunks = 111
+
+        y_dimension = StorageDimension()
+        y_dimension.name = 'y'
+        x_dimension.kind = DimensionType.Space
+        y_dimension.array_size_px = self.height_px
+        y_dimension.chunk_size_px = 128
+        y_dimension.shard_size_chunks = 84
+
+        z_dimension = StorageDimension()
+        z_dimension.name = 'z'
+        x_dimension.kind = DimensionType.Space
+        z_dimension.array_size_px = 0  # append dimension must be 0
+        z_dimension.chunk_size_px = 32
+        z_dimension.shard_size_chunks = 1
+
+        self.acquire_api.video[0].storage.settings.acquisition_dimensions = [x_dimension, y_dimension, z_dimension]
+
+        self.acquire_api = self.runtime.set_configuration(self.acquire_api)  # set the new configuration
 
     def start(self, frame_count: int = 2**64 - 1):
         self.acquire_api.video[0].max_frame_count = frame_count

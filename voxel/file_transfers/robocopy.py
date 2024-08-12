@@ -48,10 +48,18 @@ class RobocopyFileTransfer(BaseFileTransfer):
             # files are any tile specific files
             file_list = dict()
             for path, subdirs, files in os.walk(local_directory.absolute()):
+                # collect all files to be transferred
                 for name in files:
                     # check and only add if filename matches tranfer's filename but not the log file
                     if self.filename in name and name != log_path:
                         file_list[os.path.join(path, name)] = os.path.getsize(os.path.join(path, name))/1024**2
+                # collect all zarr stores to be transferred
+                for subdir in subdirs:
+                    if f'{self.filename}.zarr' in subdir:
+                        # this is a zarr directory, we need to find all files to transfer and their path
+                        for zarr_path, zarr_subdirs, zarr_files in os.walk(Path(self._local_path, self._acquisition_name, subdir).absolute()):
+                            for zarr_file in zarr_files:
+                                file_list[os.path.join(zarr_path, zarr_file)] = os.path.getsize(os.path.join(zarr_path, zarr_file))/1024**2
             total_size_mb = sum(file_list.values())
             # sort the file list based on the file sizes and create a list for transfers
             sorted_file_list = dict(sorted(file_list.items(), key = lambda item: item[1]))
@@ -77,17 +85,15 @@ class RobocopyFileTransfer(BaseFileTransfer):
                     # /if move only the specified filename
                     # /njh no job header in log file
                     # /njs no job summary in log file
-                    cmd_with_args = f'{self._protocol} {local_dir} {external_dir} \
-                        /j /if {filename} /njh /njs /log:{log_path}'
+                    cmd_with_args = f'{self._protocol} {local_dir} {external_dir} /J \
+                        /if {filename} /njh /njs /log:{log_path}'
                     # stdout to PIPE will cause malloc errors on exist
                     # no stdout will print subprocess to python
                     # stdout to DEVNULL will supresss subprocess output
                     subprocess = Popen(cmd_with_args, stdout=DEVNULL)
-                    # wait one second for process to start before monitoring log file for progress
-                    time.sleep(1.0)
                     # lets monitor the progress of the individual file if size > 1 GB
                     if file_size_mb > 1024:
-                        self.log.info(f'{filename} is > 1 GB')
+                        self.log.info(f'file {filename} is > 1 GB')
                         # wait for subprocess to start otherwise log file won't exist yet
                         time.sleep(1.0)
                         file_progress = 0
@@ -123,15 +129,16 @@ class RobocopyFileTransfer(BaseFileTransfer):
                                 stuck_time_s  = 0
                             previous_progress = self.progress
                             self.log.info(f'file transfer is {self.progress:.2f} % complete.')
-                            # pause for 10 sec
-                            time.sleep(10.0)
+                            # pause for 1.0 sec
+                            time.sleep(1.0)
                     else:
                         subprocess.wait()
                         self.progress = (total_transferred_mb + file_size_mb) / total_size_mb * 100
                         self.log.info(f'file transfer is {self.progress:.2f} % complete.')
+                        end_time = time.time()
                     self.log.info(f'{filename} transfer complete')
                     # wait for process to finish before cleaning log file
-                    time.sleep(10.0)
+                    time.sleep(0.1)
                     # clean up and remove the temporary log file
                     os.remove(log_path)
                     # update the total transfered amount
@@ -171,6 +178,6 @@ class RobocopyFileTransfer(BaseFileTransfer):
                         raise ValueError(f'{local_file_path} is not a file or directory.')
                 end_time = time.time()
                 total_time = end_time - start_time
-                self.log.info(f'transfer complete, total time: {total_time} sec')
+                self.log.info(f'transfer complete, total time: {total_time:.2f} sec')
                 subprocess.kill()
                 retry_num += 1

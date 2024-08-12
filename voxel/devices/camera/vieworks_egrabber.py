@@ -7,7 +7,6 @@ from voxel.devices.utils.singleton import Singleton
 from voxel.processes.downsample.gpu.gputools.downsample_2d import GPUToolsDownSample2D
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 import numpy as np
-# from copy import deepcopy
 
 BUFFER_SIZE_MB = 2400
 
