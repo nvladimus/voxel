@@ -2,7 +2,7 @@ from typing import Any, Tuple, Dict, List, Optional
 
 import numpy
 
-from voxel.descriptors.deliminated_property import DeliminatedProperty
+from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.devices.camera.base import VoxelCamera
 from voxel.devices.camera.vieworks.egrabber import (
     BUFFER_INFO_BASE,
@@ -173,7 +173,7 @@ class VieworksCamera(VoxelCamera):
             self.log.error(str(e))
             raise
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=lambda self: self.min_exposure_time_ms,
         maximum=lambda self: self.max_exposure_time_ms,
         step=lambda self: self.step_exposure_time_ms,
@@ -205,7 +205,7 @@ class VieworksCamera(VoxelCamera):
         # refresh parameter values
         self._get_min_max_step_values()
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=lambda self: self.min_width_px,
         maximum=lambda self: self.max_width_px,
         step=lambda self: self.step_width_px,
@@ -252,7 +252,7 @@ class VieworksCamera(VoxelCamera):
 
         return self.grabber.remote.get("OffsetX")
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=lambda self: self.min_height_px,
         maximum=lambda self: self.max_height_px,
         step=lambda self: self.step_height_px,

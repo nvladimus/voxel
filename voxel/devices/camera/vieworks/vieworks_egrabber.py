@@ -2,7 +2,7 @@ from typing import Tuple, Dict, List, Optional, Union, Literal, Any
 
 import numpy as np
 
-from voxel.descriptors.deliminated_property import DeliminatedProperty
+from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.devices.camera import VoxelCamera
 from voxel.devices.camera.typings import (
     BYTES_PER_MB,
@@ -66,7 +66,7 @@ class VieworksCamera(VoxelCamera):
             "ExposureTime": {"Min": None, "Max": None, "Inc": None}
         }
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=lambda self: self._query_delimination_prop("Height", "Min"),
         maximum=lambda self: self._query_delimination_prop("Height", "Max"),
         step=lambda self: self._query_delimination_prop("Height", "Inc"),
@@ -121,7 +121,7 @@ class VieworksCamera(VoxelCamera):
             self.log.error(f"Failed to get sensor width: {e}")
             return 0
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=lambda self: self._query_delimination_prop("Height", "Min"),
         maximum=lambda self: self._query_delimination_prop("Height", "Max"),
         step=lambda self: self._query_delimination_prop("Height", "Inc"),
@@ -274,7 +274,7 @@ class VieworksCamera(VoxelCamera):
         self._bit_packing_mode_cache = None
         self.log.info(f"Set bit packing mode to {bit_packing_mode}")
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=lambda self: self._query_delimination_prop("ExposureTime", "Min") / 1000,
         maximum=lambda self: self._query_delimination_prop("ExposureTime", "Max") / 1000,
         step=lambda self: self._query_delimination_prop("ExposureTime", "Inc") / 1000,

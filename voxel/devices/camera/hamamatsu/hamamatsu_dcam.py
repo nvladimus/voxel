@@ -1,6 +1,6 @@
 import logging
 import time
-from voxel.descriptors.deliminated_property import DeliminatedProperty
+from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.devices.camera.base import VoxelCamera
 from voxel.devices.camera.hamamatsu.dcam.dcam import (
     DCAM_IDSTR,
@@ -148,7 +148,7 @@ class Camera(VoxelCamera):
         # initialize parameter values
         self._update_parameters()
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=lambda self: self.min_exposure_time_ms,
         maximum=lambda self: self.max_exposure_time_ms,
         step=lambda self: self.step_exposure_time_ms,
@@ -178,7 +178,7 @@ class Camera(VoxelCamera):
         # refresh parameter values
         self._update_parameters()
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=lambda self: self.min_width_px,
         maximum=lambda self: self.max_width_px,
         step=lambda self: self.step_width_px,
@@ -225,13 +225,13 @@ class Camera(VoxelCamera):
 
         return int(self.dcam.prop_getvalue(PROPERTIES["subarray_hpos"]))
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=lambda self: self.min_height_px,
         maximum=lambda self: self.max_height_px,
         step=lambda self: self.step_height_px,
         unit="px",
     )
-    @DeliminatedProperty(minimum=float("-inf"), maximum=float("inf"))
+    @deliminated_property(minimum=float("-inf"), maximum=float("inf"))
     def roi_height_px(self):
         """
         Get the height of the camera region of interest in pixels.
@@ -307,7 +307,7 @@ class Camera(VoxelCamera):
         # refresh parameter values
         self._update_parameters()
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=lambda self: self.min_line_interval_us,
         maximum=lambda self: self.max_line_interval_us,
         step=lambda self: self.step_line_interval_us,

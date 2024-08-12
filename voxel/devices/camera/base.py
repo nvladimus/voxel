@@ -3,7 +3,7 @@ from abc import abstractmethod
 import numpy as np
 from numpy.typing import NDArray
 
-from voxel.descriptors.deliminated_property import DeliminatedProperty
+from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.devices.camera.typings import TriggerSettingsLUT, PixelTypeLUT, BinningLUT, BitPackingModeLUT, PixelType, \
     BitPackingMode, TriggerSettings, AcquisitionState, Binning
 from voxel.devices.device import VoxelDevice
@@ -22,7 +22,7 @@ class VoxelCamera(VoxelDevice):
         super().__init__(id)
 
     # ROI Configuration Properties
-    @DeliminatedProperty
+    @deliminated_property
     @abstractmethod
     def roi_width_px(self) -> int:
         """Get the width of the camera region of interest in pixels.
@@ -62,7 +62,7 @@ class VoxelCamera(VoxelDevice):
         """
         pass
 
-    @DeliminatedProperty
+    @deliminated_property
     @abstractmethod
     def roi_height_px(self) -> int:
         """Get the height of the camera region of interest in pixels.
@@ -180,7 +180,7 @@ class VoxelCamera(VoxelDevice):
         pass
 
     # Acquisition/Capture Properties
-    @DeliminatedProperty
+    @deliminated_property
     @abstractmethod
     def exposure_time_ms(self) -> float:
         """Get the exposure time of the camera in ms.

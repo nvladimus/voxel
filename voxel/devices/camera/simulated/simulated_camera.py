@@ -1,6 +1,6 @@
 import numpy as np
 
-from voxel.descriptors.deliminated_property import DeliminatedProperty
+from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.devices.camera import VoxelCamera
 from voxel.devices.camera.typings import (
     Binning, BinningLUT,
@@ -74,8 +74,8 @@ class SimulatedCamera(VoxelCamera):
             BitPackingMode.NONE: "none"
         }
 
-    # TODO: Update DeliminatedProperty to use callables
-    @DeliminatedProperty(
+    # TODO: Update deliminated_property to use callables
+    @deliminated_property(
         minimum=MIN_WIDTH_PX,
         maximum=MAX_WIDTH_PX,
         step=STEP_WIDTH_PX, unit="px"
@@ -101,7 +101,7 @@ class SimulatedCamera(VoxelCamera):
     def sensor_width_px(self) -> int:
         return self.instance.sensor_width_px
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=MIN_HEIGHT_PX,
         maximum=MAX_HEIGHT_PX,
         step=STEP_HEIGHT_PX, unit="px"
@@ -200,7 +200,7 @@ class SimulatedCamera(VoxelCamera):
         # Invalidate the cached property
         self._bit_packing_mode_cache = None
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=MIN_EXPOSURE_TIME_MS,
         maximum=MAX_EXPOSURE_TIME_MS,
         step=STEP_EXPOSURE_TIME_MS, unit="ms"

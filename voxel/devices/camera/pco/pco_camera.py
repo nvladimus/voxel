@@ -1,6 +1,6 @@
 import logging
 import time
-from voxel.descriptors.deliminated_property import DeliminatedProperty
+from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.devices.camera.base import VoxelCamera
 from voxel.devices.camera.pco import pco
 from voxel.devices.utils.singleton import Singleton
@@ -60,7 +60,7 @@ class Camera(VoxelCamera):
             del self.pco
         self.pco = pcoSingleton.Camera(id=self.id)
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=lambda self: self.min_exposure_time_ms,
         maximum=lambda self: self.max_exposure_time_ms,
         step=lambda self: self.step_exposure_time_ms,
@@ -90,7 +90,7 @@ class Camera(VoxelCamera):
         # refresh parameter values
         self._get_min_max_step_values()
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=lambda self: self.min_width_px,
         maximum=lambda self: self.max_width_px,
         step=lambda self: self.step_width_px,
@@ -141,7 +141,7 @@ class Camera(VoxelCamera):
         roi = self.pco.sdk.get_roi()
         return roi["x0"] - 1
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=lambda self: self.min_height_px,
         maximum=lambda self: self.max_height_px,
         step=lambda self: self.step_height_px,
@@ -196,7 +196,7 @@ class Camera(VoxelCamera):
         roi = self.pco.sdk.get_roi()
         return roi["y0"] - 1
 
-    @DeliminatedProperty(
+    @deliminated_property(
         minimum=lambda self: self.min_line_interval_us,
         maximum=lambda self: self.max_line_interval_us,
         step=lambda self: self.step_line_interval_us,
