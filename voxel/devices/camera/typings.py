@@ -6,6 +6,10 @@ import numpy as np
 
 from numpy.typing import NDArray
 
+# constants
+BYTES_PER_MB = 1_000_000
+
+
 # Type aliases
 VoxelFrame: TypeAlias = NDArray[np.uint8 | np.uint16]
 
@@ -60,7 +64,7 @@ class TriggerPolarity(Enum):
 
 
 @dataclass
-class TriggerLUT:
+class TriggerSettingsLUT:
     """Look-up table for a camera model trigger settings."""
     mode: Dict[TriggerMode, str]
     source: Dict[TriggerSource, str]

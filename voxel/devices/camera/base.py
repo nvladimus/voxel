@@ -4,8 +4,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from voxel.descriptors.deliminated_property import DeliminatedProperty
-from voxel.devices.camera.codes import TriggerLUT, PixelTypeLUT, BinningLUT, BitPackingModeLUT, PixelType, \
-    BitPackingMode, TriggerSettings, AcquisitionState
+from voxel.devices.camera.typings import TriggerSettingsLUT, PixelTypeLUT, BinningLUT, BitPackingModeLUT, PixelType, \
+    BitPackingMode, TriggerSettings, AcquisitionState, Binning
 from voxel.devices.device import VoxelDevice
 from voxel.devices.utils.geometry import Vec2D
 
@@ -107,7 +107,7 @@ class VoxelCamera(VoxelDevice):
     # Image Format Properties
     @property
     @abstractmethod
-    def binning(self) -> int:
+    def binning(self) -> Binning:
         """Get the binning mode of the camera. \n
         Integer value, e.g. 2 is 2x2 binning
 
@@ -118,7 +118,7 @@ class VoxelCamera(VoxelDevice):
 
     @binning.setter
     @abstractmethod
-    def binning(self, binning: int) -> None:
+    def binning(self, binning: Binning) -> None:
         """Set the binning mode of the camera. \n
         Integer value, e.g. 2 is 2x2 binning
 
@@ -143,7 +143,7 @@ class VoxelCamera(VoxelDevice):
         """Get the pixel type of the camera.
 
         :return: The pixel type of the camera.
-        :rtype: str
+        :rtype: PixelType
         """
         pass
 
