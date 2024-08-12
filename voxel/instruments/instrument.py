@@ -15,9 +15,11 @@ class Instrument:
         self.config_path = Path(config_path)
         # yaml = YAML(typ='safe', pure=True)    # loads yaml in as dict. May want to use in future
         self.config = YAML(typ='safe', pure=True).load(self.config_path)
+
         # store a dict of {device name: device type} for convenience
         self.channels = {}
         self.stage_axes = []
+
         # construct microscope
         self._construct()
 
@@ -93,7 +95,6 @@ class Instrument:
             # If subdevice init needs parent object type, add device object to init arguments
             elif parameter.annotation == type(device_object):
                 subdevice_specs['init'][name] = device_object
-        print()
         self._construct_device(subdevice_name, subdevice_specs)
 
     def _load_device(self, driver: str, module: str, kwds):

@@ -11,7 +11,7 @@ POSITIONS = {
 def simulated():
     fm = SimulatedFlipMount(id="flip-mount-1", conn="simulated", positions=POSITIONS)
     yield fm
-    fm.disconnect()
+    fm.close()
 
 
 def test_connect(simulated):
@@ -20,8 +20,8 @@ def test_connect(simulated):
     assert simulated.position == next(iter(POSITIONS.keys()))
 
 
-def test_disconnect(simulated):
-    simulated.disconnect()
+def test_close(simulated):
+    simulated.close()
     assert simulated._inst is None
 
 
