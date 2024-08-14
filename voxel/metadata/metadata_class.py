@@ -18,6 +18,13 @@ Y_ANATOMICAL_DIRECTIONS = {'Inferior to Superior': 'Inferior_to_superior',
 Z_ANATOMICAL_DIRECTIONS = {'Left to Right': 'Left_to_right',
                            'Right to Left': 'Right_to_left'}
 
+CHAMBER_IMMERSION_MEDIUMS = {'air': 'air',
+                               'multi': 'multi',
+                               'oil': 'oil',
+                               'PBS': 'PBS',
+                               'water': 'water',
+                               'other': 'other'}
+
 
 class MetadataClass(BaseMetadata):
     """Class to handle metadata"""
@@ -59,7 +66,7 @@ class MetadataClass(BaseMetadata):
 
         if inflection.pluralize(name).upper() in globals().keys():
             opt_dict = globals()[inflection.pluralize(name).upper()]
-            inv = {v:k for k,v in opt_dict}
+            inv = {v: k for k, v in opt_dict}
             return inv[getattr(self, f'_{name}')]
         else:
             return getattr(self, f'_{name}')
@@ -114,7 +121,8 @@ class MetadataClass(BaseMetadata):
         else:
             name = []
             for prop_name in form:
-                if not isinstance(getattr(type(self), prop_name, None), property):  # check if prop name is metadata property
+                if not isinstance(getattr(type(self), prop_name, None),
+                                  property):  # check if prop name is metadata property
                     raise ValueError(f'{prop_name} is not a metadata property. Please choose from {self.__dir__()}')
                 name.append(str(getattr(self, prop_name)))
             if self._date_format is not None:
