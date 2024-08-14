@@ -13,16 +13,22 @@ MODULATION_MODES = {
 
 
 class ObisLSLaser(BaseLaser):
-    def __init__(self, id: str, port: Serial | str, prefix: str = None):
+    def __init__(self, id: str, wavelength: int, port: Serial | str, prefix: str = None):
         """
         Communicate with specific LS laser.
 
         :param port: comm port for lasers.
+        :param wavelength: wavelength of laser
         :param prefix: prefix specic to laser.
         """
         super().__init__(id)
         self.prefix = prefix
+        self._wavelength = wavelength
         self._inst = ObisLS(port, self.prefix)
+
+    @property
+    def wavelength(self) -> int:
+        return self._wavelength
 
     def enable(self):
         self._inst.enable()

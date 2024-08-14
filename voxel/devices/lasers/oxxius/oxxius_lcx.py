@@ -7,22 +7,28 @@ from voxel.devices.lasers.base import BaseLaser
 
 class OxxiusLCXLaser(BaseLaser):
 
-    def __init__(self, id: str, port: Serial or str, prefix: str):
+    def __init__(self, id: str, wavelength: int, port: Serial or str, prefix: str):
         """
         Communicate with specific LBX laser in L6CC Combiner box.
 
         :param port: comm port for lasers.
         :param prefix: prefix specic to laser.
+        :param wavelength: wavelength of laser
         """
         super().__init__(id)
         self._prefix = prefix
         self._inst = LCX(port, self._prefix)
+        self._wavelength = wavelength
 
     def enable(self):
         self._inst.enable()
 
     def disable(self):
         self._inst.disable()
+
+    @property
+    def wavelength(self) -> int:
+        return self._wavelength
 
     @DeliminatedProperty(minimum=0, maximum=lambda self: self._inst.max_power)
     def power_setpoint_mw(self):

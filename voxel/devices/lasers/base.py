@@ -21,6 +21,12 @@ class BaseLaser(VoxelDevice):
 
     @property
     @abstractmethod
+    def wavelength(self):
+        """Wavelength of laser"""
+        pass
+
+    @property
+    @abstractmethod
     def power_setpoint_mw(self) -> float:
         """
         The power setpoint is the target power that the laser is trying to achieve.

@@ -9,6 +9,8 @@ from threading import Lock, RLock
 from functools import wraps
 from voxel.descriptors.deliminated_property import _DeliminatedProperty
 import copy
+import re
+import sys
 
 class Instrument:
 

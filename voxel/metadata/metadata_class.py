@@ -31,7 +31,7 @@ class MetadataClass(BaseMetadata):
         for key, value in metadata_dictionary.items():
             # create properties from keyword entries
             setattr(self, f'_{key}', value)
-            new_property = property(fget=lambda x, k=key: getattr(self, f'_{k}'),
+            new_property = property(fget=lambda instance, k=key: self.get_class_attribute(instance, k),
                                     fset=lambda metadataclass, val, k=key: self.set_class_attribute(val, k))
             setattr(type(self), key, new_property)
         # initialize properties
@@ -53,6 +53,16 @@ class MetadataClass(BaseMetadata):
                 setattr(self, f'_{name}', opt_dict[value])
         else:
             setattr(self, f'_{name}', value)
+
+    def get_class_attribute(self, instance, name):
+        """Function to get attribute of class to act as getters"""
+
+        if inflection.pluralize(name).upper() in globals().keys():
+            opt_dict = globals()[inflection.pluralize(name).upper()]
+            inv = {v:k for k,v in opt_dict}
+            return inv[getattr(self, f'_{name}')]
+        else:
+            return getattr(self, f'_{name}')
 
     @property
     def date_format(self):

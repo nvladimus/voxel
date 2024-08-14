@@ -25,7 +25,7 @@ class MPDSSingleton(MPDS, metaclass=Singleton):
 
 class AOTF(BaseLaser):
 
-    def __init__(self, port: str, channel: int, coefficients: dict, daq: DAQ):
+    def __init__(self, port: str, wavelength: int, channel: int, coefficients: dict, daq: DAQ):
 
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.aotf = MPDSSingleton(com_port = port)
@@ -38,6 +38,11 @@ class AOTF(BaseLaser):
         self.func = 0
         for order, co in self.coefficients.items():
             self.func = self.func + float(co) * x ** int(order)
+        self._wavelength = wavelength
+
+    @property
+    def wavelength(self) -> int:
+        return self._wavelength
 
     def enable(self):
         self.aotf.enable_channel(self.id)

@@ -35,16 +35,22 @@ def obis_modulation_setter(instance, value: str, modes=None):
 
 class ObisLXLaser(BaseLaser):
 
-    def __init__(self, id: str, port: Serial | str, prefix: str = None):
+    def __init__(self, id: str, wavelength: int, port: Serial | str, prefix: str = None):
         """
         Communicate with specific LBX laser in L6CC Combiner box.
 
         :param port: comm port for lasers.
         :param prefix: prefix specic to laser.
+        :param wavelength: wavelength of laser
         """
         super().__init__(id)
         self.prefix = prefix
+        self._wavelength = wavelength
         self._inst = ObisLX(port, self.prefix)
+
+    @property
+    def wavelength(self) -> int:
+        return self._wavelength
 
     def enable(self):
         self._inst.enable()

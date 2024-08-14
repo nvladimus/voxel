@@ -15,6 +15,7 @@ from voxel.instruments.instrument import Instrument
 from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
 import inflection
 import inspect
+import re
 
 class Acquisition:
 
