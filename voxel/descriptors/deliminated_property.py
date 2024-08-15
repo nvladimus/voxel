@@ -26,7 +26,7 @@ class DeliminatedProperty(property):
         self._unit = unit
         self._instance: Any = None
 
-        self.log = logging.getLogger(f"{__name__} - {self.__class__.__name__}")
+        self.log = logging.getLogger(f"{self.__class__.__name__}")
 
     def __get__(self, instance: Any, owner=None) -> Union['DeliminatedProperty', 'DeliminatedPropertyProxy']:
         if instance is None:
@@ -47,7 +47,7 @@ class DeliminatedProperty(property):
         original_value = value
         value = self._adjust_value(value)
         if value != original_value:
-            self.log.warning(f"Value {original_value} was adjusted to {value}\n\t{self}")
+            self.log.warning(f"Value {original_value} was adjusted to {value}\t{self}")
         self.fset(instance, value)
 
     def __delete__(self, instance: Any) -> None:
@@ -106,13 +106,12 @@ class DeliminatedProperty(property):
         return value
 
     def __repr__(self):
-        min_repr = "callable" if callable(self._minimum) else self._minimum
-        max_repr = "callable" if callable(self._maximum) else self._maximum
-        step_repr = "callable" if callable(self._step) else self._step
+        min_repr = self.minimum
+        max_repr = self.maximum
+        step_repr = self.step if self._step else '_'
         return (
-            f"{self.__class__.__name__}"
-            f"(minimum={min_repr}, "
-            f"maximum={max_repr}, "
+            f"(min={min_repr}, "
+            f"max={max_repr}, "
             f"step={step_repr}, "
             f"unit={self.unit})"
         )

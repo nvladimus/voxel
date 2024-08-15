@@ -1,42 +1,54 @@
 # Enums for Camera Settings
 from dataclasses import dataclass
-from enum import Enum, auto
-from typing import TypeAlias, Dict, Union, Literal
+from enum import Enum, auto, IntEnum
+from typing import TypeAlias, Dict, Union, Literal, Set
 import numpy as np
 
 from numpy.typing import NDArray
 
+from voxel.devices.utils.geometry import Vec2D
+
 # constants
 BYTES_PER_MB = 1_000_000
-
 
 # Type aliases
 VoxelFrame: TypeAlias = NDArray[np.uint8 | np.uint16]
 
-Binning: TypeAlias = Literal[1, 2, 4]
-BinningLUT: TypeAlias = Dict[Binning, Union[str, int]]
+CMD: TypeAlias = Union[str, int, float]
 
 
-class PixelType(Enum):
-    MONO8 = auto()
-    MONO10 = auto()
-    MONO12 = auto()
-    MONO14 = auto()
-    MONO16 = auto()
-    MONOSPACING = auto()
-    RGB8 = auto()
-    RGB10 = auto()
-    RGB12 = auto()
-    RGB14 = auto()
+class Binning(IntEnum):
+    X1 = 1
+    X2 = 2
+    X4 = 4
+    X8 = 8
 
 
-@dataclass
-class PixelTypeInfo:
-    repr: str | int | float
-    line_interval_us: int | float
+BinningLUT: TypeAlias = Dict[Binning, CMD]
 
 
-PixelTypeLUT: TypeAlias = Dict[PixelType, PixelTypeInfo]
+class PixelType(IntEnum):
+    MONO8 = 8
+    MONO10 = 10
+    MONO12 = 12
+    MONO14 = 14
+    MONO16 = 16
+
+    @property
+    def numpy_dtype(self) -> np.dtype:
+        return np.uint8 if self == PixelType.MONO8 else np.uint16
+
+
+PixelTypeLUT: TypeAlias = Dict[PixelType, CMD]
+
+
+# @dataclass
+# class PixelTypeInfo:
+#     repr: str | int | float
+#     line_interval_us: int | float
+#
+#
+# PixelTypeLUT: TypeAlias = Dict[PixelType, PixelTypeInfo]
 
 
 class BitPackingMode(Enum):
@@ -80,6 +92,15 @@ class TriggerSettings:
 
     def __repr__(self):
         return f"{self.mode}, {self.source}, {self.polarity}"
+
+
+@dataclass
+class ROI:
+    origin: Vec2D
+    size: Vec2D
+
+    def __repr__(self):
+        return f"Origin = {self.origin}, Size = {self.size}"
 
 
 @dataclass

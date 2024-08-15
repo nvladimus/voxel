@@ -10,9 +10,5 @@ e.g. from voxel.devices.camera.vieworks import VieworksCamera
 """
 
 from .base import VoxelCamera
-from .simulated import SimulatedCamera
 
-__all__ = [
-    'VoxelCamera',
-    'SimulatedCamera',
-]
+__all__ = ['VoxelCamera']

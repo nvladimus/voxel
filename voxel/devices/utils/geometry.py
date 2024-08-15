@@ -4,8 +4,11 @@ from typing import Union
 
 @dataclass
 class Vec2D:
-    x: float
-    y: float
+    x: int | float
+    y: int | float
+
+    def __repr__(self):
+        return f"({self.x}, {self.y})"
 
     def __add__(self, other: 'Vec2D') -> 'Vec2D':
         return Vec2D(self.x + other.x, self.y + other.y)

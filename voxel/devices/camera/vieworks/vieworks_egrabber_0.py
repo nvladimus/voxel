@@ -20,7 +20,7 @@ from voxel.devices.camera.vieworks.egrabber import (
     ct,
     query,
 )
-from voxel.devices.device import DeviceConnectionError
+from voxel.devices.base import DeviceConnectionError
 from voxel.devices.utils.singleton import Singleton
 from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
 
@@ -953,7 +953,7 @@ class VieworksCamera(VoxelCamera):
         Internal function that queries camera SDK to determine \n
         binning options.
         """
-        # egrabber defines 1 as 'X1', 2 as 'X2', 3 as 'X3'...
+        # egrabber defines 1 as 'X1', 2 as 'X2', 4 as 'X4'...
         # check only horizontal since we will use same binning for vertical
         binning_options = self.grabber.remote.get("@ee BinningHorizontal", dtype=list)
         init_binning = self.grabber.remote.get("BinningHorizontal")

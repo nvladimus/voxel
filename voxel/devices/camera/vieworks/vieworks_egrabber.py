@@ -3,21 +3,22 @@ from typing import Tuple, Dict, List, Optional, Union, Literal, Any
 import numpy as np
 
 from voxel.descriptors.deliminated_property import deliminated_property
+from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.camera import VoxelCamera
 from voxel.devices.camera.typings import (
     BYTES_PER_MB,
     Binning, BinningLUT,
-    PixelType, PixelTypeLUT, PixelTypeInfo,
+    PixelType, PixelTypeLUT,
     BitPackingMode, BitPackingModeLUT,
     TriggerSettingsLUT, TriggerMode, TriggerSource, TriggerPolarity, TriggerSettings,
-    VoxelFrame, AcquisitionState
+    VoxelFrame, AcquisitionState, ROI
 )
 from voxel.devices.camera.vieworks.egrabber import (
     EGenTL, EGrabber, EGrabberDiscovery, Buffer, ct,
     GENTL_INFINITE, BUFFER_INFO_BASE, INFO_DATATYPE_PTR, INFO_DATATYPE_SIZET, STREAM_INFO_NUM_DELIVERED,
-    STREAM_INFO_NUM_QUEUED, STREAM_INFO_NUM_AWAIT_DELIVERY, STREAM_INFO_NUM_UNDERRUN, query,
+    STREAM_INFO_NUM_QUEUED, STREAM_INFO_NUM_AWAIT_DELIVERY, STREAM_INFO_NUM_UNDERRUN, query, GenTLException,
 )
-from voxel.devices.device import DeviceConnectionError
+from voxel.devices.base import DeviceConnectionError
 from voxel.devices.utils.geometry import Vec2D
 from voxel.devices.utils.singleton import Singleton
 
@@ -43,21 +44,24 @@ class VieworksCamera(VoxelCamera):
     def __init__(self, id, serial_number):
         super().__init__(id)
         self.serial_number = serial_number
+        self.log.info(f"Initializing Vieworks camera with id: {self.id} and serial number: {self.serial_number}")
 
         self.grabber, self.egrabber = self._discover_camera(self.gentl, self.serial_number)
 
         # Flags
         self._buffer_allocated = False
 
-        # LUTs and cached properties
+        # Caches
+        self._sensor_size_px_cache: Vec2D = Vec2D(-1, -1)
         self._binning_cache: Optional[Binning] = None
+
+        # LUTs
         self._binning_lut: BinningLUT = self._query_binning_lut()
-        self._pixel_type_cache: Optional[PixelType] = None
         self._pixel_type_lut: PixelTypeLUT = self._query_pixel_type_lut()
-        self._bit_packing_mode_cache: Optional[BitPackingMode] = None
         self._bit_packing_mode_lut: BitPackingModeLUT = self._query_bit_packing_mode_lut()
-        self._trigger_setting_cache: Optional[TriggerSettings] = None
-        self._trigger_settings_lut: TriggerSettingsLUT = self._query_trigger_settings_lut()
+
+        # self._trigger_setting_cache: Optional[TriggerSettings] = None
+        # self._trigger_settings_lut: TriggerSettingsLUT = self._query_trigger_settings_lut()
 
         # delimination properties
         self._delimination_props = {
@@ -65,118 +69,35 @@ class VieworksCamera(VoxelCamera):
             "Height": {"Min": None, "Max": None, "Inc": None},
             "ExposureTime": {"Min": None, "Max": None, "Inc": None}
         }
+        self.log.info(f"Completed initialization of Vieworks camera with id: {self.id}")
 
-    @deliminated_property(
-        minimum=lambda self: self._query_delimination_prop("Height", "Min"),
-        maximum=lambda self: self._query_delimination_prop("Height", "Max"),
-        step=lambda self: self._query_delimination_prop("Height", "Inc"),
-        unit='px'
+    @property
+    def sensor_size_px(self) -> Vec2D:
+        """Get the sensor size in pixels.
+        :return: The sensor size in pixels.
+        :rtype: Vec2D
+        """
+        if self._sensor_size_px_cache == Vec2D(-1, -1):
+            try:
+                width = int(self.grabber.remote.get("SensorWidth"))
+                height = int(self.grabber.remote.get("SensorHeight"))
+                self._sensor_size_px_cache = Vec2D(width, height)
+            except Exception as e:
+                self.log.error(f"Failed to get sensor size: {e}")
+        return self._sensor_size_px_cache
+
+    @property
+    def image_size_px(self) -> Vec2D:
+        """Get the image size in pixels.
+        :return: The image size in pixels.
+        :rtype: Vec2D
+        """
+        return Vec2D(self.roi_width_px, self.roi_height_px) // self.binning
+
+    @enumerated_property(
+        enum_class=Binning,
+        options_getter=lambda self: {k: k.name for k in self._binning_lut.keys()}
     )
-    def roi_width_px(self) -> int:
-        """Get the width of the ROI in pixels.
-        :return: The width in pixels.
-        :rtype: int
-        """
-        try:
-            return int(self.grabber.remote.get("Width"))
-        except Exception as e:
-            self.log.error(f"Failed to get ROI width: {e}")
-            return 0
-
-    @roi_width_px.setter
-    def roi_width_px(self, value: int) -> None:
-        """Set the width of the ROI in pixels.
-        :param value: The width in pixels.
-        :type value: int
-        """
-        self.grabber.remote.set("OffsetX", 0)
-        step_size = self._query_delimination_prop("Width", "Inc")
-        centered_offset = round(((self.sensor_width_px - value) / 2) / step_size) * step_size
-        self.grabber.remote.set("OffsetX", centered_offset)
-        self.grabber.remote.set("Width", value)
-        self.log.info(f"Set ROI width to {value} px")
-        self._invalidate_delimination_prop("Width")
-
-    @property
-    def roi_width_offset_px(self) -> int:
-        """Get the offset of the ROI width in pixels.
-        :return: The offset in pixels.
-        :rtype: int
-        """
-        try:
-            return int(self.grabber.remote.get("OffsetX"))
-        except Exception as e:
-            self.log.error(f"Failed to get ROI width offset: {e}")
-            return 0
-
-    @property
-    def sensor_width_px(self) -> int:
-        """Get the sensor width in pixels.
-        :return: The sensor width in pixels.
-        :rtype: int
-        """
-        try:
-            return int(self.grabber.remote.get("SensorWidth"))
-        except Exception as e:
-            self.log.error(f"Failed to get sensor width: {e}")
-            return 0
-
-    @deliminated_property(
-        minimum=lambda self: self._query_delimination_prop("Height", "Min"),
-        maximum=lambda self: self._query_delimination_prop("Height", "Max"),
-        step=lambda self: self._query_delimination_prop("Height", "Inc"),
-        unit='px'
-    )
-    def roi_height_px(self) -> int:
-        """Get the height of the ROI in pixels.
-        :return: The height in pixels.
-        :rtype: int
-        """
-        try:
-            return int(self.grabber.remote.get("Height"))
-        except Exception as e:
-            self.log.error(f"Failed to get ROI height: {e}")
-            return 0
-
-    @roi_height_px.setter
-    def roi_height_px(self, value: int) -> None:
-        """Set the height of the ROI in pixels.
-        :param value: The height in pixels.
-        :type value: int
-        """
-        self.grabber.remote.set("OffsetY", 0)
-        step_size = self._query_delimination_prop("Height", "Inc")
-        centered_offset = round(((self.sensor_height_px - value) / 2) / step_size) * step_size
-        self.grabber.remote.set("OffsetY", centered_offset)
-        self.grabber.remote.set("Height", value)
-        self.log.info(f"Set ROI height to {value} px")
-        self._invalidate_delimination_prop("Height")
-
-    @property
-    def roi_height_offset_px(self) -> int:
-        """Get the offset of the ROI height in pixels.
-        :return: The offset in pixels.
-        :rtype: int
-        """
-        try:
-            return int(self.grabber.remote.get("OffsetY"))
-        except Exception as e:
-            self.log.error(f"Failed to get ROI height offset: {e}")
-            return 0
-
-    @property
-    def sensor_height_px(self) -> int:
-        """Get the sensor height in pixels.
-        :return: The sensor height in pixels.
-        :rtype: int
-        """
-        try:
-            return int(self.grabber.remote.get("SensorHeight"))
-        except Exception as e:
-            self.log.error(f"Failed to get sensor height: {e}")
-            return 0
-
-    @property
     def binning(self) -> Binning:
         """Get the binning setting.
         :return: The binning setting i.e Literal[1, 2, 4]
@@ -198,22 +119,181 @@ class VieworksCamera(VoxelCamera):
         :type binning: Binning
         """
         if binning not in self._binning_lut:
-            self.log.error(f"Invalid binning value: {binning}")
+            self.log.error(f"Invalid binning value: {binning}. Available options: {self._binning_lut.keys()}")
             return
-        self.grabber.remote.set("BinningHorizontal", self._binning_lut[binning])
-        self.grabber.remote.set("BinningVertical", self._binning_lut[binning])
-        self.log.info(f"Set binning to {binning}")
-        self._binning_cache = None
+        try:
+            self.grabber.remote.set("BinningHorizontal", self._binning_lut[binning])
+            self.grabber.remote.set("BinningVertical", self._binning_lut[binning])
+            self.log.info(f"Set binning to {binning}")
+        except Exception as e:
+            self.log.error(f"Failed to set binning: {e}")
+
         # TODO: Check if binning affects exposure time delimination props
+        self._binning_cache = None
         self._invalidate_all_delimination_props()
 
-    @property
-    def image_size_px(self) -> Vec2D:
-        """Get the image size in pixels.
-        :return: The image size in pixels.
-        :rtype: Vec2D
+    @deliminated_property(
+        minimum=lambda self: self._query_delimination_prop("Width", "Min") * self.binning,
+        maximum=lambda self: self.sensor_size_px.x - self._query_delimination_prop("Width", "Inc") * (self.binning - 1),
+        step=lambda self: self._query_delimination_prop("Width", "Inc") * self.binning,
+        unit='px'
+    )
+    def roi_width_px(self) -> int:
+        """Get the width of the ROI in pixels.
+        :return: The width in pixels.
+        :rtype: int
         """
-        return Vec2D(self.roi_width_px, self.roi_height_px) // self.binning
+        try:
+            return int(self.grabber.remote.get("Width")) * self.binning
+        except Exception as e:
+            self.log.error(f"Failed to get roi width. Error: {e}")
+            return -1
+
+    @roi_width_px.setter
+    def roi_width_px(self, value: int) -> None:
+        """Set the width of the ROI in pixels.
+        :param value: The width in pixels.
+        :type value: int
+        """
+        self.roi_width_offset_px = 0
+
+        self.log.debug(f"Setting ROI width with value: {value}")
+
+        self.grabber.remote.set("Width", value // self.binning)
+
+        # center the width
+        offset = (self.sensor_size_px.x - value) // 2
+        self.roi_width_offset_px = offset
+
+        self.log.info(f"Set ROI width to {value} px")
+        self._invalidate_delimination_prop("Width")
+
+    @deliminated_property(
+        minimum=0,
+        maximum=lambda self: self.sensor_size_px.x - self.roi_width_px,
+        step=lambda self: self._query_delimination_prop("Width", "Inc") * self.binning,
+        unit='px'
+    )
+    def roi_width_offset_px(self) -> int:
+        """Get the offset of the ROI width in pixels.
+        :return: The offset in pixels.
+        :rtype: int
+        """
+        try:
+            return int(self.grabber.remote.get("OffsetX")) * self.binning
+        except Exception as e:
+            self.log.error(f"Failed to get ROI width offset: {e}")
+            return 0
+
+    @roi_width_offset_px.setter
+    def roi_width_offset_px(self, value: int) -> None:
+        """Set the offset of the ROI width in pixels.
+        :param value: The offset in pixels.
+        :type value: int
+        """
+        self.log.debug(f"Setting ROI width offset with value: {value}")
+        self.grabber.remote.set("OffsetX", value // self.binning)
+        self.log.info(f"Set ROI width offset to {value} px")
+
+    @deliminated_property(
+        minimum=lambda self: self._query_delimination_prop("Height", "Min"),
+        maximum=lambda self: self.sensor_size_px.y,
+        step=lambda self: self._query_delimination_prop("Height", "Inc"),
+        unit='px'
+    )
+    def roi_height_px(self) -> int:
+        """Get the height of the ROI in pixels.
+        :return: The height in pixels.
+        :rtype: int
+        """
+        try:
+            return int(self.grabber.remote.get("Height")) * self.binning
+        except Exception as e:
+            self.log.error(f"Failed to get roi height. Error: {e}")
+            return -1
+
+    @roi_height_px.setter
+    def roi_height_px(self, value: int) -> None:
+        """Set the height of the ROI in pixels.
+        :param value: The height in pixels.
+        :type value: int
+        """
+        self.roi_height_offset_px = 0
+
+        self.log.debug(f"Setting ROI height with value: {value}")
+
+        self.grabber.remote.set("Height", value // self.binning)
+
+        # center the height
+        offset = (self.sensor_size_px.y - value) // 2
+        self.roi_height_offset_px = offset
+
+        self.log.info(f"Set ROI height to {value} px")
+        self._invalidate_delimination_prop("Height")
+
+    @deliminated_property(
+        minimum=0,
+        maximum=lambda self: self.sensor_size_px.y - self.roi_height_px,
+        step=lambda self: self._query_delimination_prop("Height", "Inc") * self.binning,
+        unit='px'
+    )
+    def roi_height_offset_px(self) -> int:
+        """Get the offset of the ROI height in pixels.
+        :return: The offset in pixels.
+        :rtype: int
+        """
+        try:
+            return self.grabber.remote.get("OffsetY") * self.binning
+        except Exception as e:
+            self.log.error(f"Failed to get ROI height offset: {e}")
+            return 0
+
+    @roi_height_offset_px.setter
+    def roi_height_offset_px(self, value: int) -> None:
+        """Set the offset of the ROI height in pixels.
+        :param value: The offset in pixels.
+        :type value: int
+        """
+        self.log.debug(f"Setting ROI height offset with value: {value}")
+        self.grabber.remote.set("OffsetY", value // self.binning)
+        self.log.info(f"Set ROI height offset to {value} px")
+
+    @property
+    def roi(self) -> ROI:
+        """Get the current ROI settings.
+        :return: The ROI settings.
+        :rtype: ROI
+        """
+        return ROI(
+            origin=Vec2D(int(self.roi_width_offset_px), self.roi_height_offset_px),
+            size=Vec2D(self.roi_width_px, self.roi_height_px)
+        )
+
+    def reset_roi(self) -> None:
+        """Reset the ROI to full sensor size."""
+        self.roi_width_offset_px = 0
+        self.roi_height_offset_px = 0
+        self.roi_width_px = self.sensor_width_px
+        self.roi_height_px = self.sensor_height_px
+
+    # Convenience properties #################################################
+    @property
+    def sensor_width_px(self) -> int:
+        """Get the sensor width in pixels.
+        :return: The sensor width in pixels.
+        :rtype: int
+        """
+        return self.sensor_size_px.x
+
+    @property
+    def sensor_height_px(self) -> int:
+        """Get the sensor height in pixels.
+        :return: The sensor height in pixels.
+        :rtype: int
+        """
+        return self.sensor_size_px.y
+
+    ##########################################################################
 
     @property
     def pixel_type(self) -> PixelType:
@@ -221,15 +301,12 @@ class VieworksCamera(VoxelCamera):
         :return: The pixel type.
         :rtype: PixelType
         """
-        if not self._pixel_type_cache:
-            grabber_pixel_type = self.grabber.remote.get("PixelFormat")
-            try:
-                self._pixel_type_cache = next(
-                    k for k, v in self._pixel_type_lut.items() if v.repr == grabber_pixel_type)
-            except KeyError:
-                self.log.error(f"Grabber pixel type ({grabber_pixel_type}) not found in LUT({self._pixel_type_lut})")
-                self._pixel_type_cache = PixelType.MONO8
-        return self._pixel_type_cache
+        grabber_pixel_type = self.grabber.remote.get("PixelFormat")
+        try:
+            return next(k for k, v in self._pixel_type_lut.items() if k.name == grabber_pixel_type)
+        except KeyError:
+            self.log.error(f"Grabber pixel type ({grabber_pixel_type}) not found in LUT({self._pixel_type_lut})")
+            return PixelType.MONO8
 
     @pixel_type.setter
     def pixel_type(self, pixel_type: PixelType) -> None:
@@ -238,11 +315,13 @@ class VieworksCamera(VoxelCamera):
         :type pixel_type: PixelType
         """
         if pixel_type not in self._pixel_type_lut:
-            self.log.error(f"Invalid pixel type: {pixel_type}")
+            self._regenerate_pixel_type_lut()
+            if pixel_type not in self._pixel_type_lut:
+                self.log.error(f"Invalid pixel type: {pixel_type}, available options: {self._pixel_type_lut.keys()}")
             return
-        self.grabber.remote.set("PixelFormat", self._pixel_type_lut[pixel_type].repr)
-        self._pixel_type_cache = None
+        self.grabber.remote.set("PixelFormat", self._pixel_type_lut[pixel_type])
         self.log.info(f"Set pixel type to {pixel_type}")
+        self._regenerate_all_luts()
 
     @property
     def bit_packing_mode(self) -> BitPackingMode:
@@ -250,16 +329,13 @@ class VieworksCamera(VoxelCamera):
         :return: The bit packing mode.
         :rtype: BitPackingMode
         """
-        if not self._bit_packing_mode_cache:
-            grabber_bit_packing = self.grabber.remote.get("UnpackingMode")
-            try:
-                self._bit_packing_mode_cache = next(
-                    k for k, v in self._bit_packing_mode_lut.items() if v == grabber_bit_packing)
-            except KeyError:
-                self.log.error(
-                    f"Grabber bit packing mode ({grabber_bit_packing}) not found in LUT({self._bit_packing_mode_lut})")
-                self._bit_packing_mode_cache = BitPackingMode.NONE
-        return self._bit_packing_mode_cache
+        grabber_bit_packing = self.grabber.stream.get("UnpackingMode")
+        try:
+            return next(k for k, v in self._bit_packing_mode_lut.items() if v == grabber_bit_packing)
+        except KeyError:
+            self.log.error(
+                f"Grabber bit packing mode ({grabber_bit_packing}) not found in LUT({self._bit_packing_mode_lut})")
+            return BitPackingMode.NONE
 
     @bit_packing_mode.setter
     def bit_packing_mode(self, bit_packing_mode: BitPackingMode) -> None:
@@ -268,11 +344,13 @@ class VieworksCamera(VoxelCamera):
         :type bit_packing_mode: BitPackingMode
         """
         if bit_packing_mode not in self._bit_packing_mode_lut:
-            self.log.error(f"Invalid bit packing mode: {bit_packing_mode}")
+            self._regenerate_bit_packing_mode_lut()
+            if bit_packing_mode not in self._bit_packing_mode_lut:
+                self.log.error(f"Invalid bit packing mode: {bit_packing_mode}")
             return
-        self.grabber.remote.set("UnpackingMode", self._bit_packing_mode_lut[bit_packing_mode])
-        self._bit_packing_mode_cache = None
+        self.grabber.stream.set("UnpackingMode", self._bit_packing_mode_lut[bit_packing_mode])
         self.log.info(f"Set bit packing mode to {bit_packing_mode}")
+        self._regenerate_all_luts()
 
     @deliminated_property(
         minimum=lambda self: self._query_delimination_prop("ExposureTime", "Min") / 1000,
@@ -361,11 +439,9 @@ class VieworksCamera(VoxelCamera):
         and allocates the buffer in PC RAM.
         :raises RuntimeError: If the camera preparation fails.
         """
-        self.log.info("Preparing camera for acquisition")
+        self.log.info("Preparing camera for acquisition ...")
 
         def get_bits_per_pixel(pixel_type: PixelType) -> int:
-            if pixel_type in (PixelType.RGB8, PixelType.RGB10, PixelType.RGB12, PixelType.RGB14):
-                return int(pixel_type.name[3:]) * 3  # 3 channels
             try:
                 return int(pixel_type.name[-2:])
             except ValueError:
@@ -393,6 +469,7 @@ class VieworksCamera(VoxelCamera):
         except Exception as e:
             self.log.error(f"Error preparing camera: {str(e)}")
             raise RuntimeError("Failed to prepare camera") from e
+        self.log.info("Camera preparation complete. Successfully allocated buffer.")
 
     def start(self, frame_count: int = GENTL_INFINITE):
         """
@@ -414,9 +491,9 @@ class VieworksCamera(VoxelCamera):
 
     def close(self):
         """Close the camera and release all resources."""
+        self.stop()
         del self.grabber
         del self.egrabber
-        self._buffer_allocated = False
 
     def reset(self):
         """Reset the camera to default settings."""
@@ -532,10 +609,19 @@ class VieworksCamera(VoxelCamera):
     # Private methods #########################################################
 
     def _regenerate_all_luts(self) -> None:
+        self._regenerate_binning_lut()
+        self._regenerate_pixel_type_lut()
+        self._regenerate_bit_packing_mode_lut()
+
+    def _regenerate_binning_lut(self) -> None:
         self._binning_lut = self._query_binning_lut()
+        self._binning_cache = None
+
+    def _regenerate_pixel_type_lut(self) -> None:
         self._pixel_type_lut = self._query_pixel_type_lut()
+
+    def _regenerate_bit_packing_mode_lut(self) -> None:
         self._bit_packing_mode_lut = self._query_bit_packing_mode_lut()
-        self._trigger_settings_lut = self._query_trigger_settings_lut()
 
     def _query_binning_lut(self) -> BinningLUT:
         """
@@ -545,9 +631,11 @@ class VieworksCamera(VoxelCamera):
             For all use-cases, we assume that both the horizontal and vertical
             binning are the same. Therefore, we only consider the horizontal
         """
-        lut = BinningLUT()
+        lut: BinningLUT = {}
         init_binning = None
+        skipped_options = []
         try:
+            self.log.info('Querying binning options...')
             init_binning = self.grabber.remote.get("BinningHorizontal")
             binning_options = self.grabber.remote.get("@ee BinningHorizontal", dtype=list)
             for binning in binning_options:
@@ -555,16 +643,25 @@ class VieworksCamera(VoxelCamera):
                     self.grabber.remote.set("BinningHorizontal", binning)
                     binning_int = int(binning[1:])
                     lut[Binning(binning_int)] = binning
-                except (ValueError, KeyError) as e:
-                    self.log.warning(f"Failed to process binning option {binning}: {str(e)}")
+                except (ValueError, KeyError):
+                    self.log.debug(f"Binning setting {binning} skipped. Not allowed in voxel.")
+                except GenTLException as e:
+                    skipped_options.append(binning)
+                    self.log.debug(f'Binning option: {binning} skipped. Not settable on this device. Error: {str(e)}')
+                except Exception as e:
+                    skipped_options.append(binning)
+                    self.log.debug(f"Unexpected error processing binning option: {binning}. Error: {str(e)}")
         except Exception as e:
-            self.log.error(f"Error querying binning options: {str(e)}")
+            self.log.error(f"Error querying binning lut: {str(e)}")
         finally:
+            if skipped_options:
+                self.log.warning(f"Skipped binning options: {skipped_options}. See debug logs for more info.")
             if init_binning:
                 try:
                     self.grabber.remote.set("BinningHorizontal", init_binning)
                 except Exception as e:
-                    self.log.error(f"Failed to restore initial binning setting: {str(e)}")
+                    self.log.error(f"Failed to restore initial binning setting {init_binning}: {str(e)}")
+            self.log.info(f'Completed querying binning options: {lut}')
         return lut
 
     def _query_pixel_type_lut(self) -> PixelTypeLUT:
@@ -575,39 +672,38 @@ class VieworksCamera(VoxelCamera):
             We convert these to PixelType enums for easier handling.
         """
 
-        def query_line_interval(pixel_type_repr: str) -> Optional[float]:
-            try:
-                self.grabber.remote.set("PixelFormat", pixel_type_repr)
-                return self.grabber.remote.get("LineInterval")
-            except Exception as er:
-                self.log.error(f"Failed to get line interval for pixel type {pixel_type_repr}: {er}")
-                return None
-
-        lut = PixelTypeLUT()
+        lut: PixelTypeLUT = {}
         init_pixel_type = None
+        skipped_options = []
         try:
+            self.log.info('Querying pixel type options...')
             pixel_type_options = self.grabber.remote.get("@ee PixelFormat", dtype=list)
             init_pixel_type = self.grabber.remote.get("PixelFormat")
             for pixel_type in pixel_type_options:
                 try:
-                    line_interval = query_line_interval(pixel_type)
-                    if line_interval is None:
-                        continue
-                    info = PixelTypeInfo(repr=pixel_type, line_interval_us=line_interval)
+                    self.grabber.remote.set("PixelFormat", pixel_type)
                     lut_key = pixel_type.upper().replace(" ", "")  # convert 'Mono 8' to 'MONO8'
-                    lut[PixelType[lut_key]] = info
-                except KeyError as e:
-                    self.log.warning(f"Failed to convert pixel type option {pixel_type} to PixelType: {str(e)}")
+                    lut[PixelType[lut_key]] = pixel_type
+                except KeyError:
+                    skipped_options.append(pixel_type)
+                    self.log.debug(f"Pixel Type: {pixel_type} skipped. Not allowed in voxel.")
+                except GenTLException as e:
+                    skipped_options.append(pixel_type)
+                    self.log.debug(f'Pixel Type: {pixel_type} skipped. Not settable on this device. Error: {str(e)}')
                 except Exception as e:
-                    self.log.warning(f"Unexpected error processing pixel type {pixel_type}: {str(e)}")
+                    skipped_options.append(pixel_type)
+                    self.log.debug(f"Unexpected error processing pixel type: {pixel_type}. Error: {str(e)}")
         except Exception as e:
             self.log.error(f"Error querying pixel type options: {str(e)}")
         finally:
+            if skipped_options:
+                self.log.warning(f"Skipped pixel type options: {skipped_options}. See debug logs for more info.")
             if init_pixel_type:
                 try:
                     self.grabber.remote.set("PixelFormat", init_pixel_type)
                 except Exception as e:
-                    self.log.error(f"Failed to restore initial pixel type setting: {str(e)}")
+                    self.log.error(f"Failed to restore initial pixel type {init_pixel_type}: {str(e)}")
+            self.log.info(f'Completed querying pixel type options: {lut}')
         return lut
 
     def _query_bit_packing_mode_lut(self) -> BitPackingModeLUT:
@@ -617,26 +713,36 @@ class VieworksCamera(VoxelCamera):
             EGrabber defines the bit packing settings as strings: 'LSB', 'MSB', 'None', etc.
             We convert these to BitPackingMode enums for easier handling.
         """
-        lut = BitPackingModeLUT()
+        lut: BitPackingModeLUT = {}
         init_bit_packing = None
+        skipped_options = []
         try:
-            bit_packing_options = self.grabber.remote.get("@ee UnpackingMode", dtype=list)
-            init_bit_packing = self.grabber.remote.get("UnpackingMode")
-            for bit_packing in bit_packing_options:
+            self.log.info('Querying bit packing mode options...')
+            bit_packing_options = self.grabber.stream.get("@ee UnpackingMode", dtype=list)
+            init_bit_packing = self.grabber.stream.get("UnpackingMode")
+            for bit_packing_mode in bit_packing_options:
                 try:
-                    self.grabber.remote.set("UnpackingMode", bit_packing)
-                    lut_key = BitPackingMode[bit_packing.upper()]
-                    lut[lut_key] = bit_packing
-                except KeyError as e:
-                    self.log.warning(f"Failed to convert bit packing option {bit_packing} to BitPackingMode: {str(e)}")
+                    self.grabber.stream.set("UnpackingMode", bit_packing_mode)
+                    lut_key = BitPackingMode[bit_packing_mode.upper()]
+                    lut[lut_key] = bit_packing_mode
+                except GenTLException as e:
+                    self.log.debug(f'Bit Packing Mode: {bit_packing_mode} skipped. '
+                                   f'Not settable on this device. Error: {str(e)}')
+                    skipped_options.append(bit_packing_mode)
+                except KeyError:
+                    self.log.debug(f"Bit Packing Mode: {bit_packing_mode} skipped. Not allowed in voxel.")
+                    skipped_options.append(bit_packing_mode)
                 except Exception as e:
-                    self.log.warning(f"Unexpected error processing bit packing option {bit_packing}: {str(e)}")
+                    self.log.debug(f"Unexpected error processing bit packing option {bit_packing_mode}: {str(e)}")
+                    skipped_options.append(bit_packing_mode)
         except Exception as e:
             self.log.error(f"Error querying bit packing mode options: {str(e)}")
         finally:
+            if skipped_options:
+                self.log.warning(f"Skipped bit packing mode options: {skipped_options}. See debug logs for more info.")
             if init_bit_packing:
                 try:
-                    self.grabber.remote.set("UnpackingMode", init_bit_packing)
+                    self.grabber.stream.set("UnpackingMode", init_bit_packing)
                 except Exception as e:
                     self.log.error(f"Failed to restore initial bit packing mode setting: {str(e)}")
         return lut
@@ -694,10 +800,14 @@ class VieworksCamera(VoxelCamera):
             polarity=query_trigger_setting_options('TriggerActivation')
         )
 
-    def _query_delimination_prop(self, prop_name: str, limit_type: str) -> int | float:
+    def _query_delimination_prop(self, prop_name: str, limit_type: str) -> Optional[int | float]:
         if self._delimination_props[prop_name][limit_type] is None:
-            value = self.grabber.remote.get(f'{prop_name}.{limit_type.capitalize()}')
-            self._delimination_props[prop_name][limit_type] = value
+            try:
+                value = self.grabber.remote.get(f'{prop_name}.{limit_type.capitalize()}')
+                self._delimination_props[prop_name][limit_type] = value
+            except TypeError:
+                self.log.error(f"Failed to get delimination prop {prop_name}.{limit_type.capitalize()}")
+                return None
         return self._delimination_props[prop_name][limit_type]
 
     def _query_all_delimination_props(self):
@@ -707,11 +817,8 @@ class VieworksCamera(VoxelCamera):
 
     def _invalidate_delimination_prop(self, prop_name: str):
         if prop_name in self._delimination_props:
-            self._delimination_props[prop_name] = {
-                "Min": None,
-                "Max": None,
-                "Step": None,
-            }
+            for limit_type in self._delimination_props[prop_name]:
+                self._delimination_props[prop_name][limit_type] = None
 
     def _invalidate_all_delimination_props(self):
         for prop_name in self._delimination_props:
