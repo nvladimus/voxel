@@ -1,7 +1,9 @@
+import logging
 from enum import Enum
-from functools import total_ordering
-from typing import Type, Dict, Any, Callable, Optional, Union
+from typing import Type, Dict, Any, Callable, Optional, Union, List, Tuple
 from weakref import WeakKeyDictionary
+
+from voxel.descriptors.descriptor_proxy import DescriptorProxy
 
 
 class EnumeratedProperty:
@@ -20,6 +22,7 @@ class EnumeratedProperty:
         self._enum_class = enum_class
         self._options_getter = options_getter
         self._instance_proxies = WeakKeyDictionary()
+        self.log = logging.getLogger(f"{self.__class__.__name__}")
 
     def __get__(self, instance: Any, owner=None) -> Union['EnumeratedProperty', 'EnumeratedPropertyProxy']:
         if instance is None:
@@ -39,15 +42,19 @@ class EnumeratedProperty:
             try:
                 value = self._enum_class(value)
             except ValueError:
-                raise ValueError(f"Value must be an instance of {self._enum_class.__name__}")
+                self.log.warning(f"Value {value} is not an instance of {self._enum_class.__name__}")
+                # raise ValueError(f"Value must be an instance of {self._enum_class.__name__}")
 
         options = self.get_options(instance)
         if value not in options:
-            raise ValueError(f"Invalid option: {value}. Valid options are: {list(options.keys())}")
+            # raise ValueError(f"Invalid option: {value}. Valid options are: {list(options.keys())}")
+            self.log.warning(f"Invalid option: {value}. Valid options are: {list(options.keys())}")
+            return
 
         self.fset(instance, value)
 
         if instance in self._instance_proxies:
+            # noinspection PyProtectedMember
             self._instance_proxies[instance]._value = value
 
     def __delete__(self, instance: Any) -> None:
@@ -83,13 +90,10 @@ class EnumeratedProperty:
         )
 
 
-@total_ordering
-class EnumeratedPropertyProxy:
-    __slots__ = ('_value', '_descriptor')
+class EnumeratedPropertyProxy(DescriptorProxy):
 
     def __init__(self, value: Enum, descriptor: 'EnumeratedProperty'):
-        self._value = value
-        self._descriptor = descriptor
+        super().__init__(value, descriptor)
 
     def __getattribute__(self, name):
         if name in EnumeratedPropertyProxy.__slots__:
@@ -98,67 +102,10 @@ class EnumeratedPropertyProxy:
             return object.__getattribute__(self, '_get_options')()
         return getattr(object.__getattribute__(self, '_value'), name)
 
-    def _get_options(self) -> Dict[Enum, Any]:
+    def _get_options(self) -> List[Tuple[Enum, Any]]:
         instance = self._descriptor.get_instance_for_proxy(self)
-        return self._descriptor.get_options(instance)
-
-    def __repr__(self):
-        return repr(self._value)
-
-    def __str__(self):
-        return str(self._value)
-
-    def __int__(self):
-        return int(self._value.value)
-
-    def __float__(self):
-        return float(self._value.value)
-
-    def __eq__(self, other):
-        if isinstance(other, (int, float)):
-            return self._value.value == other
-        return self._value == other
-
-    def __lt__(self, other):
-        if isinstance(other, (int, float)):
-            return self._value.value < other
-        return self._value.value < getattr(other, 'value', other)
-
-    def __add__(self, other):
-        return self._value.value + other
-
-    def __radd__(self, other):
-        return other + self._value.value
-
-    def __sub__(self, other):
-        return self._value.value - other
-
-    def __rsub__(self, other):
-        return other - self._value.value
-
-    def __mul__(self, other):
-        return self._value.value * other
-
-    def __rmul__(self, other):
-        return other * self._value.value
-
-    def __truediv__(self, other):
-        return self._value.value / other
-
-    def __rtruediv__(self, other):
-        return other / self._value.value
-
-    def __floordiv__(self, other):
-        return self._value.value // other
-
-    def __rfloordiv__(self, other):
-        return other // self._value.value
-
-    def __mod__(self, other):
-        return self._value.value % other
-
-    def __rmod__(self, other):
-        return other % self._value.value
+        options = self._descriptor.get_options(instance)
+        return [(e, options[e]) for e in options]
 
 
 def enumerated_property(
@@ -169,3 +116,11 @@ def enumerated_property(
         return EnumeratedProperty(func, enum_class=enum_class, options_getter=options_getter)
 
     return decorator
+
+
+def set_ith_option(prop, i: int):
+    try:
+        prop = prop.options[0][i]
+        return prop
+    except IndexError:
+        return None

@@ -1,7 +1,7 @@
 import logging
 from typing import Union, Callable, Optional, Any, Literal
 
-logging.basicConfig(level=logging.DEBUG)
+from voxel.descriptors.descriptor_proxy import DescriptorProxy
 
 Number = Union[int, float]
 StaticOrCallableNumber = Union[Number, Callable[[Any], Number]]
@@ -117,7 +117,7 @@ class DeliminatedProperty(property):
         )
 
 
-class DeliminatedPropertyProxy:
+class DeliminatedPropertyProxy(DescriptorProxy):
     def __init__(self, value: Number, descriptor: DeliminatedProperty):
         """
         Proxy object for DeliminatedProperty.
@@ -130,72 +130,10 @@ class DeliminatedPropertyProxy:
         :type value: Number (float or int)
         :type descriptor: DeliminatedProperty
         """
-        self._value = value
-        self._descriptor = descriptor
-
-    def __repr__(self):
-        return repr(self._value)
-
-    def __float__(self):
-        return float(self._value)
-
-    def __int__(self):
-        return int(self._value)
+        super().__init__(value, descriptor)
 
     def __getattr__(self, name):
         return getattr(self._descriptor, name)
-
-    # Forwarding operations to the underlying float value
-    def __eq__(self, other):
-        return self._value == other
-
-    def __lt__(self, other):
-        return self._value < other
-
-    def __le__(self, other):
-        return self._value <= other
-
-    def __gt__(self, other):
-        return self._value > other
-
-    def __ge__(self, other):
-        return self._value >= other
-
-    def __add__(self, other):
-        return self._value + other
-
-    def __radd__(self, other):
-        return other + self._value
-
-    def __sub__(self, other):
-        return self._value - other
-
-    def __rsub__(self, other):
-        return other - self._value
-
-    def __mul__(self, other):
-        return self._value * other
-
-    def __rmul__(self, other):
-        return other * self._value
-
-    def __truediv__(self, other):
-        return self._value / other
-
-    def __rtruediv__(self, other):
-        return other / self._value
-
-    def __floordiv__(self, other):
-        return self._value // other
-
-    def __rfloordiv__(self, other):
-        return other // self._value
-
-    def __mod__(self, other):
-        return self._value % other
-
-    def __rmod__(self, other):
-        return other % self._value
 
 
 def deliminated_property(

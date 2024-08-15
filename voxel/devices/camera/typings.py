@@ -42,15 +42,6 @@ class PixelType(IntEnum):
 PixelTypeLUT: TypeAlias = Dict[PixelType, CMD]
 
 
-# @dataclass
-# class PixelTypeInfo:
-#     repr: str | int | float
-#     line_interval_us: int | float
-#
-#
-# PixelTypeLUT: TypeAlias = Dict[PixelType, PixelTypeInfo]
-
-
 class BitPackingMode(Enum):
     LSB = auto()
     MSB = auto()
@@ -58,40 +49,6 @@ class BitPackingMode(Enum):
 
 
 BitPackingModeLUT: TypeAlias = Dict[BitPackingMode, str]
-
-
-class TriggerMode(Enum):
-    ON = auto()
-    OFF = auto()
-
-
-class TriggerSource(Enum):
-    INTERNAL = auto()
-    EXTERNAL = auto()
-
-
-class TriggerPolarity(Enum):
-    RISING = auto()
-    FALLING = auto()
-
-
-@dataclass
-class TriggerSettingsLUT:
-    """Look-up table for a camera model trigger settings."""
-    mode: Dict[TriggerMode, str]
-    source: Dict[TriggerSource, str]
-    polarity: Dict[TriggerPolarity, str]
-
-
-@dataclass
-class TriggerSettings:
-    """Trigger settings for a camera."""
-    mode: TriggerMode
-    source: TriggerSource
-    polarity: TriggerPolarity
-
-    def __repr__(self):
-        return f"{self.mode}, {self.source}, {self.polarity}"
 
 
 @dataclass

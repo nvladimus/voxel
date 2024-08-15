@@ -1,12 +1,12 @@
 from abc import abstractmethod
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
 
 from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.devices.camera.typings import TriggerSettingsLUT, PixelTypeLUT, BinningLUT, BitPackingModeLUT, PixelType, \
-    BitPackingMode, TriggerSettings, AcquisitionState, Binning
 from voxel.devices.base import VoxelDevice
+from voxel.devices.camera.typings import PixelType, BitPackingMode, AcquisitionState, Binning
 from voxel.devices.utils.geometry import Vec2D
 
 
@@ -225,29 +225,15 @@ class VoxelCamera(VoxelDevice):
 
     @property
     @abstractmethod
-    def trigger(self) -> TriggerSettings:
-        """Get the trigger mode of the camera. \n
-        The trigger mode consists of three parameters: \n
-        - mode (e.g. on or off) \n
-        - source (e.g. internal or external) \n
-        - polarity (e.g. rising edge or falling edge)
-
-        :return: The trigger mode of the camera.
-        :rtype: TriggerSettings
+    def trigger_settings(self) -> Any:
         """
-        pass
-
-    @trigger.setter
-    @abstractmethod
-    def trigger(self, trigger: TriggerSettings) -> None:
-        """Set the trigger mode of the camera. \n
-        The trigger mode consists of three parameters: \n
-        - mode (e.g. on or off) \n
-        - source (e.g. internal or external) \n
-        - polarity (e.g. rising edge or falling edge)
-
-        :param trigger: The trigger mode of the camera
-        :type trigger: dict
+        Get the trigger settings of the camera.
+        Notes:
+            Parameters vary depending on the camera model.
+            For example, Vieworks cameras have trigger settings
+                - mode ( 'On' or 'Off' )
+                - source ( 'Internal' or 'External' )
+                - polarity ( 'Rising Edge' or 'Falling Edge' )
         """
         pass
 
@@ -353,5 +339,3 @@ class VoxelCamera(VoxelDevice):
         ]
 
         return f"{self.__class__.__name__}:\n" + "\n".join(f"  {prop}" for prop in properties)
-
-
