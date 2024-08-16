@@ -233,7 +233,7 @@ class Camera(BaseCamera):
         return MAX_HEIGHT_PX
 
     def prepare(self):
-
+        raise DeprecationWarning("prepare is deprecated, use start instead")
         filepath = 'D:\\test\\data.zarr'
         device_manager = self.runtime.device_manager()
         self.acquire_api.video[0].storage.identifier = device_manager.select(DeviceKind.Storage, "ZarrV3Blosc1ZstdByteShuffle")
@@ -263,12 +263,12 @@ class Camera(BaseCamera):
         z_dimension.shard_size_chunks = 1
 
         self.acquire_api.video[0].storage.settings.acquisition_dimensions = [x_dimension, y_dimension, z_dimension]
-
-        self._commit_settings()
+        # don't use _commit_settings() here, as it will overwrite the storage settings
+        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
 
     def start(self, frame_count: int = 2**64 - 1):
         # sync storage settings
-        self.acquire_api.video[0].storage = self.runtime.get_configuration().video[0].storage
+        self.acquire_api.video[0].max_frame_count = frame_count
         self._commit_settings()
         self.runtime.start()
 
