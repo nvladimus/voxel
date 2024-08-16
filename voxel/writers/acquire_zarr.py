@@ -38,6 +38,10 @@ class AcquireZarrWriter(BaseWriter):
         self.runtime = acquire._get_runtime()
         self.acquire_api = self.runtime.get_configuration()
 
+    def _commit_settings(self):
+        self.acquire_api.video[0].camera = self.runtime.get_configuration().video[0].camera
+        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
+
     @property
     def frame_count_px(self):
         """Get the number of frames in the writer.
@@ -254,7 +258,7 @@ class AcquireZarrWriter(BaseWriter):
 
     def start(self, frame_count = 2**64 - 1):
         self.acquire_api.video[0].max_frame_count = frame_count
-        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
+        self._commit_settings()
         self.runtime.start()
 
     def prepare(self):
@@ -283,7 +287,7 @@ class AcquireZarrWriter(BaseWriter):
         filepath = str(Path(self._path, self._acquisition_name, self._filename).absolute())
         device_manager = self.runtime.device_manager()
         self.acquire_api.video[0].storage.identifier = device_manager.select(DeviceKind.Storage, self._compression)
-        self.acquire_api.video[0].storage.settings.filename = filepath
+        self.acquire_api.video[0].storage.settings.uri = filepath
         self.acquire_api.video[0].storage.settings.pixel_scale_um = (self._x_voxel_size_um, self._y_voxel_size_um)
         self.acquire_api.video[0].storage.settings.enable_multiscale = False  # not enabled for zarrv3 yet
 
@@ -296,18 +300,18 @@ class AcquireZarrWriter(BaseWriter):
 
         y_dimension = StorageDimension()
         y_dimension.name = 'y'
-        x_dimension.kind = DimensionType.Space
+        y_dimension.kind = DimensionType.Space
         y_dimension.array_size_px = self._row_count_px
         y_dimension.chunk_size_px = self._chunk_size_y_px
         y_dimension.shard_size_chunks = self._shard_size_y_chunks
 
         z_dimension = StorageDimension()
         z_dimension.name = 'z'
-        x_dimension.kind = DimensionType.Space
+        z_dimension.kind = DimensionType.Space
         z_dimension.array_size_px = 0  # append dimension must be 0
         z_dimension.chunk_size_px = self._chunk_size_z_px
         z_dimension.shard_size_chunks = self._shard_size_z_chunks
 
         self.acquire_api.video[0].storage.settings.acquisition_dimensions = [x_dimension, y_dimension, z_dimension]
 
-        self.acquire_api = self.runtime.set_configuration(self.acquire_api)  # set the new configuration
+        self._commit_settings()
