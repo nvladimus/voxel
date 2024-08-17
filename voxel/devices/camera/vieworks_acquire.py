@@ -56,8 +56,9 @@ class Camera(BaseCamera):
                 self.acquire_api.video[0].camera.identifier = device_manager.select(
                     DeviceKind.Camera, device.name
                 )
-                self.acquire_api = self.runtime.set_configuration(self.acquire_api)
+                self._commit_settings()
                 self._device_name = device.name
+                break
 
         if not self.acquire_api:
             self.log.error(f"no grabber found for S/N: {self.id}")
@@ -65,6 +66,10 @@ class Camera(BaseCamera):
 
         # initialize binning as 1
         self._binning = 1
+
+    def _commit_settings(self):
+        self.acquire_api.video[0].storage = self.runtime.get_configuration().video[0].storage
+        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
 
     @DeliminatedProperty(minimum=float("-inf"), maximum=float("inf"))
     def exposure_time_ms(self):
@@ -77,7 +82,7 @@ class Camera(BaseCamera):
         self.acquire_api.video[0].camera.settings.exposure_time_us = (
             exposure_time_ms * 1000
         )
-        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
+        self._commit_settings()
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
 
     @DeliminatedProperty(minimum=float("-inf"), maximum=float("inf"))
@@ -96,12 +101,11 @@ class Camera(BaseCamera):
             round((MAX_WIDTH_PX / 2 - value / 2) / STEP_WIDTH_PX) * STEP_WIDTH_PX
         )
         self.acquire_api.video[0].camera.settings.shape = (value, height_px)
-        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
         self.acquire_api.video[0].camera.settings.offset = (
             centered_offset_px,
             height_offset_px,
         )
-        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
+        self._commit_settings()
         self.log.info(f"width set to: {value} px")
 
     @property
@@ -124,12 +128,11 @@ class Camera(BaseCamera):
             round((MAX_HEIGHT_PX / 2 - value / 2) / STEP_HEIGHT_PX) * STEP_HEIGHT_PX
         )
         self.acquire_api.video[0].camera.settings.shape = (width_px, value)
-        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
         self.acquire_api.video[0].camera.settings.offset = (
             width_offset_px,
             centered_offset_px,
         )
-        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
+        self._commit_settings()
         self.log.info(f"height set to: {value} px")
 
     @property
@@ -151,7 +154,7 @@ class Camera(BaseCamera):
         self.acquire_api.video[0].camera.settings.pixel_type = PIXEL_TYPES[
             pixel_type_bits
         ]
-        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
+        self._commit_settings()
         self.log.info(f"pixel type set to: {pixel_type_bits}")
 
     @property
@@ -206,7 +209,7 @@ class Camera(BaseCamera):
             ),
             kind="Input",
         )
-        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
+        self._commit_settings()
 
     @property
     def binning(self):
@@ -230,7 +233,7 @@ class Camera(BaseCamera):
         return MAX_HEIGHT_PX
 
     def prepare(self):
-        
+        raise DeprecationWarning("prepare is deprecated, use start instead")
         filepath = 'D:\\test\\data.zarr'
         device_manager = self.runtime.device_manager()
         self.acquire_api.video[0].storage.identifier = device_manager.select(DeviceKind.Storage, "ZarrV3Blosc1ZstdByteShuffle")
@@ -260,12 +263,13 @@ class Camera(BaseCamera):
         z_dimension.shard_size_chunks = 1
 
         self.acquire_api.video[0].storage.settings.acquisition_dimensions = [x_dimension, y_dimension, z_dimension]
-
-        self.acquire_api = self.runtime.set_configuration(self.acquire_api)  # set the new configuration
+        # don't use _commit_settings() here, as it will overwrite the storage settings
+        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
 
     def start(self, frame_count: int = 2**64 - 1):
+        # sync storage settings
         self.acquire_api.video[0].max_frame_count = frame_count
-        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
+        self._commit_settings()
         self.runtime.start()
 
     def stop(self):

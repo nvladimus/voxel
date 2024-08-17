@@ -64,12 +64,15 @@ if __name__ == '__main__':
     while frames_collected < max_frame_count-1:
         with camera.runtime.get_available_data(0) as data:
             packet = data.get_frame_count()
-            frames_collected += packet
-            print(f'frames collected: {frames_collected}')
-        time.sleep(0.1)
+            if packet > 0:
+                frames_collected += packet
+                print(f'frames collected: {frames_collected}')
 
     camera.stop()
     camera.close()
+
+    # temporary -- runtime will segfault without this
+    time.sleep(1)
 
     log_handler.close()
     logger.removeHandler(log_handler)
