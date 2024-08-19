@@ -75,10 +75,10 @@ class RobocopyFileTransfer(BaseFileTransfer):
                     # transfer just one file and iterate
                     # split filename and path
                     [local_dir, filename] = os.path.split(file_path)
-                    self.log.info(f'transfering {filename}')
                     # specify external directory
                     # need to change directories to str because they are Path objects
                     external_dir = local_dir.replace(str(local_directory), str(external_directory))
+                    self.log.info(f'transfering {file_path} to {external_dir}')
                     # robocopy flags
                     # /j unbuffered copy for transfer speed stability
                     # /mov deletes local files after transfer
@@ -93,7 +93,7 @@ class RobocopyFileTransfer(BaseFileTransfer):
                     subprocess = Popen(cmd_with_args, stdout=DEVNULL)
                     # lets monitor the progress of the individual file if size > 1 GB
                     if file_size_mb > 1024:
-                        self.log.info(f'file {filename} is > 1 GB')
+                        self.log.debug(f'file {filename} is > 1 GB')
                         # wait for subprocess to start otherwise log file won't exist yet
                         time.sleep(1.0)
                         file_progress = 0
@@ -136,7 +136,7 @@ class RobocopyFileTransfer(BaseFileTransfer):
                         self.progress = (total_transferred_mb + file_size_mb) / total_size_mb * 100
                         self.log.info(f'file transfer is {self.progress:.2f} % complete.')
                         end_time = time.time()
-                    self.log.info(f'{filename} transfer complete')
+                    self.log.info(f'{file_path} transfer to {external_dir} is complete')
                     # wait for process to finish before cleaning log file
                     time.sleep(0.1)
                     # clean up and remove the temporary log file

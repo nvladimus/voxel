@@ -37,7 +37,7 @@ if __name__ == '__main__':
         "source": "line0",
         "polarity": "risingedge"
     }
-    camera.pixel_type = 'mono12'
+    camera.pixel_type = 'mono16'
     camera.binning = 1
 
     # note data will be saved to
@@ -60,13 +60,14 @@ if __name__ == '__main__':
     writer.prepare()
 
     camera.start(frame_count=max_frame_count)
+
     frames_collected = 0
-    while frames_collected < max_frame_count-1:
+    while frames_collected < writer.frame_count_px-1:
         with camera.runtime.get_available_data(0) as data:
             packet = data.get_frame_count()
-            if packet > 0:
-                frames_collected += packet
-                print(f'frames collected: {frames_collected}')
+            frames_collected += packet
+            if packet != 0:
+                logger.info(f"id: {camera.id}, frame: {frames_collected}")
 
     camera.stop()
     camera.close()

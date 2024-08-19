@@ -350,7 +350,7 @@ class Acquisition:
 
                 frame_size_mb = self._frame_size_mb(camera_id, writer_id)
                 frame_count_px = tile['steps']
-                data_size_gb += frame_count_px * frame_size_mb / 1024
+                data_size_gb += frame_count_px * frame_size_mb / 1024 / 3
 
                 drives.setdefault(local_drive, []).append(data_size_gb)
 

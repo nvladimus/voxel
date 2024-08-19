@@ -315,3 +315,7 @@ class AcquireZarrWriter(BaseWriter):
         self.acquire_api.video[0].storage.settings.acquisition_dimensions = [x_dimension, y_dimension, z_dimension]
 
         self._commit_settings()
+
+        self.log.debug(self.runtime.get_configuration())
+        self.log.debug(self.acquire_api.video[0].camera.settings)
+        self.log.debug(self.acquire_api.video[0].storage.settings)

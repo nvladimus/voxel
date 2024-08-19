@@ -233,43 +233,15 @@ class Camera(BaseCamera):
         return MAX_HEIGHT_PX
 
     def prepare(self):
-        raise DeprecationWarning("prepare is deprecated, use start instead")
-        filepath = 'D:\\test\\data.zarr'
-        device_manager = self.runtime.device_manager()
-        self.acquire_api.video[0].storage.identifier = device_manager.select(DeviceKind.Storage, "ZarrV3Blosc1ZstdByteShuffle")
-        self.acquire_api.video[0].storage.settings.filename = filepath
-        self.acquire_api.video[0].storage.settings.pixel_scale_um = (1.0, 1.0)
-        self.acquire_api.video[0].storage.settings.enable_multiscale = False  # not enabled for zarrv3 yet
-
-        x_dimension = StorageDimension()
-        x_dimension.name = 'x'
-        x_dimension.kind = DimensionType.Space
-        x_dimension.array_size_px = self.width_px
-        x_dimension.chunk_size_px = 128
-        x_dimension.shard_size_chunks = 111
-
-        y_dimension = StorageDimension()
-        y_dimension.name = 'y'
-        x_dimension.kind = DimensionType.Space
-        y_dimension.array_size_px = self.height_px
-        y_dimension.chunk_size_px = 128
-        y_dimension.shard_size_chunks = 84
-
-        z_dimension = StorageDimension()
-        z_dimension.name = 'z'
-        x_dimension.kind = DimensionType.Space
-        z_dimension.array_size_px = 0  # append dimension must be 0
-        z_dimension.chunk_size_px = 32
-        z_dimension.shard_size_chunks = 1
-
-        self.acquire_api.video[0].storage.settings.acquisition_dimensions = [x_dimension, y_dimension, z_dimension]
-        # don't use _commit_settings() here, as it will overwrite the storage settings
-        self.acquire_api = self.runtime.set_configuration(self.acquire_api)
+        pass
 
     def start(self, frame_count: int = 2**64 - 1):
         # sync storage settings
         self.acquire_api.video[0].max_frame_count = frame_count
         self._commit_settings()
+        self.log.debug(self.runtime.get_configuration())
+        self.log.debug(self.acquire_api.video[0].camera.settings)
+        self.log.debug(self.acquire_api.video[0].storage.settings)
         self.runtime.start()
 
     def stop(self):
