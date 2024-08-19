@@ -3,6 +3,12 @@ from enum import IntEnum, StrEnum
 from typing import Dict, Optional
 
 
+class BitPackingMode(StrEnum):
+    LSB = 'LSB'
+    MSB = 'MSB'
+    NONE = 'None'
+
+
 class TriggerMode(StrEnum):
     ON = 'On'
     OFF = 'Off'

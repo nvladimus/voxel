@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import Tuple, Dict, List, Optional, Union, Any, TypeAlias
 
 import numpy as np
@@ -6,26 +5,25 @@ import numpy as np
 from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.base import DeviceConnectionError
-from voxel.devices.camera import VoxelCamera
+from voxel.devices.camera.base import VoxelCamera, BYTES_PER_MB
 from voxel.devices.camera.typings import (
-    BYTES_PER_MB,
-    Binning, BinningLUT,
-    PixelType, PixelTypeLUT,
-    BitPackingMode, BitPackingModeLUT,
-    VoxelFrame, AcquisitionState, ROI
+    Binning, PixelType, VoxelFrame, AcquisitionState, ROI
 )
+from voxel.devices.camera.vieworks.typings import (
+    TriggerMode, TriggerSource, TriggerPolarity, TriggerSettings, BitPackingMode
+)
+from voxel.devices.utils.geometry import Vec2D
+from voxel.devices.utils.singleton import Singleton
 from voxel.devices.camera.vieworks.egrabber import (
     EGenTL, EGrabber, EGrabberDiscovery, Buffer, ct,
     GENTL_INFINITE, BUFFER_INFO_BASE, INFO_DATATYPE_PTR, INFO_DATATYPE_SIZET, STREAM_INFO_NUM_DELIVERED,
     STREAM_INFO_NUM_QUEUED, STREAM_INFO_NUM_AWAIT_DELIVERY, STREAM_INFO_NUM_UNDERRUN, query, GenTLException,
 )
-from voxel.devices.camera.vieworks.typings import (
-    TriggerMode, TriggerSource, TriggerPolarity, TriggerSettings,
-)
-from voxel.devices.utils.geometry import Vec2D
-from voxel.devices.utils.singleton import Singleton
 
 TriggerSetting: TypeAlias = Union[TriggerMode, TriggerSource, TriggerPolarity]
+PixelTypeLUT: TypeAlias = Dict[PixelType, str]
+BinningLUT: TypeAlias = Dict[Binning, int]
+BitPackingModeLUT: TypeAlias = Dict[BitPackingMode, str]
 
 
 class EGenTLSingleton(EGenTL, metaclass=Singleton):
@@ -67,13 +65,13 @@ class VieworksCamera(VoxelCamera):
         }
 
         # LUTs
-        self._pixel_type_lut: PixelTypeLUT = self._query_pixel_type_lut()
-        self._binning_lut: BinningLUT = self._query_binning_lut()
-        self._bit_packing_mode_lut: BitPackingModeLUT = self._query_bit_packing_mode_lut()
-        self._line_interval_us_lut: PixelTypeLUT = self._query_line_interval_us_lut()
-        self._trigger_mode_lut: Dict[TriggerMode, str] = self._query_trigger_setting_lut("TriggerMode")
-        self._trigger_source_lut: Dict[TriggerSource, str] = self._query_trigger_setting_lut("TriggerSource")
-        self._trigger_polarity_lut: Dict[TriggerPolarity, str] = self._query_trigger_setting_lut("TriggerActivation")
+        self._pixel_type_lut: PixelTypeLUT = self._get_pixel_type_lut()
+        self._binning_lut: BinningLUT = self._get_binning_lut()
+        self._bit_packing_mode_lut: BitPackingModeLUT = self._get_bit_packing_mode_lut()
+        self._line_interval_us_lut: PixelTypeLUT = self._get_line_interval_us_lut()
+        self._trigger_mode_lut: Dict[TriggerMode, str] = self._get_trigger_setting_lut("TriggerMode")
+        self._trigger_source_lut: Dict[TriggerSource, str] = self._get_trigger_setting_lut("TriggerSource")
+        self._trigger_polarity_lut: Dict[TriggerPolarity, str] = self._get_trigger_setting_lut("TriggerActivation")
         self.log.info(f"Completed initialization of Vieworks camera with id: {self.id}")
 
     @property
@@ -117,6 +115,14 @@ class VieworksCamera(VoxelCamera):
         :rtype: Vec2D
         """
         return Vec2D(self.roi_width_px, self.roi_height_px) // self.binning
+
+    @property
+    def image_width_px(self) -> int:
+        return self.image_size_px.x
+
+    @property
+    def image_height_px(self) -> int:
+        return self.image_size_px.y
 
     @enumerated_property(
         enum_class=Binning,
@@ -162,9 +168,9 @@ class VieworksCamera(VoxelCamera):
             self._invalidate_all_delimination_props()
 
     @deliminated_property(
-        minimum=lambda self: self._query_delimination_prop("Width", "Min") * self.binning,
-        maximum=lambda self: self.sensor_size_px.x - self._query_delimination_prop("Width", "Inc") * (self.binning - 1),
-        step=lambda self: self._query_delimination_prop("Width", "Inc") * self.binning,
+        minimum=lambda self: self._get_delimination_prop("Width", "Min") * self.binning,
+        maximum=lambda self: self.sensor_size_px.x - self._get_delimination_prop("Width", "Inc") * (self.binning - 1),
+        step=lambda self: self._get_delimination_prop("Width", "Inc") * self.binning,
         unit='px'
     )
     def roi_width_px(self) -> int:
@@ -200,7 +206,7 @@ class VieworksCamera(VoxelCamera):
     @deliminated_property(
         minimum=0,
         maximum=lambda self: self.sensor_size_px.x - self.roi_width_px,
-        step=lambda self: self._query_delimination_prop("Width", "Inc") * self.binning,
+        step=lambda self: self._get_delimination_prop("Width", "Inc") * self.binning,
         unit='px'
     )
     def roi_width_offset_px(self) -> int:
@@ -225,9 +231,9 @@ class VieworksCamera(VoxelCamera):
         self.log.info(f"Set ROI width offset to {value} px")
 
     @deliminated_property(
-        minimum=lambda self: self._query_delimination_prop("Height", "Min"),
+        minimum=lambda self: self._get_delimination_prop("Height", "Min"),
         maximum=lambda self: self.sensor_size_px.y,
-        step=lambda self: self._query_delimination_prop("Height", "Inc"),
+        step=lambda self: self._get_delimination_prop("Height", "Inc"),
         unit='px'
     )
     def roi_height_px(self) -> int:
@@ -263,7 +269,7 @@ class VieworksCamera(VoxelCamera):
     @deliminated_property(
         minimum=0,
         maximum=lambda self: self.sensor_size_px.y - self.roi_height_px,
-        step=lambda self: self._query_delimination_prop("Height", "Inc") * self.binning,
+        step=lambda self: self._get_delimination_prop("Height", "Inc") * self.binning,
         unit='px'
     )
     def roi_height_offset_px(self) -> int:
@@ -302,8 +308,8 @@ class VieworksCamera(VoxelCamera):
         """Reset the ROI to full sensor size."""
         self.roi_width_offset_px = 0
         self.roi_height_offset_px = 0
-        self.roi_width_px = self.sensor_width_px
-        self.roi_height_px = self.sensor_height_px
+        self.roi_width_px = self.sensor_size_px.x
+        self.roi_height_px = self.sensor_size_px.y
 
     @enumerated_property(
         enum_class=PixelType,
@@ -374,8 +380,8 @@ class VieworksCamera(VoxelCamera):
         self._regenerate_all_luts()
 
     @deliminated_property(
-        minimum=lambda self: self._query_delimination_prop("ExposureTime", "Min") / 1000,
-        maximum=lambda self: self._query_delimination_prop("ExposureTime", "Max") / 1000,
+        minimum=lambda self: self._get_delimination_prop("ExposureTime", "Min") / 1000,
+        maximum=lambda self: self._get_delimination_prop("ExposureTime", "Max") / 1000,
     )
     def exposure_time_ms(self) -> int:
         """Get the exposure time in microseconds.
@@ -405,7 +411,7 @@ class VieworksCamera(VoxelCamera):
         :return: The line interval in microseconds.
         :rtype: float
         """
-        return self._line_interval_us_lut[self.pixel_type]
+        return float(self._line_interval_us_lut[self.pixel_type])
 
     @property
     def frame_time_ms(self) -> float:
@@ -581,14 +587,22 @@ class VieworksCamera(VoxelCamera):
 
     def stop(self):
         """Stop the camera from acquiring frames."""
-        self.grabber.stop()
-        self._buffer_allocated = False
+        self.log.info("Stopping camera ...")
+        try:
+            if self.grabber:
+                self.grabber.stop()
+        except GenTLException as e:
+            self.log.warning(f"EGrabber error when attempting to stop camera. Error: {e}")
+        except Exception as e:
+            self.log.error(f"Failed to stop camera: {e}")
+        finally:
+            self._buffer_allocated = False
 
     def close(self):
         """Close the camera and release all resources."""
         self.stop()
-        del self.grabber
-        del self.egrabber
+        # del self.grabber
+        # del self.egrabber
 
     def reset(self):
         """Reset the camera to default settings."""
@@ -710,22 +724,22 @@ class VieworksCamera(VoxelCamera):
         self._regenerate_trigger_luts()
 
     def _regenerate_binning_lut(self) -> None:
-        self._binning_lut = self._query_binning_lut()
+        self._binning_lut = self._get_binning_lut()
         self._binning_cache = None
 
     def _regenerate_pixel_type_luts(self) -> None:
-        self._pixel_type_lut = self._query_pixel_type_lut()
-        self._line_interval_lut = self._query_line_interval_us_lut()
+        self._pixel_type_lut = self._get_pixel_type_lut()
+        self._line_interval_lut = self._get_line_interval_us_lut()
 
     def _regenerate_bit_packing_mode_lut(self) -> None:
-        self._bit_packing_mode_lut = self._query_bit_packing_mode_lut()
+        self._bit_packing_mode_lut = self._get_bit_packing_mode_lut()
 
     def _regenerate_trigger_luts(self) -> None:
-        self._trigger_mode_lut = self._query_trigger_setting_lut("TriggerMode")
-        self._trigger_source_lut = self._query_trigger_setting_lut("TriggerSource")
-        self._trigger_polarity_lut = self._query_trigger_setting_lut("TriggerActivation")
+        self._trigger_mode_lut = self._get_trigger_setting_lut("TriggerMode")
+        self._trigger_source_lut = self._get_trigger_setting_lut("TriggerSource")
+        self._trigger_polarity_lut = self._get_trigger_setting_lut("TriggerActivation")
 
-    def _query_binning_lut(self) -> BinningLUT:
+    def _get_binning_lut(self) -> BinningLUT:
         """
         Internal function that queries camera SDK to determine binning options.
         Note:
@@ -766,7 +780,7 @@ class VieworksCamera(VoxelCamera):
             self.log.info(f'Completed querying binning options: {lut}')
         return lut
 
-    def _query_pixel_type_lut(self) -> PixelTypeLUT:
+    def _get_pixel_type_lut(self) -> PixelTypeLUT:
         """
         Internal function that queries camera SDK to determine pixel type options.
         Note:
@@ -808,7 +822,7 @@ class VieworksCamera(VoxelCamera):
             self.log.info(f'Completed querying pixel type options: {lut}')
         return lut
 
-    def _query_bit_packing_mode_lut(self) -> BitPackingModeLUT:
+    def _get_bit_packing_mode_lut(self) -> BitPackingModeLUT:
         """
         Internal function that queries camera SDK to determine the bit packing mode options.
         Note:
@@ -850,7 +864,7 @@ class VieworksCamera(VoxelCamera):
             self.log.info(f'Completed querying bit packing mode options: {lut}')
         return lut
 
-    def _query_line_interval_us_lut(self) -> PixelTypeLUT:
+    def _get_line_interval_us_lut(self) -> PixelTypeLUT:
         """
         Internal function that queries camera SDK to determine line interval options.
         Note:
@@ -866,14 +880,16 @@ class VieworksCamera(VoxelCamera):
             for pixel_type in pixel_type_options:
                 try:
                     self.grabber.remote.set("PixelFormat", pixel_type[1])
-                    # TODO: Verify this is the correct way to query line interval. Fetched values look incorrect.
                     # check max acquisition rate, used to determine line interval
                     max_frame_rate = self.grabber.remote.get("AcquisitionFrameRate.Max")
+                    self.log.info(f'Max Frame Rate: {max_frame_rate}')
                     # vp-151mx camera uses the sony imx411 camera
                     # which has 10640 active rows but 10802 total rows.
                     # from the manual 10760 are used during readout
+                    # Line interval doesn't change when roi_height is updated.
+                    # No need to regenerate the lut.
                     if self.grabber.remote.get("DeviceModelName") == "VP-151MX-M6H0":
-                        line_interval_s = (1 / max_frame_rate) / (self.sensor_height_px + 120)
+                        line_interval_s = (1 / max_frame_rate) / (self.roi_height_px + 120)
                     else:
                         line_interval_s = (1 / max_frame_rate) / self.sensor_height_px
                     lut[pixel_type[0]] = float(line_interval_s * 1e6)
@@ -892,7 +908,7 @@ class VieworksCamera(VoxelCamera):
             self.log.info(f'Completed querying line interval options: {lut}')
         return lut
 
-    def _query_trigger_setting_lut(self, setting: str) -> Dict[TriggerSetting, str]:
+    def _get_trigger_setting_lut(self, setting: str) -> Dict[TriggerSetting, str]:
         """
         Internal function that queries camera SDK to determine the trigger settings options.
         Note:

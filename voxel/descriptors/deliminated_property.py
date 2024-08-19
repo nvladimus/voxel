@@ -1,6 +1,8 @@
 import logging
 from typing import Union, Callable, Optional, Any, Literal
 
+from pydantic import GetCoreSchemaHandler
+from pydantic_core import core_schema
 from voxel.descriptors.descriptor_proxy import DescriptorProxy
 
 Number = Union[int, float]
@@ -134,6 +136,15 @@ class DeliminatedPropertyProxy(DescriptorProxy):
 
     def __getattr__(self, name):
         return getattr(self._descriptor, name)
+
+    def dict(self):
+        return {
+            "value": self._value,
+            "minimum": self._descriptor.minimum,
+            "maximum": self._descriptor.maximum,
+            "step": self._descriptor.step,
+            "unit": self._descriptor.unit
+        }
 
 
 def deliminated_property(

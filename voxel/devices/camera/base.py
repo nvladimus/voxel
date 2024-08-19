@@ -5,9 +5,12 @@ import numpy as np
 from numpy.typing import NDArray
 
 from voxel.descriptors.deliminated_property import deliminated_property
+from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.base import VoxelDevice
 from voxel.devices.camera.typings import PixelType, BitPackingMode, AcquisitionState, Binning
 from voxel.devices.utils.geometry import Vec2D
+
+BYTES_PER_MB = 1_000_000
 
 
 class VoxelCamera(VoxelDevice):
@@ -20,6 +23,37 @@ class VoxelCamera(VoxelDevice):
         :type id: str
         """
         super().__init__(id)
+
+    # sensor properties
+    @property
+    @abstractmethod
+    def sensor_size_px(self) -> Vec2D:
+        """Get the size of the camera sensor in pixels.
+
+        :return: The size of the camera sensor in pixels.
+        :rtype: Vec2D
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def sensor_width_px(self) -> int:
+        """Get the width of the camera sensor in pixels.
+
+        :return: The width of the camera sensor in pixels.
+        :rtype: int
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def sensor_height_px(self) -> int:
+        """Get the height of the camera sensor in pixels.
+
+        :return: The height of the camera sensor in pixels.
+        :rtype: int
+        """
+        pass
 
     # ROI Configuration Properties
     @deliminated_property()
@@ -42,7 +76,7 @@ class VoxelCamera(VoxelDevice):
         """
         pass
 
-    @property
+    @deliminated_property()
     @abstractmethod
     def roi_width_offset_px(self) -> int:
         """Get the width offset of the camera region of interest in pixels.
@@ -52,13 +86,12 @@ class VoxelCamera(VoxelDevice):
         """
         pass
 
-    @property
+    @roi_width_offset_px.setter
     @abstractmethod
-    def sensor_width_px(self) -> int:
-        """Get the width of the camera sensor in pixels.
-
-        :return: The width of the camera sensor in pixels.
-        :rtype: int
+    def roi_width_offset_px(self, width_offset_px: int) -> None:
+        """Set the width offset of the camera region of interest in pixels.
+        :param width_offset_px: The width offset of the region of interest in pixels.
+        :type width_offset_px: int
         """
         pass
 
@@ -84,7 +117,7 @@ class VoxelCamera(VoxelDevice):
         """
         pass
 
-    @property
+    @deliminated_property()
     @abstractmethod
     def roi_height_offset_px(self) -> int:
         """Get the height offset of the camera region of interest in pixels.
@@ -94,18 +127,18 @@ class VoxelCamera(VoxelDevice):
         """
         pass
 
-    @property
+    @roi_height_offset_px.setter
     @abstractmethod
-    def sensor_height_px(self) -> int:
-        """Get the height of the camera sensor in pixels.
+    def roi_height_offset_px(self, height_offset_px: int) -> None:
+        """Set the height offset of the camera region of interest in pixels.
 
-        :return: The height of the camera sensor in pixels.
-        :rtype: int
+        :param height_offset_px: The height offset of the region of interest in pixels.
+        :type height_offset_px: int
         """
         pass
 
     # Image Format Properties
-    @property
+    @enumerated_property(Binning)
     @abstractmethod
     def binning(self) -> Binning:
         """Get the binning mode of the camera. \n
@@ -139,6 +172,26 @@ class VoxelCamera(VoxelDevice):
 
     @property
     @abstractmethod
+    def image_width_px(self) -> int:
+        """Get the width of the camera image in pixels.
+
+        :return: The width of the camera image in pixels.
+        :rtype: int
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def image_height_px(self) -> int:
+        """Get the height of the camera image in pixels.
+
+        :return: The height of the camera image in pixels.
+        :rtype: int
+        """
+        pass
+
+    @enumerated_property(PixelType)
+    @abstractmethod
     def pixel_type(self) -> PixelType:
         """Get the pixel type of the camera.
 
@@ -158,26 +211,26 @@ class VoxelCamera(VoxelDevice):
         """
         pass
 
-    @property
-    @abstractmethod
-    def bit_packing_mode(self) -> BitPackingMode:
-        """Get the bit packing mode of the camera.
-
-        :return: The bit packing mode of the camera.
-        :rtype: BitPackingMode
-        """
-        pass
-
-    @bit_packing_mode.setter
-    @abstractmethod
-    def bit_packing_mode(self, bit_packing: BitPackingMode) -> None:
-        """The bit packing mode of the camera: \n
-        - lsb, msb, none
-
-        :param bit_packing: The bit packing mode
-        :type bit_packing: BitPackingMode
-        """
-        pass
+    # @property
+    # @abstractmethod
+    # def bit_packing_mode(self) -> BitPackingMode:
+    #     """Get the bit packing mode of the camera.
+    #
+    #     :return: The bit packing mode of the camera.
+    #     :rtype: BitPackingMode
+    #     """
+    #     pass
+    #
+    # @bit_packing_mode.setter
+    # @abstractmethod
+    # def bit_packing_mode(self, bit_packing: BitPackingMode) -> None:
+    #     """The bit packing mode of the camera: \n
+    #     - lsb, msb, none
+    #
+    #     :param bit_packing: The bit packing mode
+    #     :type bit_packing: BitPackingMode
+    #     """
+    #     pass
 
     # Acquisition/Capture Properties
     @deliminated_property()

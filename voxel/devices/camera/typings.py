@@ -1,20 +1,14 @@
-# Enums for Camera Settings
 from dataclasses import dataclass
-from enum import Enum, auto, IntEnum
-from typing import TypeAlias, Dict, Union, Literal, Set
-import numpy as np
+from enum import IntEnum
+from typing import TypeAlias
 
+import numpy as np
 from numpy.typing import NDArray
 
 from voxel.devices.utils.geometry import Vec2D
 
-# constants
-BYTES_PER_MB = 1_000_000
 
-# Type aliases
 VoxelFrame: TypeAlias = NDArray[np.uint8 | np.uint16]
-
-CMD: TypeAlias = Union[str, int, float]
 
 
 class Binning(IntEnum):
@@ -22,9 +16,6 @@ class Binning(IntEnum):
     X2 = 2
     X4 = 4
     X8 = 8
-
-
-BinningLUT: TypeAlias = Dict[Binning, CMD]
 
 
 class PixelType(IntEnum):
@@ -37,27 +28,6 @@ class PixelType(IntEnum):
     @property
     def numpy_dtype(self) -> np.dtype:
         return np.uint8 if self == PixelType.MONO8 else np.uint16
-
-
-PixelTypeLUT: TypeAlias = Dict[PixelType, CMD]
-
-
-class BitPackingMode(Enum):
-    LSB = auto()
-    MSB = auto()
-    NONE = auto()
-
-
-BitPackingModeLUT: TypeAlias = Dict[BitPackingMode, str]
-
-
-@dataclass
-class ROI:
-    origin: Vec2D
-    size: Vec2D
-
-    def __repr__(self):
-        return f"Origin = {self.origin}, Size = {self.size}"
 
 
 @dataclass
@@ -78,3 +48,14 @@ class AcquisitionState:
             f"Frame Rate [fps]       = {self.frame_rate_fps}\n"
             f"Data Rate [MB/s]      = {self.data_rate_mbs}\n"
         )
+
+
+# TODO: Figure out if the rest are necessary
+
+@dataclass
+class ROI:
+    origin: Vec2D
+    size: Vec2D
+
+    def __repr__(self):
+        return f"Origin = {self.origin}, Size = {self.size}"
