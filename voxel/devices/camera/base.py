@@ -1,13 +1,11 @@
 from abc import abstractmethod
 from typing import Any
 
-import numpy as np
-from numpy.typing import NDArray
-
 from voxel.descriptors.deliminated_property import deliminated_property
+from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.base import VoxelDevice
-from voxel.devices.camera.typings import PixelType, BitPackingMode, AcquisitionState, Binning
-from voxel.devices.utils.geometry import Vec2D
+from voxel.devices.camera.definitions import PixelType, AcquisitionState, Binning, VoxelFrame, ROI
+from voxel.utils.geometry import Vec2D
 
 
 class VoxelCamera(VoxelDevice):
@@ -20,6 +18,37 @@ class VoxelCamera(VoxelDevice):
         :type id: str
         """
         super().__init__(id)
+
+    # sensor properties
+    @property
+    @abstractmethod
+    def sensor_size_px(self) -> Vec2D:
+        """Get the size of the camera sensor in pixels.
+
+        :return: The size of the camera sensor in pixels.
+        :rtype: Vec2D
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def sensor_width_px(self) -> int:
+        """Get the width of the camera sensor in pixels.
+
+        :return: The width of the camera sensor in pixels.
+        :rtype: int
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def sensor_height_px(self) -> int:
+        """Get the height of the camera sensor in pixels.
+
+        :return: The height of the camera sensor in pixels.
+        :rtype: int
+        """
+        pass
 
     # ROI Configuration Properties
     @deliminated_property()
@@ -42,7 +71,7 @@ class VoxelCamera(VoxelDevice):
         """
         pass
 
-    @property
+    @deliminated_property()
     @abstractmethod
     def roi_width_offset_px(self) -> int:
         """Get the width offset of the camera region of interest in pixels.
@@ -52,13 +81,12 @@ class VoxelCamera(VoxelDevice):
         """
         pass
 
-    @property
+    @roi_width_offset_px.setter
     @abstractmethod
-    def sensor_width_px(self) -> int:
-        """Get the width of the camera sensor in pixels.
-
-        :return: The width of the camera sensor in pixels.
-        :rtype: int
+    def roi_width_offset_px(self, width_offset_px: int) -> None:
+        """Set the width offset of the camera region of interest in pixels.
+        :param width_offset_px: The width offset of the region of interest in pixels.
+        :type width_offset_px: int
         """
         pass
 
@@ -84,7 +112,7 @@ class VoxelCamera(VoxelDevice):
         """
         pass
 
-    @property
+    @deliminated_property()
     @abstractmethod
     def roi_height_offset_px(self) -> int:
         """Get the height offset of the camera region of interest in pixels.
@@ -94,18 +122,38 @@ class VoxelCamera(VoxelDevice):
         """
         pass
 
-    @property
+    @roi_height_offset_px.setter
     @abstractmethod
-    def sensor_height_px(self) -> int:
-        """Get the height of the camera sensor in pixels.
+    def roi_height_offset_px(self, height_offset_px: int) -> None:
+        """Set the height offset of the camera region of interest in pixels.
 
-        :return: The height of the camera sensor in pixels.
-        :rtype: int
+        :param height_offset_px: The height offset of the region of interest in pixels.
+        :type height_offset_px: int
         """
         pass
 
-    # Image Format Properties
     @property
+    def roi(self) -> ROI:
+        """Get the region of interest of the camera in pixels.
+
+        :return: The region of interest of the camera in pixels. (size, origin)
+        :rtype: ROI
+        """
+        return ROI(
+            origin=Vec2D(self.roi_width_offset_px, self.roi_height_offset_px),
+            size=Vec2D(self.roi_width_px, self.roi_height_px),
+            bounds=Vec2D(self.sensor_width_px, self.sensor_height_px)
+        )
+
+    def reset_roi(self) -> None:
+        """Reset the ROI to full sensor size."""
+        self.roi_width_offset_px = 0
+        self.roi_height_offset_px = 0
+        self.roi_width_px = self.sensor_size_px.x
+        self.roi_height_px = self.sensor_size_px.y
+
+    # Image Format Properties
+    @enumerated_property(Binning)
     @abstractmethod
     def binning(self) -> Binning:
         """Get the binning mode of the camera. \n
@@ -129,7 +177,7 @@ class VoxelCamera(VoxelDevice):
 
     @property
     @abstractmethod
-    def image_size_px(self) -> Vec2D:
+    def frame_size_px(self) -> Vec2D:
         """Get the size of the camera image in pixels.
 
         :return: The size of the camera image in pixels.
@@ -138,6 +186,36 @@ class VoxelCamera(VoxelDevice):
         pass
 
     @property
+    @abstractmethod
+    def frame_width_px(self) -> int:
+        """Get the width of the camera image in pixels.
+
+        :return: The width of the camera image in pixels.
+        :rtype: int
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def frame_height_px(self) -> int:
+        """Get the height of the camera image in pixels.
+
+        :return: The height of the camera image in pixels.
+        :rtype: int
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def frame_size_mb(self) -> float:
+        """Get the size of the camera image in MB.
+
+        :return: The size of the camera image in MB.
+        :rtype: float
+        """
+        pass
+
+    @enumerated_property(PixelType)
     @abstractmethod
     def pixel_type(self) -> PixelType:
         """Get the pixel type of the camera.
@@ -155,27 +233,6 @@ class VoxelCamera(VoxelDevice):
 
         :param pixel_type_bits: The pixel type
         :type pixel_type_bits: PixelType
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def bit_packing_mode(self) -> BitPackingMode:
-        """Get the bit packing mode of the camera.
-
-        :return: The bit packing mode of the camera.
-        :rtype: BitPackingMode
-        """
-        pass
-
-    @bit_packing_mode.setter
-    @abstractmethod
-    def bit_packing_mode(self, bit_packing: BitPackingMode) -> None:
-        """The bit packing mode of the camera: \n
-        - lsb, msb, none
-
-        :param bit_packing: The bit packing mode
-        :type bit_packing: BitPackingMode
         """
         pass
 
@@ -266,13 +323,13 @@ class VoxelCamera(VoxelDevice):
         pass
 
     @abstractmethod
-    def grab_frame(self) -> NDArray[np.int_]:
+    def grab_frame(self) -> VoxelFrame:
         """Grab a frame from the camera buffer. \n
         If binning is via software, the GPU binned \n
         image is computed and returned.
 
         :return: The camera frame of size (height, width).
-        :rtype: NDArray[np.int_]
+        :rtype: VoxelFrame
         """
         pass
 
@@ -292,33 +349,30 @@ class VoxelCamera(VoxelDevice):
         """
         pass
 
-    # TODO: Determine whether to have signals as abstract properties that must be implemented by the child class
-    #  or as methods that can be implemented by the child class
-    #  or leave it to the discretion of the child class to add whatever signals they want
-    # @property
-    # @abstractmethod
-    # def signal_mainboard_temperature_c(self) -> float:
-    #     """Get the mainboard temperature of the camera in deg C.
-
-    #     :return: The mainboard temperature of the camera in deg C.
-    #     :rtype: float
-    #     """
-    #     pass
-
-    # @property
-    # # @abstractmethod
-    # def signal_sensor_temperature_c(self) -> float:
-    #     """
-    #     Get the sensor temperature of the camera in deg C.
-
-    #     :return: The sensor temperature of the camera in deg C.
-    #     :rtype: float
-    #     """
-    #     pass
-
     @abstractmethod
     def log_metadata(self) -> None:
         """Log all metadata from the camera to the logger."""
+        pass
+
+    @property
+    @abstractmethod
+    def sensor_temperature_c(self) -> float:
+        """
+        Get the sensor temperature of the camera in deg C.
+
+        :return: The sensor temperature of the camera in deg C.
+        :rtype: float
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def mainboard_temperature_c(self) -> float:
+        """Get the mainboard temperature of the camera in deg C.
+
+        :return: The mainboard temperature of the camera in deg C.
+        :rtype: float
+        """
         pass
 
     def __repr__(self):
@@ -327,15 +381,13 @@ class VoxelCamera(VoxelDevice):
             f"Sensor: {self.sensor_width_px} x {self.sensor_height_px}",
             f"ROI: {self.roi_width_px} x {self.roi_height_px}",
             f"ROI Offset: ({self.roi_width_offset_px}, {self.roi_height_offset_px})",
-            f"Image Size: ({self.image_size_px.x}, {self.image_size_px.y})",
+            f"Image Size: ({self.frame_size_px.x}, {self.frame_size_px.y})",
             f"Binning: {self.binning}",
             f"Pixel Type: {self.pixel_type}",
-            f"Bit Packing: {self.bit_packing_mode}",
             f"Exposure: {self.exposure_time_ms:.2f} ms",
-            # f"Line Interval: {self.line_interval_us:.2f} µs",
-            # f"Frame Time: {self.frame_time_ms:.2f} ms",
-            f"Trigger: {self.trigger}",
-            # f"Readout: {self.readout_mode}"
+            f"Line Interval: {self.line_interval_us:.2f} µs",
+            f"Frame Time: {self.frame_time_ms:.2f} ms",
+            f"Trigger: {self.trigger_settings}",
         ]
 
         return f"{self.__class__.__name__}:\n" + "\n".join(f"  {prop}" for prop in properties)

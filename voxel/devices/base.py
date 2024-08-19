@@ -26,11 +26,7 @@ class VoxelDevice(ABC):
         pass
 
     def __str__(self):
-        return f"{self.__class__.__name__}[{self.id}]"
-
-    def __del__(self):
-        """Close the device when the object is deleted."""
-        self.close()
+        return self.__repr__()
 
     @classmethod
     def configure_logging(cls):

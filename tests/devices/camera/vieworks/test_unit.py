@@ -1,9 +1,10 @@
 from unittest.mock import call
+
 from voxel.devices.camera.vieworks.egrabber import GenTLException
 
 
 def test_camera_initialization(mock_camera):
-    assert mock_camera.id == "test_camera"
+    assert mock_camera.id == "mock_camera"
     assert mock_camera.serial_number == "12345"
 
 
@@ -17,12 +18,12 @@ def test_query_binning_lut(mock_camera):
 
     def mock_set(param, value):
         if param == 'BinningHorizontal' and value == 'X8':
-            raise GenTLException("Unsupported binning option: X8")
+            raise GenTLException("Unsupported binning option: X8", ValueError)
 
     mock_camera.grabber.remote.get.side_effect = mock_get
     mock_camera.grabber.remote.set.side_effect = mock_set
 
-    binning_lut = mock_camera._query_binning_lut()
+    binning_lut = mock_camera._get_binning_lut()
 
     assert binning_lut == {1: 'X1', 2: 'X2', 4: 'X4'}
 
@@ -51,19 +52,19 @@ def test_query_delimination_prop(mock_camera):
     ]
 
     # Test Width delimination
-    assert mock_camera._query_delimination_prop("Width", "Min") == 100
-    assert mock_camera._query_delimination_prop("Width", "Max") == 1000
-    assert mock_camera._query_delimination_prop("Width", "Inc") == 2
+    assert mock_camera._get_delimination_prop("Width", "Min") == 100
+    assert mock_camera._get_delimination_prop("Width", "Max") == 1000
+    assert mock_camera._get_delimination_prop("Width", "Inc") == 2
 
     # Test Height delimination
-    assert mock_camera._query_delimination_prop("Height", "Min") == 50
-    assert mock_camera._query_delimination_prop("Height", "Max") == 500
-    assert mock_camera._query_delimination_prop("Height", "Inc") == 2
+    assert mock_camera._get_delimination_prop("Height", "Min") == 50
+    assert mock_camera._get_delimination_prop("Height", "Max") == 500
+    assert mock_camera._get_delimination_prop("Height", "Inc") == 2
 
     # Test ExposureTime delimination
-    assert mock_camera._query_delimination_prop("ExposureTime", "Min") == 0.1
-    assert mock_camera._query_delimination_prop("ExposureTime", "Max") == 1000
-    assert mock_camera._query_delimination_prop("ExposureTime", "Inc") == 0.1
+    assert mock_camera._get_delimination_prop("ExposureTime", "Min") == 0.1
+    assert mock_camera._get_delimination_prop("ExposureTime", "Max") == 1000
+    assert mock_camera._get_delimination_prop("ExposureTime", "Inc") == 0.1
 
     # Verify that the correct calls were made
     expected_calls = [
@@ -77,9 +78,9 @@ def test_query_delimination_prop(mock_camera):
     mock_camera.grabber.remote.get.reset_mock()
 
     # These calls should use cached values and not call the grabber again
-    assert mock_camera._query_delimination_prop("Width", "Min") == 100
-    assert mock_camera._query_delimination_prop("Height", "Max") == 500
-    assert mock_camera._query_delimination_prop("ExposureTime", "Inc") == 0.1
+    assert mock_camera._get_delimination_prop("Width", "Min") == 100
+    assert mock_camera._get_delimination_prop("Height", "Max") == 500
+    assert mock_camera._get_delimination_prop("ExposureTime", "Inc") == 0.1
 
     mock_camera.grabber.remote.get.assert_not_called()
 

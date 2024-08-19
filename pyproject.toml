@@ -1,42 +1,114 @@
 [build-system]
-requires = ["flit_core >=3.2,<4"]
-build-backend = "flit_core.buildapi"
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "voxel"
+description = "Base Library for building SPIM software"
+license = {text = "MIT"}
+requires-python = ">=3.11"
 authors = [
     { name = "Micah Woodard", email = "micah.woodard@alleninstitute.org" },
     { name = "Adam Glaser", email = "adam.glaser@alleninstitute.org" },
     { name = "Walter Mwaniki", email = "walter.mwaniki@alleninstitute.org" },
 ]
-version = "0.0.0"
-dynamic = ["description"]
-description-file = 'README.md'
+classifiers = [
+    "Programming Language :: Python :: 3"
+]
+readme = "README.md"
+dynamic = ["version"]
+
 dependencies = [
-    'pyserial >= 3.5',
+    # base
     'ruamel-yaml >= 0.18.5',
-    'psutil >= 5.9.8',
+    # hardware
     'nidaqmx >= 0.9.0',
-    'matplotlib >= 3.8.2',
-    'scipy >= 1.12.0',
-    'PyImarisWriter >= 0.7.0',
-    'tifffile >= 2024.1.30',
-    'egrabber >= 0.0.2',
-    'h5py >= 3.0.0',
-    'scikit-image >= 0.20.0',
-    'gputools >= 0.2.14',
-    'scikit-tensor-py3',
-    'tensorstore >= 0.1.56',
-    'pyclesperanto >= 0.8.2',
-    'pylablib >= 1.4.2',
-    'pytest >= 8.2.1',
-    'inflection >= 0.5.1',
-    'tigerasi >= 0.0.26',
-    'pydantic >= 2.7.3',
+    'pyserial >= 3.5',
+    'pyusb >= 1.2.1',
     'PyVISA >= 1.14.1',
     'PyVISA-py >= 0.7.2',
-    'pyusb >= 1.2.1',
-    'imohash >= 1.0.5'
-    'sympy >= 1.12.1',
+    'pylablib >= 1.4.2',
+    'tigerasi >= 0.0.26',
+    # cameras
+#    'egrabber >= 0.0.2',
+    #lasers
     'pycobolt @ git+https://github.com/cobolt-lasers/pycobolt.git',
+    # writers
+    'tifffile >= 2024.1.30',
+    'PyImarisWriter >= 0.7.0',
+    'h5py >= 3.0.0', # for reading and writing HDF5 files
+    # essentials
+    'numpy >= 1.22.0',
+    'matplotlib >= 3.8.2',
+    'scipy >= 1.12.0',
+    'scikit-image >= 0.20.0',
+    'scikit-tensor-py3',
+    'tensorstore >= 0.1.56', # for reading and writing tensorstore files
+    # utils
+    'inflection >= 0.5.1',
+    'gputools >= 0.2.14',
+    'pyclesperanto >= 0.8.2', # for GPU acceleration
+    'imohash >= 1.0.5',
+    'psutil >= 5.9.8',
+    'sympy >= 1.12.1', # used for symbolic math
 ]
+
+[project.optional-dependencies]
+dev = [
+    'pytest >= 8.2.1',
+    'black',
+    'coverage',
+    'flake8',
+    'interrogate',
+    'isort',
+    'Sphinx',
+    'furo'
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.dynamic]
+version = {attr = "voxel.__version__"}
+
+[tool.black]
+line-length = 120
+target_version = ['py36']
+exclude = '''
+
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | build
+    | dist
+  )/
+  | .gitignore
+)
+'''
+
+[tool.coverage.run]
+omit = ["*__init__*"]
+source = ["voxel", "tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "if __name__ == .__main__.:",
+    "from",
+    "import",
+    "pragma: no cover"
+]
+fail_under = 100
+
+[tool.isort]
+line_length = 120
+profile = "black"
+
+[tool.interrogate]
+exclude = ["setup.py", "docs", "build"]
+fail-under = 100

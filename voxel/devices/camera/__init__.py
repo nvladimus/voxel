@@ -6,9 +6,18 @@ Supported cameras include:
     - Hamamatsu Camera using DCAM SDK
     - PCO Camera using PCO SDK
 Import the specific camera class from the appropriate sub-module.
-e.g. from voxel.devices.camera.vieworks import VieworksCamera
+e.g. from voxel.devices.camera.vieworks import VieworksCamera, VieworksSettings
 """
 
 from .base import VoxelCamera
+from .definitions import VoxelFrame, Binning, PixelType, AcquisitionState, ROI, BYTES_PER_MB
 
-__all__ = ['VoxelCamera']
+__all__ = [
+    'VoxelCamera',
+    'VoxelFrame',
+    'Binning',
+    'PixelType',
+    'AcquisitionState',
+    'ROI',
+    'BYTES_PER_MB'
+]

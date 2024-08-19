@@ -1,6 +1,8 @@
 from dataclasses import dataclass
-from enum import IntEnum, StrEnum
-from typing import Dict, Optional
+from enum import StrEnum
+from typing import Optional
+
+from voxel.devices.camera import Binning, PixelType
 
 
 class TriggerMode(StrEnum):
@@ -28,10 +30,19 @@ class TriggerSettings:
     def __repr__(self):
         return f"{self.mode}, {self.source}, {self.polarity}"
 
+    def dict(self):
+        return {
+            'mode': self.mode,
+            'source': self.source,
+            'polarity': self.polarity
+        }
 
-@dataclass
-class TriggerSettingsLUT:
-    """Look-up table for a camera model trigger settings."""
-    mode: Dict[TriggerMode, str]
-    source: Dict[TriggerSource, str]
-    polarity: Dict[TriggerPolarity, str]
+
+class SimulatedCameraSettings:
+    """Settings for a simulated camera."""
+    Binning = Binning
+    PixelType = PixelType
+    TriggerMode = TriggerMode
+    TriggerSource = TriggerSource
+    TriggerPolarity = TriggerPolarity
+    TriggerSettings = TriggerSettings

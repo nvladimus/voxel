@@ -4,7 +4,7 @@ from typing import Tuple, List, Sequence
 import numpy as np
 
 from voxel.devices.camera.base import VoxelCamera
-from voxel.devices.camera.typings import VoxelFrame
+from voxel.devices.camera.definitions import VoxelFrame
 from voxel.devices.camera.simulated.simulated_camera import SimulatedCamera
 
 
