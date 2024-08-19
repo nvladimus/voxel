@@ -28,6 +28,7 @@ class SimulatedLaser(BaseLaser):
 
         self.prefix = prefix
         self.ser = Serial
+        self._wavelength = wavelength
         self._simulated_power_setpoint_mw = 10.0
         self._max_power_mw = 100.0
         self._modulation_mode = 'digital'
@@ -79,6 +80,10 @@ class SimulatedLaser(BaseLaser):
     @cdrh.setter
     def cdrh(self, value: str):
         self._cdrh = value
+
+    @property
+    def wavelength(self) -> int:
+        return self._wavelength
 
     def close(self):
         pass

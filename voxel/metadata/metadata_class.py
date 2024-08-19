@@ -18,12 +18,12 @@ Y_ANATOMICAL_DIRECTIONS = {'Inferior to Superior': 'Inferior_to_superior',
 Z_ANATOMICAL_DIRECTIONS = {'Left to Right': 'Left_to_right',
                            'Right to Left': 'Right_to_left'}
 
-CHAMBER_IMMERSION_MEDIUMS = {'air': 'air',
-                               'multi': 'multi',
-                               'oil': 'oil',
-                               'PBS': 'PBS',
-                               'water': 'water',
-                               'other': 'other'}
+MEDIA = {'air': 'air',
+         'multi': 'multi',
+         'oil': 'oil',
+         'PBS': 'PBS',
+         'water': 'water',
+         'other': 'other'}
 
 
 class MetadataClass(BaseMetadata):
