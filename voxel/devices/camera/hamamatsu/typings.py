@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import TypeAlias, Dict
 
 
 class SensorMode(IntEnum):
@@ -16,9 +15,6 @@ class SensorMode(IntEnum):
     WHOLELINES = 19
 
 
-SensorModeLUT: TypeAlias = Dict[SensorMode, int]
-
-
 class ReadoutDirection(IntEnum):
     """The readout direction of the camera."""
     FORWARD = 1
@@ -29,16 +25,10 @@ class ReadoutDirection(IntEnum):
     REVERSEBIDIRECTION = 7
 
 
-ReadoutDirectionLUT: TypeAlias = Dict[ReadoutDirection, int]
-
-
 class TriggerMode(IntEnum):
     NORMAL = 1
     PIV = 3
     START = 6
-
-
-TriggerModeLUT: TypeAlias = Dict[TriggerMode, int]
 
 
 class TriggerSource(IntEnum):
@@ -49,16 +39,10 @@ class TriggerSource(IntEnum):
     MASTERPULSE = 4
 
 
-TriggerSourceLUT: TypeAlias = Dict[TriggerSource, int]
-
-
 class TriggerPolarity(IntEnum):
     """The trigger polarity of the camera."""
     NEGATIVE = 1
     POSITIVE = 2
-
-
-TriggerPolarityLUT: TypeAlias = Dict[TriggerPolarity, int]
 
 
 class TriggerActive(IntEnum):
@@ -82,9 +66,6 @@ class TriggerActive(IntEnum):
             return 'The camera will be triggered on the readout of the trigger signal'
         if value == cls.POINT:
             return 'The camera will be triggered on the point of the trigger signal'
-
-
-TriggerActiveLUT: TypeAlias = Dict[TriggerActive, int]
 
 
 @dataclass

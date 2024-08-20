@@ -109,7 +109,7 @@ class VieworksCamera(VoxelCamera):
     ##########################################################################
 
     @property
-    def image_size_px(self) -> Vec2D:
+    def frame_size_px(self) -> Vec2D:
         """Get the image size in pixels.
         :return: The image size in pixels.
         :rtype: Vec2D
@@ -117,12 +117,20 @@ class VieworksCamera(VoxelCamera):
         return Vec2D(self.roi_width_px, self.roi_height_px) // self.binning
 
     @property
-    def image_width_px(self) -> int:
-        return self.image_size_px.x
+    def frame_width_px(self) -> int:
+        return self.frame_size_px.x
 
     @property
-    def image_height_px(self) -> int:
-        return self.image_size_px.y
+    def frame_height_px(self) -> int:
+        return self.frame_size_px.y
+
+    @property
+    def frame_size_mb(self) -> float:
+        """Get the image size in MB.
+        :return: The image size in MB.
+        :rtype: float
+        """
+        return self.frame_size_px.x * self.frame_size_px.y * self.pixel_type.bytes_per_pixel / BYTES_PER_MB
 
     @enumerated_property(
         enum_class=Binning,
@@ -638,6 +646,7 @@ class VieworksCamera(VoxelCamera):
         with (Buffer(self.grabber, timeout=timeout_ms) as buffer):
             ptr = buffer.get_info(BUFFER_INFO_BASE, INFO_DATATYPE_PTR)  # pointer to new frame
             data = ct.cast(ptr, ct.POINTER(ct.c_ubyte * column_count * row_count * 2)).contents
+            # TODO: Check if the frame is 8 or 16 bit ???
             frame = np.frombuffer(
                 data, count=int(column_count * row_count), dtype=np.uint16
             ).reshape((row_count, column_count))

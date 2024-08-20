@@ -29,6 +29,10 @@ class PixelType(IntEnum):
     def numpy_dtype(self) -> np.dtype:
         return np.uint8 if self == PixelType.MONO8 else np.uint16
 
+    @property
+    def bytes_per_pixel(self) -> int:
+        return self.value // 8
+
 
 @dataclass
 class AcquisitionState:

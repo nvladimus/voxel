@@ -148,7 +148,7 @@ class SimulatedCamera(VoxelCamera):
         self.log.info(f"Binning set to: {binning}")
 
     @property
-    def image_size_px(self) -> Vec2D:
+    def frame_size_px(self) -> Vec2D:
         return Vec2D(self.roi_width_px, self.roi_height_px) // self.binning
 
     @property

@@ -55,23 +55,28 @@ class Binning(IntEnum):
     X8 = 8
 ```
 
-### 4. `image_size_px: Vec2D`, `image_width_px: int`, `image_height_px: int`  
+### 4. `frame_size_px: Vec2D`, `frame_width_px: int`, `frame_height_px: int`  
 
 The size of the image that will be acquired by the camera. Describes the frame shape.  
 - **Read-only**
 
-### 5. `exposure_time_ms: int`
+### 5. `frame_size_mb: float`
+
+The size of the frame in megabytes.
+- **Read-only**
+
+### 6. `exposure_time_ms: int`
 
 The exposure time of the camera in milliseconds.
 - **Read-write**
 - **Deliminated Property**
 
-### 6. `frame_time_ms: int`
+### 7. `frame_time_ms: int`
 
 The time it takes to acquire a single frame in milliseconds.  
 - **Read-only**
 
-### 7. `acquisition_state: AcquisitionState`
+### 8. `acquisition_state: AcquisitionState`
 
 The current state of the camera acquisition.
 - **Read-only**
@@ -87,7 +92,7 @@ class AcquisitionState:
     data_rate_mbs: float
 ```
 
-### 8. `pixel_type: PixelType`
+### 9. `pixel_type: PixelType`
 
 The pixel type of the camera.
 - **Read-write**

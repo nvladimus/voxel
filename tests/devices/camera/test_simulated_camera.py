@@ -90,18 +90,18 @@ def test_roi_height_px(simulated_camera):
 
 def test_binning(simulated_camera):
     assert simulated_camera.binning == BINNING[1]
-    assert simulated_camera.image_width_px == simulated_camera.roi_width_px
-    assert simulated_camera.image_height_px == simulated_camera.roi_height_px
+    assert simulated_camera.frame_width_px == simulated_camera.roi_width_px
+    assert simulated_camera.frame_height_px == simulated_camera.roi_height_px
 
     simulated_camera.binning = BINNING[2]
     assert simulated_camera.binning == BINNING[2]
-    assert simulated_camera.image_width_px == simulated_camera.roi_width_px // 2
-    assert simulated_camera.image_height_px == simulated_camera.roi_height_px // 2
+    assert simulated_camera.frame_width_px == simulated_camera.roi_width_px // 2
+    assert simulated_camera.frame_height_px == simulated_camera.roi_height_px // 2
 
     simulated_camera.binning = BINNING[4]
     assert simulated_camera.binning == BINNING[4]
-    assert simulated_camera.image_width_px == simulated_camera.roi_width_px // 4
-    assert simulated_camera.image_height_px == simulated_camera.roi_height_px // 4
+    assert simulated_camera.frame_width_px == simulated_camera.roi_width_px // 4
+    assert simulated_camera.frame_height_px == simulated_camera.roi_height_px // 4
 
     with pytest.raises(ValueError):
         simulated_camera.binning = 3

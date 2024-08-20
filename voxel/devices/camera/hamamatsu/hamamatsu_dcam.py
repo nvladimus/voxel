@@ -1,14 +1,10 @@
 import time
-from enum import Enum
 from typing import Optional, Literal, Dict, Union, Tuple, TypeAlias
 
-import numpy as np
-from numpy._typing import NDArray
-
 from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.descriptors.enumerated_property import enumerated_property, set_ith_option
-from voxel.devices.base import DeviceConnectionError, VoxelDevice
-from voxel.devices.camera.base import VoxelCamera
+from voxel.descriptors.enumerated_property import enumerated_property
+from voxel.devices.base import DeviceConnectionError
+from voxel.devices.camera.base import VoxelCamera, BYTES_PER_MB
 from voxel.devices.camera.hamamatsu.dcam.dcam import (
     DCAM_IDSTR,
     DCAMCAP_TRANSFERINFO,
@@ -19,15 +15,13 @@ from voxel.devices.camera.hamamatsu.dcam.dcam import (
     dcamcap_transferinfo,
 )
 from voxel.devices.camera.hamamatsu.dcam.dcamapi4 import DCAMPROP_ATTR
-from voxel.devices.camera.hamamatsu.typings import SensorModeLUT, SensorMode, ReadoutDirectionLUT, ReadoutDirection, \
-    TriggerModeLUT, TriggerSourceLUT, TriggerPolarityLUT, TriggerMode, TriggerSource, TriggerPolarity, TriggerActiveLUT, \
-    TriggerActive, TriggerSettings
-from voxel.devices.camera.typings import (
-    Binning, BinningLUT,
-    PixelType, PixelTypeLUT, AcquisitionState, BitPackingMode
+from voxel.devices.camera.hamamatsu.typings import (
+    SensorMode, ReadoutDirection,
+    TriggerMode, TriggerSource, TriggerPolarity, TriggerActive, TriggerSettings
 )
-from voxel.devices.utils.singleton import Singleton
+from voxel.devices.camera.typings import Binning, PixelType, AcquisitionState, VoxelFrame
 from voxel.devices.utils.geometry import Vec2D
+from voxel.devices.utils.singleton import Singleton
 
 # dcam properties dict for convenience in calls
 PROPERTIES = {
@@ -63,6 +57,14 @@ EnumeratedProp: TypeAlias = Union[
     PixelType, Binning, SensorMode, ReadoutDirection,
     TriggerMode, TriggerSource, TriggerPolarity, TriggerActive
 ]
+PixelTypeLUT: TypeAlias = Dict[PixelType, int]
+BinningLUT: TypeAlias = Dict[Binning, int]
+SensorModeLUT: TypeAlias = Dict[SensorMode, int]
+ReadoutDirectionLUT: TypeAlias = Dict[ReadoutDirection, int]
+TriggerModeLUT: TypeAlias = Dict[TriggerMode, int]
+TriggerSourceLUT: TypeAlias = Dict[TriggerSource, int]
+TriggerPolarityLUT: TypeAlias = Dict[TriggerPolarity, int]
+TriggerActiveLUT: TypeAlias = Dict[TriggerActive, int]
 
 
 class DcamapiSingleton(Dcamapi, metaclass=Singleton):
@@ -159,6 +161,12 @@ class HamamatsuCamera(VoxelCamera):
         self._dcam.dev_open()
         self.log.info(f"Hamamatsu camera found with serial number: {self.serial_number}")
 
+        # private properties
+        self._buffer_size_frames = self.BUFFER_SIZE_MB
+        self._dropped_frames = 0
+        self._current_frame = 0
+        self._current_frame_start_time = 0
+
         # Flags
         self._buffer_allocated = False
 
@@ -202,7 +210,7 @@ class HamamatsuCamera(VoxelCamera):
             f"Roi Size:             ({self.roi_width_px}, {self.roi_height_px})\n"
             f"Roi Offset:           ({self.roi_width_offset_px}, {self.roi_height_offset_px})\n"
             f"Binning:              {self.binning}\n"
-            f"Image Size:           {self.image_size_px}\n"
+            f"Image Size:           {self.frame_size_px}\n"
             f"Pixel Type:           {self.pixel_type}\n"
             f"Binning LUT:          {self._binning_lut}\n"
             f"Pixel Type LUT:       {self._pixel_type_lut}\n"
@@ -214,6 +222,7 @@ class HamamatsuCamera(VoxelCamera):
             f"Trigger Active LUT:   {self._trigger_active_lut}\n"
         )
 
+    # Sensor properties ##################################################
     @property
     def sensor_size_px(self) -> Vec2D:
         """Get the sensor size in pixels.
@@ -227,7 +236,6 @@ class HamamatsuCamera(VoxelCamera):
             )
         return self._sensor_size_px
 
-    # Convenience properties ##################################################
     @property
     def sensor_width_px(self) -> int:
         """Get the sensor width in pixels.
@@ -271,7 +279,7 @@ class HamamatsuCamera(VoxelCamera):
         self._invalidate_all_delimination_props()
 
     @property
-    def image_size_px(self) -> Vec2D:
+    def frame_size_px(self) -> Vec2D:
         """Get the image size in pixels.
         :return: The image size in pixels.
         :rtype: Vec2D
@@ -281,6 +289,24 @@ class HamamatsuCamera(VoxelCamera):
             self.roi_height_px
         )
 
+    @property
+    def frame_width_px(self) -> int:
+        return self.frame_size_px.x
+
+    @property
+    def frame_height_px(self) -> int:
+        return self.frame_size_px.y
+
+    @property
+    def frame_size_mb(self) -> float:
+        """Get the frame size in megabytes.
+        :return: The frame size in megabytes.
+        :rtype: float
+        """
+        frame_size_bytes = self.frame_width_px * self.frame_height_px * self.pixel_type.bits_per_pixel
+        return frame_size_bytes / BYTES_PER_MB
+
+    # ROI properties ##########################################################
     @deliminated_property(
         minimum=lambda self: self._get_delimination_prop_limit("roi_width_px", "min"),
         maximum=lambda self: self._get_delimination_prop_limit("roi_width_px", "max"),
@@ -604,31 +630,111 @@ class HamamatsuCamera(VoxelCamera):
     def trigger(self) -> Dict:
         return self.trigger_settings.dict()
 
-    @property
-    def bit_packing_mode(self) -> BitPackingMode:
-        pass
-
     def prepare(self) -> None:
-        pass
+        """Prepare the camera for acquisition.
+        Allocates the buffer for the camera.
+        """
+        self._buffer_size_frames = round(self.BUFFER_SIZE_MB / self.frame_size_mb)
+        self._dcam.buf_alloc(self._buffer_size_frames)
+        self._buffer_allocated = True
+        self.log.info(f"Allocated buffer for {self._buffer_size_frames} frames")
 
-    def start(self) -> None:
-        pass
+    def start(self, frame_count: float = float('inf')) -> None:
+        """Start the camera."""
+        self._dropped_frames = 0
+        self._current_frame = 0
+        self._current_frame_start_time = time.time()
+        self._dcam.cap_start()
 
     def stop(self) -> None:
-        pass
+        """
+        Stop the camera.
+        """
+        self._dcam.buf_release()
+        self._buffer_allocated = False
+        self._dcam.cap_stop()
 
     def reset(self) -> None:
-        pass
+        """
+        Reset the camera.
+        """
+        if self._dcam.is_opened():
+            self._dcam.dev_close()
+            DcamapiSingleton.uninit()
+            del self._dcam
+            if DcamapiSingleton.init() is not False:
+                self._dcam = Dcam(self._dcam_idx)
+                self._dcam.dev_open()
 
-    def grab_frame(self) -> NDArray[np.int_]:
-        pass
+    def grab_frame(self) -> VoxelFrame:
+        """
+        Grab a frame from the camera buffer.
+
+        :return: The camera frame of size (height, width).
+        :rtype: numpy.array
+        """
+        # Note: creating the buffer and then "pushing" it at the end has the
+        #   effect of moving the internal camera frame buffer from the output
+        #   pool back to the input pool, so it can be reused.
+        timeout_ms = 1000
+        if self._dcam.wait_capevent_frameready(timeout_ms) is not False:
+            image = self._dcam.buf_getlastframedata()
+            return image
 
     @property
     def acquisition_state(self) -> AcquisitionState:
-        pass
+        """
+        Get the current acquisition state of the camera.
+        :return: The acquisition state.
+        :rtype: AcquisitionState
+        Notes:
+            AcquisitionState is a dataclass with the following fields:
+                - frame_index: The current frame index.
+                - input_buffer_size: The size of the input buffer.
+                - output_buffer_size: The size of the output buffer.
+                - dropped_frames: The number of dropped frames.
+                - frame_rate_fps: The current frame rate.
+                - data_rate_mbs: The current data rate.
+        """
+        cap_info = DCAMCAP_TRANSFERINFO()
+        # __hdcam inside class Dcam referenced as _Dcam__hdcam
+        # noinspection PyProtectedMember,PyUnresolvedReferences
+        dcamcap_transferinfo(self._dcam._Dcam__hdcam, byref(cap_info))
+        current_time = time.time()
+        frame_index = cap_info.nFrameCount
+        out_buffer_size = frame_index - self._current_frame
+        in_buffer_size = self._buffer_size_frames - out_buffer_size
+        if out_buffer_size > self._buffer_size_frames:
+            self._dropped_frames += out_buffer_size - self._buffer_size_frames
+        frame_rate_fps = out_buffer_size / (current_time - self._current_frame_start_time)
+        data_rate_mbs = frame_rate_fps * self.frame_size_mb
+        acquisition_state = AcquisitionState(
+            frame_index=frame_index,
+            input_buffer_size=in_buffer_size,
+            output_buffer_size=out_buffer_size,
+            dropped_frames=self._dropped_frames,
+            frame_rate_fps=frame_rate_fps,
+            data_rate_mbs=data_rate_mbs
+        )
+        # TODO: Check if this is the correct way to update the current frame start time
+        # Does this need to be updated every time the frame is grabbed?
+        self._current_frame_start_time = time.time()
+        self._current_frame = cap_info.nFrameCount
+        return acquisition_state
 
     def log_metadata(self) -> None:
-        pass
+        """
+        Log all metadata from the camera to the logger.
+        """
+
+        # log dcam camera settings
+        self.log.info("dcam camera parameters")
+        idprop = self._dcam.prop_getnextid(0)
+        while idprop is not False:
+            propname = self._dcam.prop_getname(idprop)
+            propvalue = self._dcam.prop_getvalue(idprop)
+            self.log.info(f"{propname}, {propvalue}")
+            idprop = self._dcam.prop_getnextid(idprop)
 
     def close(self) -> None:
         if self._dcam.is_opened():
@@ -700,7 +806,7 @@ class HamamatsuCamera(VoxelCamera):
                     self.log.error(f"Invalid limit type: {limit_type}")
                     return None
         except Exception as e:
-            self.log.error(f"Failed to query delimination property: {prop_name}")
+            self.log.error(f"Failed to query delimination property: {prop_name}. Error: {e}")
             return None
 
     def _get_delimination_prop_value(self, prop_name: str) -> Optional[float | int]:

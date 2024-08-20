@@ -1,13 +1,10 @@
 from abc import abstractmethod
 from typing import Any
 
-import numpy as np
-from numpy.typing import NDArray
-
 from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.base import VoxelDevice
-from voxel.devices.camera.typings import PixelType, BitPackingMode, AcquisitionState, Binning
+from voxel.devices.camera.typings import PixelType, AcquisitionState, Binning, VoxelFrame
 from voxel.devices.utils.geometry import Vec2D
 
 BYTES_PER_MB = 1_000_000
@@ -162,7 +159,7 @@ class VoxelCamera(VoxelDevice):
 
     @property
     @abstractmethod
-    def image_size_px(self) -> Vec2D:
+    def frame_size_px(self) -> Vec2D:
         """Get the size of the camera image in pixels.
 
         :return: The size of the camera image in pixels.
@@ -172,7 +169,7 @@ class VoxelCamera(VoxelDevice):
 
     @property
     @abstractmethod
-    def image_width_px(self) -> int:
+    def frame_width_px(self) -> int:
         """Get the width of the camera image in pixels.
 
         :return: The width of the camera image in pixels.
@@ -182,11 +179,21 @@ class VoxelCamera(VoxelDevice):
 
     @property
     @abstractmethod
-    def image_height_px(self) -> int:
+    def frame_height_px(self) -> int:
         """Get the height of the camera image in pixels.
 
         :return: The height of the camera image in pixels.
         :rtype: int
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def frame_size_mb(self) -> float:
+        """Get the size of the camera image in MB.
+
+        :return: The size of the camera image in MB.
+        :rtype: float
         """
         pass
 
@@ -319,13 +326,13 @@ class VoxelCamera(VoxelDevice):
         pass
 
     @abstractmethod
-    def grab_frame(self) -> NDArray[np.int_]:
+    def grab_frame(self) -> VoxelFrame:
         """Grab a frame from the camera buffer. \n
         If binning is via software, the GPU binned \n
         image is computed and returned.
 
         :return: The camera frame of size (height, width).
-        :rtype: NDArray[np.int_]
+        :rtype: VoxelFrame
         """
         pass
 
@@ -380,7 +387,7 @@ class VoxelCamera(VoxelDevice):
             f"Sensor: {self.sensor_width_px} x {self.sensor_height_px}",
             f"ROI: {self.roi_width_px} x {self.roi_height_px}",
             f"ROI Offset: ({self.roi_width_offset_px}, {self.roi_height_offset_px})",
-            f"Image Size: ({self.image_size_px.x}, {self.image_size_px.y})",
+            f"Image Size: ({self.frame_size_px.x}, {self.frame_size_px.y})",
             f"Binning: {self.binning}",
             f"Pixel Type: {self.pixel_type}",
             f"Bit Packing: {self.bit_packing_mode}",
