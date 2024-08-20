@@ -1,3 +1,4 @@
+import functools
 from typing import Tuple, Dict, List, Optional, Union, Any, TypeAlias
 
 import numpy as np
@@ -5,14 +6,12 @@ import numpy as np
 from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.base import DeviceConnectionError
-from voxel.devices.camera.base import VoxelCamera, BYTES_PER_MB
-from voxel.devices.camera.definitions import VoxelFrame, AcquisitionState, ROI
+from voxel.devices.camera import VoxelCamera, VoxelFrame, AcquisitionState, ROI, BYTES_PER_MB
 from voxel.devices.camera.vieworks.definitions import (
     Binning, PixelType,
     BitPackingMode, TriggerMode, TriggerSource, TriggerPolarity, TriggerSettings
 )
 from voxel.devices.utils.geometry import Vec2D
-from voxel.devices.utils.singleton import Singleton
 from voxel.devices.camera.vieworks.egrabber import (
     EGenTL, EGrabber, EGrabberDiscovery, Buffer, ct,
     GENTL_INFINITE, BUFFER_INFO_BASE, INFO_DATATYPE_PTR, INFO_DATATYPE_SIZET, STREAM_INFO_NUM_DELIVERED,
@@ -24,11 +23,58 @@ PixelTypeLUT: TypeAlias = Dict[PixelType, str]
 BinningLUT: TypeAlias = Dict[Binning, int]
 BitPackingModeLUT: TypeAlias = Dict[BitPackingMode, str]
 
-class EGenTLSingleton(EGenTL, metaclass=Singleton):
-    """Singleton wrapper around the EGrabber SDK."""
 
-    def __init__(self):
-        super().__init__()
+def _discover_grabber(serial_number: str, gentl_instance: Optional[EGenTL] = None, ) -> Tuple[EGrabber, Dict[str, int]]:
+    """
+    Discover the grabber for the given serial number.
+    """
+    if gentl_instance is None:
+        gentl_instance = _get_egentl_singleton()
+
+    def discover_cameras() -> Dict[str, List[Dict[str, int]]]:
+        discovery = EGrabberDiscovery(gentl_instance)
+        discovery.discover()
+        _egrabber_list = {"grabbers": []}
+        for interface_index in range(discovery.interface_count()):
+            for device_index in range(discovery.device_count(interface_index)):
+                if discovery.device_info(interface_index, device_index).deviceVendorName:
+                    for stream_index in range(
+                            discovery.stream_count(interface_index, device_index)
+                    ):
+                        _egrabber_list["grabbers"].append(
+                            {
+                                "interface": interface_index,
+                                "device": device_index,
+                                "stream": stream_index,
+                            }
+                        )
+        return _egrabber_list
+
+    egrabber_list = discover_cameras()
+
+    if not egrabber_list["grabbers"]:
+        raise DeviceConnectionError(
+            "No valid cameras found. Check connections and close any software."
+        )
+
+    for egrabber in egrabber_list["grabbers"]:
+        grabber = EGrabber(
+            gentl_instance,
+            egrabber["interface"],
+            egrabber["device"],
+            egrabber["stream"],
+            remote_required=True,
+        )
+        grabber_serial: Optional[str] = grabber.remote.get("DeviceSerialNumber") if grabber.remote else None
+        if grabber_serial == serial_number:
+            return grabber, egrabber
+
+    raise DeviceConnectionError(f"No grabber found for S/N: {serial_number}")
+
+
+@functools.cache
+def _get_egentl_singleton():
+    return EGenTL()
 
 
 class VieworksCamera(VoxelCamera):
@@ -40,14 +86,14 @@ class VieworksCamera(VoxelCamera):
     """
     BUFFER_SIZE_MB = 2400
 
-    gentl = EGenTLSingleton()
+    gentl = _get_egentl_singleton()
 
     def __init__(self, id, serial_number):
         super().__init__(id)
         self.serial_number = serial_number
         self.log.info(f"Initializing Vieworks camera with id: {self.id} and serial number: {self.serial_number}")
 
-        self.grabber, self.egrabber = self._discover_camera(self.gentl, self.serial_number)
+        self.grabber, self.egrabber = _discover_grabber(self.serial_number, self.gentl)
 
         # Flags
         self._buffer_allocated = False
@@ -989,45 +1035,3 @@ class VieworksCamera(VoxelCamera):
     def _invalidate_all_delimination_props(self):
         for prop_name in self._delimination_props:
             self._invalidate_delimination_prop(prop_name)
-
-    @staticmethod
-    def _discover_camera(gentl_instance: EGenTLSingleton, serial_number: str) -> Tuple[EGrabber, Dict[str, int]]:
-        def discover_cameras() -> Dict[str, List[Dict[str, int]]]:
-            discovery = EGrabberDiscovery(gentl_instance)
-            discovery.discover()
-            _egrabber_list = {"grabbers": []}
-            for interface_index in range(discovery.interface_count()):
-                for device_index in range(discovery.device_count(interface_index)):
-                    if discovery.device_info(interface_index, device_index).deviceVendorName:
-                        for stream_index in range(
-                                discovery.stream_count(interface_index, device_index)
-                        ):
-                            _egrabber_list["grabbers"].append(
-                                {
-                                    "interface": interface_index,
-                                    "device": device_index,
-                                    "stream": stream_index,
-                                }
-                            )
-            return _egrabber_list
-
-        egrabber_list = discover_cameras()
-
-        if not egrabber_list["grabbers"]:
-            raise DeviceConnectionError(
-                "No valid cameras found. Check connections and close any software."
-            )
-
-        for egrabber in egrabber_list["grabbers"]:
-            grabber = EGrabber(
-                gentl_instance,
-                egrabber["interface"],
-                egrabber["device"],
-                egrabber["stream"],
-                remote_required=True,
-            )
-            grabber_serial: Optional[str] = grabber.remote.get("DeviceSerialNumber") if grabber.remote else None
-            if grabber_serial == serial_number:
-                return grabber, egrabber
-
-        raise DeviceConnectionError(f"No grabber found for S/N: {serial_number}")

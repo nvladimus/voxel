@@ -10,7 +10,7 @@ e.g. from voxel.devices.camera.vieworks import VieworksCamera
 """
 
 from .base import VoxelCamera
-from .definitions import VoxelFrame, Binning, PixelType, AcquisitionState, ROI
+from .definitions import VoxelFrame, Binning, PixelType, AcquisitionState, ROI, BYTES_PER_MB
 
 __all__ = [
     'VoxelCamera',
@@ -18,5 +18,6 @@ __all__ = [
     'Binning',
     'PixelType',
     'AcquisitionState',
-    'ROI'
+    'ROI',
+    'BYTES_PER_MB'
 ]

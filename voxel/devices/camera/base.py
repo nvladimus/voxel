@@ -7,7 +7,6 @@ from voxel.devices.base import VoxelDevice
 from voxel.devices.camera.definitions import PixelType, AcquisitionState, Binning, VoxelFrame
 from voxel.devices.utils.geometry import Vec2D
 
-BYTES_PER_MB = 1_000_000
 
 
 class VoxelCamera(VoxelDevice):
@@ -218,27 +217,6 @@ class VoxelCamera(VoxelDevice):
         """
         pass
 
-    # @property
-    # @abstractmethod
-    # def bit_packing_mode(self) -> BitPackingMode:
-    #     """Get the bit packing mode of the camera.
-    #
-    #     :return: The bit packing mode of the camera.
-    #     :rtype: BitPackingMode
-    #     """
-    #     pass
-    #
-    # @bit_packing_mode.setter
-    # @abstractmethod
-    # def bit_packing_mode(self, bit_packing: BitPackingMode) -> None:
-    #     """The bit packing mode of the camera: \n
-    #     - lsb, msb, none
-    #
-    #     :param bit_packing: The bit packing mode
-    #     :type bit_packing: BitPackingMode
-    #     """
-    #     pass
-
     # Acquisition/Capture Properties
     @deliminated_property()
     @abstractmethod
@@ -352,6 +330,28 @@ class VoxelCamera(VoxelDevice):
         """
         pass
 
+    @abstractmethod
+    def log_metadata(self) -> None:
+        """Log all metadata from the camera to the logger."""
+        pass
+
+    def __repr__(self):
+        properties = [
+            f"ID: {self.id}",
+            f"Sensor: {self.sensor_width_px} x {self.sensor_height_px}",
+            f"ROI: {self.roi_width_px} x {self.roi_height_px}",
+            f"ROI Offset: ({self.roi_width_offset_px}, {self.roi_height_offset_px})",
+            f"Image Size: ({self.frame_size_px.x}, {self.frame_size_px.y})",
+            f"Binning: {self.binning}",
+            f"Pixel Type: {self.pixel_type}",
+            f"Exposure: {self.exposure_time_ms:.2f} ms",
+            f"Line Interval: {self.line_interval_us:.2f} µs",
+            f"Frame Time: {self.frame_time_ms:.2f} ms",
+            f"Trigger: {self.trigger_settings}",
+        ]
+
+        return f"{self.__class__.__name__}:\n" + "\n".join(f"  {prop}" for prop in properties)
+
     # TODO: Determine whether to have signals as abstract properties that must be implemented by the child class
     #  or as methods that can be implemented by the child class
     #  or leave it to the discretion of the child class to add whatever signals they want
@@ -375,27 +375,3 @@ class VoxelCamera(VoxelDevice):
     #     :rtype: float
     #     """
     #     pass
-
-    @abstractmethod
-    def log_metadata(self) -> None:
-        """Log all metadata from the camera to the logger."""
-        pass
-
-    def __repr__(self):
-        properties = [
-            f"ID: {self.id}",
-            f"Sensor: {self.sensor_width_px} x {self.sensor_height_px}",
-            f"ROI: {self.roi_width_px} x {self.roi_height_px}",
-            f"ROI Offset: ({self.roi_width_offset_px}, {self.roi_height_offset_px})",
-            f"Image Size: ({self.frame_size_px.x}, {self.frame_size_px.y})",
-            f"Binning: {self.binning}",
-            f"Pixel Type: {self.pixel_type}",
-            f"Bit Packing: {self.bit_packing_mode}",
-            f"Exposure: {self.exposure_time_ms:.2f} ms",
-            # f"Line Interval: {self.line_interval_us:.2f} µs",
-            # f"Frame Time: {self.frame_time_ms:.2f} ms",
-            f"Trigger: {self.trigger}",
-            # f"Readout: {self.readout_mode}"
-        ]
-
-        return f"{self.__class__.__name__}:\n" + "\n".join(f"  {prop}" for prop in properties)

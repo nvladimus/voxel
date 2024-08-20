@@ -4,7 +4,15 @@ from typing import Optional, Literal, Dict, Union, Tuple, TypeAlias
 from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.base import DeviceConnectionError
-from voxel.devices.camera.base import VoxelCamera, BYTES_PER_MB
+from voxel.devices.camera.hamamatsu.dcam.dcamapi4 import DCAMPROP_ATTR
+from voxel.devices.camera.hamamatsu.definitions import (
+    Binning, PixelType,
+    SensorMode, ReadoutDirection,
+    TriggerMode, TriggerSource, TriggerPolarity, TriggerActive, TriggerSettings,
+    PROPERTIES, ENUMERATED_PROPERTIES, DELIMINATED_PROPERTIES
+)
+from voxel.devices.camera import VoxelCamera, VoxelFrame, AcquisitionState, ROI, BYTES_PER_MB
+
 from voxel.devices.camera.hamamatsu.dcam.dcam import (
     DCAM_IDSTR,
     DCAMCAP_TRANSFERINFO,
@@ -14,43 +22,9 @@ from voxel.devices.camera.hamamatsu.dcam.dcam import (
     byref,
     dcamcap_transferinfo,
 )
-from voxel.devices.camera.hamamatsu.dcam.dcamapi4 import DCAMPROP_ATTR
-from voxel.devices.camera.hamamatsu.definitions import (
-    SensorMode, ReadoutDirection,
-    TriggerMode, TriggerSource, TriggerPolarity, TriggerActive, TriggerSettings
-)
-from voxel.devices.camera.definitions import Binning, PixelType, AcquisitionState, VoxelFrame
+
 from voxel.devices.utils.geometry import Vec2D
 from voxel.devices.utils.singleton import Singleton
-
-# dcam properties dict for convenience in calls
-PROPERTIES = {
-    # TODO: Figure out the use of subarray_mode
-    "subarray_mode": 4202832,  # 0x00402150, R/W, mode, "SUBARRAY MODE"
-    "sensor_temperature": 2097936,  # 0x00200310, R/O, celsius, "TEMPERATURE"
-}
-
-DELIMINATED_PROPERTIES = {
-    "exposure_time_s": 2031888,  # 0x001F0110, R/W, sec, "EXPOSURE TIME"
-    "line_interval_s": 4208720,  # 0x00403850, R/W, sec, "INTERNAL LINE INTERVAL"
-    "image_width_px": 4325904,  # 0x00420210, R/O, long, "IMAGE WIDTH"
-    "image_height_px": 4325920,  # 0x00420220, R/O, long, "IMAGE HEIGHT"
-    "roi_width_px": 4202784,  # 0x00402120, R/W, long, "SUBARRAY HSIZE"
-    "roi_height_px": 4202816,  # 0x00402140, R/W, long, "SUBARRAY VSIZE"
-    "roi_width_offset_px": 4202768,  # 0x00402110, R/W, long, "SUBARRAY HPOS"
-    "roi_height_offset_px": 4202800,  # 0x00402130, R/W, long, "SUBARRAY VPOS"
-}
-
-ENUMERATED_PROPERTIES = {
-    "pixel_type": 4326000,  # 0x00420270, R/W, DCAM_PIXELTYPE, "PIXEL TYPE"
-    "binning": 4198672,  # 0x00401110, R/W, mode, "BINNING"
-    "sensor_mode": 4194832,  # 0x00400210, R/W, mode,  "SENSOR MODE"
-    "readout_direction": 4194608,  # 0x00400130, R/W, mode, "READOUT DIRECTION"
-    "trigger_active": 1048864,  # 0x00100120, R/W, mode, "TRIGGER ACTIVE"
-    "trigger_mode": 1049104,  # 0x00100210, R/W, mode, "TRIGGER MODE"
-    "trigger_polarity": 1049120,  # 0x00100220, R/W, mode, "TRIGGER POLARITY"
-    "trigger_source": 1048848,  # 0x00100110, R/W, mode, "TRIGGER SOURCE"
-}
 
 LimitType = Literal['min', 'max', 'step']
 EnumeratedProp: TypeAlias = Union[
@@ -207,7 +181,7 @@ class HamamatsuCamera(VoxelCamera):
             "trigger_active", TriggerActive)
         self.log.info("Completed initialization of Hamamatsu camera with id: {self.id}")
 
-    def info(self):
+    def __repr__(self):
         return (
             f"Serial Number:        {self.serial_number}\n"
             f"Sensor Size:          {self.sensor_size_px}\n"
@@ -424,6 +398,17 @@ class HamamatsuCamera(VoxelCamera):
         self._set_delimination_prop_value("roi_height_offset_px", value)
         self.log.info(f"Set roi height offset to {value} px")
         self._invalidate_delimination_prop("roi_height_offset_px")
+
+    @property
+    def roi(self) -> ROI:
+        """Get the region of interest.
+        :return: The region of interest.
+        :rtype: ROI
+        """
+        return ROI(
+            origin=Vec2D(self.roi_width_offset_px, self.roi_height_offset_px),
+            size=Vec2D(self.roi_width_px, self.roi_height_px)
+        )
 
     @deliminated_property(
         minimum=lambda self: self._get_delimination_prop_limit("exposure_time_s", "min") * 1e3,

@@ -9,6 +9,7 @@ from threading import Lock, Thread
 import ctypes as ct
 import six
 
+
 def Coaxlink():
     """Return cti path to Coaxlink producer.
 
@@ -19,6 +20,7 @@ def Coaxlink():
     with utils.Ctype.std_string() as cti:
         cE.Eur_Coaxlink(ct.byref(cti.box))
         return cti.box_value
+
 
 def Grablink():
     """Return cti path to Grablink producer.
@@ -31,6 +33,7 @@ def Grablink():
         cE.Eur_Grablink(ct.byref(cti.box))
         return cti.box_value
 
+
 def Gigelink():
     """Return cti path to GigE Vision producer.
 
@@ -42,9 +45,10 @@ def Gigelink():
         cE.Eur_Gigelink(ct.byref(cti.box))
         return cti.box_value
 
+
 # commented out to allow for singleton metaclass!!
-# @six.add_metaclass(utils.FinalClass)
-class EGenTL():
+@six.add_metaclass(utils.FinalClass)
+class EGenTL:
     """An EGenTL object is a wrapper around EGenTL C++ API."""
 
     def __init__(self, path=None):
@@ -219,6 +223,7 @@ class EGenTL():
         cE.Eur_EGenTL_imageSaveToDisk__from__ImageConvertInput_p__const_char_p__int64_t__ImageSaveToDiskParams_p(
             self._box, ct.byref(input), utils.to_cstr(filepath), ct.c_int64(index), params)
 
+
 class ImageConvertInput(ct.Structure):
     """Input details for image conversion.
 
@@ -288,6 +293,7 @@ class ImageConvertInput(ct.Structure):
             width, height, pixels, utils.to_cstr(format),
             buffer_size, line_pitch, None, None, 1, 0, 0, 0)
 
+
 class ImageConvertOutput(ct.Structure):
     """Output details for image conversion.
 
@@ -345,8 +351,9 @@ class ImageConvertOutput(ct.Structure):
         else:
             size = ct.pointer(ct.c_size_t(size))
         super(ImageConvertOutput, self).__init__(
-            width, height, ct.addressof(pixels), utils.to_cstr(format), 
+            width, height, ct.addressof(pixels), utils.to_cstr(format),
             config, operation, 1, quality, size)
+
 
 class ImageConvertROI(ct.Structure):
     """Region Of Interest details for image conversion (optional).
@@ -381,6 +388,7 @@ class ImageConvertROI(ct.Structure):
 
     def __init__(self, width=0, height=0, in_offset_x=0, in_offset_y=0, out_offset_x=0, out_offset_y=0):
         super(ImageConvertROI, self).__init__(width, height, in_offset_x, in_offset_y, out_offset_x, out_offset_y)
+
 
 class ImageSaveToDiskParams(ct.Structure):
     """Image Save To Disk Parameters (optional).

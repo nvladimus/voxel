@@ -107,12 +107,21 @@ class PixelType(IntEnum):
     MONO16 = 16
 ```
 
+### 10. `line_interval_us: float`
+
+The time taken to read a single line in microseconds.
+- **++Read**
+
+### 11. `trigger_settings: dict`
+
+Returns the trigger settings of the camera. These vary from camera to camera. Additional enumarated properties may be 
+defined to allow access to specific trigger settings as well as to set them.  
+Examples: `trigger_mode`, `trigger_source`, `trigger_polarity`, `trigger_active`, `trigger_duration_us`, etc.  
+
 ## Others
-1. Line Interval
-2. Bitpacking mode
-3. Trigger settings
-4. Sensor mode
-5. Readout mode
-6. Readout direction
-7. Sensor temperature c.
-8. 
+1. Bitpacking mode
+2. Sensor mode
+3. Readout mode
+4. Readout direction
+5. Sensor temperature c.
+6. mainboard temperature c.

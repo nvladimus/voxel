@@ -5,6 +5,8 @@ from typing import TypeAlias
 import numpy as np
 from numpy.typing import NDArray
 
+BYTES_PER_MB = 1_000_000
+
 from voxel.devices.utils.geometry import Vec2D
 
 
