@@ -5,5 +5,9 @@ Supported cameras include:
 """
 
 from .vieworks_egrabber import VieworksCamera
+from .definitions import VieworksSettings
 
-__all__ = ['VieworksCamera']
+__all__ = [
+    'VieworksCamera',
+    'VieworksSettings'
+]

@@ -10,5 +10,13 @@ e.g. from voxel.devices.camera.vieworks import VieworksCamera
 """
 
 from .base import VoxelCamera
+from .definitions import VoxelFrame, Binning, PixelType, AcquisitionState, ROI
 
-__all__ = ['VoxelCamera']
+__all__ = [
+    'VoxelCamera',
+    'VoxelFrame',
+    'Binning',
+    'PixelType',
+    'AcquisitionState',
+    'ROI'
+]

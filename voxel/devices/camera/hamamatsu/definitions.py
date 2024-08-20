@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import IntEnum
+from voxel.devices.camera import Binning, PixelType
 
 
 class SensorMode(IntEnum):
@@ -52,8 +53,8 @@ class TriggerActive(IntEnum):
     SYNCREADOUT = 3
     POINT = 4
 
-    # TODO: Rewrite descriptions for each value
-    # TODO: Figure out the usefulness of descriptions and whether they should be included in the final implementation
+    # TODO: Rewrite descriptions for each value TODO: Figure out the usefulness of descriptions and whether they
+    #  should be included in the final implementation
     @classmethod
     def description(cls, value=None):
         if not value:
@@ -82,3 +83,16 @@ class TriggerSettings:
             'polarity': self.polarity,
             'active': self.active
         }
+
+
+class HamamatsuSettings:
+    """Enumerated Settings for Hamamatsu Cameras."""
+    Binning = Binning
+    PixelType = PixelType
+    SensorMode = SensorMode
+    ReadoutDirection = ReadoutDirection
+    TriggerMode = TriggerMode
+    TriggerSource = TriggerSource
+    TriggerPolarity = TriggerPolarity
+    TriggerActive = TriggerActive
+    TriggerSettings = TriggerSettings

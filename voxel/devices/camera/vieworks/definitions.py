@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Dict, Optional
+from typing import Optional
+from voxel.devices.camera import Binning, PixelType
 
 
 class BitPackingMode(StrEnum):
@@ -35,9 +36,13 @@ class TriggerSettings:
         return f"{self.mode}, {self.source}, {self.polarity}"
 
 
-@dataclass
-class TriggerSettingsLUT:
-    """Look-up table for a camera model trigger settings."""
-    mode: Dict[TriggerMode, str]
-    source: Dict[TriggerSource, str]
-    polarity: Dict[TriggerPolarity, str]
+class VieworksSettings:
+    """Settings for a Vieworks camera."""
+    Binning = Binning
+    PixelType = PixelType
+    BitPackingMode = BitPackingMode
+    TriggerMode = TriggerMode
+    TriggerSource = TriggerSource
+    TriggerPolarity = TriggerPolarity
+    TriggerSettings = TriggerSettings
+

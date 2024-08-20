@@ -4,7 +4,7 @@ from typing import Any
 from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.base import VoxelDevice
-from voxel.devices.camera.typings import PixelType, AcquisitionState, Binning, VoxelFrame
+from voxel.devices.camera.definitions import PixelType, AcquisitionState, Binning, VoxelFrame
 from voxel.devices.utils.geometry import Vec2D
 
 BYTES_PER_MB = 1_000_000

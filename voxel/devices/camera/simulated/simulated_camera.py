@@ -2,7 +2,7 @@ import numpy as np
 
 from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.devices.camera import VoxelCamera
-from voxel.devices.camera.typings import (
+from voxel.devices.camera.definitions import (
     Binning, BinningLUT,
     PixelType, PixelTypeInfo, PixelTypeLUT,
     BitPackingMode, BitPackingModeLUT,

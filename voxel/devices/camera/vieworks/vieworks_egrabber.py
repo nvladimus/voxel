@@ -6,11 +6,10 @@ from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.base import DeviceConnectionError
 from voxel.devices.camera.base import VoxelCamera, BYTES_PER_MB
-from voxel.devices.camera.typings import (
-    Binning, PixelType, VoxelFrame, AcquisitionState, ROI
-)
-from voxel.devices.camera.vieworks.typings import (
-    TriggerMode, TriggerSource, TriggerPolarity, TriggerSettings, BitPackingMode
+from voxel.devices.camera.definitions import VoxelFrame, AcquisitionState, ROI
+from voxel.devices.camera.vieworks.definitions import (
+    Binning, PixelType,
+    BitPackingMode, TriggerMode, TriggerSource, TriggerPolarity, TriggerSettings
 )
 from voxel.devices.utils.geometry import Vec2D
 from voxel.devices.utils.singleton import Singleton
@@ -24,7 +23,6 @@ TriggerSetting: TypeAlias = Union[TriggerMode, TriggerSource, TriggerPolarity]
 PixelTypeLUT: TypeAlias = Dict[PixelType, str]
 BinningLUT: TypeAlias = Dict[Binning, int]
 BitPackingModeLUT: TypeAlias = Dict[BitPackingMode, str]
-
 
 class EGenTLSingleton(EGenTL, metaclass=Singleton):
     """Singleton wrapper around the EGrabber SDK."""
@@ -760,7 +758,7 @@ class VieworksCamera(VoxelCamera):
         init_binning = None
         skipped_options = []
         try:
-            self.log.info('Querying binning options...')
+            self.log.debug('Querying binning options...')
             init_binning = self.grabber.remote.get("BinningHorizontal")
             binning_options = self.grabber.remote.get("@ee BinningHorizontal", dtype=list)
             for binning in binning_options:
@@ -780,13 +778,13 @@ class VieworksCamera(VoxelCamera):
             self.log.error(f"Error querying binning lut: {str(e)}")
         finally:
             if skipped_options:
-                self.log.warning(f"Skipped binning options: {skipped_options}. See debug logs for more info.")
+                self.log.debug(f"Skipped binning options: {skipped_options}. See debug logs for more info.")
             if init_binning:
                 try:
                     self.grabber.remote.set("BinningHorizontal", init_binning)
                 except Exception as e:
                     self.log.error(f"Failed to restore initial binning setting {init_binning}: {str(e)}")
-            self.log.info(f'Completed querying binning options: {lut}')
+            self.log.debug(f'Completed querying binning options: {lut}')
         return lut
 
     def _get_pixel_type_lut(self) -> PixelTypeLUT:
@@ -801,7 +799,7 @@ class VieworksCamera(VoxelCamera):
         init_pixel_type = None
         skipped_options = []
         try:
-            self.log.info('Querying pixel type options...')
+            self.log.debug('Querying pixel type options...')
             pixel_type_options = self.grabber.remote.get("@ee PixelFormat", dtype=list)
             init_pixel_type = self.grabber.remote.get("PixelFormat")
             for pixel_type in pixel_type_options:
@@ -822,13 +820,13 @@ class VieworksCamera(VoxelCamera):
             self.log.error(f"Error querying pixel type options: {str(e)}")
         finally:
             if skipped_options:
-                self.log.warning(f"Skipped pixel type options: {skipped_options}. See debug logs for more info.")
+                self.log.debug(f"Skipped pixel type options: {skipped_options}. See debug logs for more info.")
             if init_pixel_type:
                 try:
                     self.grabber.remote.set("PixelFormat", init_pixel_type)
                 except Exception as e:
                     self.log.error(f"Failed to restore initial pixel type {init_pixel_type}: {str(e)}")
-            self.log.info(f'Completed querying pixel type options: {lut}')
+            self.log.debug(f'Completed querying pixel type options: {lut}')
         return lut
 
     def _get_bit_packing_mode_lut(self) -> BitPackingModeLUT:
@@ -842,7 +840,7 @@ class VieworksCamera(VoxelCamera):
         init_bit_packing = None
         skipped_options = []
         try:
-            self.log.info('Querying bit packing mode options...')
+            self.log.debug('Querying bit packing mode options...')
             bit_packing_options = self.grabber.stream.get("@ee UnpackingMode", dtype=list)
             init_bit_packing = self.grabber.stream.get("UnpackingMode")
             for bit_packing_mode in bit_packing_options:
@@ -864,13 +862,13 @@ class VieworksCamera(VoxelCamera):
             self.log.error(f"Error querying bit packing mode options: {str(e)}")
         finally:
             if skipped_options:
-                self.log.warning(f"Skipped bit packing mode options: {skipped_options}. See debug logs for more info.")
+                self.log.debug(f"Skipped bit packing mode options: {skipped_options}. See debug logs for more info.")
             if init_bit_packing:
                 try:
                     self.grabber.stream.set("UnpackingMode", init_bit_packing)
                 except Exception as e:
                     self.log.error(f"Failed to restore initial bit packing mode setting: {str(e)}")
-            self.log.info(f'Completed querying bit packing mode options: {lut}')
+            self.log.debug(f'Completed querying bit packing mode options: {lut}')
         return lut
 
     def _get_line_interval_us_lut(self) -> PixelTypeLUT:
@@ -883,7 +881,7 @@ class VieworksCamera(VoxelCamera):
         lut: PixelTypeLUT = {}
         initial_pixel_type = None
         try:
-            self.log.info('Querying line interval options...')
+            self.log.debug('Querying line interval options...')
             initial_pixel_type = self.pixel_type
             pixel_type_options = iter(self._pixel_type_lut.items())
             for pixel_type in pixel_type_options:
@@ -891,7 +889,6 @@ class VieworksCamera(VoxelCamera):
                     self.grabber.remote.set("PixelFormat", pixel_type[1])
                     # check max acquisition rate, used to determine line interval
                     max_frame_rate = self.grabber.remote.get("AcquisitionFrameRate.Max")
-                    self.log.info(f'Max Frame Rate: {max_frame_rate}')
                     # vp-151mx camera uses the sony imx411 camera
                     # which has 10640 active rows but 10802 total rows.
                     # from the manual 10760 are used during readout
@@ -901,7 +898,7 @@ class VieworksCamera(VoxelCamera):
                         line_interval_s = (1 / max_frame_rate) / (self.roi_height_px + 120)
                     else:
                         line_interval_s = (1 / max_frame_rate) / self.sensor_height_px
-                    lut[pixel_type[0]] = float(line_interval_s * 1e6)
+                    lut[pixel_type[0]] = line_interval_s * 1e6
                 except GenTLException as e:
                     self.log.debug(f'Line Interval: {pixel_type} skipped. Not settable on this device. Error: {str(e)}')
                 except Exception as e:
@@ -914,7 +911,7 @@ class VieworksCamera(VoxelCamera):
                     self.grabber.remote.set("PixelFormat", self._pixel_type_lut[initial_pixel_type])
                 except Exception as e:
                     self.log.error(f"Failed to restore initial pixel type setting: {str(e)}")
-            self.log.info(f'Completed querying line interval options: {lut}')
+            self.log.debug(f'Completed querying line interval options: {lut}')
         return lut
 
     def _get_trigger_setting_lut(self, setting: str) -> Dict[TriggerSetting, str]:
@@ -930,7 +927,7 @@ class VieworksCamera(VoxelCamera):
         init_trigger_setting = None
         skipped_options = []
         try:
-            self.log.info(f'Querying {setting} options...')
+            self.log.debug(f'Querying {setting} options...')
             trigger_setting_options = self.grabber.remote.get(f"@ee {setting}", dtype=list)
             init_trigger_setting = self.grabber.remote.get(setting)
             for trigger_setting in trigger_setting_options:
@@ -960,16 +957,16 @@ class VieworksCamera(VoxelCamera):
             self.log.error(f"Error querying {setting} options: {str(e)}")
         finally:
             if skipped_options:
-                self.log.warning(f"Skipped {setting} options: {skipped_options}. See debug logs for more info.")
+                self.log.debug(f"Skipped {setting} options: {skipped_options}. See debug logs for more info.")
             if init_trigger_setting:
                 try:
                     self.grabber.remote.set(setting, init_trigger_setting)
                 except Exception as e:
                     self.log.error(f"Failed to restore initial {setting} setting: {str(e)}")
-            self.log.info(f'Completed querying {setting} options: {lut}')
+            self.log.debug(f'Completed querying {setting} options: {lut}')
         return lut
 
-    def _query_delimination_prop(self, prop_name: str, limit_type: str) -> Optional[int | float]:
+    def _get_delimination_prop(self, prop_name: str, limit_type: str) -> Optional[int | float]:
         if self._delimination_props[prop_name][limit_type] is None:
             try:
                 value = self.grabber.remote.get(f'{prop_name}.{limit_type.capitalize()}')
@@ -979,10 +976,10 @@ class VieworksCamera(VoxelCamera):
                 return None
         return self._delimination_props[prop_name][limit_type]
 
-    def _query_all_delimination_props(self):
+    def _get_all_delimination_props(self):
         for prop_name in self._delimination_props:
             for limit_type in self._delimination_props[prop_name]:
-                self._query_delimination_prop(prop_name, limit_type)
+                self._get_delimination_prop(prop_name, limit_type)
 
     def _invalidate_delimination_prop(self, prop_name: str):
         if prop_name in self._delimination_props:
