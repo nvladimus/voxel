@@ -14,7 +14,7 @@ class EnumeratedProperty:
             fdel: Optional[Callable[[Any], None]] = None,
             *,
             enum_class: Type[Enum],
-            options_getter: Optional[Callable[[Any], Dict[Enum, Any]]] = None
+            options_getter: Optional[Callable[[Any], List]] = None
     ):
         self.fget = fget
         self.fset = fset
@@ -24,12 +24,13 @@ class EnumeratedProperty:
         self._instance_proxies = WeakKeyDictionary()
         self.log = logging.getLogger(f"{self.__class__.__name__}")
 
-    def __get__(self, instance: Any, owner=None) -> Union['EnumeratedProperty', 'EnumeratedPropertyProxy']:
+    def __get__(self, instance: Any, owner=None) -> Union['EnumeratedProperty', 'EnumeratedPropertyProxy', Enum]:
         if instance is None:
             return self
 
         if instance not in self._instance_proxies:
             value = self.fget(instance)
+            value = self._unwrap_proxy(value)
             self._instance_proxies[instance] = EnumeratedPropertyProxy(value, self)
 
         return self._instance_proxies[instance]
@@ -43,19 +44,18 @@ class EnumeratedProperty:
                 value = self._enum_class(value)
             except ValueError:
                 self.log.warning(f"Value {value} is not an instance of {self._enum_class.__name__}")
-                # raise ValueError(f"Value must be an instance of {self._enum_class.__name__}")
+                return
 
         options = self.get_options(instance)
         if value not in options:
-            # raise ValueError(f"Invalid option: {value}. Valid options are: {list(options.keys())}")
-            self.log.warning(f"Invalid option: {value}. Valid options are: {list(options.keys())}")
+            self.log.warning(f"Invalid option: {value}. Valid options are: {options}")
             return
 
         self.fset(instance, value)
 
         if instance in self._instance_proxies:
-            # noinspection PyProtectedMember
-            self._instance_proxies[instance]._value = value
+            value = self._unwrap_proxy(value)
+            self._instance_proxies[instance].value = value
 
     def __delete__(self, instance: Any) -> None:
         if self.fdel is None:
@@ -64,9 +64,9 @@ class EnumeratedProperty:
         if instance in self._instance_proxies:
             del self._instance_proxies[instance]
 
-    def get_options(self, instance: Any) -> Dict[Enum, Any]:
+    def get_options(self, instance: Any) -> List:
         if self._options_getter is None:
-            return {e: e.value for e in self._enum_class}
+            return [option for option in self._enum_class]
         return self._options_getter(instance)
 
     def get_instance_for_proxy(self, proxy: 'EnumeratedPropertyProxy') -> Any:
@@ -89,28 +89,30 @@ class EnumeratedProperty:
             options_getter=self._options_getter
         )
 
+    @staticmethod
+    def _unwrap_proxy(value: Any):
+        if isinstance(value, EnumeratedPropertyProxy):
+            return value.value
+        return value
+
 
 class EnumeratedPropertyProxy(DescriptorProxy):
-
     def __init__(self, value: Enum, descriptor: 'EnumeratedProperty'):
         super().__init__(value, descriptor)
 
     def __getattribute__(self, name):
-        if name in EnumeratedPropertyProxy.__slots__:
-            return object.__getattribute__(self, name)
         if name == 'options':
-            return object.__getattribute__(self, '_get_options')()
-        return getattr(object.__getattribute__(self, '_value'), name)
+            return self._descriptor.get_options(self._descriptor.get_instance_for_proxy(self))
+        return super().__getattribute__(name)
 
-    def _get_options(self) -> List[Tuple[Enum, Any]]:
-        instance = self._descriptor.get_instance_for_proxy(self)
-        options = self._descriptor.get_options(instance)
-        return [(e, options[e]) for e in options]
+    @property
+    def options(self) -> List:
+        return self._descriptor.get_options(self._instance)
 
 
 def enumerated_property(
         enum_class: Type[Enum],
-        options_getter: Optional[Callable[[Any], Dict[Enum, Any]]] = None
+        options_getter: Optional[Callable[[Any], List]] = None
 ) -> Callable[[Callable[[Any], Enum]], EnumeratedProperty]:
     def decorator(func: Callable[[Any], Enum]) -> EnumeratedProperty:
         return EnumeratedProperty(func, enum_class=enum_class, options_getter=options_getter)

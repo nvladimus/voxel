@@ -40,12 +40,14 @@ class DeliminatedProperty(property):
             raise AttributeError("unreadable attribute")
 
         value = self.fget(instance)
+        value = self._unwrap_proxy(value)
         return DeliminatedPropertyProxy(value, self)
 
     def __set__(self, instance: Any, value: Number) -> None:
         if self.fset is None:
             raise AttributeError("can't set attribute")
         self._instance = instance
+        value = self._unwrap_proxy(value)
         original_value = value
         value = self._adjust_value(value)
         if value != original_value:
@@ -118,6 +120,12 @@ class DeliminatedProperty(property):
             f"unit={self.unit})"
         )
 
+    @staticmethod
+    def _unwrap_proxy(value: Any):
+        if isinstance(value, DeliminatedPropertyProxy):
+            return value.value
+        return value
+
 
 class DeliminatedPropertyProxy(DescriptorProxy):
     def __init__(self, value: Number, descriptor: DeliminatedProperty):
@@ -134,12 +142,36 @@ class DeliminatedPropertyProxy(DescriptorProxy):
         """
         super().__init__(value, descriptor)
 
-    def __getattr__(self, name):
-        return getattr(self._descriptor, name)
+    def __getattribute__(self, item):
+        """
+        Overrides the default __getattribute__ method to allow access to the descriptor's attributes.
+        :param item: The attribute to access.
+        :type item: str
+        :return: The attribute of the descriptor or the default __getattribute__ method.
+        """
+        if item in ['minimum', 'maximum', 'step', 'unit']:
+            return self._descriptor.__getattribute__(item)
+        return super().__getattribute__(item)
+
+    @property
+    def maximum(self) -> Number:
+        return self._descriptor.maximum
+
+    @property
+    def minimum(self) -> Number:
+        return self._descriptor.minimum
+
+    @property
+    def step(self) -> Optional[Number]:
+        return self._descriptor.step
+
+    @property
+    def unit(self) -> str:
+        return self._descriptor.unit
 
     def dict(self):
         return {
-            "value": self._value,
+            "value": self.value,
             "minimum": self._descriptor.minimum,
             "maximum": self._descriptor.maximum,
             "step": self._descriptor.step,

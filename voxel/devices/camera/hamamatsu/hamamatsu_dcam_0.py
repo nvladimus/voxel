@@ -684,6 +684,7 @@ class Camera:
 
         cap_info = DCAMCAP_TRANSFERINFO()
         # __hdcam inside class Dcam referenced as _Dcam__hdcam
+        # noinspection PyProtectedMember
         dcamcap_transferinfo(self.dcam._Dcam__hdcam, byref(cap_info))
         self.post_frame_time = time.time()
         frame_index = cap_info.nFrameCount

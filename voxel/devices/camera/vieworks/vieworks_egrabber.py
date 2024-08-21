@@ -2,21 +2,20 @@ import functools
 from typing import Tuple, Dict, List, Optional, Union, Any, TypeAlias
 
 import numpy as np
-
 from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.base import DeviceConnectionError
-from voxel.devices.camera import VoxelCamera, VoxelFrame, AcquisitionState, ROI, BYTES_PER_MB
+from voxel.devices.camera import VoxelCamera, VoxelFrame, AcquisitionState, BYTES_PER_MB
 from voxel.devices.camera.vieworks.definitions import (
     Binning, PixelType,
     BitPackingMode, TriggerMode, TriggerSource, TriggerPolarity, TriggerSettings
 )
-from voxel.devices.utils.geometry import Vec2D
 from voxel.devices.camera.vieworks.egrabber import (
     EGenTL, EGrabber, EGrabberDiscovery, Buffer, ct,
     GENTL_INFINITE, BUFFER_INFO_BASE, INFO_DATATYPE_PTR, INFO_DATATYPE_SIZET, STREAM_INFO_NUM_DELIVERED,
     STREAM_INFO_NUM_QUEUED, STREAM_INFO_NUM_AWAIT_DELIVERY, STREAM_INFO_NUM_UNDERRUN, query, GenTLException,
 )
+from voxel.devices.utils.geometry import Vec2D
 
 TriggerSetting: TypeAlias = Union[TriggerMode, TriggerSource, TriggerPolarity]
 PixelTypeLUT: TypeAlias = Dict[PixelType, str]
@@ -178,7 +177,7 @@ class VieworksCamera(VoxelCamera):
 
     @enumerated_property(
         enum_class=Binning,
-        options_getter=lambda self: {k: k.name for k in self._binning_lut.keys()}
+        options_getter=lambda self: list(self._binning_lut)
     )
     def binning(self) -> Binning:
         """Get the binning setting.
@@ -345,27 +344,9 @@ class VieworksCamera(VoxelCamera):
         self.grabber.remote.set("OffsetY", value // self.binning)
         self.log.info(f"Set ROI height offset to {value} px")
 
-    @property
-    def roi(self) -> ROI:
-        """Get the current ROI settings.
-        :return: The ROI settings.
-        :rtype: ROI
-        """
-        return ROI(
-            origin=Vec2D(int(self.roi_width_offset_px), self.roi_height_offset_px),
-            size=Vec2D(self.roi_width_px, self.roi_height_px)
-        )
-
-    def reset_roi(self) -> None:
-        """Reset the ROI to full sensor size."""
-        self.roi_width_offset_px = 0
-        self.roi_height_offset_px = 0
-        self.roi_width_px = self.sensor_size_px.x
-        self.roi_height_px = self.sensor_size_px.y
-
     @enumerated_property(
         enum_class=PixelType,
-        options_getter=lambda self: {k: k.name for k in self._pixel_type_lut.keys()}
+        options_getter=lambda self: list(self._pixel_type_lut)
     )
     def pixel_type(self) -> PixelType:
         """Get the pixel type of the camera.
@@ -401,7 +382,7 @@ class VieworksCamera(VoxelCamera):
 
     @enumerated_property(
         enum_class=BitPackingMode,
-        options_getter=lambda self: {k: k.name for k in self._bit_packing_mode_lut.keys()}
+        options_getter=lambda self: list(self._bit_packing_mode_lut)
     )
     def bit_packing_mode(self) -> BitPackingMode:
         """Get the bit packing mode of the camera.
@@ -441,7 +422,7 @@ class VieworksCamera(VoxelCamera):
         :rtype: int
         """
         try:
-            return int(self.grabber.remote.get("ExposureTime"))
+            return int(self.grabber.remote.get("ExposureTime") / 1000)
         except Exception as e:
             self.log.error(f"Failed to get exposure time: {e}")
             return 0
@@ -493,7 +474,7 @@ class VieworksCamera(VoxelCamera):
 
     @enumerated_property(
         enum_class=TriggerMode,
-        options_getter=lambda self: {k: k.name for k in self._trigger_mode_lut.keys()}
+        options_getter=lambda self: list(self._trigger_mode_lut)
     )
     def trigger_mode(self) -> TriggerMode:
         """
@@ -524,7 +505,7 @@ class VieworksCamera(VoxelCamera):
 
     @enumerated_property(
         enum_class=TriggerSource,
-        options_getter=lambda self: {k: k.name for k in self._trigger_source_lut.keys()}
+        options_getter=lambda self: list(self._trigger_source_lut)
     )
     def trigger_source(self) -> TriggerSource:
         """
@@ -555,7 +536,7 @@ class VieworksCamera(VoxelCamera):
 
     @enumerated_property(
         enum_class=TriggerPolarity,
-        options_getter=lambda self: {k: k.name for k in self._trigger_polarity_lut.keys()}
+        options_getter=lambda self: list(self._trigger_polarity_lut)
     )
     def trigger_polarity(self) -> TriggerPolarity:
         """
@@ -979,6 +960,7 @@ class VieworksCamera(VoxelCamera):
             for trigger_setting in trigger_setting_options:
                 try:
                     self.grabber.remote.set(setting, trigger_setting)
+                    lut_key = None
                     if setting == "TriggerMode":
                         lut_key = TriggerMode[trigger_setting.upper().replace(" ", "")]
                     elif setting == "TriggerSource":
@@ -988,7 +970,8 @@ class VieworksCamera(VoxelCamera):
                             lut_key = TriggerSource.INTERNAL
                     elif setting == "TriggerActivation":
                         lut_key = TriggerPolarity[trigger_setting.upper().replace(" ", "")]
-                    lut[lut_key] = trigger_setting
+                    if lut_key:
+                        lut[lut_key] = trigger_setting
                 except GenTLException as e:
                     self.log.debug(
                         f'{setting}: {trigger_setting} skipped. Not settable on this device. Error: {str(e)}')

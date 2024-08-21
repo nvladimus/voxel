@@ -4,11 +4,9 @@ from typing import TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
-
-BYTES_PER_MB = 1_000_000
-
 from voxel.devices.utils.geometry import Vec2D
 
+BYTES_PER_MB = 1_000_000
 
 VoxelFrame: TypeAlias = NDArray[np.uint8 | np.uint16]
 
@@ -47,21 +45,22 @@ class AcquisitionState:
 
     def __repr__(self):
         return (
-            f"Frame Index              = {self.frame_index}\n"
-            f"Input Buffer Size       = {self.input_buffer_size}\n"
-            f"Output Buffer Size    = {self.output_buffer_size}\n"
-            f"Dropped Frames       = {self.dropped_frames}\n"
-            f"Frame Rate [fps]       = {self.frame_rate_fps}\n"
-            f"Data Rate [MB/s]      = {self.data_rate_mbs}\n"
+            f"Frame Index        = {self.frame_index}\n"
+            f"Input Buffer Size  = {self.input_buffer_size}\n"
+            f"Output Buffer Size = {self.output_buffer_size}\n"
+            f"Dropped Frames     = {self.dropped_frames}\n"
+            f"Frame Rate [fps]   = {self.frame_rate_fps}\n"
+            f"Data Rate [MB/s]   = {self.data_rate_mbs}\n"
         )
 
-
-# TODO: Figure out if the rest are necessary
 
 @dataclass
 class ROI:
     origin: Vec2D
     size: Vec2D
+    bounds: Vec2D
 
     def __repr__(self):
-        return f"Origin = {self.origin}, Size = {self.size}"
+        return (f"Origin = {self.origin}, \n"
+                f"Size = {self.size}, \n"
+                f"Bounds = {self.bounds}")

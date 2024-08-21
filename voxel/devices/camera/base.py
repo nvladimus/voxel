@@ -4,9 +4,8 @@ from typing import Any
 from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.base import VoxelDevice
-from voxel.devices.camera.definitions import PixelType, AcquisitionState, Binning, VoxelFrame
+from voxel.devices.camera.definitions import PixelType, AcquisitionState, Binning, VoxelFrame, ROI
 from voxel.devices.utils.geometry import Vec2D
-
 
 
 class VoxelCamera(VoxelDevice):
@@ -132,6 +131,26 @@ class VoxelCamera(VoxelDevice):
         :type height_offset_px: int
         """
         pass
+
+    @property
+    def roi(self) -> ROI:
+        """Get the region of interest of the camera in pixels.
+
+        :return: The region of interest of the camera in pixels. (size, origin)
+        :rtype: ROI
+        """
+        return ROI(
+            origin=Vec2D(self.roi_width_offset_px, self.roi_height_offset_px),
+            size=Vec2D(self.roi_width_px, self.roi_height_px),
+            bounds=Vec2D(self.sensor_width_px, self.sensor_height_px)
+        )
+
+    def reset_roi(self) -> None:
+        """Reset the ROI to full sensor size."""
+        self.roi_width_offset_px = 0
+        self.roi_height_offset_px = 0
+        self.roi_width_px = self.sensor_size_px.x
+        self.roi_height_px = self.sensor_size_px.y
 
     # Image Format Properties
     @enumerated_property(Binning)

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import IntEnum
 from voxel.devices.camera import Binning, PixelType
+from .dcam.dcamapi4 import DCAMPROP
 
 # dcam properties dict for convenience in calls
 PROPERTIES = {
@@ -32,47 +33,53 @@ ENUMERATED_PROPERTIES = {
 }
 
 
-class SensorMode(IntEnum):
-    """The sensor mode of the camera."""
-    AREA = 1
-    LINE = 3
-    TDI = 4
-    TDI_EXTENDED = 10
-    PROGRESSIVE = 12
-    SPLITVIEW = 14
-    DUALLIGHTSHEET = 16
-    PHOTONNUMBERRESOLVING = 18
-    WHOLELINES = 19
+# class SensorMode(IntEnum):
+#     """The sensor mode of the camera."""
+#     AREA = 1
+#     LINE = 3
+#     TDI = 4
+#     TDI_EXTENDED = 10
+#     PROGRESSIVE = 12
+#     SPLITVIEW = 14
+#     DUALLIGHTSHEET = 16
+#     PHOTONNUMBERRESOLVING = 18
+#     WHOLELINES = 19
+SensorMode = DCAMPROP.SENSORMODE
 
 
-class ReadoutDirection(IntEnum):
-    """The readout direction of the camera."""
-    FORWARD = 1
-    BACKWARD = 2
-    BYTRIGGER = 3
-    DIVERGE = 5
-    FORWARDBIDIRECTION = 6
-    REVERSEBIDIRECTION = 7
+ReadoutDirection = DCAMPROP.READOUT_DIRECTION
+# class ReadoutDirection(IntEnum):
+#     """The readout direction of the camera."""
+#     FORWARD = 1
+#     BACKWARD = 2
+#     BYTRIGGER = 3
+#     DIVERGE = 5
+#     FORWARDBIDIRECTION = 6
+#     REVERSEBIDIRECTION = 7
 
 
-class TriggerMode(IntEnum):
-    NORMAL = 1
-    PIV = 3
-    START = 6
+# class TriggerMode(IntEnum):
+#     NORMAL = 1
+#     PIV = 3
+#     START = 6
 
 
-class TriggerSource(IntEnum):
-    """The trigger source of the camera."""
-    INTERNAL = 1
-    EXTERNAL = 2
-    SOFTWARE = 3
-    MASTERPULSE = 4
+# class TriggerSource(IntEnum):
+#     """The trigger source of the camera."""
+#     INTERNAL = 1
+#     EXTERNAL = 2
+#     SOFTWARE = 3
+#     MASTERPULSE = 4
 
 
-class TriggerPolarity(IntEnum):
-    """The trigger polarity of the camera."""
-    NEGATIVE = 1
-    POSITIVE = 2
+# class TriggerPolarity(IntEnum):
+#     """The trigger polarity of the camera."""
+#     NEGATIVE = 1
+#     POSITIVE = 2
+
+TriggerMode = DCAMPROP.TRIGGER_MODE
+TriggerSource = DCAMPROP.TRIGGERSOURCE
+TriggerPolarity = DCAMPROP.TRIGGERPOLARITY
 
 
 class TriggerActive(IntEnum):
@@ -82,20 +89,21 @@ class TriggerActive(IntEnum):
     SYNCREADOUT = 3
     POINT = 4
 
-    # TODO: Rewrite descriptions for each value TODO: Figure out the usefulness of descriptions and whether they
-    #  should be included in the final implementation
-    @classmethod
-    def description(cls, value=None):
-        if not value:
-            return 'Specifies the type of trigger event to be used'
-        if value == cls.EDGE:
-            return 'The camera will be triggered on the edge of the trigger signal'
-        if value == cls.LEVEL:
-            return 'The camera will be triggered on the level of the trigger signal'
-        if value == cls.SYNCREADOUT:
-            return 'The camera will be triggered on the readout of the trigger signal'
-        if value == cls.POINT:
-            return 'The camera will be triggered on the point of the trigger signal'
+    # TODO: Rewrite descriptions for each value
+    # TODO: Figure out the usefulness of descriptions and whether they should be included in the final implementation
+    @property
+    def description(self):
+        match self.value:
+            case TriggerActive.EDGE:
+                return 'The camera will be triggered on the edge of the trigger signal'
+            case TriggerActive.LEVEL:
+                return 'The camera will be triggered on the level of the trigger signal'
+            case TriggerActive.SYNCREADOUT:
+                return 'The camera will be triggered on the readout of the trigger signal'
+            case TriggerActive.POINT:
+                return 'The camera will be triggered on the point of the trigger signal'
+            case _:
+                return 'Specifies the type of trigger event to be used'
 
 
 @dataclass
