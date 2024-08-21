@@ -5,6 +5,9 @@ from voxel.devices.camera.vieworks import VieworksCamera
 VIEWORKS_CAMERA_ID = 'test_vieworks_camera'
 VIEWORKS_SERIAL_NUMBER = 'MP151BBX006'
 
+CAMERA_1_sn = 'MB151BAY001'
+CAMERA_2_SN = 'MP151BBX006'
+
 @pytest.fixture
 def mock_camera():
     with (

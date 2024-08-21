@@ -354,6 +354,27 @@ class VoxelCamera(VoxelDevice):
         """Log all metadata from the camera to the logger."""
         pass
 
+    @property
+    @abstractmethod
+    def sensor_temperature_c(self) -> float:
+        """
+        Get the sensor temperature of the camera in deg C.
+
+        :return: The sensor temperature of the camera in deg C.
+        :rtype: float
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def mainboard_temperature_c(self) -> float:
+        """Get the mainboard temperature of the camera in deg C.
+
+        :return: The mainboard temperature of the camera in deg C.
+        :rtype: float
+        """
+        pass
+
     def __repr__(self):
         properties = [
             f"ID: {self.id}",
@@ -370,27 +391,3 @@ class VoxelCamera(VoxelDevice):
         ]
 
         return f"{self.__class__.__name__}:\n" + "\n".join(f"  {prop}" for prop in properties)
-
-    # TODO: Determine whether to have signals as abstract properties that must be implemented by the child class
-    #  or as methods that can be implemented by the child class
-    #  or leave it to the discretion of the child class to add whatever signals they want
-    # @property
-    # @abstractmethod
-    # def signal_mainboard_temperature_c(self) -> float:
-    #     """Get the mainboard temperature of the camera in deg C.
-
-    #     :return: The mainboard temperature of the camera in deg C.
-    #     :rtype: float
-    #     """
-    #     pass
-
-    # @property
-    # # @abstractmethod
-    # def signal_sensor_temperature_c(self) -> float:
-    #     """
-    #     Get the sensor temperature of the camera in deg C.
-
-    #     :return: The sensor temperature of the camera in deg C.
-    #     :rtype: float
-    #     """
-    #     pass

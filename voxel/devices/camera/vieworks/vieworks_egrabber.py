@@ -2,20 +2,22 @@ import functools
 from typing import Tuple, Dict, List, Optional, Union, Any, TypeAlias
 
 import numpy as np
+
 from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
+from voxel.devices.utils.geometry import Vec2D
 from voxel.devices.base import DeviceConnectionError
 from voxel.devices.camera import VoxelCamera, VoxelFrame, AcquisitionState, BYTES_PER_MB
-from voxel.devices.camera.vieworks.definitions import (
+from .definitions import (
     Binning, PixelType,
-    BitPackingMode, TriggerMode, TriggerSource, TriggerPolarity, TriggerSettings
+    BitPackingMode,
+    TriggerMode, TriggerSource, TriggerPolarity, TriggerSettings
 )
-from voxel.devices.camera.vieworks.egrabber import (
+from .egrabber import (
     EGenTL, EGrabber, EGrabberDiscovery, Buffer, ct,
     GENTL_INFINITE, BUFFER_INFO_BASE, INFO_DATATYPE_PTR, INFO_DATATYPE_SIZET, STREAM_INFO_NUM_DELIVERED,
     STREAM_INFO_NUM_QUEUED, STREAM_INFO_NUM_AWAIT_DELIVERY, STREAM_INFO_NUM_UNDERRUN, query, GenTLException,
 )
-from voxel.devices.utils.geometry import Vec2D
 
 TriggerSetting: TypeAlias = Union[TriggerMode, TriggerSource, TriggerPolarity]
 PixelTypeLUT: TypeAlias = Dict[PixelType, str]
@@ -563,6 +565,16 @@ class VieworksCamera(VoxelCamera):
         self.log.info(f"Set trigger polarity to {trigger_polarity}")
         self._trigger_setting_cache.polarity = None
         self._regenerate_trigger_luts()
+
+    @property
+    def sensor_temperature_c(self) -> float:
+        self.grabber.remote.set("DeviceTemperatureSelector", "Sensor")
+        return self.grabber.remote.get("DeviceTemperature")
+
+    @property
+    def mainboard_temperature_c(self) -> float:
+        self.grabber.remote.set("DeviceTemperatureSelector", "Mainboard")
+        return self.grabber.remote.get("DeviceTemperature")
 
     def prepare(self) -> None:
         """

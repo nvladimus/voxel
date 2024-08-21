@@ -19,7 +19,7 @@ from voxel.devices.camera.hamamatsu.definitions import (
     Binning, PixelType,
     SensorMode, ReadoutDirection,
     TriggerMode, TriggerSource, TriggerPolarity, TriggerActive, TriggerSettings,
-    ENUMERATED_PROPERTIES, DELIMINATED_PROPERTIES
+    PROPERTIES, ENUMERATED_PROPERTIES, DELIMINATED_PROPERTIES
 )
 from voxel.devices.utils.geometry import Vec2D
 from voxel.devices.utils.singleton import Singleton
@@ -634,6 +634,25 @@ class HamamatsuCamera(VoxelCamera):
     def trigger(self) -> Dict:
         return self.trigger_settings.dict()
 
+    @property
+    def sensor_temperature_c(self) -> float:
+        """Get the sensor temperature in degrees Celsius.
+        :return: The sensor temperature in degrees Celsius.
+        :rtype: float
+        """
+        return self._dcam.prop_getvalue(PROPERTIES["sensor_temperature"])
+
+    @property
+    def mainboard_temperature_c(self) -> float:
+        """Get the mainboard temperature in degrees Celsius.
+        For Hamamatsu cameras, returning sensor temperature instead.
+        :return: The mainboard temperature in degrees Celsius.
+        :rtype: float
+        """
+        return self.sensor_temperature_c
+
+    # Camera methods ###################################################################################################
+
     def prepare(self) -> None:
         """Prepare the camera for acquisition.
         Allocates the buffer for the camera.
@@ -642,8 +661,6 @@ class HamamatsuCamera(VoxelCamera):
         self._dcam.buf_alloc(self._buffer_size_frames)
         self._buffer_allocated = True
         self.log.info(f"Allocated buffer for {self._buffer_size_frames} frames")
-
-    # Camera methods ###################################################################################################
 
     def start(self, frame_count: float = float('inf')) -> None:
         """Start the camera."""

@@ -90,7 +90,7 @@ class TriggerActive(IntEnum):
     POINT = 4
 
     # TODO: Rewrite descriptions for each value
-    # TODO: Figure out the usefulness of descriptions and whether they should be included in the final implementation
+    # Figure out the usefulness of descriptions and whether they should be included in the final implementation
     @property
     def description(self):
         match self.value:
