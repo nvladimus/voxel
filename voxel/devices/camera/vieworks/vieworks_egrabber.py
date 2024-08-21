@@ -216,7 +216,6 @@ class VieworksCamera(VoxelCamera):
             print('Error:', e)
             self.log.error(f"Failed to set binning: {e}")
         finally:
-            # TODO: Check if binning affects exposure time delimination props
             self._binning_cache = None
             self._invalidate_all_delimination_props()
 
@@ -455,11 +454,6 @@ class VieworksCamera(VoxelCamera):
         :rtype: float
         """
         return (self.line_interval_us * self.roi_height_px / 1000) + self.exposure_time_ms
-
-    # TODO: Replace trigger with trigger_settings
-    @property
-    def trigger(self):
-        return self.trigger_settings
 
     @property
     def trigger_settings(self) -> TriggerSettings:
@@ -799,6 +793,8 @@ class VieworksCamera(VoxelCamera):
         try:
             self.log.debug('Querying binning options...')
             init_binning = self.grabber.remote.get("BinningHorizontal")
+            default_key = Binning(int(init_binning[1:]))
+            lut[default_key] = init_binning
             binning_options = self.grabber.remote.get("@ee BinningHorizontal", dtype=list)
             for binning in binning_options:
                 try:

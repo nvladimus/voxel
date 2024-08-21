@@ -631,10 +631,6 @@ class HamamatsuCamera(VoxelCamera):
         )
 
     @property
-    def trigger(self) -> Dict:
-        return self.trigger_settings.dict()
-
-    @property
     def sensor_temperature_c(self) -> float:
         """Get the sensor temperature in degrees Celsius.
         :return: The sensor temperature in degrees Celsius.

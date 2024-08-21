@@ -1,11 +1,12 @@
 import queue
 import time
+from threading import Thread, Lock, Event
+from typing import Tuple
 
 import numpy as np
-
-from typing import Any, Tuple
 from numpy.typing import NDArray
-from threading import Thread, Lock, Event
+
+from voxel.devices.camera.simulated.definitions import TriggerMode, TriggerSource, TriggerPolarity, PixelType
 
 BUFFER_SIZE_FRAMES = 8
 MIN_WIDTH_PX = 64
@@ -32,16 +33,19 @@ class SimulatedCameraHardware:
         self.roi_step_height_px: int = STEP_HEIGHT_PX
         self.roi_width_offset_px: int = MAX_WIDTH_PX // 4
         self.roi_height_offset_px: int = MAX_HEIGHT_PX // 4
-        self.pixel_type: np.int_ = np.uint16
-        self.bit_packing_mode: str = "lsb"
+        self.pixel_type = next(iter(PixelType))
         self.min_exposure_time_ms: float = MIN_EXPOSURE_TIME_MS
         self.max_exposure_time_ms: float = MAX_EXPOSURE_TIME_MS
         self.step_exposure_time_ms: float = STEP_EXPOSURE_TIME_MS
         self.exposure_time_ms: float = MIN_EXPOSURE_TIME_MS * 1e2
+        self.bit_packing_mode: str = "lsb"
         self.readout_mode: str = "default"
-        self.trigger_mode: str = "On"
-        self.trigger_source: str = "None"
-        self.trigger_activation: str = "RisingEdge"
+        self.trigger_mode: str = next(iter(TriggerMode))
+        self.trigger_source: str = next(iter(TriggerSource))
+        self.trigger_activation: str = next(iter(TriggerPolarity))
+
+        self.sensor_temperature_c: float = np.random.uniform(49, 55)
+        self.mainboard_temperature_c: float = np.random.uniform(25, 30)
 
         self.line_interval_us_lut = LINE_INTERVAL_US_LUT
 
@@ -86,7 +90,7 @@ class SimulatedCameraHardware:
             frame_start_time = time.perf_counter()
 
             # Generate frame with a timestamp and frame count
-            frame = np.random.randint(0, 65535 if self.pixel_type == np.uint16 else 255,
+            frame = np.random.randint(0, 65535 if self.pixel_type.numpy_dtype == np.uint16 else 255,
                                       size=frame_shape, dtype=self.pixel_type)
             timestamp = time.time()
             self.frame_index += 1
@@ -121,7 +125,7 @@ class SimulatedCameraHardware:
             with self.queue_lock:
                 return self.frame_buffer.get_nowait()
         except queue.Empty:
-            return np.zeros((self.roi_height_px, self.roi_width_px), dtype=self.pixel_type), time.time(), 0
+            return np.zeros((self.roi_height_px, self.roi_width_px), dtype=self.pixel_type.numpy_dtype), time.time(), 0
 
     def stop_acquisition(self):
         """Stop frame acquisition."""

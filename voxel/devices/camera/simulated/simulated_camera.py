@@ -1,15 +1,18 @@
+from typing import TypeAlias, Dict, Optional
+
 import numpy as np
 
 from voxel.descriptors.deliminated_property import deliminated_property
+from voxel.descriptors.enumerated_property import EnumeratedProperty, enumerated_property
 from voxel.devices.camera import VoxelCamera
-from voxel.devices.camera.definitions import (
-    Binning, BinningLUT,
-    PixelType, PixelTypeInfo, PixelTypeLUT,
-    BitPackingMode, BitPackingModeLUT,
-    TriggerSettings, TriggerMode, TriggerSource, TriggerPolarity, TriggerSettingsLUT,
-    VoxelFrame, AcquisitionState,
+from voxel.devices.camera.definitions import VoxelFrame, AcquisitionState
+from voxel.devices.utils.geometry import Vec2D
+from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
+from .definitions import (
+    Binning, PixelType,
+    TriggerSettings, TriggerMode, TriggerSource, TriggerPolarity,
 )
-from voxel.devices.camera.simulated.simulated_hardware import (
+from .simulated_hardware import (
     SimulatedCameraHardware,
     MIN_WIDTH_PX,
     MAX_WIDTH_PX,
@@ -21,60 +24,64 @@ from voxel.devices.camera.simulated.simulated_hardware import (
     MAX_EXPOSURE_TIME_MS,
     STEP_EXPOSURE_TIME_MS,
 )
-from voxel.devices.utils.geometry import Vec2D
-from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
+
+PixelTypeLUT: TypeAlias = Dict[PixelType, str]
+BinningLUT: TypeAlias = Dict[Binning, str]
+TriggerModeLUT: TypeAlias = Dict[TriggerMode, str]
+TriggerSourceLUT: TypeAlias = Dict[TriggerSource, str]
+TriggerPolarityLUT: TypeAlias = Dict[TriggerPolarity, str]
+
 
 
 class SimulatedCamera(VoxelCamera):
 
     def __init__(self, id: str, serial_number: str):
         super().__init__(id)
+        self.log.info(f"Initializing simulated camera with id: {id}, serial number: {serial_number}")
         self.serial_number = serial_number
         self.instance = SimulatedCameraHardware()
 
         # Property LUTs
-        self._trigger_lut = TriggerSettingsLUT
-        self._pixel_type_lut: PixelTypeLUT
-        self._binning_lut: BinningLUT
-        self._bit_packing_lut: BitPackingModeLUT
-
-        self._generate_luts()
+        self._pixel_type_lut: PixelTypeLUT = {
+            PixelType.MONO8: 'MONO8',
+            PixelType.MONO12: 'MONO12',
+            PixelType.MONO14: 'MONO14',
+            PixelType.MONO16: 'MONO16',
+        }
+        self._binning_lut: BinningLUT = {
+            Binning.X1: "1x1",
+            Binning.X2: "2x2",
+            Binning.X4: "4x4",
+            Binning.X8: "8x8",
+        }
+        self._trigger_mode_lut: TriggerModeLUT = {TriggerMode[mode]: mode for mode in TriggerMode}
+        self._trigger_source_lut: TriggerSourceLUT = {TriggerSource[source]: source for source in TriggerSource}
+        self._trigger_polarity_lut: TriggerPolarityLUT = {TriggerPolarity[polarity]: polarity for polarity in TriggerPolarity}
 
         # private properties
-        self._binning: Binning = 1
-
-        # cache properties
-        self._trigger_cache = None
-        self._pixel_type_cache = None
-        self._bit_packing_mode_cache = None
+        self._binning: Binning = Binning.X1
+        self._trigger_settings: Optional[TriggerSettings] = None
 
         self.gpu_binning = DownSample2D(binning=self.binning)
 
         self.log.info(f"simulated camera initialized with id: {id}, serial number: {serial_number}")
-        self.log.info(f"   simulated camera instance: {self.instance}")
 
-    def _generate_luts(self):
-        self._trigger_lut = TriggerSettingsLUT(
-            mode={TriggerMode.ON: "On", TriggerMode.OFF: "Off"},
-            source={TriggerSource.INTERNAL: "None", TriggerSource.EXTERNAL: "Line0"},
-            polarity={TriggerPolarity.RISING: "RisingEdge", TriggerPolarity.FALLING: "FallingEdge"},
-        )
-        self._pixel_type_lut: PixelTypeLUT = {
-            PixelType.MONO8: PixelTypeInfo(np.uint8, self.instance.line_interval_us_lut[np.uint8]),
-            PixelType.MONO16: PixelTypeInfo(np.uint16, self.instance.line_interval_us_lut[np.uint16]),
-        }
-        self._binning_lut: BinningLUT = {
-            1: 1,
-            2: 2,
-            4: 4
-        }
-        self._bit_packing_lut: BitPackingModeLUT = {
-            BitPackingMode.LSB: "lsb",
-            BitPackingMode.MSB: "msb",
-            BitPackingMode.NONE: "none"
-        }
+    # Sensor size properties
 
-    # TODO: Update deliminated_property to use callables
+    @property
+    def sensor_size_px(self) -> Vec2D:
+        return Vec2D(self.instance.sensor_width_px, self.instance.sensor_height_px)
+
+    @property
+    def sensor_width_px(self) -> int:
+        return self.sensor_size_px.x
+
+    @property
+    def sensor_height_px(self) -> int:
+        return self.sensor_size_px.y
+
+    # ROI properties
+
     @deliminated_property(
         minimum=MIN_WIDTH_PX,
         maximum=MAX_WIDTH_PX,
@@ -97,9 +104,6 @@ class SimulatedCamera(VoxelCamera):
     def roi_width_offset_px(self) -> int:
         return self.instance.roi_width_offset_px
 
-    @property
-    def sensor_width_px(self) -> int:
-        return self.instance.sensor_width_px
 
     @deliminated_property(
         minimum=MIN_HEIGHT_PX,
@@ -123,17 +127,15 @@ class SimulatedCamera(VoxelCamera):
     def roi_height_offset_px(self) -> int:
         return self.instance.roi_height_offset_px
 
-    @property
-    def sensor_height_px(self) -> int:
-        return self.instance.sensor_height_px
+    # Image Format properties
 
-    @property
+    @enumerated_property(Binning, lambda self: list(self._binning_lut))
     def binning(self) -> Binning:
         try:
             binning: Binning = next(key for key, value in self._binning_lut.items() if value == self._binning)
         except KeyError:
             self.log.error(f"Invalid binning: {self._binning}")
-            binning: Binning = 1
+            binning: Binning = Binning.X1
         return binning
 
     @binning.setter
@@ -147,20 +149,13 @@ class SimulatedCamera(VoxelCamera):
 
         self.log.info(f"Binning set to: {binning}")
 
-    @property
-    def frame_size_px(self) -> Vec2D:
-        return Vec2D(self.roi_width_px, self.roi_height_px) // self.binning
-
-    @property
+    @enumerated_property(PixelType, lambda self: list(self._pixel_type_lut))
     def pixel_type(self) -> PixelType:
-        if not self._pixel_type_cache:
-            try:
-                self._pixel_type_cache = next(
-                    key for key, value in self._pixel_type_lut.items() if value.repr == self.instance.pixel_type)
-            except KeyError:
-                self.log.error(f"Invalid pixel type: {self.instance.pixel_type}")
-                self._pixel_type_cache = PixelType.MONO16  # Default to MONO16
-        return self._pixel_type_cache
+        try:
+            return next(key for key, value in self._pixel_type_lut.items() if value == self.instance.pixel_type)
+        except KeyError:
+            self.log.error(f"Invalid pixel type: {self.instance.pixel_type}")
+            return PixelType.MONO8
 
     @pixel_type.setter
     def pixel_type(self, pixel_type: PixelType) -> None:
@@ -172,33 +167,21 @@ class SimulatedCamera(VoxelCamera):
 
         self.log.info(f"Pixel type set to: {pixel_type.name}")
 
-        # Invalidate the cached property
-        self._pixel_type_cache = None
+    @property
+    def frame_size_px(self) -> Vec2D:
+        return Vec2D(self.roi_width_px, self.roi_height_px) // self.binning
 
     @property
-    def bit_packing_mode(self) -> BitPackingMode:
-        self._bit_packing_mode_cache = self._get_bit_packing_mode()
-        return self._bit_packing_mode_cache
+    def frame_width_px(self) -> int:
+        return self.frame_size_px.x
 
-    def _get_bit_packing_mode(self) -> BitPackingMode:
-        try:
-            return next(key for key, value in self._bit_packing_lut.items() if value == self.instance.bit_packing_mode)
-        except KeyError:
-            self.log.error(f"Invalid bit packing mode: {self.instance.bit_packing_mode}")
-            return BitPackingMode.NONE
+    @property
+    def frame_height_px(self) -> int:
+        return self.frame_size_px.y
 
-    @bit_packing_mode.setter
-    def bit_packing_mode(self, bit_packing_mode: BitPackingMode) -> None:
-        try:
-            self.instance.bit_packing_mode = self._bit_packing_lut[bit_packing_mode]
-        except KeyError as e:
-            self.log.error(f"Invalid bit packing mode: {e}")
-            return
-
-        self.log.info(f"Bit packing mode set to: {bit_packing_mode.name}")
-
-        # Invalidate the cached property
-        self._bit_packing_mode_cache = None
+    @property
+    def frame_size_mb(self) -> int:
+        return self.frame_size_px.x * self.frame_size_px.y * self.pixel_type.bytes_per_pixel / 1e6
 
     @deliminated_property(
         minimum=MIN_EXPOSURE_TIME_MS,
@@ -222,30 +205,27 @@ class SimulatedCamera(VoxelCamera):
         return (self.line_interval_us * self.roi_height_px) / 1000 + self.exposure_time_ms
 
     @property
-    def trigger(self) -> TriggerSettings:
-        if not self._trigger_cache:
+    def trigger_settings(self) -> TriggerSettings:
+        if not self._trigger_settings:
             try:
-                self._trigger_cache = TriggerSettings(
-                    mode=next(
-                        key for key, value in self._trigger_lut.mode.items() if value == self.instance.trigger_mode),
-                    source=next(
-                        key for key, value in self._trigger_lut.source.items() if
-                        value == self.instance.trigger_source),
-                    polarity=next(key for key, value in self._trigger_lut.polarity.items() if
-                                  value == self.instance.trigger_activation)
+                self._trigger_settings = TriggerSettings(
+                    mode=next(k for k, v in self._trigger_mode_lut.items() if v == self.instance.trigger_mode),
+                    source=next(k for k, v in self._trigger_source_lut.items() if v == self.instance.trigger_source),
+                    polarity=next(k for k, v in self._trigger_polarity_lut.items() if v == self.instance.trigger_activation)
                 )
             except StopIteration:
                 self.log.error(f"Invalid trigger settings recieved from camera: mode={self.instance.trigger_mode}, "
-                               f"source={self.instance.trigger_source}, activation={self.instance.trigger_activation}")
-                self._trigger_cache = TriggerSettings(TriggerMode.OFF, TriggerSource.INTERNAL, TriggerPolarity.RISING)
-        return self._trigger_cache
+                               f"source={self.instance.trigger_source}, polarity={self.instance.trigger_activation}")
+                self._trigger_settings = TriggerSettings(TriggerMode.OFF, TriggerSource.INTERNAL, TriggerPolarity.RISINGEDGE)
+        return self._trigger_settings
 
-    @trigger.setter
-    def trigger(self, trigger: TriggerSettings) -> None:
+    @trigger_settings.setter
+    def trigger_settings(self, trigger: TriggerSettings) -> None:
         try:
-            self.instance.trigger_mode = self._trigger_lut.mode[trigger.mode]
-            self.instance.trigger_source = self._trigger_lut.source[trigger.source]
-            self.instance.trigger_activation = self._trigger_lut.polarity[trigger.polarity]
+            self.instance.trigger_mode = self._trigger_mode_lut[trigger.mode]
+            self.instance.trigger_source = self._trigger_source_lut[trigger.source]
+            self.instance.trigger_activation = self._trigger_polarity_lut[trigger.polarity]
+            self._trigger_settings = trigger
         except KeyError as e:
             self.log.error(f"Invalid trigger setting: {e}")
             return
@@ -253,8 +233,13 @@ class SimulatedCamera(VoxelCamera):
         self.log.info(f"Trigger set to: mode={trigger.mode.name}, "
                       f"source={trigger.source.name}, polarity={trigger.polarity.name}")
 
-        # Invalidate the cached property
-        self._trigger_cache = None
+    @property
+    def sensor_temperature_c(self) -> float:
+        return self.instance.sensor_temperature_c
+
+    @property
+    def mainboard_temperature_c(self) -> float:
+        return self.instance.mainboard_temperature_c
 
     def prepare(self) -> None:
         pass
@@ -267,12 +252,8 @@ class SimulatedCamera(VoxelCamera):
 
     def reset(self) -> None:
         self.stop()
-        self._generate_luts()
-        self._binning_cache = None
-        self._pixel_type_cache = None
-        self._bit_packing_mode_cache = None
-        self._trigger_cache = None
-        self.trigger = TriggerSettings(TriggerMode.OFF, TriggerSource.INTERNAL, TriggerPolarity.RISING)
+        self._binning = Binning.X1
+        self.trigger_settings = TriggerSettings(TriggerMode.OFF, TriggerSource.INTERNAL, TriggerPolarity.RISINGEDGE)
 
     def grab_frame(self) -> VoxelFrame:
         frame, timestamp, frame_count = self.instance.grab_frame()

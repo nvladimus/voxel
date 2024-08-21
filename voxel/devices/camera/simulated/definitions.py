@@ -1,13 +1,8 @@
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Optional
+
 from voxel.devices.camera import Binning, PixelType
-
-
-class BitPackingMode(StrEnum):
-    LSB = 'LSB'
-    MSB = 'MSB'
-    NONE = 'None'
 
 
 class TriggerMode(StrEnum):
@@ -43,13 +38,11 @@ class TriggerSettings:
         }
 
 
-class VieworksSettings:
-    """Settings for a Vieworks camera."""
+class SimulatedCameraSettings:
+    """Settings for a simulated camera."""
     Binning = Binning
     PixelType = PixelType
-    BitPackingMode = BitPackingMode
     TriggerMode = TriggerMode
     TriggerSource = TriggerSource
     TriggerPolarity = TriggerPolarity
     TriggerSettings = TriggerSettings
-
