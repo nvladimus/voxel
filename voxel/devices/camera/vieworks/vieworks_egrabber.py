@@ -1,13 +1,12 @@
-import functools
 from typing import Tuple, Dict, List, Optional, Union, Any, TypeAlias
 
 import numpy as np
 
 from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
-from voxel.utils.geometry import Vec2D
 from voxel.devices.base import DeviceConnectionError
 from voxel.devices.camera import VoxelCamera, VoxelFrame, AcquisitionState, BYTES_PER_MB
+from voxel.utils.geometry import Vec2D
 from voxel.utils.singleton import thread_safe_singleton
 from .definitions import (
     Binning, PixelType,
@@ -70,7 +69,6 @@ def _discover_grabber(serial_number: str, gentl_instance: Optional[EGenTL] = Non
             egrabber["interface"],
             egrabber["device"],
             egrabber["stream"],
-            remote_required=True,
         )
         grabber_serial: Optional[str] = grabber.remote.get("DeviceSerialNumber") if grabber.remote else None
         if grabber_serial == serial_number:
@@ -647,13 +645,8 @@ class VieworksCamera(VoxelCamera):
     def reset(self):
         """Reset the camera to default settings."""
         del self.grabber
-        self.grabber = EGrabber(
-            self.gentl,
-            self.egrabber["interface"],
-            self.egrabber["device"],
-            self.egrabber["stream"],
-            remote_required=True
-        )
+        self.grabber = EGrabber(self.gentl, self.egrabber["interface"], self.egrabber["device"],
+                                self.egrabber["stream"])
         self._invalidate_all_delimination_props()
         self._regenerate_all_luts()
         self._buffer_allocated = False
@@ -699,7 +692,8 @@ class VieworksCamera(VoxelCamera):
                 - frame_rate_fps: The current frame rate.
                 - data_rate_mbs: The current data rate.
         Detailed description of constants here:
-        https://documentation.euresys.com/Products/Coaxlink/Coaxlink/en-us/Content/IOdoc/egrabber-reference/namespace_gen_t_l.html#a6b498d9a4c08dea2c44566722699706e
+        https://documentation.euresys.com/Products/Coaxlink/Coaxlink/en-us/Content/IOdoc/egrabber-reference/
+        namespace_gen_t_l.html#a6b498d9a4c08dea2c44566722699706e
         """
 
         def get_acquisition_stream_info(info_cmd: int | str, default: Any = None, is_metric: bool = False) -> int:

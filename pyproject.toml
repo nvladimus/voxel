@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "voxel"
 description = "Base Library for building SPIM software"
-license = {text = "MIT"}
+license = { text = "MIT" }
 requires-python = ">=3.11"
 authors = [
     { name = "Micah Woodard", email = "micah.woodard@alleninstitute.org" },
@@ -30,7 +30,7 @@ dependencies = [
     'pylablib >= 1.4.2',
     'tigerasi >= 0.0.26',
     # cameras
-#    'egrabber >= 0.0.2',
+    #    'egrabber >= 0.0.2',
     #lasers
     'pycobolt @ git+https://github.com/cobolt-lasers/pycobolt.git',
     # writers
@@ -69,7 +69,7 @@ dev = [
 where = ["."]
 
 [tool.setuptools.dynamic]
-version = {attr = "voxel.__version__"}
+version = { attr = "voxel.__version__" }
 
 [tool.black]
 line-length = 120

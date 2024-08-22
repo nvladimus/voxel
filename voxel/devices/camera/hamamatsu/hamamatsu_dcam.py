@@ -454,7 +454,7 @@ class HamamatsuCamera(VoxelCamera):
         self._invalidate_delimination_props(["line_interval_s"])
 
     @property
-    def frame_time_ms(self) -> int:
+    def frame_time_ms(self) -> float:
         """Get the frame time in milliseconds.
         :return: The frame time in milliseconds.
         :rtype: int

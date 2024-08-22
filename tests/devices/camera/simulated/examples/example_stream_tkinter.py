@@ -1,8 +1,9 @@
-import tkinter as tk
-from PIL import Image, ImageTk
 import time
+import tkinter as tk
 from typing import Optional
+
 import numpy as np
+from PIL import Image, ImageTk
 
 from voxel.devices.camera.simulated.image_model import ImageModel
 from voxel.devices.camera.simulated.simulated_camera import SimulatedCamera

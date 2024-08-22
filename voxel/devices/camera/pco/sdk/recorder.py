@@ -9,13 +9,12 @@ The a instance of the Recorder class is part of pco.Camera
 
 
 import ctypes as C
-import sys
-import os
-import time
-from datetime import datetime
-import platform
-import warnings
 import logging
+import os
+import platform
+import sys
+import time
+import warnings
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
