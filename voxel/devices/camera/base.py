@@ -5,7 +5,7 @@ from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.base import VoxelDevice
 from voxel.devices.camera.definitions import PixelType, AcquisitionState, Binning, VoxelFrame, ROI
-from voxel.devices.utils.geometry import Vec2D
+from voxel.utils.geometry import Vec2D
 
 
 class VoxelCamera(VoxelDevice):

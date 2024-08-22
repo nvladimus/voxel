@@ -5,9 +5,10 @@ import numpy as np
 
 from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
-from voxel.devices.utils.geometry import Vec2D
+from voxel.utils.geometry import Vec2D
 from voxel.devices.base import DeviceConnectionError
 from voxel.devices.camera import VoxelCamera, VoxelFrame, AcquisitionState, BYTES_PER_MB
+from voxel.utils.singleton import thread_safe_singleton
 from .definitions import (
     Binning, PixelType,
     BitPackingMode,
@@ -25,12 +26,17 @@ BinningLUT: TypeAlias = Dict[Binning, int]
 BitPackingModeLUT: TypeAlias = Dict[BitPackingMode, str]
 
 
+@thread_safe_singleton
+def get_egentl_singleton():
+    return EGenTL()
+
+
 def _discover_grabber(serial_number: str, gentl_instance: Optional[EGenTL] = None, ) -> Tuple[EGrabber, Dict[str, int]]:
     """
     Discover the grabber for the given serial number.
     """
     if gentl_instance is None:
-        gentl_instance = _get_egentl_singleton()
+        gentl_instance = get_egentl_singleton()
 
     def discover_cameras() -> Dict[str, List[Dict[str, int]]]:
         discovery = EGrabberDiscovery(gentl_instance)
@@ -73,11 +79,6 @@ def _discover_grabber(serial_number: str, gentl_instance: Optional[EGenTL] = Non
     raise DeviceConnectionError(f"No grabber found for S/N: {serial_number}")
 
 
-@functools.cache
-def _get_egentl_singleton():
-    return EGenTL()
-
-
 class VieworksCamera(VoxelCamera):
     """VoxelCamera implementation for Vieworks cameras using the EGrabber SDK.
     :param id: Voxel ID for the device.
@@ -87,7 +88,7 @@ class VieworksCamera(VoxelCamera):
     """
     BUFFER_SIZE_MB = 2400
 
-    gentl = _get_egentl_singleton()
+    gentl = get_egentl_singleton()
 
     def __init__(self, id, serial_number):
         super().__init__(id)

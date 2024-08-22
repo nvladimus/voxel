@@ -2,11 +2,8 @@ import pytest
 from unittest.mock import patch, MagicMock
 from voxel.devices.camera.vieworks import VieworksCamera
 
-VIEWORKS_CAMERA_ID = 'test_vieworks_camera'
-VIEWORKS_SERIAL_NUMBER = 'MP151BBX006'
-
-CAMERA_1_sn = 'MB151BAY001'
-CAMERA_2_SN = 'MP151BBX006'
+CAMERA_2_SN = 'MB151BAY001'
+CAMERA_1_SN = 'MP151BBX006'
 
 @pytest.fixture
 def mock_camera():
@@ -22,13 +19,13 @@ def mock_camera():
             "stream": 0
         }
         mock_discover.return_value = (mock_grabber, mock_egrabber_dict)
-        camera = VieworksCamera(id=VIEWORKS_CAMERA_ID, serial_number=VIEWORKS_SERIAL_NUMBER)
+        camera = VieworksCamera(id='mock_camera', serial_number=CAMERA_1_SN)
         camera.grabber = mock_grabber
         yield camera
 
 
 @pytest.fixture(scope="module")
 def real_camera():
-    camera = VieworksCamera(id=VIEWORKS_CAMERA_ID, serial_number=VIEWORKS_SERIAL_NUMBER)
+    camera = VieworksCamera(id='real_camera', serial_number=CAMERA_1_SN)
     yield camera
     camera.close()

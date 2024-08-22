@@ -1,8 +1,6 @@
 import pytest
-import time
-import numpy as np
 
-from tests.devices.camera.vieworks.conftest import VIEWORKS_CAMERA_ID, VIEWORKS_SERIAL_NUMBER
+from tests.devices.camera.vieworks.conftest import CAMERA_1_SN, CAMERA_2_SN
 from voxel.devices.camera.vieworks.definitions import (
     Binning, PixelType, BitPackingMode,
     TriggerMode, TriggerSource, TriggerPolarity
@@ -10,8 +8,26 @@ from voxel.devices.camera.vieworks.definitions import (
 
 
 def test_camera_initialization(real_camera):
-    assert real_camera.id == VIEWORKS_CAMERA_ID
-    assert real_camera.serial_number == VIEWORKS_SERIAL_NUMBER
+    assert real_camera.id == 'real_camera'
+    assert real_camera.serial_number == CAMERA_1_SN
+
+
+def test_multiple_cameras():
+    from voxel.devices.camera.vieworks import VieworksCamera
+
+    camera1 = VieworksCamera('camera1', CAMERA_1_SN)
+    camera2 = VieworksCamera('camera2', CAMERA_2_SN)
+
+    assert camera1.gentl == camera2.gentl
+
+    camera1.close()
+
+    camera3 = VieworksCamera('camera3', CAMERA_1_SN)
+    assert camera3.gentl == camera2.gentl
+
+    camera3.close()
+
+    camera2.close()
 
 def test_sensor_size(real_camera):
     assert real_camera.sensor_width_px > 0
@@ -145,6 +161,8 @@ def test_log_metadata(real_camera):
 #     assert state.frame_rate_fps > 0
 #
 #     real_camera.stop()
+
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

@@ -21,8 +21,8 @@ from voxel.devices.camera.hamamatsu.definitions import (
     TriggerMode, TriggerSource, TriggerPolarity, TriggerActive, TriggerSettings,
     PROPERTIES, ENUMERATED_PROPERTIES, DELIMINATED_PROPERTIES
 )
-from voxel.devices.utils.geometry import Vec2D
-from voxel.devices.utils.singleton import Singleton
+from voxel.utils.geometry import Vec2D
+from voxel.utils.singleton import Singleton
 
 LimitType = Literal['min', 'max', 'step']
 EnumeratedProp: TypeAlias = Union[

@@ -1,6 +1,6 @@
 import logging
 import time
-from voxel.devices.utils.singleton import Singleton
+from voxel.utils.singleton import Singleton
 from tigerasi.tiger_controller import TigerController
 from voxel.devices.filterwheel.base import BaseFilterWheel
 

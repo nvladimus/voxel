@@ -4,7 +4,7 @@ from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.camera import VoxelCamera
 from voxel.devices.camera.definitions import VoxelFrame, AcquisitionState
-from voxel.devices.utils.geometry import Vec2D
+from voxel.utils.geometry import Vec2D
 from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
 from .definitions import (
     Binning, PixelType,

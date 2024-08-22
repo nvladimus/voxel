@@ -3,7 +3,7 @@ import time
 from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.devices.camera.base import VoxelCamera
 from voxel.devices.camera.pco import pco
-from voxel.devices.utils.singleton import Singleton
+from voxel.utils.singleton import Singleton
 
 BUFFER_SIZE_MB = 2400
 
