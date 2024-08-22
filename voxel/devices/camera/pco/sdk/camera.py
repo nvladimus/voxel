@@ -11,17 +11,14 @@ with pco.Camera() as cam:
     image, meta = cam.image()
 """
 
+import logging
 import sys
 import time
-import copy
+
 import numpy as np
-import logging
-import warnings
-
-from pco.sdk import Sdk
-from pco.recorder import Recorder
 from pco.convert import Convert
-
+from pco.recorder import Recorder
+from pco.sdk import Sdk
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
