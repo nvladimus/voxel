@@ -1,9 +1,10 @@
 from unittest.mock import call
+
 from voxel.devices.camera.vieworks.egrabber import GenTLException
 
 
 def test_camera_initialization(mock_camera):
-    assert mock_camera.id == "test_camera"
+    assert mock_camera.id == "mock_camera"
     assert mock_camera.serial_number == "12345"
 
 
@@ -17,12 +18,12 @@ def test_query_binning_lut(mock_camera):
 
     def mock_set(param, value):
         if param == 'BinningHorizontal' and value == 'X8':
-            raise GenTLException("Unsupported binning option: X8")
+            raise GenTLException("Unsupported binning option: X8", ValueError)
 
     mock_camera.grabber.remote.get.side_effect = mock_get
     mock_camera.grabber.remote.set.side_effect = mock_set
 
-    binning_lut = mock_camera._generate_binning_lut()
+    binning_lut = mock_camera._get_binning_lut()
 
     assert binning_lut == {1: 'X1', 2: 'X2', 4: 'X4'}
 

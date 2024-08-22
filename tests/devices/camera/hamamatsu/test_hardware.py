@@ -1,12 +1,13 @@
-import pytest
 import time
+
 import numpy as np
+import pytest
+
+from tests.devices.camera.hamamatsu.conftest import HAMAMATSU_SERIAL_NUMBER, HAMAMATSU_CAMERA_ID
 from voxel.devices.camera.hamamatsu.definitions import (
     Binning, PixelType, SensorMode, ReadoutDirection,
     TriggerMode, TriggerSource, TriggerPolarity, TriggerActive
 )
-
-from .conftest import HAMAMATSU_SERIAL_NUMBER, HAMAMATSU_CAMERA_ID
 
 
 def test_camera_initialization(real_camera):
