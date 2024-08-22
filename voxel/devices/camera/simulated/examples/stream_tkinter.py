@@ -3,6 +3,8 @@ from PIL import Image, ImageTk
 import time
 from typing import Optional
 import numpy as np
+
+from voxel.devices.camera.simulated.image_model import ImageModel
 from voxel.devices.camera.simulated.simulated_camera import SimulatedCamera
 
 
@@ -93,16 +95,53 @@ def stream_frames_tkinter(camera: SimulatedCamera, duration: Optional[float] = N
 
 # Example usage
 if __name__ == "__main__":
-    simulated_camera = SimulatedCamera(id="main-camera", serial_number="sim-cam-001")
-    simulated_camera.roi_height_px //= 2
-    simulated_camera.roi_width_px //= 2
-    simulated_camera.exposure_time_ms = 1  # Set exposure time to 10 ms
+    image_model = ImageModel(
+        qe=0.7,
+        gain=8,
+        dark_noise=1.01,
+        bitdepth=16,
+        baseline=0
+    )
+
+    simulated_camera = SimulatedCamera(id="main-camera", serial_number="sim-cam-001", image_model=image_model)
+    simulated_camera.exposure_time_ms = 20
+    simulated_camera.roi_width_px //= 1.1
+    simulated_camera.roi_height_px //= 1.1
+    simulated_camera.roi_width_offset_px = 0
+    simulated_camera.roi_height_offset_px = 0
+
+    print(simulated_camera)
 
     print("Starting frame streaming.")
     try:
-        stream_frames_tkinter(simulated_camera, duration=1*60)  # Stream for 30 seconds
+        stream_frames_tkinter(simulated_camera, duration=60)  # Stream for 60 seconds
     except KeyboardInterrupt:
         print("\nStreaming interrupted by user.")
     finally:
         simulated_camera.close()
     print("Done")
+# if __name__ == "__main__":
+#     image_model = ImageModel(
+#         qe=0.7,
+#         gain=8,
+#         dark_noise=1.01,
+#         bitdepth=16,
+#         baseline=0
+#     )
+#     simulated_camera = SimulatedCamera(id="main-camera", serial_number="sim-cam-001", image_model=image_model)
+#     simulated_camera.exposure_time_ms = 20
+#     simulated_camera.roi_width_px //= 1.1
+#     simulated_camera.roi_height_px //= 1.1
+#     simulated_camera.roi_width_offset_px = 0
+#     simulated_camera.roi_height_offset_px = 0
+#
+#     print(simulated_camera)
+#
+#     print("Starting frame streaming.")
+#     try:
+#         stream_frames_tkinter(simulated_camera, duration=1*60)  # Stream for 30 seconds
+#     except KeyboardInterrupt:
+#         print("\nStreaming interrupted by user.")
+#     finally:
+#         simulated_camera.close()
+#     print("Done")

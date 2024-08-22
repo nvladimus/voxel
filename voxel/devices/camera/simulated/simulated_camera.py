@@ -1,9 +1,7 @@
 from typing import TypeAlias, Dict, Optional
 
-import numpy as np
-
 from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.descriptors.enumerated_property import EnumeratedProperty, enumerated_property
+from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.camera import VoxelCamera
 from voxel.devices.camera.definitions import VoxelFrame, AcquisitionState
 from voxel.devices.utils.geometry import Vec2D
@@ -12,13 +10,12 @@ from .definitions import (
     Binning, PixelType,
     TriggerSettings, TriggerMode, TriggerSource, TriggerPolarity,
 )
+from .image_model import ImageModel
 from .simulated_hardware import (
     SimulatedCameraHardware,
     MIN_WIDTH_PX,
-    MAX_WIDTH_PX,
     STEP_WIDTH_PX,
     MIN_HEIGHT_PX,
-    MAX_HEIGHT_PX,
     STEP_HEIGHT_PX,
     MIN_EXPOSURE_TIME_MS,
     MAX_EXPOSURE_TIME_MS,
@@ -35,11 +32,11 @@ TriggerPolarityLUT: TypeAlias = Dict[TriggerPolarity, str]
 
 class SimulatedCamera(VoxelCamera):
 
-    def __init__(self, id: str, serial_number: str):
+    def __init__(self, id: str, serial_number: str, image_model: Optional[ImageModel] = None):
         super().__init__(id)
         self.log.info(f"Initializing simulated camera with id: {id}, serial number: {serial_number}")
         self.serial_number = serial_number
-        self.instance = SimulatedCameraHardware()
+        self.instance = SimulatedCameraHardware(image_model)
 
         # Property LUTs
         self._pixel_type_lut: PixelTypeLUT = {
@@ -54,17 +51,39 @@ class SimulatedCamera(VoxelCamera):
             Binning.X4: "4x4",
             Binning.X8: "8x8",
         }
-        self._trigger_mode_lut: TriggerModeLUT = {TriggerMode[mode]: mode for mode in TriggerMode}
-        self._trigger_source_lut: TriggerSourceLUT = {TriggerSource[source]: source for source in TriggerSource}
-        self._trigger_polarity_lut: TriggerPolarityLUT = {TriggerPolarity[polarity]: polarity for polarity in TriggerPolarity}
+        self._trigger_mode_lut: TriggerModeLUT = {TriggerMode(mode): mode for mode in TriggerMode}
+        self._trigger_source_lut: TriggerSourceLUT = {TriggerSource(source): source for source in TriggerSource}
+        self._trigger_polarity_lut: TriggerPolarityLUT = {TriggerPolarity(polarity): polarity for polarity in TriggerPolarity}
 
         # private properties
         self._binning: Binning = Binning.X1
         self._trigger_settings: Optional[TriggerSettings] = None
 
-        self.gpu_binning = DownSample2D(binning=self.binning)
+        self.gpu_binning = DownSample2D(binning=self._binning)
 
         self.log.info(f"simulated camera initialized with id: {id}, serial number: {serial_number}")
+
+    def __repr__(self):
+        return (
+            f"Serial Number:        {self.serial_number}\n"
+            f"Sensor Size:          {self.sensor_size_px}\n"
+            f"Roi Size:             ({self.roi_width_px}, {self.roi_height_px})\n"
+            f"Roi Offset:           ({self.roi_width_offset_px}, {self.roi_height_offset_px})\n"
+            f"Binning:              {self.binning}\n"
+            f"Image Size:           {self.frame_size_px}\n"
+            f"Exposure Time:        {self.exposure_time_ms} ms\n"
+            f"Line Interval:        {self.line_interval_us} us\n"
+            f"Frame Time:           {self.frame_time_ms} ms\n"
+            f"Pixel Type:           {self.pixel_type}\n"
+            f"Trigger Settings:     {self.trigger_settings}\n"
+            f"Image Model:          {self.instance.image_model}\n"
+            f"LUTs:________________________________________________________________________________\n"
+            f"Binning LUT:          {self._binning_lut}\n"
+            f"Pixel Type LUT:       {self._pixel_type_lut}\n"
+            f"Trigger Mode LUT:     {self._trigger_mode_lut}\n"
+            f"Trigger Source LUT:   {self._trigger_source_lut}\n"
+            f"Trigger Polarity LUT: {self._trigger_polarity_lut}\n"
+        )
 
     # Sensor size properties
 
@@ -84,7 +103,7 @@ class SimulatedCamera(VoxelCamera):
 
     @deliminated_property(
         minimum=MIN_WIDTH_PX,
-        maximum=MAX_WIDTH_PX,
+        maximum=lambda self: self.sensor_width_px,
         step=STEP_WIDTH_PX, unit="px"
     )
     def roi_width_px(self) -> int:
@@ -100,14 +119,22 @@ class SimulatedCamera(VoxelCamera):
         self.instance.roi_width_offset_px = centered_offset_px
         self.log.info(f'ROI width set to: {value} px')
 
-    @property
+    @deliminated_property(
+        minimum=0,
+        maximum=lambda self: self.sensor_width_px,
+        step=STEP_WIDTH_PX, unit="px"
+    )
     def roi_width_offset_px(self) -> int:
         return self.instance.roi_width_offset_px
 
+    @roi_width_offset_px.setter
+    def roi_width_offset_px(self, value: int) -> None:
+        self.instance.roi_width_offset_px = value
+        self.log.info(f'ROI width offset set to: {value} px')
 
     @deliminated_property(
         minimum=MIN_HEIGHT_PX,
-        maximum=MAX_HEIGHT_PX,
+        maximum=lambda self: self.sensor_height_px,
         step=STEP_HEIGHT_PX, unit="px"
     )
     def roi_height_px(self) -> int:
@@ -123,16 +150,25 @@ class SimulatedCamera(VoxelCamera):
         self.instance.roi_height_offset_px = centered_offset_px
         self.log.info(f'ROI height set to: {value} px')
 
-    @property
+    @deliminated_property(
+        minimum=0,
+        maximum=lambda self: self.sensor_height_px,
+        step=STEP_HEIGHT_PX, unit="px"
+    )
     def roi_height_offset_px(self) -> int:
         return self.instance.roi_height_offset_px
+
+    @roi_height_offset_px.setter
+    def roi_height_offset_px(self, value: int) -> None:
+        self.instance.roi_height_offset_px = value
+        self.log.info(f'ROI height offset set to: {value} px')
 
     # Image Format properties
 
     @enumerated_property(Binning, lambda self: list(self._binning_lut))
     def binning(self) -> Binning:
         try:
-            binning: Binning = next(key for key, value in self._binning_lut.items() if value == self._binning)
+            binning: Binning = next(key for key in self._binning_lut.keys() if key == self._binning)
         except KeyError:
             self.log.error(f"Invalid binning: {self._binning}")
             binning: Binning = Binning.X1
@@ -152,7 +188,7 @@ class SimulatedCamera(VoxelCamera):
     @enumerated_property(PixelType, lambda self: list(self._pixel_type_lut))
     def pixel_type(self) -> PixelType:
         try:
-            return next(key for key, value in self._pixel_type_lut.items() if value == self.instance.pixel_type)
+            return next(key for key in self._pixel_type_lut.keys() if key == self.instance.pixel_type)
         except KeyError:
             self.log.error(f"Invalid pixel type: {self.instance.pixel_type}")
             return PixelType.MONO8
@@ -198,7 +234,7 @@ class SimulatedCamera(VoxelCamera):
 
     @property
     def line_interval_us(self) -> float:
-        return self._pixel_type_lut[self.pixel_type].line_interval_us
+        return self.instance.line_interval_us_lut[self.pixel_type]
 
     @property
     def frame_time_ms(self) -> float:
@@ -209,9 +245,9 @@ class SimulatedCamera(VoxelCamera):
         if not self._trigger_settings:
             try:
                 self._trigger_settings = TriggerSettings(
-                    mode=next(k for k, v in self._trigger_mode_lut.items() if v == self.instance.trigger_mode),
-                    source=next(k for k, v in self._trigger_source_lut.items() if v == self.instance.trigger_source),
-                    polarity=next(k for k, v in self._trigger_polarity_lut.items() if v == self.instance.trigger_activation)
+                    mode=next(k for k in self._trigger_mode_lut.keys() if k == self.instance.trigger_mode),
+                    source=next(k for k in self._trigger_source_lut.keys() if k == self.instance.trigger_source),
+                    polarity=next(k for k in self._trigger_polarity_lut.keys() if k == self.instance.trigger_activation)
                 )
             except StopIteration:
                 self.log.error(f"Invalid trigger settings recieved from camera: mode={self.instance.trigger_mode}, "
@@ -275,4 +311,4 @@ class SimulatedCamera(VoxelCamera):
         pass
 
     def close(self):
-        self.instance.close()
+        self.instance.close() if self.instance else None

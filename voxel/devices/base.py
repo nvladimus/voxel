@@ -26,7 +26,7 @@ class VoxelDevice(ABC):
         pass
 
     def __str__(self):
-        return f"{self.__class__.__name__}[{self.id}]"
+        return self.__repr__()
 
     def __del__(self):
         """Close the device when the object is deleted."""
