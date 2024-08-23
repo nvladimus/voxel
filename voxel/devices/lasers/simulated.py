@@ -16,7 +16,7 @@ MAX_POWER_MW = 100
 
 class SimulatedLaser(BaseLaser):
 
-    def __init__(self, id: str, prefix: str = '', coefficients: dict = {}):
+    def __init__(self, id: str, wavelength: int, prefix: str = '', coefficients: dict = {}):
         """
         Communicate with specific Simulated laser in Simulated Combiner box.
 
@@ -28,6 +28,7 @@ class SimulatedLaser(BaseLaser):
 
         self.prefix = prefix
         self.ser = Serial
+        self._wavelength = wavelength
         self._simulated_power_setpoint_mw = 10.0
         self._max_power_mw = 100.0
         self._modulation_mode = 'digital'
@@ -79,6 +80,10 @@ class SimulatedLaser(BaseLaser):
     @cdrh.setter
     def cdrh(self, value: str):
         self._cdrh = value
+
+    @property
+    def wavelength(self) -> int:
+        return self._wavelength
 
     def close(self):
         pass

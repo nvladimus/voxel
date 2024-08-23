@@ -9,16 +9,6 @@ DATE_FORMATS = {'Year/Month/Day/Hour/Minute/Second': '%Y-%m-%d_%H-%M-%S',
                 'Month/Day/Year': '%m-%d-%Y',
                 'None': None}
 
-X_ANATOMICAL_DIRECTIONS = {'Anterior to Posterior': 'Anterior_to_posterior',
-                           'Posterior to Anterior': 'Posterior_to_anterior'}
-
-Y_ANATOMICAL_DIRECTIONS = {'Inferior to Superior': 'Inferior_to_superior',
-                           'Superior to Inferior': 'Superior_to_inferior'}
-
-Z_ANATOMICAL_DIRECTIONS = {'Left to Right': 'Left_to_right',
-                           'Right to Left': 'Right_to_left'}
-
-
 class MetadataClass(BaseMetadata):
     """Class to handle metadata"""
 
@@ -31,7 +21,7 @@ class MetadataClass(BaseMetadata):
         for key, value in metadata_dictionary.items():
             # create properties from keyword entries
             setattr(self, f'_{key}', value)
-            new_property = property(fget=lambda x, k=key: getattr(self, f'_{k}'),
+            new_property = property(fget=lambda instance, k=key: self.get_class_attribute(instance, k),
                                     fset=lambda metadataclass, val, k=key: self.set_class_attribute(val, k))
             setattr(type(self), key, new_property)
         # initialize properties
@@ -53,6 +43,16 @@ class MetadataClass(BaseMetadata):
                 setattr(self, f'_{name}', opt_dict[value])
         else:
             setattr(self, f'_{name}', value)
+
+    def get_class_attribute(self, instance, name):
+        """Function to get attribute of class to act as getters"""
+
+        if inflection.pluralize(name).upper() in globals().keys():
+            opt_dict = globals()[inflection.pluralize(name).upper()]
+            inv = {v: k for k, v in opt_dict}
+            return inv[getattr(self, f'_{name}')]
+        else:
+            return getattr(self, f'_{name}')
 
     @property
     def date_format(self):
@@ -104,7 +104,8 @@ class MetadataClass(BaseMetadata):
         else:
             name = []
             for prop_name in form:
-                if not isinstance(getattr(type(self), prop_name, None), property):  # check if prop name is metadata property
+                if not isinstance(getattr(type(self), prop_name, None),
+                                  property):  # check if prop name is metadata property
                     raise ValueError(f'{prop_name} is not a metadata property. Please choose from {self.__dir__()}')
                 name.append(str(getattr(self, prop_name)))
             if self._date_format is not None:

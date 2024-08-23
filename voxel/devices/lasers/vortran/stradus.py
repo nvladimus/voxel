@@ -12,14 +12,16 @@ MODULATION_MODES = {
 
 class StradusLaser(BaseLaser):
 
-    def __init__(self, id: str, port: str):
+    def __init__(self, id: str, port: str, wavelength: int):
         """
         Communicate with stradus laser.
 
         :param port: comm port for lasers.
+        :param wavelength: wavelength of laser
         """
         super().__init__(id)
         self._inst = StradusVortran(port)
+        self._wavelength = wavelength
 
     def enable(self):
         self._inst.enable()
@@ -53,6 +55,10 @@ class StradusLaser(BaseLaser):
             raise ValueError("mode must be one of %r." % MODULATION_MODES.keys())
         for attribute, state in MODULATION_MODES[value].items():
             setattr(self._inst, attribute, state)
+
+    @property
+    def wavelength(self) -> int:
+        return self._wavelength
 
     @property
     def power_mw(self) -> float:

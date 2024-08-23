@@ -59,6 +59,7 @@ class SkyraLaser(BaseLaser):
     def __init__(
             self,
             id: str,
+            wavelength: int,
             port: str,
             prefix: str,
             max_power_mw: float,
@@ -70,6 +71,7 @@ class SkyraLaser(BaseLaser):
         Communicate with Skyra Cobolt laser.
 
         :param port: comm port for lasers.
+        :param wavelength: wavelength of laser
         :param prefix: prefix specic to laser.
         :param max_power_mw: maximum power in mW
         :param coefficients: polynomial coefficients describing
@@ -85,6 +87,11 @@ class SkyraLaser(BaseLaser):
         self._max_current_ma = max_current_ma
         self._current_setpoint = self._min_current_ma
         self._max_power_mw = max_power_mw
+        self._wavelength = wavelength
+
+    @property
+    def wavelength(self) -> int:
+        return self._wavelength
 
     def _coefficients_curve(self) -> Expr:
         x = symbols('x')

@@ -28,7 +28,8 @@ class BaseWriter:
         self._row_count_px = None
         self._column_count_px = None
         self._frame_count_px_px = None
-        self._shm_name = None
+        self._shm_name = ''
+        self._frame_count_px = None
         self._x_voxel_size_um = None
         self._y_voxel_size_um = None
         self._z_voxel_size_um = None

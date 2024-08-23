@@ -9,6 +9,8 @@ from threading import Lock, RLock
 from functools import wraps
 from voxel.descriptors.deliminated_property import _DeliminatedProperty
 import copy
+import re
+import sys
 
 class Instrument:
 
@@ -174,7 +176,8 @@ def for_all_methods(lock, cls):
             attr._fget = lock_methods(attr._fget, lock)
         elif isinstance(attr, property):
             wrapped_getter = lock_methods(getattr(attr, 'fget'), lock)
-            wrapped_setter = lock_methods(getattr(attr, 'fset'), lock)
+            # don't wrap setters if none
+            wrapped_setter = lock_methods(getattr(attr, 'fset'), lock) if getattr(attr, 'fset') is not None else None
             setattr(cls, attr_name, property(wrapped_getter, wrapped_setter))
         elif callable(attr) and not isinstance(inspect.getattr_static(cls, attr_name), staticmethod):
             setattr(cls, attr_name, lock_methods(attr, lock))

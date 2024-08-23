@@ -8,7 +8,7 @@ from multiprocessing import Array, Process
 from multiprocessing.shared_memory import SharedMemory
 from pathlib import Path
 from time import perf_counter, sleep
-
+import re
 import numpy as np
 import os
 from matplotlib.colors import hex2color

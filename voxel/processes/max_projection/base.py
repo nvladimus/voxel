@@ -26,6 +26,7 @@ class BaseMaxProjection:
         self._x_projection_count_px = None
         self._y_projection_count_px = None
         self._z_projection_count_px = None
+        self._frame_count_px = None
         self._filename = None
         self._acquisition_name = Path()
         self._data_type = None

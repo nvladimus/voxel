@@ -3,7 +3,7 @@ import numpy
 import time
 from multiprocessing import Process, Queue, Event
 from voxel.devices.camera.base import BaseCamera
-from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
+from voxel.processes.downsample.gpu.gputools.downsample_2d import GPUToolsDownSample2D
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 from threading import Thread
 
@@ -189,7 +189,7 @@ class Camera(BaseCamera):
         else:
             self._binning = BINNING[binning]
             # initialize the downsampling in 2d
-            self.gpu_binning = DownSample2D(binning=self._binning)
+            self.gpu_binning = GPUToolsDownSample2D(binning=self._binning)
 
     @property
     def pixel_type(self):
