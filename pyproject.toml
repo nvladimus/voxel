@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "voxel"
 description = "Base Library for building SPIM software"
 license = { text = "MIT" }
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.12"
 authors = [
     { name = "Micah Woodard", email = "micah.woodard@alleninstitute.org" },
     { name = "Adam Glaser", email = "adam.glaser@alleninstitute.org" },
@@ -38,7 +38,7 @@ dependencies = [
     'PyImarisWriter >= 0.7.0',
     'h5py >= 3.0.0', # for reading and writing HDF5 files
     # essentials
-    'numpy >= 1.22.0',
+    'numpy >= 1.23.0, < 1.24.0',
     'matplotlib >= 3.8.2',
     'scipy >= 1.12.0',
     'scikit-image >= 0.20.0',
