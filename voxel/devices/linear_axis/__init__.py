@@ -1,19 +1,11 @@
 """
-
+Voxel Linear Axis Devices.
 """
 
-from .base import (
-    BaseLinearAxis,
-    BaseScanningLinearAxis,
-    BaseSweepingLinearAxis,
-    LinearAxisDimension,
-    LinearAxisRole,
-)
+from .base import VoxelLinearAxis
+from .definitions import LinearAxisDimension
 
 __all__ = [
-    "BaseLinearAxis",
-    "BaseScanningLinearAxis",
-    "BaseSweepingLinearAxis",
+    "VoxelLinearAxis",
     "LinearAxisDimension",
-    "LinearAxisRole",
 ]

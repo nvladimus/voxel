@@ -1,6 +1,6 @@
 """Base class for all voxel devices."""
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 
 
 class VoxelDevice(ABC):
@@ -16,8 +16,4 @@ class VoxelDevice(ABC):
         pass
 
     def __str__(self):
-        return f"{self.__class__.__name__}[{self.id}]"
-
-    def __del__(self):
-        """Close the device when the object is deleted."""
-        self.close()
+        return self.__repr__()
