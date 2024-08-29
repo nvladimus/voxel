@@ -34,21 +34,18 @@ LINE_INTERVALS_US = {
     "mono16": 20.00
 }
 
-TRIGGERS = {
-    "mode": {
+MODES= {
         "on": "On",
         "off": "Off",
-    },
-    "source": {
+    }
+SOURCES= {
         "internal": "None",
         "external": "Line0",
-    },
-    "polarity": {
+    }
+POLARITIES =  {
         "rising": "RisingEdge",
         "falling": "FallingEdge",
     }
-}
-
 
 class Camera(BaseCamera):
 
