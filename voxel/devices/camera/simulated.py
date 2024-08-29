@@ -163,13 +163,13 @@ class Camera(BaseCamera):
         source = trigger['source']
         polarity = trigger['polarity']
 
-        valid_mode = list(TRIGGERS['mode'].keys())
+        valid_mode = list(MODES.keys())
         if mode not in valid_mode:
             raise ValueError("mode must be one of %r." % valid_mode)
-        valid_source = list(TRIGGERS['source'].keys())
+        valid_source = list(SOURCES.keys())
         if source not in valid_source:
             raise ValueError("source must be one of %r." % valid_source)
-        valid_polarity = list(TRIGGERS['polarity'].keys())
+        valid_polarity = list(POLARITIES.keys())
         if polarity not in valid_polarity:
             raise ValueError("polarity must be one of %r." % valid_polarity)
         self._trigger = dict(trigger)
