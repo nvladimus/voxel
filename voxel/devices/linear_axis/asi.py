@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+from typing import Literal
 
 from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.devices.controllers.tigerbox import ASITigerBox
+from voxel.devices.controllers.tigerbox import ASITigerBox, JoystickInput
 from voxel.devices.linear_axis import VoxelLinearAxis, LinearAxisDimension
 from voxel.devices.linear_axis.definitions import ScanConfig, ScanState
 
@@ -38,12 +39,15 @@ class ASITigerLinearAxis(VoxelLinearAxis):
             hardware_axis: str,
             dimension: LinearAxisDimension,
             tigerbox: ASITigerBox,
+            joystick_polarity: Literal[1, -1] = 1,
+            joystick_input: JoystickInput = None,
     ):
         super().__init__(id, dimension)
         self._tigerbox = tigerbox
         self._hardware_axis = hardware_axis.upper()
         try:
-            self._tigerbox.register_axis(self.id, self._hardware_axis, self.dimension)
+            self._tigerbox.register_axis(
+                self.id, self._hardware_axis, self.dimension, joystick_polarity, joystick_input)
         except ValueError as e:
             raise ValueError(f"Failed to register axis {self.id} with dimension {self.dimension}") from e
 
@@ -101,28 +105,60 @@ class ASITigerLinearAxis(VoxelLinearAxis):
     def upper_limit_mm(self) -> float:
         return self._tigerbox.get_upper_travel_limit(self.id)
 
+    @upper_limit_mm.setter
+    def upper_limit_mm(self, upper_limit_mm: float) -> None:
+        self._tigerbox.set_upper_travel_limit(self.id, upper_limit_mm)
+
+    def set_upper_limit_mm_in_place(self) -> None:
+        self._tigerbox.set_upper_travel_limit_in_place(self.id)
+
     @property
     def lower_limit_mm(self) -> float:
         return self._tigerbox.get_lower_travel_limit(self.id)
+
+    @lower_limit_mm.setter
+    def lower_limit_mm(self, lower_limit_mm: float) -> None:
+        self._tigerbox.set_lower_travel_limit(self.id, lower_limit_mm)
+
+    def set_lower_limit_mm_in_place(self) -> None:
+        self._tigerbox.set_lower_travel_limit_in_place(self.id)
 
     @property
     def is_moving(self) -> bool:
         return self._tigerbox.is_axis_moving(self.id)
 
-    def await_move(self):
+    def await_movement(self):
         while self.is_moving:
             pass
         self.log.info(f"Axis {self.id} has stopped moving. Current position: {self.position_mm}")
 
-    def set_upper_limit_mm_in_place(self) -> None:
-        self._tigerbox.set_upper_travel_limit_in_place(self.id)
+    @property
+    def home_position_mm(self) -> float:
+        return self._tigerbox.get_axis_home_position(self.id)
 
-    def set_lower_limit_mm_in_place(self) -> None:
-        self._tigerbox.set_lower_travel_limit_in_place(self.id)
+    def set_home_position(self, home_position: float = None) -> None:
+        """Set the home position of the axis
+        :param home_position: The position to set as the home position.
+        If None, the current position is set as the home position.
+        """
+        home_position = home_position or self.position_mm
+        self._tigerbox.set_axis_home_position(self.id, home_position)
+
+    def home(self, wait=False) -> None:
+        """Move the axis to the home position."""
+        self._tigerbox.home(self.id)
+        if wait:
+            self.await_movement()
 
     def zero_in_place(self) -> None:
         """Set the current position as the zero position"""
         return self._tigerbox.zero_in_place(self.id)
+
+    def go_to_origin(self, wait=False) -> None:
+        """Move the axis to the origin."""
+        self.position_mm = 0.0
+        if wait:
+            self.await_movement()
 
     # Other Kinematic properties and methods __________________________________________________________________________
 
@@ -145,27 +181,33 @@ class ASITigerLinearAxis(VoxelLinearAxis):
     def set_backlash_mm(self, backlash_mm: float) -> None:
         self._tigerbox.set_axis_backlash(self.id, backlash_mm)
 
+    # Input methods _____________________________________________________________________________________________
+
+    def set_joystick_polarity(self, polarity: Literal[1, -1]) -> None:
+        self._tigerbox.set_axis_joystick_polarity(self.id, polarity)
+
+    def enable_joystick(self) -> None:
+        self._tigerbox.enable_axis_joystick_input(self.id)
+
+    def disable_joystick(self) -> None:
+        self._tigerbox.disable_axis_joystick_input(self.id)
+
     # Convenience methods ____________________________________________________________________________________________
-    def go_to_origin(self, wait=False) -> None:
-        """Move the axis to the origin."""
-        self.position_mm = 0.0
-        if wait:
-            self.await_move()
 
     def zero_at_center(self) -> None:
         """Move the axis to the center of the travel range."""
         self.position_mm = (self.lower_limit_mm + self.upper_limit_mm) / 2
         self.zero_in_place()
-        self.await_move()
+        self.await_movement()
 
     def zero_at_upper_limit(self) -> None:
         """Move the axis to the upper limit of the travel range."""
         self.position_mm = self.upper_limit_mm
         self.zero_in_place()
-        self.await_move()
+        self.await_movement()
 
     def zero_at_lower_limit(self) -> None:
         """Move the axis to the lower limit of the travel range."""
         self.position_mm = self.lower_limit_mm
         self.zero_in_place()
-        self.await_move()
+        self.await_movement()

@@ -1,11 +1,12 @@
-from typing import Dict, TypeAlias
+from typing import Dict, TypeAlias, Optional, Literal
 
-from tigerasi.device_codes import TTLIn0Mode, TTLOut0Mode, ScanPattern
+from tigerasi.device_codes import TTLIn0Mode, TTLOut0Mode, ScanPattern, JoystickPolarity, JoystickInput
 from tigerasi.tiger_controller import TigerController
 
 from devices.linear_axis.definitions import LinearAxisDimension, ScanState
 
 AxisMap: TypeAlias = Dict[str, str]  # axis id -> hardware_axis
+JoystickMap: TypeAlias = Dict[str, str]  # axis id -> joystick axis
 DimensionsMap: TypeAlias = Dict[LinearAxisDimension, str]  # LinearAxisDimension -> axis id
 
 STEPS_PER_UM = 10
@@ -17,29 +18,72 @@ class ASITigerBox:
         self.axis_map = {}
         self.dimensions_map = {}
         self.scan_state = ScanState.IDLE
+
+        # set parameter values
+        # (!!) these are hardcoded here and cannot
+        # be queiried from the tigerbox
+        # TODO: Verify these values and use them in axis drivers
+        self.axis_min_speed_mm_s = 0.001
+        self.axis_max_speed_mm_s = 1.000
+        self.axis_step_speed_mm_s = 0.01
+        self.axis_min_acceleration_ms = 50
+        self.axis_max_acceleration_ms = 2000
+        self.axis_step_acceleration_ms = 10
+        self.axis_min_backlash_mm = 0
+        self.axis_max_backlash_mm = 1
+        self.axis_step_backlash_mm = 0.01
+
         self.log = self.box.log
-        self.log.debug(f'Axis map: {self.axis_map}')
-        self.build_config = self.box.get_build_config()
+        self.log.debug(f"Connected to TigerBox on port {port}. Hardware Configuration: {self.build_config}")
 
     @property
     def hardware_axes(self) -> list[str]:
         return self.box.ordered_axes
 
-    def register_axis(self, axis_id: str, hardware_axis: str, dimension: LinearAxisDimension):
-        # there can be only one X, Y, Z axis but multiple N axes
+    @property
+    def build_config(self) -> str:
+        return self.box.get_build_config()
+
+    @property
+    def joystick_mapping(self) -> Dict[str, str]:
+        hardware_mapping = self.box.get_joystick_axis_mapping()
+        return {axis_id: hardware_mapping[hardware_axis] for axis_id, hardware_axis in self.axis_map.items()}
+
+    def register_axis(self,
+                      axis_id: str,
+                      hardware_axis: str,
+                      dimension: LinearAxisDimension,
+                      joystick_polarity: Literal[-1, 1] = 1,
+                      joystick_input: Optional[JoystickInput] = None,
+                      ):
+        """Register a linear axis with the TigerBox controller.
+        :param axis_id: unique axis identifier
+        :param hardware_axis: hardware axis name, must be one of the available axes on the connected TigerBox
+        :param dimension: LinearAxisDimension, X, Y, Z, or N
+        :param joystick_input: JoystickInput, the joystick input to bind to this axis
+        :param joystick_polarity: 1 for DEFAULT, -1 for INVERTED
+        """
         if hardware_axis not in self.hardware_axes:
-            raise ValueError(f"Hardware axis {hardware_axis} not found in the connected device.")
-        if dimension == LinearAxisDimension.N:
-            self.axis_map[axis_id] = hardware_axis
-            return
-        if dimension in self.dimensions_map:
-            raise ValueError(f"Only one {dimension.name} dimension is allowed. "
-                             f"Axis dimension {dimension} already registered under "
-                             f"axis ID {self.dimensions_map[dimension]}")
+            raise ValueError(f"Hardware axis {hardware_axis} not found in the connected tigerbox. "
+                             f"Available axes: {self.hardware_axes}")
+
         if axis_id in self.axis_map:
             raise ValueError(f"Axis ID {axis_id} already registered under hardware axis {self.axis_map[axis_id]}")
         self.axis_map[axis_id] = hardware_axis
-        self.dimensions_map[dimension] = axis_id
+
+        # there can be only one X, Y, Z axis but multiple N axes
+        if dimension != LinearAxisDimension.N:
+            if dimension in self.dimensions_map:
+                raise ValueError(f"Dimension {dimension} already registered as {self.dimensions_map[dimension]}")
+            self.dimensions_map[dimension] = axis_id
+
+        joystick_input = joystick_input or self._default_joystick_input(dimension)
+        if joystick_input != JoystickInput.NONE:
+            self.box.bind_axis_to_joystick_input(**{hardware_axis: joystick_input})
+            polarity = JoystickPolarity.INVERTED if joystick_polarity < 0 else JoystickPolarity.DEFAULT
+            self.box.set_joystick_axis_polarity(**{hardware_axis: polarity})
+
+        # self.disable_zero_button(axis_id)
 
     def deregister_axis(self, axis_id: str):
         if axis_id in self.axis_map:
@@ -61,6 +105,9 @@ class ASITigerBox:
 
     def move_absolute_mm(self, axis_id: str, position_mm: float) -> None:
         self.box.move_absolute(**{self.axis_map[axis_id]: round(position_mm * 1000 * STEPS_PER_UM, 1), 'wait': True})
+
+    def await_movement(self) -> None:
+        self.box.wait()
 
     def get_axis_limits(self, axis_id: str) -> tuple[float, float]:
         box_axis = self.axis_map[axis_id]
@@ -109,6 +156,16 @@ class ASITigerBox:
     def zero_in_place(self, axis_id: str) -> None:
         self.box.zero_in_place(self.axis_map[axis_id])
 
+    def get_axis_home_position(self, axis_id: str) -> float:
+        return float(self.box.get_home(self.axis_map[axis_id]))
+
+    def set_axis_home_position(self, axis_id: str, position_mm: float = None) -> None:
+        position_mm = position_mm or self.get_axis_position(axis_id)
+        self.box.set_home(**{self.axis_map[axis_id]: position_mm, 'wait': True})
+
+    def home(self, axis_id: str) -> None:
+        self.box.home(self.axis_map[axis_id])
+
     def is_axis_moving(self, axis_id: str) -> bool:
         return self.box.are_axes_moving(self.axis_map[axis_id])[self.axis_map[axis_id]]
 
@@ -142,6 +199,7 @@ class ASITigerBox:
             self.log.error(f"Failed to setup step-and-shoot scan: {e}")
             return False
 
+    # TODO Unfinished implementation of stage scan.
     def setup_stage_scan(self, fast_axis_start_position: float,
                          slow_axis_start_position: float,
                          slow_axis_stop_position: float,
@@ -200,9 +258,107 @@ class ASITigerBox:
     def has_all_stage_axes(self) -> bool:
         return all(axis in self.dimensions_map for axis in LinearAxisDimension)
 
+    def halt(self):
+        """Stop all motion."""
+        self.box.halt()
+
+    # Input Management ________________________________________________________________________________________________
+
+    def bind_axis_to_joystick_input(self, axis_id: str, joystick_input: JoystickInput) -> None:
+        """Bind a joystick input to the specified axis.
+
+        Note: binding a tigerbox stage axis to a joystick input does not affect
+        the direction of the input. To change the direction, you must use the
+        physical DIP switches on the back of the Tigerbox card.
+
+        Note: binding a tigerbox stage axis to a joystick input `also` enables
+        it.
+
+        :param axis_id: axis ID
+        :param joystick_input: JoystickInput
+        """
+        self.box.bind_axis_to_joystick_input(**{self.axis_map[axis_id]: joystick_input})
+
+    def set_axis_joystick_polarity(self, axis_id: str, polarity: int) -> None:
+        """Set the polarity of the joystick axis.
+        :param axis_id: axis ID
+        :param polarity: 1 for DEFAULT, -1 for INVERTED
+        """
+        if polarity < 0:
+            self.box.set_joystick_axis_polarity(**{self.axis_map[axis_id]: JoystickPolarity.INVERTED})
+        else:
+            self.box.set_joystick_axis_polarity(**{self.axis_map[axis_id]: JoystickPolarity.DEFAULT})
+
+    def enable_axis_joystick_input(self, axis_id: str) -> None:
+        """Enable the joystick input for the specified axis.
+        :param axis_id: axis ID
+        """
+        self.box.enable_joystick_inputs(self.axis_map[axis_id])
+
+    def disable_axis_joystick_input(self, axis_id: str) -> None:
+        """Disable the joystick input for the specified axis.
+        :param axis_id: axis ID
+        """
+        self.box.disable_joystick_inputs(self.axis_map[axis_id])
+
+    # def disable_zero_button(self):
+    #     """Disable the zero button functionality for all axes."""
+    #     cmd_str = "BCA M=0"
+    #     self.box.send(cmd_str)
+
+    # def disable_zero_button(self, axis_id: str) -> None:
+    #     """Disable the zero button for the specified axis.
+    #     :param axis_id: axis ID
+    #     """
+    #     card = self.box.axis_to_card[self.axis_map[axis_id]][0]
+    #     cmd_str = f"{card}BE M=0"
+    #     self.box.send(cmd_str)
+    #
+    # def check_button_assignments(self):
+    #     """Check button function assignments using the BE (BENABLE) command for all cards in the TigerController."""
+    #     all_assignments = {}
+    #
+    #     # Get unique card addresses
+    #     unique_cards = set(card for card, _ in self.box.axis_to_card.values())
+    #
+    #     for card in unique_cards:
+    #         card_info = {}
+    #
+    #         # Construct the BE command
+    #         cmd_str = f"{card}BE X? Y? Z? F? R? T? M?\r"
+    #
+    #         # Send the command and get the response
+    #         response = self.box.send(cmd_str)
+    #
+    #         print(f"Raw response from card {card}: {response}")
+    #
+    #         # Parse the response
+    #         if response.startswith(':'):
+    #             parts = response[1:].split()  # Remove ':' and split
+    #             for part in parts:
+    #                 if '=' in part:
+    #                     key, value = part.split('=')
+    #                     try:
+    #                         card_info[key] = int(value)
+    #                     except ValueError:
+    #                         card_info[key] = value  # Keep as string if not an integer
+    #
+    #         all_assignments[card] = card_info
+    #
+    #     return all_assignments
+
+    @staticmethod
+    def _default_joystick_input(dimension: LinearAxisDimension) -> JoystickInput:
+        match dimension:
+            case LinearAxisDimension.X:
+                return JoystickInput.JOYSTICK_X
+            case LinearAxisDimension.Y:
+                return JoystickInput.JOYSTICK_Y
+            case LinearAxisDimension.Z:
+                return JoystickInput.Z_WHEEL
+            case _:
+                return JoystickInput.NONE
+
     @staticmethod
     def _sanitize_axis_map(axis_map: AxisMap) -> AxisMap:
         return {k: v.upper() for k, v in axis_map.items()}
-
-    def wait(self) -> None:
-        self.box.wait()

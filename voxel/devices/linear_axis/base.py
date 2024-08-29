@@ -57,7 +57,7 @@ class VoxelLinearAxis(VoxelDevice):
         pass
 
     @abstractmethod
-    def await_move(self) -> None:
+    def await_movement(self) -> None:
         """Wait until the axis stops moving"""
         pass
 

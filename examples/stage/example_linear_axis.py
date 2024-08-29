@@ -62,15 +62,13 @@ def sweep_axis(axis: VoxelLinearAxis, step: int = 10):
     print(axis)
     for pos in range(int(axis.lower_limit_mm / 5), int(axis.upper_limit_mm / 5), step // 10):
         axis.position_mm = pos
-        axis.await_move()
+        axis.await_movement()
         print(axis.position_mm)
 
     print(axis)
 
 
 if __name__ == '__main__':
-    import time
-
     from devices.linear_axis.asi import ASITigerLinearAxis, ASITigerBox, LinearAxisDimension
 
     PORT = 'COM3'
@@ -86,23 +84,26 @@ if __name__ == '__main__':
 
     x_axis.speed_mm_s = 2
     x_axis.go_to_origin()
-    x_axis.await_move()
+    x_axis.await_movement()
 
-    x_axis.speed_mm_s = 0.5
-    x_axis.acceleration_ms = 1
-    print(x_axis)
+    # x_axis.speed_mm_s = 0.5
+    # x_axis.acceleration_ms = 1
+    # print(x_axis)
+    #
+    # start_time = time.perf_counter()
+    # x_axis.position_mm += 1
+    # x_axis.await_move()
+    # print(f"Time taken: {time.perf_counter() - start_time}")
+    # print(x_axis)
+    #
+    # start_time = time.perf_counter()
+    # x_axis.position_mm = x_axis.upper_limit_mm
+    # x_axis.await_move()
+    # print(f"Time taken: {time.perf_counter() - start_time}")
+    # print(x_axis)
 
-    start_time = time.perf_counter()
-    x_axis.position_mm += 1
-    x_axis.await_move()
-    print(f"Time taken: {time.perf_counter() - start_time}")
-    print(x_axis)
-
-    start_time = time.perf_counter()
-    x_axis.position_mm = x_axis.upper_limit_mm
-    x_axis.await_move()
-    print(f"Time taken: {time.perf_counter() - start_time}")
-    print(x_axis)
+    print(controller.joystick_mapping)
+    print(controller.axis_map)
 
     # sweep_axis(x_axis)
     # for axis in (x_axis, y_axis, scanning_axis, n_axis):
