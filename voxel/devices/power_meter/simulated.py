@@ -1,11 +1,12 @@
 import random
 
-from voxel.devices.power_meter.base import BasePowerMeter
+from voxel.devices.base import DeviceConnectionError
+from voxel.devices.power_meter.base import VoxelPowerMeter
 
 
-class SimulatedPowerMeter(BasePowerMeter):
+class SimulatedPowerMeter(VoxelPowerMeter):
     """
-    A simulated power meter device that implements the BasePowerMeter interface.
+    A simulated power meter device that implements the VoxelPowerMeter interface.
     """
 
     def __init__(self, id: str, wavelength_nm: float) -> None:
@@ -31,7 +32,7 @@ class SimulatedPowerMeter(BasePowerMeter):
         Check if the device is connected and raise an exception if it's not.
         """
         if not self._is_connected:
-            raise Exception(f"Device {self.id} is not connected")
+            raise DeviceConnectionError(f"Device {self.id} is not connected")
 
     @property
     def power_mw(self) -> float:

@@ -1,10 +1,12 @@
 from typing import Optional
+
 import pyvisa as visa
 
-from . import BasePowerMeter
+from voxel.devices.base import DeviceConnectionError
+from .base import VoxelPowerMeter
 
 
-class ThorlabsPowerMeter(BasePowerMeter):
+class ThorlabsPowerMeter(VoxelPowerMeter):
     def __init__(self, id: str, conn: str) -> None:
         super().__init__(id)
         self._conn = conn
@@ -21,10 +23,10 @@ class ThorlabsPowerMeter(BasePowerMeter):
             self.log.info(f"Connection to {self._conn} successful")
         except visa.VisaIOError as e:
             self.log.error(f"Could not connect to {self._conn}: {e}")
-            raise
+            raise DeviceConnectionError from e
         except Exception as e:
             self.log.error(f"Unknown error: {e}")
-            raise
+            raise DeviceConnectionError from e
 
     def _check_connection(self):
         if self._inst is None:

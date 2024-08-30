@@ -5,7 +5,7 @@ Voxel Rotation Axis Devices:
  - SimulatedRotationAxis
 """
 
-from .base import BaseRotationAxis
+from .base import VoxelRotationAxis
 from .simulated import SimulatedRotationAxis
 
-__all__ = ['BaseRotationAxis', 'SimulatedRotationAxis']
+__all__ = ['VoxelRotationAxis', 'SimulatedRotationAxis']

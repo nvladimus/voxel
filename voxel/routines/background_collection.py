@@ -67,6 +67,7 @@ class BackgroundCollection:
     def start(self, device: VoxelCamera):
         camera = device
         # store initial trigger mode
+        # TODO: Figure out how to deal with trigger settings universally
         trigger_dict = camera.trigger
         # turn trigger off
         trigger_dict['mode'] = 'off'

@@ -1,6 +1,6 @@
 from pathlib import Path
 from ruamel.yaml import YAML
-from voxel.devices.camera.hamamatsu_acquire.camera_hamamatsu_acquire import CameraHamamatsuAcquire
+from voxel.devices.camera._acquire.hamamatsu_acquire.camera_hamamatsu_acquire import CameraHamamatsuAcquire
 
 
 this_dir = Path(__file__).parent.resolve() # directory of this test file.

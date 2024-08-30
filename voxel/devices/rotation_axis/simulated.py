@@ -1,13 +1,15 @@
 import time
 from typing import Optional
-from voxel.devices.rotation_axis import BaseRotationAxis
+
+from voxel.devices.rotation_axis import VoxelRotationAxis
 
 
-class SimulatedRotationAxis(BaseRotationAxis):
+class SimulatedRotationAxis(VoxelRotationAxis):
     """Simulated rotation axis implementation.
     :param id: Unique identifier for the device
     :type id: str
     """
+
     def __init__(self, id: str) -> None:
         """Constructor for the SimulatedRotationAxis class."""
         super().__init__(id)
@@ -95,6 +97,7 @@ class SimulatedRotationAxis(BaseRotationAxis):
 # Example usage
 if __name__ == '__main__':
     import logging
+
     logging.basicConfig(level=logging.DEBUG)
     axis = SimulatedRotationAxis("test_axis")
 

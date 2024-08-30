@@ -1,8 +1,9 @@
-from obis_laser import ObisLS, OperationalQuery, OperationalCmd
-from ..base import BaseLaser
-from .obis_lx import obis_modulation_getter, obis_modulation_setter
+from obis_laser import ObisLS
 from serial import Serial
+
 from voxel.descriptors.deliminated_property import deliminated_property
+from .obis_lx import obis_modulation_getter, obis_modulation_setter
+from ..base import VoxelLaser
 
 MODULATION_MODES = {
     'off': 'CWP',
@@ -12,7 +13,7 @@ MODULATION_MODES = {
 }
 
 
-class ObisLSLaser(BaseLaser):
+class ObisLSLaser(VoxelLaser):
     def __init__(self, id: str, wavelength: int, port: Serial | str, prefix: str = None):
         """
         Communicate with specific LS laser.

@@ -1,10 +1,6 @@
 import time
 from typing import Optional, Literal, Dict, Union, Tuple, TypeAlias, Callable, List
 
-from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.descriptors.enumerated_property import enumerated_property
-from voxel.devices.base import DeviceConnectionError
-from voxel.devices.camera import VoxelCamera, VoxelFrame, AcquisitionState, BYTES_PER_MB
 from voxel.devices.camera.hamamatsu.dcam.dcam import (
     DCAM_IDSTR,
     DCAMCAP_TRANSFERINFO,
@@ -15,6 +11,11 @@ from voxel.devices.camera.hamamatsu.dcam.dcam import (
     dcamcap_transferinfo,
 )
 from voxel.devices.camera.hamamatsu.dcam.dcamapi4 import DCAMPROP_ATTR
+
+from voxel.descriptors.deliminated_property import deliminated_property
+from voxel.descriptors.enumerated_property import enumerated_property
+from voxel.devices.base import DeviceConnectionError
+from voxel.devices.camera import VoxelCamera, VoxelFrame, AcquisitionState, BYTES_PER_MB
 from voxel.devices.camera.hamamatsu.definitions import (
     Binning, PixelType,
     SensorMode, ReadoutDirection,

@@ -1,27 +1,14 @@
 from dataclasses import dataclass
 from typing import Literal
 
+from tigerasi.device_codes import JoystickInput
+
 from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.devices.controllers.tigerbox import ASITigerBox, JoystickInput
+from voxel.devices.tigerbox import ASITigerBox
 from voxel.devices.linear_axis import VoxelLinearAxis, LinearAxisDimension
 from voxel.devices.linear_axis.definitions import ScanConfig, ScanState
 
-
-@dataclass
-class ASIStageScanConfig(ScanConfig):
-    start_mm: float
-    stop_mm: float
-    speed_mm_s: float
-    acceleration_mm_s2: float
-
-
-@dataclass
-class ASIStepAndShootConfig(ScanConfig):
-    start_mm: float
-    stop_mm: float
-    step_size_um: float
-    dwell_time_s: float
-    retrace_speed_mm_s: float
+ASIJoystickInput = JoystickInput
 
 
 @dataclass
@@ -32,6 +19,21 @@ class ASITriggeredStepAndShootConfig(ScanConfig):
 
 
 class ASITigerLinearAxis(VoxelLinearAxis):
+    """ASI Tiger Linear Axis implementation.
+    :param id: Unique identifier for the device
+    :param hardware_axis: The hardware axis of the stage
+    :param dimension: The dimension of the stage
+    :param tigerbox: The ASITigerBox instance
+    :param joystick_polarity: The polarity of the joystick input
+    :param joystick_input: The joystick input to use
+    :type id: str
+    :type hardware_axis: str
+    :type dimension: LinearAxisDimension
+    :type tigerbox: ASITigerBox
+    :type joystick_polarity: Literal[1, -1]
+    :type joystick_input: ASIJoystickInput
+    :raises DeviceConnectionError: If the stage with the specified hardware axis is not found or is already registered
+    """
 
     def __init__(
             self,
@@ -40,16 +42,13 @@ class ASITigerLinearAxis(VoxelLinearAxis):
             dimension: LinearAxisDimension,
             tigerbox: ASITigerBox,
             joystick_polarity: Literal[1, -1] = 1,
-            joystick_input: JoystickInput = None,
+            joystick_input: ASIJoystickInput = None,
     ):
         super().__init__(id, dimension)
         self._tigerbox = tigerbox
         self._hardware_axis = hardware_axis.upper()
-        try:
-            self._tigerbox.register_axis(
-                self.id, self._hardware_axis, self.dimension, joystick_polarity, joystick_input)
-        except ValueError as e:
-            raise ValueError(f"Failed to register axis {self.id} with dimension {self.dimension}") from e
+        self._tigerbox.register_linear_axis(
+            self.id, self._hardware_axis, self.dimension, joystick_polarity, joystick_input)
 
     def __repr__(self):
         return (
@@ -64,7 +63,7 @@ class ASITigerLinearAxis(VoxelLinearAxis):
         )
 
     def close(self):
-        self._tigerbox.deregister_axis(self.id)
+        self._tigerbox.deregister_device(self.id)
 
     # Scanning properties and methods ________________________________________________________________________________
 

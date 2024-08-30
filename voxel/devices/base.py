@@ -1,7 +1,17 @@
 """Base class for all voxel devices."""
-import sys
 import logging
+import sys
 from abc import ABC, abstractmethod
+
+
+class VoxelDeviceError(Exception):
+    """Base class for all exceptions raised by devices."""
+    pass
+
+
+class DeviceConnectionError(VoxelDeviceError):
+    """Custom exception for camera discovery errors."""
+    pass
 
 
 class VoxelDevice(ABC):
@@ -48,8 +58,3 @@ class VoxelDevice(ABC):
             root_logger.addHandler(console_handler)
 
             cls._logging_configured = True
-
-
-class DeviceConnectionError(Exception):
-    """Custom exception for camera discovery errors."""
-    pass

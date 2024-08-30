@@ -1,9 +1,11 @@
 import logging
-import numpy
+
 import matplotlib.pyplot as plt
-from voxel.devices.daq.base import BaseDAQ
+import numpy
 from matplotlib.ticker import AutoMinorLocator
 from scipy import signal
+
+from voxel.devices.daq.base import BaseDAQ
 
 # lets just simulate the PCIe-6738
 

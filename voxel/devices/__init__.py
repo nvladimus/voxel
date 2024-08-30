@@ -1,7 +1,3 @@
-from .base import VoxelDevice
-from .error import VoxelDeviceError
+from .base import VoxelDevice, VoxelDeviceError, DeviceConnectionError
 
-__all__ = [
-    "VoxelDevice",
-    "VoxelDeviceError",
-]
+__all__ = ['VoxelDevice', 'VoxelDeviceError', 'DeviceConnectionError']

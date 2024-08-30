@@ -1,9 +1,10 @@
+import time
 from typing import Optional
+
 from pylablib.devices import Thorlabs
 
-from voxel.devices.error import VoxelDeviceError
-from voxel.devices.rotation_axis import BaseRotationAxis
-import time
+from voxel.devices.base import DeviceConnectionError
+from voxel.devices.rotation_axis import VoxelRotationAxis
 
 MIN_POSITION_DEG = 0
 MAX_POSITION_DEG = 360
@@ -13,7 +14,7 @@ MAX_SPEED_DEG_S = 10
 MODEL = 'K10CR1'
 
 
-class ThorlabsRotationAxis(BaseRotationAxis):
+class ThorlabsRotationAxis(VoxelRotationAxis):
     """Thorlabs rotation mount axis implementation.
     :param id: Unique identifier for the device
     :param serial_number: Serial number of the rotation mount
@@ -21,6 +22,7 @@ class ThorlabsRotationAxis(BaseRotationAxis):
     :type serial_number: str
     :raises VoxelDeviceError: If the rotation mount with the specified serial number is not found
     """
+
     def __init__(self, id: str, serial_number: str):
         """Constructor for the ThorlabsRotationAxis class."""
         super().__init__(id)
@@ -30,15 +32,16 @@ class ThorlabsRotationAxis(BaseRotationAxis):
         try:
             devices = Thorlabs.list_kinesis_devices()
             for device in devices:
-                instance = Thorlabs.Kinesis(conn=device[0], scale=model) # type: ignore
+                instance = Thorlabs.Kinesis(conn=device[0], scale=model)  # type: ignore
                 info = instance.get_device_info()
                 if info.serial_no == serial_number:
                     self._instance = instance
                     break
             else:
-                raise VoxelDeviceError(f'Could not find rotation mount with serial number {serial_number}')
+                raise DeviceConnectionError(f'Could not find rotation mount with serial number {serial_number}')
         except Exception as e:
-            raise VoxelDeviceError(f'Could not initialize rotation mount with serial number {serial_number} - Error: {str(e)}')
+            raise DeviceConnectionError(
+                f'Could not initialize rotation mount with serial number {serial_number} - Error: {str(e)}')
 
     @property
     def position_deg(self) -> float:
@@ -51,8 +54,8 @@ class ThorlabsRotationAxis(BaseRotationAxis):
     @position_deg.setter
     def position_deg(self, position_deg: float) -> None:
         """Set the position of the rotation axis in degrees.
-        :param position: The new position in degrees
-        :type position: float
+        :param position_deg: The new position in degrees
+        :type position_deg: float
         """
         if position_deg < MIN_POSITION_DEG or position_deg > MAX_POSITION_DEG:
             raise ValueError(f'Position {position_deg} must be between '

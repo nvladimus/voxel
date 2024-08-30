@@ -15,6 +15,7 @@ Available laser devices:
     - GenesisMXLaser
 """
 
-from .base import BaseLaser
+from .base import VoxelLaser
+from .simulated import SimulatedLaser
 
-__all__ = ['BaseLaser']
+__all__ = ['VoxelLaser', 'SimulatedLaser']

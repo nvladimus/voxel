@@ -1,11 +1,12 @@
 import time
 from typing import Dict, Optional
-from voxel.devices.filter import BaseFilter, BaseFilterWheel, VoxelFilterError
+
+from voxel.devices.filter import VoxelFilter, VoxelFilterWheel, VoxelFilterError
 
 SWITCH_TIME_S = 0.1  # simulated switching time
 
 
-class SimulatedFilterWheel(BaseFilterWheel):
+class SimulatedFilterWheel(VoxelFilterWheel):
     """Simulated Filter Wheel for testing without hardware."""
 
     def __init__(self, id: str, wheel_id: str):
@@ -58,7 +59,7 @@ class SimulatedFilterWheel(BaseFilterWheel):
             self.log.info("Simulated Filter Wheel closed")
 
 
-class SimulatedFilter(BaseFilter):
+class SimulatedFilter(VoxelFilter):
     def __init__(self, id: str, name: str, wheel: SimulatedFilterWheel, position: int):
         super().__init__(id)
         self.name = name
@@ -84,54 +85,3 @@ class SimulatedFilter(BaseFilter):
 
     def close(self):
         self.wheel.close()
-
-
-# Usage example
-if __name__ == "__main__":
-    import logging
-
-    def setup_simulated_filter_system():
-        wheel = SimulatedFilterWheel("main_wheel", "simulated_wheel_id")
-
-        red_filter = SimulatedFilter("red_filter", "red", wheel, 0)
-        green_filter = SimulatedFilter("green_filter", "green", wheel, 1)
-        blue_filter = SimulatedFilter("blue_filter", "blue", wheel, 2)
-
-        return red_filter, green_filter, blue_filter, wheel
-
-    def print_active_filter(wheel: SimulatedFilterWheel):
-        wheel.log.info(f"Active filter: {wheel.current_filter or 'None'}")
-
-    logging.basicConfig(level=logging.INFO)
-
-    red, green, blue, wheel = setup_simulated_filter_system()
-    print_active_filter(wheel)
-
-    red.enable()
-    print_active_filter(wheel)
-    red.disable()
-
-    green.enable()
-    print_active_filter(wheel)
-    green.disable()
-
-    red.disable()
-    print_active_filter(wheel)
-
-    blue.enable()
-    print_active_filter(wheel)
-
-    blue.close()
-    print_active_filter(wheel)
-
-    try:
-        red.enable()
-    except VoxelFilterError as e:
-        print(e)
-    print_active_filter(wheel)
-
-    try:
-        red.close()
-    except VoxelFilterError as e:
-        print(e)
-    print_active_filter(wheel)

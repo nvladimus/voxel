@@ -1,16 +1,16 @@
-from .base import BaseTunableLens
+from .base import VoxelTunableLens, TunableLensControlMode
 
 
-class SimulatedTunableLens(BaseTunableLens):
+class SimulatedTunableLens(VoxelTunableLens):
     def __init__(self, id: str):
         super().__init__(id)
 
     @property
-    def mode(self) -> str:
-        return "internal"
+    def mode(self) -> TunableLensControlMode:
+        return TunableLensControlMode.INTERNAL
 
     @mode.setter
-    def mode(self, mode: str):
+    def mode(self, mode: TunableLensControlMode):
         pass
 
     @property

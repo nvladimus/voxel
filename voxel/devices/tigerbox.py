@@ -1,9 +1,11 @@
 from typing import Dict, TypeAlias, Optional, Literal
 
-from tigerasi.device_codes import TTLIn0Mode, TTLOut0Mode, ScanPattern, JoystickPolarity, JoystickInput
+from tigerasi.device_codes import TTLIn0Mode, TTLOut0Mode, ScanPattern, JoystickPolarity, JoystickInput, \
+    TunableLensControlMode
 from tigerasi.tiger_controller import TigerController
 
-from devices.linear_axis.definitions import LinearAxisDimension, ScanState
+from voxel.devices.base import DeviceConnectionError
+from voxel.devices.linear_axis.definitions import LinearAxisDimension, ScanState
 
 AxisMap: TypeAlias = Dict[str, str]  # axis id -> hardware_axis
 JoystickMap: TypeAlias = Dict[str, str]  # axis id -> joystick axis
@@ -49,27 +51,42 @@ class ASITigerBox:
         hardware_mapping = self.box.get_joystick_axis_mapping()
         return {axis_id: hardware_mapping[hardware_axis] for axis_id, hardware_axis in self.axis_map.items()}
 
-    def register_axis(self,
-                      axis_id: str,
-                      hardware_axis: str,
-                      dimension: LinearAxisDimension,
-                      joystick_polarity: Literal[-1, 1] = 1,
-                      joystick_input: Optional[JoystickInput] = None,
-                      ):
+    def register_device(self, axis_id: str, hardware_axis: str):
+        """Register a device with the TigerBox controller.
+        :param axis_id: unique axis identifier
+        :param hardware_axis: hardware axis name, must be one of the available axes on the connected TigerBox
+        :raises DeviceConnectionError: if the hardware axis is not found in the connected TigerBox
+        or if the axis ID is already registered
+        """
+        if hardware_axis not in self.hardware_axes:
+            raise DeviceConnectionError(f"Hardware axis {hardware_axis} not found in the connected tigerbox. "
+                                        f"Available axes: {self.hardware_axes}")
+
+        for axis, hw_axis in self.axis_map.items():
+            if hw_axis == hardware_axis:
+                raise DeviceConnectionError(f"Hardware axis {hardware_axis} already registered as {axis}")
+            if axis_id == axis:
+                raise DeviceConnectionError(f"Axis ID {axis_id} already registered as {hw_axis}")
+
+        self.axis_map[axis_id] = hardware_axis
+
+    def register_linear_axis(self,
+                             axis_id: str,
+                             hardware_axis: str,
+                             dimension: LinearAxisDimension,
+                             joystick_polarity: Literal[-1, 1] = 1,
+                             joystick_input: Optional[JoystickInput] = None,
+                             ):
         """Register a linear axis with the TigerBox controller.
         :param axis_id: unique axis identifier
         :param hardware_axis: hardware axis name, must be one of the available axes on the connected TigerBox
         :param dimension: LinearAxisDimension, X, Y, Z, or N
         :param joystick_input: JoystickInput, the joystick input to bind to this axis
         :param joystick_polarity: 1 for DEFAULT, -1 for INVERTED
+        :raises DeviceConnectionError: if the hardware axis is not found in the connected TigerBox
+        or if the axis ID is already registered
         """
-        if hardware_axis not in self.hardware_axes:
-            raise ValueError(f"Hardware axis {hardware_axis} not found in the connected tigerbox. "
-                             f"Available axes: {self.hardware_axes}")
-
-        if axis_id in self.axis_map:
-            raise ValueError(f"Axis ID {axis_id} already registered under hardware axis {self.axis_map[axis_id]}")
-        self.axis_map[axis_id] = hardware_axis
+        self.register_device(axis_id, hardware_axis)
 
         # there can be only one X, Y, Z axis but multiple N axes
         if dimension != LinearAxisDimension.N:
@@ -85,7 +102,7 @@ class ASITigerBox:
 
         # self.disable_zero_button(axis_id)
 
-    def deregister_axis(self, axis_id: str):
+    def deregister_device(self, axis_id: str):
         if axis_id in self.axis_map:
             self.axis_map.pop(axis_id)
         for dimension, axis in self.dimensions_map.items():
@@ -346,6 +363,20 @@ class ASITigerBox:
     #         all_assignments[card] = card_info
     #
     #     return all_assignments
+
+    # Tunable Lens ____________________________________________________________________________________________________
+    def get_etl_temp(self, axis_id: str) -> float:
+        return self.box.get_etl_temp(self.axis_map[axis_id])
+
+    def get_axis_control_mode(self, axis_id: str) -> TunableLensControlMode:
+        return self.box.get_axis_control_mode(self.axis_map[axis_id])
+
+    def set_axis_control_mode(self, axis_id: str, mode: TunableLensControlMode) -> None:
+        self.box.set_axis_control_mode(**{self.axis_map[axis_id]: mode})
+
+    # Helpers _________________________________________________________________________________________________________
+    def get_axis_info(self, axis_id: str) -> dict:
+        return self.box.get_info(self.axis_map[axis_id])
 
     @staticmethod
     def _default_joystick_input(dimension: LinearAxisDimension) -> JoystickInput:

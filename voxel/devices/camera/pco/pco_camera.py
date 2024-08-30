@@ -1,6 +1,8 @@
 import time
 from typing import Dict, Union, Literal, TypeAlias
 
+from voxel.devices.camera.pco.sdk import Camera
+
 from descriptors.deliminated_property import deliminated_property
 from descriptors.enumerated_property import enumerated_property
 from devices.base import DeviceConnectionError
@@ -9,7 +11,6 @@ from devices.camera.pco.definitions import pixel_type_lut, binning_lut, TriggerM
     TriggerSource
 from utils.geometry import Vec2D
 from voxel.devices.camera.base import VoxelCamera
-from voxel.devices.camera.pco.sdk import Camera
 
 EnumeratedProp = Union[TriggerMode, TriggerSource, ReadoutMode]
 LimitType: TypeAlias = Literal['min', 'max', 'step']
