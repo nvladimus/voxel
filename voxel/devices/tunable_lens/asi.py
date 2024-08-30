@@ -1,5 +1,5 @@
 import logging
-from voxel.devices.utils.singleton import Singleton
+from voxel.utils.singleton import Singleton
 from voxel.devices.tunable_lens.base import BaseTunableLens
 from tigerasi.tiger_controller import TigerController
 from tigerasi.device_codes import *

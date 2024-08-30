@@ -1,10 +1,9 @@
 import logging
 import time
-import random
 from voxel.devices.stage.base import BaseStage
 from voxel.devices.joystick.base import BaseJoystick
 from voxel.devices.joystick.axes_mapping import AxesMapping
-from voxel.devices.utils.singleton import Singleton
+from voxel.utils.singleton import Singleton
 
 JOYSTICK_AXES = {
     "joystick_x": 0,

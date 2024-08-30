@@ -1,5 +1,5 @@
 import logging
-from voxel.devices.utils.singleton import Singleton
+from voxel.utils.singleton import Singleton
 from voxel.devices.stage.base import BaseStage
 from tigerasi.tiger_controller import TigerController, STEPS_PER_UM
 from tigerasi.device_codes import *

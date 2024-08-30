@@ -1,5 +1,5 @@
 import logging
-from voxel.devices.utils.singleton import Singleton
+from voxel.utils.singleton import Singleton
 from aaopto_aotf import MPDS
 from aaopto_aotf.device_codes import *
 
