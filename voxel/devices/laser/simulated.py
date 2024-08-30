@@ -4,11 +4,12 @@ from voxel.devices.lasers.base import BaseLaser
 import logging
 from serial import Serial
 from voxel.descriptors.deliminated_property import deliminated_property
+from typing import Dict
 
 MODULATION_MODES = {
-    'off': {'external_control_mode': 'OFF', 'digital_modulation': 'OFF'},
-    'analog': {'external_control_mode': 'ON', 'digital_modulation': 'OFF'},
-    'digital': {'external_control_mode': 'OFF', 'digital_modulation': 'ON'}
+    "off": {"external_control_mode": "OFF", "digital_modulation": "OFF"},
+    "analog": {"external_control_mode": "ON", "digital_modulation": "OFF"},
+    "digital": {"external_control_mode": "OFF", "digital_modulation": "ON"},
 }
 
 MAX_POWER_MW = 100
@@ -16,7 +17,7 @@ MAX_POWER_MW = 100
 
 class SimulatedLaser(BaseLaser):
 
-    def __init__(self, id: str, wavelength: int, prefix: str = '', coefficients: dict = {}):
+    def __init__(self, id: str, wavelength: int, prefix: str = "", coefficients: Dict = {}):
         """
         Communicate with specific Simulated laser in Simulated Combiner box.
 
@@ -31,9 +32,9 @@ class SimulatedLaser(BaseLaser):
         self._wavelength = wavelength
         self._simulated_power_setpoint_mw = 10.0
         self._max_power_mw = 100.0
-        self._modulation_mode = 'digital'
+        self._modulation_mode = "digital"
         self._temperature = 20.0
-        self._cdrh = 'ON'
+        self._cdrh = "ON"
         self._status = []
 
     def enable(self):

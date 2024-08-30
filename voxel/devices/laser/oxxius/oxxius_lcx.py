@@ -7,7 +7,7 @@ from voxel.devices.lasers.base import BaseLaser
 
 class OxxiusLCXLaser(BaseLaser):
 
-    def __init__(self, id: str, wavelength: int, port: Serial or str, prefix: str):
+    def __init__(self, id: str, port: Serial | str, prefix: str, wavelength: int):
         """
         Communicate with specific LBX laser in L6CC Combiner box.
 
@@ -40,11 +40,11 @@ class OxxiusLCXLaser(BaseLaser):
 
     @property
     def power_mw(self) -> float:
-        return self._inst.power
+        return float(self._inst.power)
 
     @property
     def temperature_c(self) -> float:
-        return self._inst.temperature
+        return float(self._inst.temperature)
 
     def status(self):
         return self.status()

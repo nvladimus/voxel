@@ -6,15 +6,15 @@ from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.devices.lasers.base import BaseLaser
 
 MODULATION_MODES = {
-    'off': {'external_control_mode': BoolVal.OFF, 'digital_modulation': BoolVal.OFF},
-    'analog': {'external_control_mode': BoolVal.ON, 'digital_modulation': BoolVal.OFF},
-    'digital': {'external_control_mode': BoolVal.OFF, 'digital_modulation': BoolVal.ON}
+    "off": {"external_control_mode": BoolVal.OFF, "digital_modulation": BoolVal.OFF},
+    "analog": {"external_control_mode": BoolVal.ON, "digital_modulation": BoolVal.OFF},
+    "digital": {"external_control_mode": BoolVal.OFF, "digital_modulation": BoolVal.ON},
 }
 
 
 class OxxiusLBXLaser(BaseLaser):
 
-    def __init__(self, id: str, port: Serial or str, wavelength: int, prefix: str, coefficients: dict):
+    def __init__(self, id: str, port: Serial | str, wavelength: int, prefix: str, coefficients: dict):
         """
         Communicate with specific LBX laser in L6CC Combiner box.
 
@@ -57,19 +57,21 @@ class OxxiusLBXLaser(BaseLaser):
                     self._inst.current_setpoint = int(round(sol))  # setpoint must be integer
                     return
             # If no value exists, alert user
-            self.log.error(f"Cannot set laser to {value}mW because "
-                           f"no current percent correlates to {value} mW")
+            self.log.error(
+                f"Cannot set laser to {value}mW because "
+                f"no current percent correlates to {value} mW"
+            )
         else:
             self._inst.power_setpoint = value
 
     @property
     def modulation_mode(self):
-        if self._inst.external_control_mode == 'ON':
-            return 'analog'
-        elif self._inst.digital_modulation == 'ON':
-            return 'digital'
+        if self._inst.external_control_mode == "ON":
+            return "analog"
+        elif self._inst.digital_modulation == "ON":
+            return "digital"
         else:
-            return 'off'
+            return "off"
 
     @modulation_mode.setter
     def modulation_mode(self, value: str):
@@ -94,7 +96,7 @@ class OxxiusLBXLaser(BaseLaser):
         return self._inst.temperature
 
     def _coefficients_curve(self) -> Expr:
-        x = symbols('x')
+        x = symbols("x")
         func: Expr = x
         for order, co in self._coefficients.items():
             func = func + float(co) * x ** int(order)
@@ -102,8 +104,8 @@ class OxxiusLBXLaser(BaseLaser):
 
     @property
     def max_power(self):
-        if self._inst.constant_current == 'ON':
-            return int((round(self._coefficients_curve().subs(symbols('x'), 100), 1)))
+        if self._inst.constant_current == "ON":
+            return int((round(self._coefficients_curve().subs(symbols("x"), 100), 1)))
         else:
             return self._inst.max_power
 
