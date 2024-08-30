@@ -3,7 +3,7 @@ from serial import Serial
 from sympy import symbols, solve, Expr
 
 from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.devices.laser.base import BaseLaser
+from voxel.devices.laser.base import VoxelLaser
 
 MODULATION_MODES = {
     "off": {"external_control_mode": BoolVal.OFF, "digital_modulation": BoolVal.OFF},
@@ -12,7 +12,7 @@ MODULATION_MODES = {
 }
 
 
-class OxxiusLBXLaser(BaseLaser):
+class OxxiusLBXLaser(VoxelLaser):
 
     def __init__(self, id: str, port: Serial | str, wavelength: int, prefix: str, coefficients: dict):
         """
@@ -40,7 +40,6 @@ class OxxiusLBXLaser(BaseLaser):
     def disable(self):
         self._inst.disable()
 
-    @property
     @deliminated_property(minimum=0, maximum=lambda self: self.max_power)
     def power_setpoint_mw(self):
         if self._inst.constant_current == 'ON':

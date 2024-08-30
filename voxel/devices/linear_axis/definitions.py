@@ -14,13 +14,13 @@ class ScanType(StrEnum):
     CONTINUOUS = 'continuous'
 
 
-class ScanConfig(ABC):
-    start_mm: float
-    stop_mm: float
-    scan_type: ScanType
-
-
 class ScanState(StrEnum):
     IDLE = 'idle'
     CONFIGURED = 'configured'
     SCANNING = 'scanning'
+
+
+class ScanConfig(ABC):
+    start_mm: float
+    stop_mm: float
+    scan_type: ScanType

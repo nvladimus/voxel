@@ -1,21 +1,19 @@
 from abc import abstractmethod
 from typing import Optional
 
-from voxel.devices import VoxelDevice
+from voxel.devices import VoxelDeviceError, VoxelDevice
 
 
-class VoxelFilterError(Exception):
-    """Custom """
+class VoxelFilterError(VoxelDeviceError):
+    """Custom Error for VoxelFilter"""
     pass
 
 
-class BaseFilter(VoxelDevice):
+class VoxelFilter(VoxelDevice):
     """Base class for all voxel compliant filters
     Filters are typically part of a filter wheel. The wheel is responsible for moving the filter into the beam path.  \n
     The filter wheel tracks the current filter in use. It will not allow two filters to be enabled at the same time.
     The user must disable the current filter before enabling a new one.  \n
-    # TODO: Determine the best behavior for enabling a filter while another is enabled. Simplest way is to just disable
-        the current filter.
     """
 
     @abstractmethod
@@ -38,7 +36,7 @@ class BaseFilter(VoxelDevice):
         pass
 
 
-class BaseFilterWheel(VoxelDevice):
+class VoxelFilterWheel(VoxelDevice):
 
     @abstractmethod
     def add_filter(self, name: str, position: int):

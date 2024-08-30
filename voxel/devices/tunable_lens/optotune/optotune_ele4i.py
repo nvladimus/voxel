@@ -2,13 +2,14 @@ import struct
 
 import serial
 
-from voxel.devices.tunable_lens.base import BaseTunableLens
+from devices.tunable_lens.base import TunableLensControlMode
+from voxel.devices.tunable_lens.base import VoxelTunableLens
 
 # constants for Optotune EL-E-4i controller
 
 MODES = {
-    "external": ["MwDA", ">xxx"],
-    "internal": ["MwCA", ">xxxBhh"],
+    TunableLensControlMode.EXTERNAL: ["MwDA", ">xxx"],
+    TunableLensControlMode.INTERNAL: ["MwCA", ">xxxBhh"],
 }
 
 
@@ -22,7 +23,7 @@ def crc_16(s):
     return crc
 
 
-class OptotuneELE4ITunableLens(BaseTunableLens):
+class OptotuneELE4ITunableLens(VoxelTunableLens):
 
     def __init__(self, id: str, port: str):
         super().__init__(id)
@@ -39,7 +40,7 @@ class OptotuneELE4ITunableLens(BaseTunableLens):
                 self.log.error(f"Error reading serial number: {res}")
 
     @property
-    def mode(self):
+    def mode(self) -> TunableLensControlMode:
         """Get the tunable lens control mode."""
         res = self._send_command("MMA", ">xxxB")
         if res is None:
@@ -48,21 +49,17 @@ class OptotuneELE4ITunableLens(BaseTunableLens):
             try:
                 mode = None
                 if res[0] == 1:
-                    mode = "internal"
+                    mode = TunableLensControlMode.INTERNAL
                 if res[0] == 5:
-                    mode = "external"
+                    mode = TunableLensControlMode.EXTERNAL
                 self.log.debug(f"Mode: {mode}")
                 return mode
             except IndexError:
                 self.log.error(f"Error reading mode: {res}")
 
     @mode.setter
-    def mode(self, mode: str):
+    def mode(self, mode: TunableLensControlMode):
         """Set the tunable lens control mode."""
-
-        valid = list(MODES.keys())
-        if mode not in valid:
-            raise ValueError("mode must be one of %r." % valid)
         mode_list = MODES[mode]
         self._send_command(mode_list[0], mode_list[1])
 
@@ -70,15 +67,12 @@ class OptotuneELE4ITunableLens(BaseTunableLens):
     def temperature_c(self):
         """Get the temperature in deg C."""
         temp_res = self._send_command("TCA", ">xxxh")
-        state = {
-            "Temperature [C]": temp_res[0] * 0.0625 if temp_res else None,
-        }
-        return state
+        return {"Temperature [C]": temp_res[0] * 0.0625 if temp_res else None}
 
     def _send_command(self, command, reply_fmt=None):
         if type(command) is not bytes:
             command = bytes(command, encoding="ascii")
-        command = command + struct.pack("<H", crc_16(command))
+        command += struct.pack("<H", crc_16(command))
         if self.debug:
             commandhex = " ".join("{:02x}".format(c) for c in command)
             print("{:<50} ¦ {}".format(commandhex, command))

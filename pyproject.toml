@@ -29,10 +29,6 @@ dependencies = [
     'PyVISA-py >= 0.7.2',
     'pylablib >= 1.4.2',
     'tigerasi >= 0.0.26',
-    # cameras
-    #    'egrabber >= 0.0.2',
-    #lasers
-    'pycobolt @ git+https://github.com/cobolt-lasers/pycobolt.git',
     # writers
     'tifffile >= 2024.1.30',
     'PyImarisWriter >= 0.7.0',
@@ -64,6 +60,16 @@ dev = [
     'Sphinx',
     'furo'
 ]
+#cameras = [
+#    'egrabber >= 0.0.2',
+#]
+#lasers = [
+#    'pycobolt @ git+https://github.com/cobolt-lasers/pycobolt.git',
+#    'coherent_lasers @ git+https://github.com/AllenNeuralDynamics/coherent_lasers.git',
+#    'vortran_laser @ git+https://github.com/AllenNeuralDynamics/vortran_laser.git',
+#    'oxxius_laser @ git+https://github.com/AllenNeuralDynamics/oxxius_laser.git',
+#    'obis_laser @ git+https://github.com/AllenNeuralDynamics/obis_laser.git',
+#]
 
 [tool.setuptools.packages.find]
 where = ["."]

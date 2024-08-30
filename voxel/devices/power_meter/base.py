@@ -1,9 +1,9 @@
-from ..base import VoxelDevice
-
 from abc import abstractmethod
 
+from ..base import VoxelDevice
 
-class BasePowerMeter(VoxelDevice):
+
+class VoxelPowerMeter(VoxelDevice):
     """
     Abstract base class for a voxel power meter.
     """

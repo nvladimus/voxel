@@ -2,12 +2,10 @@
 Power meter devices for the voxel package.
 """
 
-from .base import BasePowerMeter
-from .thorlabs_pm100 import ThorlabsPowerMeter
+from .base import VoxelPowerMeter
 from .simulated import SimulatedPowerMeter
 
 __all__ = [
-    'BasePowerMeter',
-    'ThorlabsPowerMeter',
+    'VoxelPowerMeter',
     'SimulatedPowerMeter',
 ]

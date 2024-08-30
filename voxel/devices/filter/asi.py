@@ -1,12 +1,14 @@
 import time
 from typing import Dict, Optional
+
 from tigerasi.tiger_controller import TigerController
-from voxel.devices.filter import BaseFilter, BaseFilterWheel, VoxelFilterError
+
+from voxel.devices.filter import VoxelFilter, VoxelFilterWheel, VoxelFilterError
 
 SWITCH_TIME_S = 0.1  # estimated timing
 
 
-class ASIFilterWheel(BaseFilterWheel):
+class ASIFilterWheel(VoxelFilterWheel):
     """Filter Wheel Abstraction from an ASI Tiger Controller."""
 
     def __init__(self, id: str, tigerbox: TigerController, wheel_id: str):
@@ -63,7 +65,7 @@ class ASIFilterWheel(BaseFilterWheel):
             self._is_closed = True
 
 
-class ASIFilter(BaseFilter):
+class ASIFilter(VoxelFilter):
     def __init__(self, id: str, name: str, wheel: ASIFilterWheel, position: int):
         super().__init__(id)
         self.name = name

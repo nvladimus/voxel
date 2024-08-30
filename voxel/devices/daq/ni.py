@@ -1,16 +1,13 @@
 import logging
+
+import matplotlib.pyplot as plt
 import nidaqmx
 import numpy
-import matplotlib.pyplot as plt
-from voxel.devices.daq.base import BaseDAQ
 from matplotlib.ticker import AutoMinorLocator
+from nidaqmx.constants import FrequencyUnits, Level, AcquisitionType as AcqType, Edge, Slope, TaskMode
 from scipy import signal
-from nidaqmx.constants import FrequencyUnits
-from nidaqmx.constants import Level
-from nidaqmx.constants import AcquisitionType as AcqType
-from nidaqmx.constants import Edge
-from nidaqmx.constants import Slope
-from nidaqmx.constants import TaskMode
+
+from voxel.devices.daq.base import BaseDAQ
 
 DO_WAVEFORMS = [
     'square wave'

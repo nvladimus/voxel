@@ -69,7 +69,9 @@ def sweep_axis(axis: VoxelLinearAxis, step: int = 10):
 
 
 if __name__ == '__main__':
-    from devices.linear_axis.asi import ASITigerLinearAxis, ASITigerBox, LinearAxisDimension
+    from voxel.devices.tigerbox import ASITigerBox
+    from voxel.devices.linear_axis import LinearAxisDimension
+    from voxel.devices.linear_axis.asi import ASITigerLinearAxis
 
     PORT = 'COM3'
     controller = ASITigerBox(port=PORT)

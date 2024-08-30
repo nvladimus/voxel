@@ -1,10 +1,12 @@
-import logging
-from voxel.utils.singleton import Singleton
-from voxel.devices.laser.base import BaseLaser
+from typing import Optional
+
 from aaopto_aotf import MPDS
 from aaopto_aotf.device_codes import *
 from sympy import symbols, solve
+
 from voxel.descriptors.deliminated_property import deliminated_property
+from voxel.devices.laser.base import VoxelLaser
+from voxel.utils.singleton import Singleton
 
 MAX_VOLTAGE_V = 10
 
@@ -25,11 +27,22 @@ class MPDSSingleton(MPDS, metaclass=Singleton):
         super(MPDSSingleton, self).__init__(com_port)
 
 
-class AOTF(BaseLaser):
+class AAOptoLaser(VoxelLaser):
 
-    def __init__(self, port: str, wavelength: int, channel: int, coefficients: dict, daq: DAQ):
+    # TODO Finalize implementation of the AOTF laser class
+    @property
+    def power_mw(self) -> float:
+        return self.power_setpoint_mw
 
-        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+    @property
+    def temperature_c(self) -> Optional[float]:
+        return -1
+
+    def close(self):
+        pass
+
+    def __init__(self, id: str, port: str, wavelength: int, channel: int, coefficients: dict, daq: DAQ):
+        super().__init__(id)
         self.aotf = MPDSSingleton(com_port=port)
         # TODO. THIS INHEREITS THE NIDAQ SO IT CAN UPDATE THE VOLTAGES...
         self.daq = daq
@@ -41,6 +54,7 @@ class AOTF(BaseLaser):
         for order, co in self.coefficients.items():
             self.func = self.func + float(co) * x ** int(order)
         self._wavelength = wavelength
+        self.setpoint_v = None
 
     @property
     def wavelength(self) -> int:

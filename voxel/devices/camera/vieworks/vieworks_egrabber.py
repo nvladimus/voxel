@@ -467,6 +467,17 @@ class VieworksCamera(VoxelCamera):
             polarity=self.trigger_polarity
         )
 
+    @trigger_settings.setter
+    def trigger_settings(self, trigger_settings: TriggerSettings) -> None:
+        """
+        Set the trigger settings of the camera.
+        :param trigger_settings: The trigger settings.
+        :type trigger_settings: TriggerSettings
+        """
+        self.trigger_mode = trigger_settings.mode
+        self.trigger_source = trigger_settings.source
+        self.trigger_polarity = trigger_settings.polarity
+
     @enumerated_property(
         enum_class=TriggerMode,
         options_getter=lambda self: list(self._trigger_mode_lut)

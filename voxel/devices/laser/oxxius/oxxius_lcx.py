@@ -2,10 +2,10 @@ from oxxius_laser import LCX
 from serial import Serial
 
 from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.devices.laser.base import BaseLaser
+from voxel.devices.laser.base import VoxelLaser
 
 
-class OxxiusLCXLaser(BaseLaser):
+class OxxiusLCXLaser(VoxelLaser):
 
     def __init__(self, id: str, port: Serial | str, prefix: str, wavelength: int):
         """

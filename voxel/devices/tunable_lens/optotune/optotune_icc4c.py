@@ -1,7 +1,8 @@
 import optoICC
 from optoKummenberg.tools.definitions import UnitType
 
-from voxel.devices.tunable_lens.base import BaseTunableLens
+from devices.tunable_lens.base import TunableLensControlMode
+from voxel.devices.tunable_lens.base import VoxelTunableLens
 
 # constants for Optotune ICC-4C controller
 # CURRENT   = 0
@@ -11,10 +12,10 @@ from voxel.devices.tunable_lens.base import BaseTunableLens
 # UNITLESS = 4
 # UNDEFINED = 5
 
-MODES = {"internal": UnitType.FP, "external": UnitType.CURRENT}
+MODES = {TunableLensControlMode.INTERNAL: UnitType.FP, TunableLensControlMode.EXTERNAL: UnitType.CURRENT}
 
 
-class OptotuneICC4CTunableLens(BaseTunableLens):
+class OptotuneICC4CTunableLens(VoxelTunableLens):
 
     def __init__(self, id: str, port: str, channel: int):
         """Connect to OptotuneI ICC-4C Tunable Lens.
@@ -40,16 +41,14 @@ class OptotuneICC4CTunableLens(BaseTunableLens):
         return self._channel
 
     @property
-    def mode(self):
+    def mode(self) -> TunableLensControlMode:
         """Get the tunable lens control mode."""
         mode = self.tunable_lens.GetControlMode()
         return next(key for key, value in MODES.items() if value == mode)
 
     @mode.setter
-    def mode(self, mode: str):
+    def mode(self, mode: TunableLensControlMode):
         """Set the tunable lens control mode."""
-        if mode not in MODES.keys():
-            raise ValueError(f"{mode} must be {MODES}")
         self.tunable_lens.SetControlMode(MODES[mode])
 
     @property
@@ -68,16 +67,3 @@ class OptotuneICC4CTunableLens(BaseTunableLens):
 
     def close(self):
         self.icc4c.close()
-
-
-# Example usage:
-if __name__ == "__main__":
-    etl = OptotuneICC4CTunableLens(id="optotune", port='COM7', channel=0)
-    print(etl.temperature_c)
-    print(etl.mode)
-    etl.mode = 'internal'
-    print(etl.mode)
-    etl.mode = 'external'
-    print(etl.mode)
-    print(etl.log_metadata())
-    etl.close()

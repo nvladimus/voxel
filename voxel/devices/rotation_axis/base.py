@@ -1,11 +1,12 @@
+from abc import abstractmethod
 from typing import Optional
+
 from ..base import VoxelDevice
 
-from abc import abstractmethod
 
-
-class BaseRotationAxis(VoxelDevice):
+class VoxelRotationAxis(VoxelDevice):
     """Abstract base class for a voxel rotation axis."""
+
     def __init__(self, id: str) -> None:
         super().__init__(id)
 
@@ -55,7 +56,7 @@ class BaseRotationAxis(VoxelDevice):
         pass
 
     @abstractmethod
-    def wait_until_stopped(self, timeout: Optional[float]= None, check_interval: float = 0.1) -> None:
+    def wait_until_stopped(self, timeout: Optional[float] = None, check_interval: float = 0.1) -> None:
         """Wait until the rotation axis has stopped moving.
         :param timeout: Maximum time to wait for the rotation axis to stop moving
         :param check_interval: Time interval between checks

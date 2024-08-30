@@ -4,8 +4,8 @@ Supported cameras include:
     - Vieworks Camera using eGrabber SDK
 """
 
-from .vieworks_egrabber import VieworksCamera
 from .definitions import VieworksSettings
+from .vieworks_egrabber import VieworksCamera
 
 __all__ = [
     'VieworksCamera',

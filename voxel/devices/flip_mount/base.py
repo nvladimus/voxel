@@ -1,7 +1,9 @@
 from abc import abstractmethod
+
 from ..base import VoxelDevice
 
-class BaseFlipMount(VoxelDevice):
+
+class VoxelFlipMount(VoxelDevice):
     def __init__(self, id: str):
         super().__init__(id)
 

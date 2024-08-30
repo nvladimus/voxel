@@ -4,8 +4,9 @@ from typing import Optional
 from ..base import VoxelDevice
 
 
-class BaseLaser(VoxelDevice):
+class VoxelLaser(VoxelDevice):
     """Base class for all voxel laser devices."""
+
     def __init__(self, id: str):
         super().__init__(id)
 

@@ -1,12 +1,11 @@
 from abc import abstractmethod
 from typing import Any
 
+from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
+from voxel.devices.base import VoxelDevice
 from voxel.devices.camera.definitions import PixelType, AcquisitionState, Binning, VoxelFrame, ROI
 from voxel.utils.geometry import Vec2D
-
-from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.devices.base import VoxelDevice
 
 
 class VoxelCamera(VoxelDevice):
@@ -295,6 +294,20 @@ class VoxelCamera(VoxelDevice):
         """
         pass
 
+    @trigger_settings.setter
+    @abstractmethod
+    def trigger_settings(self, settings: Any) -> None:
+        """
+        Set the trigger settings of the camera.
+        Notes:
+            Parameters vary depending on the camera model.
+            For example, Vieworks cameras have trigger settings
+                - mode ( 'On' or 'Off' )
+                - source ( 'Internal' or 'External' )
+                - polarity ( 'Rising Edge' or 'Falling Edge' )
+        """
+        pass
+
     @abstractmethod
     def prepare(self) -> None:
         """Prepare the camera to acquire images. \n
@@ -323,10 +336,11 @@ class VoxelCamera(VoxelDevice):
         """Reset the camera."""
         pass
 
-    @property
-    @abstractmethod
-    def latest_frame(self):
-        """Get the latest Frame"""
+    # TODO: Figure out whethe this is needed
+    # @property
+    # @abstractmethod
+    # def latest_frame(self):
+    #     """Get the latest Frame"""
 
     @abstractmethod
     def grab_frame(self) -> VoxelFrame:

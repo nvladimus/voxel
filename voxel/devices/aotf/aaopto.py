@@ -1,7 +1,8 @@
-import logging
-from voxel.utils.singleton import Singleton
 from aaopto_aotf import MPDS
 from aaopto_aotf.device_codes import *
+
+from devices.aotf.base import VoxelAOTF
+from voxel.utils.singleton import Singleton
 
 BLANKING_MODES = {
     "external": BlankingMode.EXTERNAL,
@@ -13,18 +14,19 @@ INPUT_MODES = {
     "internal": InputMode.INTERNAL,
 }
 
+
 # singleton wrapper around MPDS
 class MPDSSingleton(MPDS, metaclass=Singleton):
     def __init__(self, com_port):
         super(MPDSSingleton, self).__init__(com_port)
 
-class AOTF(BaseAOTF):
 
-    def __init__(self, port: str):
- 
-        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.aotf = MPDSSingleton(com_port = port)
-        self.id = self.aotf.get_product_id()
+class AOTF(VoxelAOTF):
+
+    def __init__(self, id: str, port: str):
+        super().__init__(id)
+        self.aotf = MPDSSingleton(com_port=port)
+        self.product_id = self.aotf.get_product_id()
 
     # def enable_all(self):
     #      for channel in range(self.aotf.num_channels):
@@ -41,8 +43,7 @@ class AOTF(BaseAOTF):
             frequency_hz[channel] = self.aotf.get_frequency(channel)
         return frequency_hz
 
-    @frequency_hz.setter
-    def frequency_hz(self, channel: int, frequency_hz: dict):
+    def set_frequency_hz(self, channel: int, frequency_hz: dict):
         for key in frequency_hz:
             self.aotf.set_frequency(channel=channel, frequency=frequency_hz[key])
         self.aotf.save_profile()
@@ -54,8 +55,7 @@ class AOTF(BaseAOTF):
             power_dbm[channel] = self.aotf.get_power_dbm(channel)
         return power_dbm
 
-    @power_dbm.setter
-    def power_dbm(self, channel: int, power_dbm: dict):
+    def set_power_dbm(self, channel: int, power_dbm: dict):
         for key in power_dbm:
             self.aotf.set_frequency(channel=channel, frequency=power_dbm[key])
         self.aotf.save_profile()

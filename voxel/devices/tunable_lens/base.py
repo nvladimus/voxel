@@ -1,20 +1,27 @@
 from abc import abstractmethod
+from enum import StrEnum
 from typing import Any, Dict
 
 from ..base import VoxelDevice
 
 
-class BaseTunableLens(VoxelDevice):
+class TunableLensControlMode(StrEnum):
+    """Tunable lens control modes."""
+    INTERNAL = "internal"
+    EXTERNAL = "external"
+
+
+class VoxelTunableLens(VoxelDevice):
 
     @property
     @abstractmethod
-    def mode(self) -> str:
+    def mode(self) -> TunableLensControlMode:
         """Get the tunable lens control mode."""
         pass
 
     @mode.setter
     @abstractmethod
-    def mode(self, mode: str):
+    def mode(self, mode: TunableLensControlMode):
         """Set the tunable lens control mode.
         :param mode: one of "internal" or "external".
         :type mode: str

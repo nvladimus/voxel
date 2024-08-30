@@ -4,8 +4,8 @@ from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.camera import VoxelCamera
 from voxel.devices.camera.definitions import VoxelFrame, AcquisitionState
+from voxel.processes.downsample.gpu.gputools.downsample_2d import GPUToolsDownSample2D
 from voxel.utils.geometry import Vec2D
-from voxel.processes.gpu.gputools.downsample_2d import DownSample2D
 from .definitions import (
     Binning, PixelType,
     TriggerSettings, TriggerMode, TriggerSource, TriggerPolarity,
@@ -27,7 +27,6 @@ BinningLUT: TypeAlias = Dict[Binning, str]
 TriggerModeLUT: TypeAlias = Dict[TriggerMode, str]
 TriggerSourceLUT: TypeAlias = Dict[TriggerSource, str]
 TriggerPolarityLUT: TypeAlias = Dict[TriggerPolarity, str]
-
 
 
 class SimulatedCamera(VoxelCamera):
@@ -53,13 +52,14 @@ class SimulatedCamera(VoxelCamera):
         }
         self._trigger_mode_lut: TriggerModeLUT = {TriggerMode(mode): mode for mode in TriggerMode}
         self._trigger_source_lut: TriggerSourceLUT = {TriggerSource(source): source for source in TriggerSource}
-        self._trigger_polarity_lut: TriggerPolarityLUT = {TriggerPolarity(polarity): polarity for polarity in TriggerPolarity}
+        self._trigger_polarity_lut: TriggerPolarityLUT = {TriggerPolarity(polarity): polarity for polarity in
+                                                          TriggerPolarity}
 
         # private properties
         self._binning: Binning = Binning.X1
         self._trigger_settings: Optional[TriggerSettings] = None
 
-        self.gpu_binning = DownSample2D(binning=self._binning)
+        self.gpu_binning = GPUToolsDownSample2D(binning=self._binning)
 
         self.log.info(f"simulated camera initialized with id: {id}, serial number: {serial_number}")
 
@@ -178,7 +178,7 @@ class SimulatedCamera(VoxelCamera):
     def binning(self, binning: Binning) -> None:
         try:
             self._binning = self._binning_lut[binning]
-            self.gpu_binning = DownSample2D(binning=self.binning)
+            self.gpu_binning = GPUToolsDownSample2D(binning=self.binning)
         except KeyError as e:
             self.log.error(f"Invalid binning: {e}")
             return
@@ -252,7 +252,8 @@ class SimulatedCamera(VoxelCamera):
             except StopIteration:
                 self.log.error(f"Invalid trigger settings recieved from camera: mode={self.instance.trigger_mode}, "
                                f"source={self.instance.trigger_source}, polarity={self.instance.trigger_activation}")
-                self._trigger_settings = TriggerSettings(TriggerMode.OFF, TriggerSource.INTERNAL, TriggerPolarity.RISINGEDGE)
+                self._trigger_settings = TriggerSettings(TriggerMode.OFF, TriggerSource.INTERNAL,
+                                                         TriggerPolarity.RISINGEDGE)
         return self._trigger_settings
 
     @trigger_settings.setter

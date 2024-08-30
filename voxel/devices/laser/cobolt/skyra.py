@@ -5,7 +5,7 @@ from pycobolt import CoboltLaser
 from sympy import symbols, solve, Expr
 
 from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.devices.laser.base import BaseLaser
+from voxel.devices.laser.base import VoxelLaser
 
 # Define StrEnums if they don't yet exist.
 if sys.version_info < (3, 11):
@@ -62,7 +62,7 @@ MODULATION_MODES = {
 }
 
 
-class SkyraLaser(BaseLaser):
+class SkyraLaser(VoxelLaser):
 
     def __init__(
             self,

@@ -2,7 +2,7 @@ from obis_laser import ObisLX, OperationalQuery, OperationalCmd
 from serial import Serial
 
 from voxel.descriptors.deliminated_property import deliminated_property
-from ..base import BaseLaser
+from ..base import VoxelLaser
 
 MODULATION_MODES: dict[str, str] = {
     'off': 'CWP',
@@ -33,7 +33,7 @@ def obis_modulation_setter(instance, value: str, modes=None):
         instance.set_operational_setting(OperationalCmd.MODE_EXTERNAL, modes[value])
 
 
-class ObisLXLaser(BaseLaser):
+class ObisLXLaser(VoxelLaser):
 
     def __init__(self, id: str, wavelength: int, port: Serial | str, prefix: str = None):
         """
@@ -100,10 +100,3 @@ class ObisLXLaser(BaseLaser):
 
     def status(self):
         return self._inst.get_system_status()
-
-
-if __name__ == '__main__':
-    from serial import Serial
-
-    laser_port = Serial('COM1')
-    laser = ObisLXLaser('test_laser', laser_port)
