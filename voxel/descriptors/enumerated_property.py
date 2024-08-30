@@ -1,6 +1,6 @@
 import logging
 from enum import Enum
-from typing import Type, Dict, Any, Callable, Optional, Union, List, Tuple
+from typing import Type, Any, Callable, Optional, Union, List
 from weakref import WeakKeyDictionary
 
 from voxel.descriptors.descriptor_proxy import DescriptorProxy

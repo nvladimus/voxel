@@ -1,134 +1,131 @@
-import inspect
+from abc import abstractmethod
+
+from devices.linear_axis.definitions import LinearAxisDimension, ScanConfig, ScanState
+from voxel.devices.base import VoxelDevice
 
 
-class BaseLinearAxis:
+class VoxelLinearAxis(VoxelDevice):
+    """
+    Base class for linear axis devices in Voxel
+    :param id: Unique voxel ID within a Voxel Instrument
+    :param dimension: LinearAxisDimension. X, Y, Z, or N
+    """
 
-    @property
-    def hardware_axis(self):
-        raise ValueError
+    def __init__(self, id: str, dimension: LinearAxisDimension):
+        super().__init__(id)
+        self.dimension: LinearAxisDimension = dimension
 
-    @property
-    def instrument_axis(self):
-        raise ValueError
+    @abstractmethod
+    def configure_scan(self, config: ScanConfig) -> None:
+        """
+        Configure scanning parameters
+        :param config: Scan configuration
+        """
 
-    # def move_relative_mm(self, position: float, wait: bool = True):
-    #     self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-    #     pass
-    #
-    # def move_absolute_mm(self, position: float, wait: bool = True):
-    #     self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-    #     pass
-
-    def setup_step_shoot_scan(self, step_size_um: float):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+    @abstractmethod
+    def start_scan(self) -> None:
+        """Start scanning"""
         pass
 
-    def setup_stage_scan(self, fast_axis_start_position: float,
-                         slow_axis_start_position: float,
-                         slow_axis_stop_position: float,
-                         frame_count: int, frame_interval_um: float,
-                         strip_count: int, pattern: str,
-                         retrace_speed_percent: int):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    def start(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+    @abstractmethod
+    def stop_scan(self) -> None:
+        """Stop scanning"""
         pass
 
     @property
-    def position_mm(self) -> float:
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+    @abstractmethod
+    def scan_state(self) -> ScanState:
+        """Get the current scan state"""
         pass
 
     @property
-    def limits_mm(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+    @abstractmethod
+    def position_mm(self) -> float | None:
+        """Current position in mm"""
+        pass
+
+    @position_mm.setter
+    @abstractmethod
+    def position_mm(self, position: float) -> None:
+        """Move to position in mm"""
         pass
 
     @property
-    def backlash_mm(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+    @abstractmethod
+    def is_moving(self) -> bool:
+        """Whether the axis is moving"""
         pass
 
-    @backlash_mm.setter
-    def backlash_mm(self, backlash: float):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+    @abstractmethod
+    def await_movement(self) -> None:
+        """Wait until the axis stops moving"""
         pass
 
     @property
-    def speed_mm_s(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+    @abstractmethod
+    def upper_limit_mm(self) -> float:
+        """Upper position limit in mm
+        rtype:
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def lower_limit_mm(self) -> float:
+        """Lower position limit in mm
+        rtype: float
+        """
+        pass
+
+    @abstractmethod
+    def set_upper_limit_mm_in_place(self) -> None:
+        """Set current position as the upper limit"""
+        pass
+
+    @abstractmethod
+    def set_lower_limit_mm_in_place(self) -> None:
+        """Set current position as the lower limit"""
+        pass
+
+    @abstractmethod
+    def zero_in_place(self) -> None:
+        """Set current position as zero"""
+        pass
+
+    # Other Kinematic properties and methods __________________________________________________________________________
+
+    @property
+    @abstractmethod
+    def speed_mm_s(self) -> float:
+        """Current speed in mm/s"""
         pass
 
     @speed_mm_s.setter
-    def speed_mm_s(self, speed: float):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+    @abstractmethod
+    def speed_mm_s(self, speed: float) -> None:
+        """Set speed in mm/s"""
         pass
 
     @property
-    def acceleration_ms(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+    @abstractmethod
+    def acceleration_ms(self) -> float:
+        """Current acceleration in m/s^2"""
         pass
 
     @acceleration_ms.setter
-    def acceleration_ms(self, acceleration: float):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+    @abstractmethod
+    def acceleration_ms(self, acceleration: float) -> None:
+        """Set acceleration in m/s^2"""
         pass
 
-    @property
-    def mode(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+    @abstractmethod
+    def set_backlash_mm(self, backlash_mm: float) -> None:
+        """Set backlash in mm"""
         pass
 
-    @mode.setter
-    def mode(self, mode: int):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
+    # Convenience methods ____________________________________________________________________________________________
 
-    @property
-    def joystick_mapping(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    @joystick_mapping.setter
-    def joystick_mapping(self, mapping: str):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    @property
-    def joystick_polarity(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    @joystick_polarity.setter
-    def joystick_polarity(self, polarity: str):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    def lock_external_user_input(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    def unlock_external_user_input(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    def is_axis_moving(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    def zero_in_place(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    def log_metadata(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    def halts(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    def close(self):
+    @abstractmethod
+    def go_to_origin(self) -> None:
+        """Move to origin"""
         pass

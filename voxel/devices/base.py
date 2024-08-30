@@ -1,7 +1,7 @@
 """Base class for all voxel devices."""
 import sys
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 
 
 class VoxelDevice(ABC):
