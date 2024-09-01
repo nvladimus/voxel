@@ -1,0 +1,39 @@
+name: 'Example Instrument'
+description: 'A simulated instrument for testing purposes'
+module: voxel.instruments.instrument
+class: VoxelInstrument
+devices:
+  camera:
+    module: voxel.devices.camera.simulated
+    class: SimulatedCamera
+    kwds:
+      serial_number: '12345'
+  laser_488:
+    module: voxel.devices.laser.simulated
+    class: SimulatedLaser
+    kwds:
+      wavelength: 488
+  laser_561:
+    module: voxel.devices.laser.simulated
+    class: SimulatedLaser
+    kwds:
+      wavelength: 561
+  x-axis:
+    module: voxel.devices.linear_axis.asi
+    class: ASITigerLinearAxis
+    kwds:
+      hardware_axis: X
+      dimension: X
+      tigerbox: tigerbox
+  y-axis:
+    module: voxel.devices.linear_axis.asi
+    class: ASITigerLinearAxis
+    kwds:
+      hardware_axis: Y
+      dimension: Y
+      tigerbox: tigerbox
+  tigerbox:
+    module: voxel.devices.tigerbox
+    class: ASITigerBox
+    kwds:
+      port: COM3
