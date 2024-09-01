@@ -1,6 +1,6 @@
 import random
 
-from voxel.devices.base import DeviceConnectionError
+from voxel.devices.definitions import DeviceConnectionError
 from voxel.devices.power_meter.base import VoxelPowerMeter
 
 

@@ -1,6 +1,6 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
-from devices.base import VoxelDevice
+from voxel.devices.base import VoxelDevice
 
 
 class VoxelChiller(VoxelDevice):

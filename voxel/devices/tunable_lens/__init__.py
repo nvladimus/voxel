@@ -8,10 +8,8 @@ Tunable lens devices compatible with the Voxel.
 """
 
 from .base import VoxelTunableLens, TunableLensControlMode
-from .simulated import SimulatedTunableLens
 
 __all__ = [
     'VoxelTunableLens',
-    'TunableLensControlMode',
-    'SimulatedTunableLens',
+    'TunableLensControlMode'
 ]

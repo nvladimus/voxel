@@ -1,4 +1,5 @@
 import random
+from typing import Optional
 
 from serial import Serial
 
@@ -16,7 +17,7 @@ MAX_POWER_MW = 100
 
 class SimulatedLaser(VoxelLaser):
 
-    def __init__(self, id: str, wavelength: int, prefix: str = ""):
+    def __init__(self, wavelength: int, id: Optional[str] = None, prefix: str = ""):
         """
         Communicate with specific Simulated laser in Simulated Combiner box.
 

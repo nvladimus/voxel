@@ -1,7 +1,7 @@
 from aaopto_aotf import MPDS
 from aaopto_aotf.device_codes import *
 
-from devices.aotf.base import VoxelAOTF
+from voxel.devices.aotf.base import VoxelAOTF
 from voxel.utils.singleton import Singleton
 
 BLANKING_MODES = {

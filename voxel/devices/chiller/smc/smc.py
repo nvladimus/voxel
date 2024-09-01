@@ -1,13 +1,14 @@
-import serial
 import time
 
-from ..base import VoxelChiller
+import serial
 
+from voxel.devices.chiller.base import VoxelChiller
 from . import SMCCommand, SMCControl
 
 BAUD_RATE = 1200
-WAIT_TIME = 0.1 # in seconds
-SER_TIMEOUT = 1 # in seconds
+WAIT_TIME = 0.1  # in seconds
+SER_TIMEOUT = 1  # in seconds
+
 
 class SMCChiller(VoxelChiller):
     def __init__(self, id: str, conn: str, unit=None, persist=True):
@@ -101,6 +102,7 @@ class SMCChiller(VoxelChiller):
 
     def close(self):
         self.ser.close()
+
 
 # Example usage
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 from abc import abstractmethod
 
-from voxel.devices import VoxelDevice
+from voxel.devices.base import VoxelDevice
 
 
 class VoxelAOTF(VoxelDevice):
@@ -16,8 +16,8 @@ class VoxelAOTF(VoxelDevice):
     def disable_all(self):
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def frequency_hz(self):
         pass
 
@@ -25,8 +25,8 @@ class VoxelAOTF(VoxelDevice):
     def set_frequency_hz(self, channel: int, frequency_hz: dict):
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def power_dbm(self):
         pass
 
@@ -34,22 +34,22 @@ class VoxelAOTF(VoxelDevice):
     def set_power_dbm(self, channel: int, power_dbm: dict):
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def blanking_mode(self):
         pass
 
-    @abstractmethod
     @blanking_mode.setter
+    @abstractmethod
     def blanking_mode(self, mode: str):
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def input_mode(self):
         pass
 
-    @abstractmethod
     @input_mode.setter
+    @abstractmethod
     def input_mode(self, modes: dict):
         pass

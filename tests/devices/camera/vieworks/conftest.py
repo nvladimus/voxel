@@ -4,8 +4,8 @@ import pytest
 
 from voxel.devices.camera.vieworks import VieworksCamera
 
-CAMERA_1_SN = 'MP151BBX006'
-CAMERA_2_SN = 'MB151BAY001'
+CAMERA_1_SN = 'MB151BAY001'
+CAMERA_2_SN = 'MP151BBX006'
 
 @pytest.fixture
 def mock_camera():

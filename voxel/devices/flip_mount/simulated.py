@@ -1,10 +1,11 @@
 from time import sleep
 from typing import Literal, Optional
 
-from . import VoxelFlipMount
-from ...descriptors.deliminated_property import deliminated_property
+from voxel.descriptors.deliminated_property import deliminated_property
+from voxel.devices.flip_mount.base import VoxelFlipMount
 
-FLIP_TIME_RANGE_MS: tuple[float, float, float] = (500.0, 2800.0, 100.0) # min, max, step
+FLIP_TIME_RANGE_MS: tuple[float, float, float] = (500.0, 2800.0, 100.0)  # min, max, step
+
 
 class SimulatedFlipMount(VoxelFlipMount):
     def __init__(self, id, conn, positions):
@@ -12,8 +13,8 @@ class SimulatedFlipMount(VoxelFlipMount):
         self._conn = conn
         self._positions = positions
         self._inst: Optional[Literal[0, 1]] = None
-        self.position = next(iter(self._positions)) # set to first position
-        self._flip_time_ms: float = FLIP_TIME_RANGE_MS[0] # min flip time
+        self.position = next(iter(self._positions))  # set to first position
+        self._flip_time_ms: float = FLIP_TIME_RANGE_MS[0]  # min flip time
 
     def close(self):
         self._inst = None

@@ -2,8 +2,8 @@ from typing import Optional
 
 import pyvisa as visa
 
-from voxel.devices.base import DeviceConnectionError
-from .base import VoxelPowerMeter
+from voxel.devices.definitions import DeviceConnectionError
+from voxel.devices.power_meter.base import VoxelPowerMeter
 
 
 class ThorlabsPowerMeter(VoxelPowerMeter):

@@ -4,7 +4,8 @@ from tigerasi.device_codes import TTLIn0Mode, TTLOut0Mode, ScanPattern, Joystick
     TunableLensControlMode
 from tigerasi.tiger_controller import TigerController
 
-from voxel.devices.base import DeviceConnectionError
+from voxel.devices.base import VoxelDevice
+from voxel.devices.definitions import DeviceConnectionError
 from voxel.devices.linear_axis.definitions import LinearAxisDimension, ScanState
 
 AxisMap: TypeAlias = Dict[str, str]  # axis id -> hardware_axis
@@ -14,8 +15,9 @@ DimensionsMap: TypeAlias = Dict[LinearAxisDimension, str]  # LinearAxisDimension
 STEPS_PER_UM = 10
 
 
-class ASITigerBox:
-    def __init__(self, port: str):
+class ASITigerBox(VoxelDevice):
+    def __init__(self, port: str, id: Optional[str] = None):
+        super().__init__(id)
         self.box = TigerController(port)
         self.axis_map = {}
         self.dimensions_map = {}
@@ -37,6 +39,9 @@ class ASITigerBox:
 
         self.log = self.box.log
         self.log.debug(f"Connected to TigerBox on port {port}. Hardware Configuration: {self.build_config}")
+
+    def close(self):
+        self.box.ser.close()
 
     @property
     def hardware_axes(self) -> list[str]:

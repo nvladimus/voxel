@@ -2,7 +2,7 @@ from abc import abstractmethod
 from enum import StrEnum
 from typing import Any, Dict
 
-from ..base import VoxelDevice
+from voxel.devices.base import VoxelDevice
 
 
 class TunableLensControlMode(StrEnum):

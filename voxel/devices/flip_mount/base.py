@@ -1,6 +1,6 @@
 from abc import abstractmethod
 
-from ..base import VoxelDevice
+from voxel.devices.base import VoxelDevice
 
 
 class VoxelFlipMount(VoxelDevice):
@@ -39,6 +39,5 @@ class VoxelFlipMount(VoxelDevice):
     @abstractmethod
     def flip_time_ms(self, time_ms: int):
         pass
-
 
 # Path: voxel/devices/flip_mount/thorlabs_mff101.py

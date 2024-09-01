@@ -3,8 +3,8 @@ from typing import Optional
 
 from pylablib.devices import Thorlabs
 
-from voxel.devices.base import DeviceConnectionError
-from voxel.devices.rotation_axis import VoxelRotationAxis
+from voxel.devices.definitions import DeviceConnectionError
+from voxel.devices.rotation_axis.base import VoxelRotationAxis
 
 MIN_POSITION_DEG = 0
 MAX_POSITION_DEG = 360

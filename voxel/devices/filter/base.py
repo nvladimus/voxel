@@ -1,12 +1,7 @@
 from abc import abstractmethod
 from typing import Optional
 
-from voxel.devices import VoxelDeviceError, VoxelDevice
-
-
-class VoxelFilterError(VoxelDeviceError):
-    """Custom Error for VoxelFilter"""
-    pass
+from voxel.devices.base import VoxelDevice
 
 
 class VoxelFilter(VoxelDevice):

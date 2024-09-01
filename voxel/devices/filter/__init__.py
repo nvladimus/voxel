@@ -1,4 +1,3 @@
-from .base import VoxelFilter, VoxelFilterWheel, VoxelFilterError
-from .simulated import SimulatedFilter, SimulatedFilterWheel
+from .base import VoxelFilter, VoxelFilterWheel
 
-__all__ = ['VoxelFilter', 'VoxelFilterWheel', 'SimulatedFilter', 'SimulatedFilterWheel', 'VoxelFilterError']
+__all__ = ['VoxelFilter', 'VoxelFilterWheel']

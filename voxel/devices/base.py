@@ -2,16 +2,7 @@
 import logging
 import sys
 from abc import ABC, abstractmethod
-
-
-class VoxelDeviceError(Exception):
-    """Base class for all exceptions raised by devices."""
-    pass
-
-
-class DeviceConnectionError(VoxelDeviceError):
-    """Custom exception for camera discovery errors."""
-    pass
+from typing import Optional
 
 
 class VoxelDevice(ABC):
@@ -19,7 +10,7 @@ class VoxelDevice(ABC):
 
     _logging_configured = False
 
-    def __init__(self, id: str):
+    def __init__(self, id: Optional[str] = None):
         """Initialize the device.
         :param id: The unique identifier of the device.
         :type id: str

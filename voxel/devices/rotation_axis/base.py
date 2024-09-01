@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Optional
 
-from ..base import VoxelDevice
+from voxel.devices.base import VoxelDevice
 
 
 class VoxelRotationAxis(VoxelDevice):

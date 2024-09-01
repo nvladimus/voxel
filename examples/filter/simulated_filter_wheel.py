@@ -1,5 +1,5 @@
 # Usage example
-from voxel.devices.filter import SimulatedFilterWheel, SimulatedFilter, VoxelFilterError
+from voxel.devices.filter import SimulatedFilterWheel, SimulatedFilter, VoxelDeviceError
 
 if __name__ == "__main__":
     import logging
@@ -43,12 +43,12 @@ if __name__ == "__main__":
 
     try:
         red.enable()
-    except VoxelFilterError as e:
+    except VoxelDeviceError as e:
         print(e)
     print_active_filter(wheel)
 
     try:
         red.close()
-    except VoxelFilterError as e:
+    except VoxelDeviceError as e:
         print(e)
     print_active_filter(wheel)

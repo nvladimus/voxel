@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
-from devices.linear_axis.definitions import LinearAxisDimension, ScanConfig, ScanState
 from voxel.devices.base import VoxelDevice
+from voxel.devices.linear_axis.definitions import LinearAxisDimension, ScanConfig, ScanState
 
 
 class VoxelLinearAxis(VoxelDevice):

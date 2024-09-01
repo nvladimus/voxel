@@ -3,7 +3,8 @@ from typing import Dict, Optional
 
 from tigerasi.tiger_controller import TigerController
 
-from voxel.devices.filter import VoxelFilter, VoxelFilterWheel, VoxelFilterError
+from voxel.devices.definitions import VoxelDeviceError
+from voxel.devices.filter.base import VoxelFilter, VoxelFilterWheel
 
 SWITCH_TIME_S = 0.1  # estimated timing
 
@@ -28,16 +29,16 @@ class ASIFilterWheel(VoxelFilterWheel):
     def set_filter(self, filter_name: str) -> None:
         """Set the filterwheel to the specified filter."""
         if self._is_closed:
-            raise VoxelFilterError("Filter wheel is closed and cannot be operated.")
+            raise VoxelDeviceError("Filter wheel is closed and cannot be operated.")
         if filter_name not in self.filters:
-            raise VoxelFilterError(
+            raise VoxelDeviceError(
                 f"Attempted to set filter wheel {self.wheel_id} to {filter_name}\n"
                 f"\tAvailable filters: {self.filters}"
             )
         if self._current_filter == filter_name:
             return  # Filter is already active, no need to change
         if self._current_filter:
-            raise VoxelFilterError(
+            raise VoxelDeviceError(
                 f"Unable to enable filter {filter_name} in filter wheel {self.wheel_id}\n"
                 f"\tFilter {self._current_filter} is still active"
             )

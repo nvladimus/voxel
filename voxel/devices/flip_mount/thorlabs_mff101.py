@@ -4,8 +4,8 @@ from typing import Optional, Literal, Dict
 from pylablib.devices import Thorlabs
 
 from voxel.descriptors.deliminated_property import deliminated_property
+from voxel.devices.definitions import DeviceConnectionError
 from voxel.devices.flip_mount.base import VoxelFlipMount
-from voxel.devices.base import DeviceConnectionError
 
 VALID_POSITIONS = [0, 1]
 FLIP_TIME_RANGE_MS = (500, 2800, 100)

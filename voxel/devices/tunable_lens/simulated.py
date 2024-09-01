@@ -1,4 +1,4 @@
-from .base import VoxelTunableLens, TunableLensControlMode
+from voxel.devices.tunable_lens.base import VoxelTunableLens, TunableLensControlMode
 
 
 class SimulatedTunableLens(VoxelTunableLens):
