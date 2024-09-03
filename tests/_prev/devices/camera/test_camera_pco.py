@@ -3,7 +3,7 @@ camera_id = '61009303'
 # create camera object
 exec(f"from voxel.devices.camera import {driver}")
 exec(f"camera = ({driver}.Camera('{camera_id}'))")
-# init values from config
+# init values from _config
 camera.roi = {
     'roi_width_px': camera['region of interest']['roi_width_px'],
     'roi_height_px': camera['region of interest']['roi_height_px']

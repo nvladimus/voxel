@@ -24,7 +24,7 @@ class Acquisition:
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.log.setLevel(log_level)
 
-        # create yaml object to use when loading and dumping config
+        # create yaml object to use when loading and dumping _config
         self.yaml = yaml_handler if yaml_handler is not None else YAML()
 
         self.config_path = Path(config_filename)
@@ -33,7 +33,7 @@ class Acquisition:
         self.instrument = instrument
 
         # initialize metadata attribute. NOT a dictionary since only one metadata class can exist in acquisition
-        # TODO: Validation of config should check that metadata exists and only one
+        # TODO: Validation of _config should check that metadata exists and only one
         self.metadata = self._construct_class(self.config['acquisition']['metadata'])
         self.acquisition_name = None    # initialize acquisition_name that will be populated at start of acquisition
 
@@ -43,7 +43,7 @@ class Acquisition:
             self._construct_operations(operation_type, operation_dict)
 
     def _load_class(self, driver: str, module: str, kwds: dict = dict()):
-        """Load in device based on config. Expecting driver, module, and kwds input"""
+        """Load in device based on _config. Expecting driver, module, and kwds input"""
         self.log.info(f'loading {driver}.{module}')
         __import__(driver)
         device_class = getattr(sys.modules[driver], module)
@@ -52,7 +52,7 @@ class Acquisition:
     def _setup_class(self, device: object, properties: dict):
         """Setup device based on properties dictionary
         :param device: device to be setup
-        :param properties: dictionary of attributes, values to set according to config"""
+        :param properties: dictionary of attributes, values to set according to _config"""
 
         self.log.info(f'setting up {device}')
         # successively iterate through properties keys and if there is setter, set
@@ -545,7 +545,7 @@ class Acquisition:
                                 {total_gpu_memory_gb} [GB] available')
 
     def update_current_state_config(self):
-        """Capture current state of instrument in config form"""
+        """Capture current state of instrument in _config form"""
 
         # update properties of operations
         for device_name, op_dict in self.config['acquisition']['operations'].items():
@@ -568,8 +568,8 @@ class Acquisition:
         return properties
 
     def save_config(self, path: Path):
-        """Save current config to path provided
-        :param path: path to save config to"""
+        """Save current _config to path provided
+        :param path: path to save _config to"""
 
         with path.open("w") as f:
             self.yaml.dump(self.config, f)

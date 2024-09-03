@@ -5,19 +5,19 @@ this_dir = Path(__file__).parent.resolve() # directory of this test file.
 config_path = this_dir / Path("test_camera_vieworks_egrabber.yaml")
 config = YAML().load(Path(config_path))
 
-# ugly constructor and init for config values...
+# ugly constructor and init for _config values...
 
-# loop over all cameras in config
+# loop over all cameras in _config
 cameras=list()
 
 for camera in config['devices']['cameras']:
-	# grab config values for creating object
+	# grab _config values for creating object
 	driver = camera['driver']
 	camera_id = camera['id']
 	# create camera object
 	exec(f"from voxel.devices.camera import {driver}")
 	exec(f"cameras.append({driver}.Camera('{camera_id}'))")
-	# init values from config
+	# init values from _config
 	cameras[-1].roi = {
 		'roi_width_px': camera['region of interest']['roi_width_px'],
 		'roi_height_px': camera['region of interest']['roi_height_px']

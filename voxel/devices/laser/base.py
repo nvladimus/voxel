@@ -2,6 +2,7 @@ from abc import abstractmethod
 from typing import Optional
 
 from ..base import VoxelDevice
+from ..definitions import VoxelDeviceType
 
 
 class VoxelLaser(VoxelDevice):
@@ -9,6 +10,16 @@ class VoxelLaser(VoxelDevice):
 
     def __init__(self, id: str):
         super().__init__(id)
+        self.device_type = VoxelDeviceType.LASER
+
+    def __repr__(self):
+        return (
+            f"voxel id:         {self.id}\n"
+            f"Wavelength:       {self.wavelength}\n"
+            f"Power setpoint:   {self.power_setpoint_mw} mW\n"
+            f"Power:            {self.power_mw} mW\n"
+            f"Temperature:      {self.temperature_c} °C"
+        )
 
     @abstractmethod
     def enable(self):

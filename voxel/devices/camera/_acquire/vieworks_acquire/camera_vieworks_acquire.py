@@ -67,7 +67,7 @@ class Camera(VoxelCamera):
         self.dm = self.runtime.device_manager()
         # instantiate acquire runtime configuration
         self.p = self.runtime.get_configuration()
-        # TODO: make this tied to an id in the passed camera config
+        # TODO: make this tied to an id in the passed camera _config
         self.p.video[0].camera.identifier = self.dm.select_one_of(DeviceKind.Camera, "VIEWORKS.*")
         self.p = self.runtime.set_configuration(self.p)
 

@@ -1,15 +1,4 @@
-from enum import Enum
-
-from .aotf import VoxelAOTF
-from .camera import VoxelCamera
-from .chiller import VoxelChiller
-from .filter import VoxelFilter
-from .flip_mount import VoxelFlipMount
-from .laser import VoxelLaser
-from .linear_axis import VoxelLinearAxis
-from .power_meter import VoxelPowerMeter
-from .rotation_axis import VoxelRotationAxis
-from .tunable_lens import VoxelTunableLens
+from enum import StrEnum
 
 
 class VoxelDeviceError(Exception):
@@ -21,15 +10,15 @@ class DeviceConnectionError(VoxelDeviceError):
     """Custom exception for camera discovery errors."""
     pass
 
-class VoxelDeviceType(Enum):
-    CAMERA = VoxelCamera
-    LASER = VoxelLaser
-    FILTER = VoxelFilter
-    LINEAR_AXIS = VoxelLinearAxis
-    ROTATION_AXIS = VoxelRotationAxis
-    FLIP_MOUNT = VoxelFlipMount
-    TUNABLE_LENS = VoxelTunableLens
-    POWER_METER = VoxelPowerMeter
-    AOTF = VoxelAOTF
-    CHILLER = VoxelChiller
 
+class VoxelDeviceType(StrEnum):
+    CAMERA = 'camera'
+    LASER = 'laser'
+    FILTER = 'filter'
+    LINEAR_AXIS = 'linear_axis'
+    ROTATION_AXIS = 'rotation_axis'
+    FLIP_MOUNT = 'flip_mount'
+    TUNABLE_LENS = 'tunable_lens'
+    POWER_METER = 'power_meter'
+    AOTF = 'aotf'
+    CHILLER = 'chiller'

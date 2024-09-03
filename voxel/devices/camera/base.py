@@ -5,6 +5,7 @@ from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.devices.base import VoxelDevice
 from voxel.devices.camera.definitions import PixelType, AcquisitionState, Binning, VoxelFrame, ROI
+from voxel.devices.definitions import VoxelDeviceType
 from voxel.utils.geometry import Vec2D
 
 
@@ -18,6 +19,22 @@ class VoxelCamera(VoxelDevice):
         :type id: str
         """
         super().__init__(id)
+        self.device_type = VoxelDeviceType.CAMERA
+
+    def __repr__(self):
+        return (
+            f"{self.id}",
+            f"Sensor:           {self.sensor_width_px} x {self.sensor_height_px}",
+            f"ROI:              {self.roi_width_px} x {self.roi_height_px}",
+            f"ROI Offset:       ({self.roi_width_offset_px}, {self.roi_height_offset_px})",
+            f"Image Size:       ({self.frame_size_px.x}, {self.frame_size_px.y})",
+            f"Binning:          {self.binning}",
+            f"Pixel Type:       {self.pixel_type}",
+            f"Exposure:         {self.exposure_time_ms:.2f} ms",
+            f"Line Interval:    {self.line_interval_us:.2f} µs",
+            f"Frame Time:       {self.frame_time_ms:.2f} ms",
+            f"Trigger:          {self.trigger_settings}",
+        )
 
     # sensor properties
     @property
@@ -336,7 +353,7 @@ class VoxelCamera(VoxelDevice):
         """Reset the camera."""
         pass
 
-    # TODO: Figure out whethe this is needed
+    # TODO: Figure out whether this is needed
     # @property
     # @abstractmethod
     # def latest_frame(self):
@@ -394,20 +411,3 @@ class VoxelCamera(VoxelDevice):
         :rtype: float
         """
         pass
-
-    def __repr__(self):
-        properties = [
-            f"ID: {self.id}",
-            f"Sensor: {self.sensor_width_px} x {self.sensor_height_px}",
-            f"ROI: {self.roi_width_px} x {self.roi_height_px}",
-            f"ROI Offset: ({self.roi_width_offset_px}, {self.roi_height_offset_px})",
-            f"Image Size: ({self.frame_size_px.x}, {self.frame_size_px.y})",
-            f"Binning: {self.binning}",
-            f"Pixel Type: {self.pixel_type}",
-            f"Exposure: {self.exposure_time_ms:.2f} ms",
-            f"Line Interval: {self.line_interval_us:.2f} µs",
-            f"Frame Time: {self.frame_time_ms:.2f} ms",
-            f"Trigger: {self.trigger_settings}",
-        ]
-
-        return f"{self.__class__.__name__}:\n" + "\n".join(f"  {prop}" for prop in properties)

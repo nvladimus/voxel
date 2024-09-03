@@ -50,18 +50,6 @@ class ASITigerLinearAxis(VoxelLinearAxis):
         self._tigerbox.register_linear_axis(
             self.id, self._hardware_axis, self.dimension, joystick_polarity, joystick_input)
 
-    def __repr__(self):
-        return (
-            f"id:               {self.id}, \n"
-            f"hardware_axis:    {self._hardware_axis}, \n"
-            f"dimension:        {self.dimension} \n"
-            f"position_mm:      {self.position_mm}, \n"
-            f"limits_mm:        {self.lower_limit_mm, self.upper_limit_mm}, \n"
-            f"speed_mm_s:       {self.speed_mm_s}, \n"
-            f"acceleration_ms:  {self.acceleration_ms}, \n"
-            f"is_moving:        {self.is_moving}, \n"
-        )
-
     def close(self):
         self._tigerbox.deregister_device(self.id)
 

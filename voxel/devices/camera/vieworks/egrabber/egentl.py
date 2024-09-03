@@ -307,7 +307,7 @@ class ImageConvertOutput(ct.Structure):
         Output buffer (or address of new image id if IMAGE_CONVERT_OUTPUT_CONFIG_IMAGE_ID).
     format : str
         Output pixel format.
-    config : int
+    _config : int
         Convert configuration (cf. GenTL::EuresysCustomGenTL::IMAGE_CONVERT_OUTPUT_CONFIG).
     operation : int
         Convert operation (cf. GenTL::EuresysCustomGenTL::IMAGE_CONVERT_OUTPUT_OPERATION).
@@ -325,7 +325,7 @@ class ImageConvertOutput(ct.Structure):
         ('height', ct.c_int),
         ('pixels', ct.c_void_p),
         ('format', ct.c_char_p),
-        ('config', ct.c_int),
+        ('_config', ct.c_int),
         ('operation', ct.c_int),
         ('version', ct.c_int),
         ('quality', ct.c_int),
@@ -395,7 +395,7 @@ class ImageSaveToDiskParams(ct.Structure):
 
     Attributes
     ----------
-    config : int
+    _config : int
         Convert configuration (cf. GenTL::EuresysCustomGenTL::IMAGE_CONVERT_OUTPUT_CONFIG).
     quality : int
         Quality for jpeg format, from 1 (lowest) to 100 (highest), 0 selects the default encoder quality value.
@@ -403,7 +403,7 @@ class ImageSaveToDiskParams(ct.Structure):
         Reserved for future use.
     """
     _fields_ = [
-        ('config', ct.c_int),
+        ('_config', ct.c_int),
         ('quality', ct.c_int),
         ('reserved', ct.c_int * 4)
     ]

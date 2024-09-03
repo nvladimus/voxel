@@ -15,6 +15,17 @@ class VoxelLinearAxis(VoxelDevice):
         super().__init__(id)
         self.dimension: LinearAxisDimension = dimension
 
+    def __repr__(self):
+        return (
+            f"{self.id}, \n"
+            f"dimension:        {self.dimension} \n"
+            f"position_mm:      {self.position_mm}, \n"
+            f"limits_mm:        {self.lower_limit_mm, self.upper_limit_mm}, \n"
+            f"speed_mm_s:       {self.speed_mm_s}, \n"
+            f"acceleration_ms:  {self.acceleration_ms}, \n"
+            f"is_moving:        {self.is_moving}, \n"
+        )
+
     @abstractmethod
     def configure_scan(self, config: ScanConfig) -> None:
         """

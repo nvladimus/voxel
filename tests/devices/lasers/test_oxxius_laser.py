@@ -12,7 +12,7 @@ def get_dict_attr(class_def, attr):
             return obj.__dict__[attr]
     raise AttributeError
 def load_device(driver, module, kwds):
-    """Load in device based on config. Expecting driver, module, and kwds input"""
+    """Load in device based on _config. Expecting driver, module, and kwds input"""
     __import__(driver)
     device_class = getattr(sys.modules[driver], module)
     for k, v in kwds.items():
@@ -22,9 +22,9 @@ def load_device(driver, module, kwds):
     return device_class(**kwds)
 
 def setup_device(device, driver, setup):
-    """Setup device based on config
+    """Setup device based on _config
     :param device: device to be setup
-    :param setup: dictionary of attributes, values to set according to config"""
+    :param setup: dictionary of attributes, values to set according to _config"""
 
     for property, value in setup.items():
         if str(value).split('.')[0] in dir(sys.modules[driver]):

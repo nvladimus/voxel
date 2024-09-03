@@ -2,12 +2,21 @@ name: 'Example Instrument'
 description: 'A simulated instrument for testing purposes'
 module: voxel.instruments.instrument
 class: VoxelInstrument
+channels:
+  red:
+    camera: simulated_camera_1
+    laser: laser_561
+    filter: filter_561
+  green:
+    camera: simulated_camera_1
+    laser: laser_488
+    filter: filter_488
 devices:
-  camera:
+  simulated_camera_1:
     module: voxel.devices.camera.simulated
     class: SimulatedCamera
     kwds:
-      serial_number: '12345'
+      serial_number: 12345
   laser_488:
     module: voxel.devices.laser.simulated
     class: SimulatedLaser
@@ -18,6 +27,20 @@ devices:
     class: SimulatedLaser
     kwds:
       wavelength: 561
+  filter_488:
+    module: voxel.devices.filter.simulated
+    class: SimulatedFilter
+    kwds:
+      name: BP488
+      wheel: filterwheel
+      position: 1
+  filter_561:
+    module: voxel.devices.filter.simulated
+    class: SimulatedFilter
+    kwds:
+      name: BP561
+      wheel: filterwheel
+      position: 2
   x-axis:
     module: voxel.devices.linear_axis.asi
     class: ASITigerLinearAxis
@@ -32,6 +55,18 @@ devices:
       hardware_axis: Y
       dimension: Y
       tigerbox: tigerbox
+  z-axis:
+    module: voxel.devices.linear_axis.asi
+    class: ASITigerLinearAxis
+    kwds:
+      hardware_axis: Z
+      dimension: Z
+      tigerbox: tigerbox
+  filterwheel:
+    module: voxel.devices.filter.simulated
+    class: SimulatedFilterWheel
+    kwds:
+      wheel_id: 1
   tigerbox:
     module: voxel.devices.tigerbox
     class: ASITigerBox

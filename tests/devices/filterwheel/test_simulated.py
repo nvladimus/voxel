@@ -5,13 +5,13 @@ this_dir = Path(__file__).parent.resolve() # directory of this test file.
 config_path = this_dir / Path("test_simulated.yaml")
 config = YAML().load(Path(config_path))
 
-# ugly constructor and init for config values...
+# ugly constructor and init for _config values...
 
-# loop over all filterwheels in config
+# loop over all filterwheels in _config
 filter_wheels=list()
 
 for filter_wheel in config['devices']['filter wheels']:
-    # grab config values for creating object
+    # grab _config values for creating object
     driver = filter_wheel['driver']
     port = filter_wheel['port']
     filter_wheel_id = filter_wheel['id']

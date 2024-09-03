@@ -77,12 +77,12 @@ class SimulatedCamera(VoxelCamera):
             f"Pixel Type:           {self.pixel_type}\n"
             f"Trigger Settings:     {self.trigger_settings}\n"
             f"Image Model:          {self.instance.image_model}\n"
-            f"LUTs:________________________________________________________________________________\n"
-            f"Binning LUT:          {self._binning_lut}\n"
-            f"Pixel Type LUT:       {self._pixel_type_lut}\n"
-            f"Trigger Mode LUT:     {self._trigger_mode_lut}\n"
-            f"Trigger Source LUT:   {self._trigger_source_lut}\n"
-            f"Trigger Polarity LUT: {self._trigger_polarity_lut}\n"
+            # f"LUTs:________________________________________________________________________________\n"
+            # f"Binning LUT:          {self._binning_lut}\n"
+            # f"Pixel Type LUT:       {self._pixel_type_lut}\n"
+            # f"Trigger Mode LUT:     {self._trigger_mode_lut}\n"
+            # f"Trigger Source LUT:   {self._trigger_source_lut}\n"
+            # f"Trigger Polarity LUT: {self._trigger_polarity_lut}\n"
         )
 
     # Sensor size properties

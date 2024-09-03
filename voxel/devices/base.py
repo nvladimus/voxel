@@ -4,6 +4,8 @@ import sys
 from abc import ABC, abstractmethod
 from typing import Optional
 
+from voxel.devices.definitions import VoxelDeviceType
+
 
 class VoxelDevice(ABC):
     """Base class for all voxel devices."""
@@ -16,6 +18,7 @@ class VoxelDevice(ABC):
         :type id: str
         """
         self.id = id
+        self.device_type: Optional[VoxelDeviceType] = None
         self.log = logging.getLogger(f'{self.__class__.__name__}[{self.id}]')
 
         # Ensure logging is configured
@@ -27,7 +30,7 @@ class VoxelDevice(ABC):
         pass
 
     def __str__(self):
-        return self.__repr__()
+        return f"{self.__class__.__name__}[{self.id}]"
 
     @classmethod
     def configure_logging(cls):

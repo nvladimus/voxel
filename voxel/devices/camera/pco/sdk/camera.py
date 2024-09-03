@@ -833,7 +833,7 @@ class Camera:
         calculation module.
 
         >>> get_flim_configuration()
-        config
+        _config
 
         """
         logger.info("[---.- s] [cam] {}".format(sys._getframe().f_code.co_name))

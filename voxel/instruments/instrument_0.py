@@ -18,7 +18,7 @@ class Instrument:
         self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.log.setLevel(log_level)
 
-        # create yaml object to use when loading and dumping config
+        # create yaml object to use when loading and dumping _config
         self.yaml = yaml_handler if yaml_handler is not None else YAML()
 
         self.config_path = Path(config_path)
@@ -90,7 +90,7 @@ class Instrument:
 
         # Add subdevices under device and fill in any needed keywords to init
         for subdevice_name, subdevice_specs in device_specs.get('subdevices', {}).items():
-            # copy so config is not altered by adding in parent devices
+            # copy so _config is not altered by adding in parent devices
             self._construct_subdevice(device_object, subdevice_name, copy.deepcopy(subdevice_specs), lock)
 
     def _construct_subdevice(self, device_object, subdevice_name, subdevice_specs, lock):
@@ -132,7 +132,7 @@ class Instrument:
     def _setup_device(self, device: object, properties: dict):
         """Setup device based on property dictionary
         :param device: device to be setup
-        :param properties: dictionary of attributes, values to set according to config"""
+        :param properties: dictionary of attributes, values to set according to _config"""
 
         self.log.info(f'setting up {device}')
         # successively iterate through properties keys and if there is setter, set
@@ -143,7 +143,7 @@ class Instrument:
                 self.log.info(f'{device} property {key} has no setter')
 
     def update_current_state_config(self):
-        """Capture current state of instrument in config form"""
+        """Capture current state of instrument in _config form"""
 
         for device_name, device_specs in self.config['instrument']['devices'].items():
             device = getattr(self, inflection.pluralize(device_specs['type']))[device_name]
@@ -155,8 +155,8 @@ class Instrument:
             device_specs['properties'] = properties
 
     def save_config(self, path: Path):
-        """Save current config to path provided
-        :param path: path to save config to"""
+        """Save current _config to path provided
+        :param path: path to save _config to"""
         with path.open("w") as f:
             self.yaml.dump(self.config, f)
 
