@@ -55,6 +55,7 @@ class DAQ(BaseDAQ):
         self.do_task = None
         self.ao_task = None
         self.co_task = None
+        self.ci_task = None
         self._tasks = None
 
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
