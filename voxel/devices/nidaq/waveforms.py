@@ -26,16 +26,18 @@ class DAQWaveformConfig:
     :param amplitude_volts: The peak-to-peak amplitude of the waveform.
     :param frequency_hz: The frequency for filtering the waveform in Hz.
     """
-    sampling_frequency_hz: float
-    period_time_ms: float
     start_time_ms: float
     end_time_ms: float
-    rest_time_ms: float
     center_volts: float
     amplitude_volts: float
     frequency_hz: float
+    sampling_frequency_hz: float = 350e3
+    period_time_ms: float = None
+    rest_time_ms: float = 0
 
     def __post_init__(self):
+        if self.period_time_ms is None:
+            self.period_time_ms = self.start_time_ms - self.end_time_ms
         self.validate()
 
     def validate(self):
