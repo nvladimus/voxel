@@ -1,16 +1,17 @@
-import logging
-from pathlib import Path
-import inspect
-import importlib
-from serial import Serial
-from ruamel.yaml import YAML
-import inflection
-from threading import Lock, RLock
-from functools import wraps
-from voxel.descriptors.deliminated_property import _DeliminatedProperty
 import copy
-import re
-import sys
+import importlib
+import inspect
+import logging
+from functools import wraps
+from pathlib import Path
+from threading import Lock, RLock
+
+import inflection
+from ruamel.yaml import YAML
+from serial import Serial
+
+from voxel.descriptors.deliminated_property import DeliminatedProperty
+
 
 class Instrument:
 
@@ -128,7 +129,6 @@ class Instrument:
         thread_safe_device_class = for_all_methods(lock, device_class)
         return thread_safe_device_class(**kwds)
 
-
     def _setup_device(self, device: object, properties: dict):
         """Setup device based on property dictionary
         :param device: device to be setup
@@ -171,7 +171,7 @@ def for_all_methods(lock, cls):
         if attr_name == '__init__':
             continue
         attr = getattr(cls, attr_name)
-        if type(attr) == _DeliminatedProperty:
+        if type(attr) == DeliminatedProperty:
             attr._fset = lock_methods(attr._fset, lock)
             attr._fget = lock_methods(attr._fget, lock)
         elif isinstance(attr, property):
@@ -183,6 +183,7 @@ def for_all_methods(lock, cls):
             setattr(cls, attr_name, lock_methods(attr, lock))
     return cls
 
+
 def lock_methods(fn, lock):
     """Wrapper that locks lock shared by all methods and properties so class is thread safe"""
 
@@ -190,4 +191,5 @@ def lock_methods(fn, lock):
     def wrapper(*args, **kwargs):
         with lock:
             return fn(*args, **kwargs)
+
     return wrapper

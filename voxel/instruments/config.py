@@ -2,7 +2,7 @@ from typing import Dict, Optional
 
 from device_spinner.config import Config as DeviceSpinnerConfig
 
-CHANNEL_DEVICES = ["camera", "laser", "filter"]
+from voxel.instruments.definitions import CHANNEL_DEVICES
 
 
 class InstrumentConfigError(Exception):

@@ -37,6 +37,7 @@ class SimulatedLaser(VoxelLaser):
         self._status = []
 
     def enable(self):
+        self.log.info(f"Enabling {self.id} laser")
         pass
 
     def disable(self):

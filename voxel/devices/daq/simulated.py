@@ -2,6 +2,7 @@ import logging
 
 import matplotlib.pyplot as plt
 import numpy
+import numpy as np
 from matplotlib.ticker import AutoMinorLocator
 from scipy import signal
 
@@ -199,7 +200,7 @@ class DAQ(BaseDAQ):
         if sampling_frequency_hz < getattr(self, f"min_{task_type}_rate", 0) or sampling_frequency_hz > \
                 getattr(self, f"max_{task_type}_rate"):
             raise ValueError(f"Sampling frequency must be > {getattr(self, f'{task_type}_min_rate', 0)} Hz and \
-                                         <{getattr(self, f'{task_type}_max_rate')} Hz!")
+                                         <{getattr(self, f'max_{task_type}_rate')} Hz!")
 
     def generate_waveforms(self, task_type: str, wavelength: str):
 
@@ -475,3 +476,55 @@ class DAQ(BaseDAQ):
 
     def close(self):
         pass
+
+
+if __name__ == "__main__":
+    daq = DAQ('Dev1')
+    daq.tasks = {
+        'ao_task': {
+            'name': 'ao',
+            'timing': {
+                'sampling_frequency_hz': 350e3,  # Match the MAX_AO_RATE_HZ
+                'period_time_ms': 10,
+                'rest_time_ms': 0,
+                'trigger_mode': 'off',
+                'trigger_port': 'PFI0'
+            },
+            'ports': {
+                'port0': {
+                    'port': 'ao0',
+                    'waveform': 'sawtooth',
+                    'parameters': {
+                        'start_time_ms': {'channels': {'wavelength': 0}},
+                        'end_time_ms': {'channels': {'wavelength': 10}},
+                        'amplitude_volts': {'channels': {'wavelength': 2.5}},  # Changed from 5 to 2.5
+                        'offset_volts': {'channels': {'wavelength': 2.5}},  # Changed from 0 to 2.5
+                        'cutoff_frequency_hz': {'channels': {'wavelength': 1000}}
+                    }
+                }
+            }
+        }
+    }
+
+    daq.add_task('ao')
+    daq.generate_waveforms('ao', 'wavelength')
+
+    # Plot the generated waveform
+    waveform = daq.ao_waveforms['ao0: port0']
+    time_ms = np.linspace(0, daq.ao_total_time_ms, len(waveform))
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(time_ms, waveform, label='DAQ Sawtooth')
+    plt.title("DAQ Sawtooth Waveform")
+    plt.xlabel("Time (ms)")
+    plt.ylabel("Voltage (V)")
+    plt.legend()
+    plt.grid(True)
+    plt.ylim(0, 5)  # Set y-axis limits to match the NI card range
+    plt.show()
+
+    # Print waveform details for comparison
+    print(f"Waveform length: {len(waveform)}")
+    print(f"Min voltage: {np.min(waveform):.2f} V")
+    print(f"Max voltage: {np.max(waveform):.2f} V")
+    print(f"Sample rate: {daq.ao_sampling_frequency_hz:.2e} Hz")
