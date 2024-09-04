@@ -475,17 +475,17 @@ class DAQ(BaseDAQ):
         self.do_task.control(TaskMode.TASK_COMMIT)
 
     def start(self):
-        for task in [self.ao_task, self.do_task, self.co_task, self.ci_start]:
+        for task in [self.ao_task, self.do_task, self.co_task, self.ci_task]:
             if task is not None:
                 task.start()
 
     def stop(self):
-        for task in [self.ao_task, self.do_task, self.co_task, self.ci_start]:
+        for task in [self.ao_task, self.do_task, self.co_task, self.ci_task]:
             if task is not None:
                 task.stop()
 
     def close(self):
-        for task in [self.ao_task, self.do_task, self.co_task, self.ci_start]:
+        for task in [self.ao_task, self.do_task, self.co_task, self.ci_task]:
             if task is not None:
                 task.close()
 
@@ -495,13 +495,13 @@ class DAQ(BaseDAQ):
 
     def wait_until_done_all(self, timeout=1.0):
 
-        for task in [self.ao_task, self.do_task, self.co_task, self.ci_start]:
+        for task in [self.ao_task, self.do_task, self.co_task, self.ci_task]:
             if task is not None:
                 task.wait_until_done(timeout)
 
     def is_finished_all(self):
 
-        for task in [self.ao_task, self.do_task, self.co_task, self.ci_start]:
+        for task in [self.ao_task, self.do_task, self.co_task, self.ci_task]:
             if task is not None:
                 if not task.is_task_done():
                     return False
