@@ -5,7 +5,6 @@ from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Rectangle
 from numpy.typing import NDArray
 from scipy import signal
 
@@ -123,10 +122,12 @@ def generate_triangular_waveform(config: DAQWaveformConfig) -> NDArray:
     period_start, period_end = config.get_period_sample_range()
     period_samples = period_end - period_start
     active_start, active_end = config.get_active_sample_range()
+    active_start = period_start
+    # assert active_start == period_start, "Active period must start at the beginning of the cycle"
     active_samples = active_end - active_start
-    assert active_start == period_start, "Active period must start at the beginning of the cycle"
     assert period_samples <= samples, "Period time must be less than total cycle time"
 
+    delay_samples = active_start - period_start
     rest_samples = samples - period_samples
     ramp_down_samples = period_samples - active_samples
     ramp_up_samples = period_samples - ramp_down_samples
@@ -138,8 +139,9 @@ def generate_triangular_waveform(config: DAQWaveformConfig) -> NDArray:
     # Scale and shift the waveform to match the desired amplitude and center voltage
     waveform = config.center_volts + (config.amplitude_volts / 2) * triangle
 
+    delay_section = np.full(delay_samples, 0)
     rest_section = np.full(rest_samples, 0)
-    waveform = np.concatenate((waveform, rest_section))
+    waveform = np.concatenate((delay_section, waveform, rest_section))
 
     return waveform
 
@@ -222,20 +224,38 @@ class DAQWaveform(Enum):
 def plot_waveforms(waveforms: dict[str, NDArray], config: DAQWaveformConfig, num_cycles: int = 1,
                    save: bool = False, filename: str = None):
     """
-    Plot multiple waveforms on the same graph with parameter highlighting.
+    Plot multiple waveforms on the same graph with improved parameter highlighting.
 
-    :param waveforms: Dictionary of waveforms to plot (DAQWaveform enum as key, numpy array as value)
+    :param waveforms: Dictionary of waveforms to plot with their names as keys
     :param config: The configuration for the waveform
-    :param num_cycles: Number of waveform cycles to plot (default is 2)
+    :param num_cycles: Number of waveform cycles to plot (default is 1)
     :param save: Whether to save the plot to a file
     :param filename: The filename to save the plot (if save is True)
     """
-    plt.figure(figsize=(15, 8))
+    plt.figure(figsize=(15, 10))
     ax = plt.axes()
 
-    colors = ['blue', 'green', 'red', 'purple', 'cyan', 'orange']
     total_time_ms = config.total_cycle_time_ms * num_cycles
 
+    for i in range(num_cycles):
+        start = i * config.total_cycle_time_ms
+        period_start = start
+        period_end = config.period_time_ms + period_start
+        period_center = period_start + (period_end - period_start) / 2
+
+        rest_start = config.period_time_ms + start
+        rest_end = config.rest_time_ms + rest_start
+        rest_center = rest_start + (rest_end - rest_start) / 2
+
+        # plot yellow background for period times
+        ax.axvspan(period_start, period_end, facecolor='yellow', alpha=0.05, edgecolor='none')
+        # add text labels for time periods
+        ax.text(rest_center, config.min_volts - 0.1 * config.amplitude_volts,
+                f'Rest: {config.rest_time_ms:.2f} ms', ha='center', va='top', fontsize=9)
+        ax.text(period_center, config.min_volts - 0.1 * config.amplitude_volts,
+                f'Period: {config.period_time_ms:.2f} ms', ha='center', va='top', fontsize=9)
+
+    colors = ['blue', 'green', 'red', 'purple', 'cyan', 'orange']
     color_idx = 0
     for waveform_name, single_waveform in waveforms.items():
         waveform = np.tile(single_waveform, num_cycles)
@@ -248,29 +268,12 @@ def plot_waveforms(waveforms: dict[str, NDArray], config: DAQWaveformConfig, num
     ax.axhline(y=config.max_volts, color='orange', linestyle=':', alpha=0.7, label='Max Voltage')
     ax.axhline(y=config.min_volts, color='cyan', linestyle=':', alpha=0.7, label='Min Voltage')
 
-    for i in range(num_cycles):
-        start = i * config.total_cycle_time_ms
-        ax.axvline(x=start + config.start_time_ms, color='gray', linestyle='--', alpha=0.5)
-        ax.axvline(x=start + config.end_time_ms, color='gray', linestyle='--', alpha=0.5)
-
-        # Highlight active and rest periods
-        active_rect = Rectangle((start + config.start_time_ms, config.min_volts),
-                                config.end_time_ms - config.start_time_ms,
-                                config.max_volts - config.min_volts,
-                                facecolor='yellow', alpha=0.1)
-        rest_rect = Rectangle((start + config.end_time_ms, config.min_volts),
-                              config.rest_time_ms,
-                              config.max_volts - config.min_volts,
-                              facecolor='gray', alpha=0.1)
-        ax.add_patch(active_rect)
-        ax.add_patch(rest_rect)
-
     plt.title(f"Combined Waveforms ({num_cycles} cycles)")
     plt.xlabel("Time (ms)")
     plt.ylabel("Voltage (V)")
 
     y_range = config.amplitude_volts
-    y_padding = 0.2 * y_range
+    y_padding = 0.3 * y_range
     ax.set_ylim(config.min_volts - y_padding, config.max_volts + y_padding)
     ax.set_xlim(0, total_time_ms)
 
@@ -279,12 +282,14 @@ def plot_waveforms(waveforms: dict[str, NDArray], config: DAQWaveformConfig, num
     plt.grid(True, which='both', linestyle=':', alpha=0.5)
 
     # Add annotations for config parameters
-    plt.annotate(f"Period: {config.period_time_ms} ms", xy=(0.02, 0.98), xycoords='axes fraction',
-                 verticalalignment='top', fontsize=8)
-    plt.annotate(f"Rest Time: {config.rest_time_ms} ms", xy=(0.02, 0.94), xycoords='axes fraction',
-                 verticalalignment='top', fontsize=8)
-    plt.annotate(f"Frequency: {config.frequency_hz} Hz", xy=(0.02, 0.90), xycoords='axes fraction',
-                 verticalalignment='top', fontsize=8)
+    plt.annotate(f"Duty Cycle: {config.duty_cycle:.2%}", xy=(0.02, 0.96), xycoords='axes fraction',
+                 verticalalignment='top', fontsize=10)
+    plt.annotate(f"Frequency: {config.waveform_frequency_hz:.2f} Hz", xy=(0.02, 0.93), xycoords='axes fraction',
+                 verticalalignment='top', fontsize=10)
+    plt.annotate(f"Start Time: {config.start_time_ms:.2f} ms", xy=(0.02, 0.90), xycoords='axes fraction',
+                 verticalalignment='top', fontsize=10)
+    plt.annotate(f"End Time: {config.end_time_ms:.2f} ms", xy=(0.02, 0.87), xycoords='axes fraction',
+                 verticalalignment='top', fontsize=10)
 
     if save:
         if filename is None:
