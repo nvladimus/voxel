@@ -3,9 +3,7 @@ from abc import abstractmethod
 from multiprocessing import Event, Queue, Value
 from pathlib import Path
 from typing import Optional
-
 import numpy
-
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 
@@ -467,7 +465,7 @@ class BaseWriter:
 
     @DeliminatedProperty(minimum=0, maximum=100, unit='%')
     @abstractmethod
-    def signal_progress_percent(self) -> float:
+    def progress(self) -> float:
         """Get the progress of the writer.
 
         :return: Progress in percent
@@ -502,7 +500,7 @@ class BaseWriter:
         self.log.info(f"{self._filename}: waiting to finish.")
         self._process.join()
         # log the finished writer %
-        self.signal_progress_percent
+        self.log.info(f'progress percent: {self.progress}')
 
     @abstractmethod
     def delete_files(self):

@@ -2,7 +2,7 @@ import logging
 import threading
 from abc import abstractmethod
 from pathlib import Path
-
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 from imohash import hashfile
 
 
@@ -35,7 +35,7 @@ class BaseFileTransfer:
         self._verify_transfer = False
         self._num_tries = 1
         self._timeout_s = 60
-        self.progress = 0
+        self._progress = 0
 
     @property
     @abstractmethod
@@ -212,9 +212,9 @@ class BaseFileTransfer:
         self._timeout_s = timeout_s
         self.log.info(f"setting timeout to: {timeout_s}")
 
-    @property
+    @DeliminatedProperty(minimum=0, maximum=100, unit='%')
     @abstractmethod
-    def signal_process_percent(self) -> float:
+    def progress(self) -> float:
         """
         Get the progress of the transfer process.
 
@@ -222,10 +222,8 @@ class BaseFileTransfer:
         :rtype: float
         """
 
-        state = {}
-        state["Transfer Progress [%]"] = self.progress
-        self.log.info(f"{self._filename} transfer progress: {self.progress:.2f} [%]")
-        return state
+        self.log.info(f"{self._filename} transfer progress: {self._progress:.2f} [%]")
+        return self._progress
 
     @abstractmethod
     def start(self):
