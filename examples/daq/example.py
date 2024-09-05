@@ -14,7 +14,7 @@ if __name__ == '__main__':
         task_type=DAQTaskType.AO,
         sampling_frequency_hz=350e3,
         period_time_ms=10,
-        rest_time_ms=2,
+        rest_time_ms=0,
         daq=daq
     )
 
@@ -58,7 +58,20 @@ if __name__ == '__main__':
             end_time_ms=7.5
         )
         ao_task.add_channel(delayed_square_channel)
+        sawtooth_channel = DAQTaskChannel(
+            name="Sawtooth",
+            port="ao3",
+            waveform_type=DAQWaveform.TRIANGLE,
+            center_volts=0,
+            amplitude_volts=2.5,
+            cut_off_frequency_hz=1000,
+            start_time_ms=0,
+            end_time_ms=10
+        )
+        ao_task.add_channel(sawtooth_channel)
 
-    ao_task.plot_waveforms(num_cycles=5)
+    ao_task.write_waveforms()
 
-    ao_task.close()
+    ao_task.plot_waveforms(num_cycles=3)
+
+    daq.close()

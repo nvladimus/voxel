@@ -99,6 +99,7 @@ class DAQTask:
                              f"Range: {self.daq.ao_voltage_range}")
 
         self.channels[channel.name] = channel
+        channel.set_timing(self.timing)
         self._update_task()
 
     def remove_channel(self, channel_name: str):
@@ -111,11 +112,33 @@ class DAQTask:
     def _update_task(self):
         self.daq.register_task(self)
 
+    def start(self):
+        self.write_waveforms()
+        self.daq.start_task(self.name)
+
+    def stop(self):
+        self.daq.stop_task(self.name)
+
+    def close(self):
+        self.daq.close_task(self.name)
+
+    def wait_until_done(self, timeout: float = 1.0):
+        self.daq.wait_until_task_is_done(self.name, timeout)
+
+    def is_done(self) -> bool:
+        return self.daq.is_task_done(self.name)
+
     def generate_waveforms(self) -> Dict[str, NDArray]:
         waveforms = {}
         for name, channel in self.channels.items():
-            waveforms[name] = channel.generate_waveform(self.timing)
+            waveforms[channel.port] = channel.generate_waveform(self.timing)
         return waveforms
+
+    def get_channel_by_port(self, port: str) -> Optional[DAQTaskChannel]:
+        for channel in self.channels.values():
+            if channel.port == port:
+                return channel
+        return None
 
     def write_waveforms(self):
         self.daq.write_task_waveforms(self.name)
@@ -134,14 +157,15 @@ class DAQTask:
             ax.axvspan(start, period_end, facecolor='yellow', alpha=0.05, edgecolor='none')
 
         # Plot waveforms
+        # noinspection PyUnresolvedReferences
         colors = plt.cm.rainbow(np.linspace(0, 1, len(waveforms)))
         y_range = 0, 0
-        for (name, waveform), color in zip(waveforms.items(), colors):
-            channel = self.channels[name]
+        for (port, waveform), color in zip(waveforms.items(), colors):
+            channel = self.get_channel_by_port(port)
             y_range = min(y_range[0], channel.min_volts), max(y_range[1], channel.max_volts)
             full_waveform = np.tile(waveform, num_cycles)
             time_ms = np.linspace(0, total_time_ms, len(full_waveform))
-            ax.plot(time_ms, full_waveform, label=name, color=color)
+            ax.plot(time_ms, full_waveform, label=channel.name, color=color)
 
             # Plot channel-specific lines and annotations
             ax.axhline(y=channel.center_volts, color=color, linestyle='--', alpha=0.5)
@@ -178,105 +202,5 @@ class DAQTask:
                 filename = f"{self.name}_waveforms_{num_cycles}cycles.pdf"
             plt.savefig(filename, bbox_inches='tight')
             print(f"Waveform plot saved as {filename}")
-        else:
-            plt.show()
-
-    def start(self):
-        self.daq.start_task(self.name)
-
-    def stop(self):
-        self.daq.stop_task(self.name)
-
-    def close(self):
-        self.daq.close_task(self.name)
-
-    # def plot_waveforms(self, num_cycles: int = 1):
-    #     waveforms = self.generate_waveforms()
-    #     plt_channel = next(iter(self.channels.values()))
-    #     self._plot_waveforms(waveforms, self.timing, plt_channel, num_cycles)
-
-    @staticmethod
-    def _plot_waveforms(
-            waveforms: dict[str, NDArray],
-            timing: DAQTaskTiming,
-            channel: DAQTaskChannel,
-            num_cycles: int = 1,
-            save: bool = False, filename: str = None):
-        """
-        Plot multiple waveforms on the same graph with improved parameter highlighting.
-
-        :param waveforms: Dictionary of waveforms to plot with their names as keys
-        :param timing: The timing configuration for the waveforms
-        :param channel: The channel configuration for the waveforms
-        :param num_cycles: Number of waveform_type cycles to plot (default is 1)
-        :param save: Whether to save the plot to a file
-        :param filename: The filename to save the plot (if save is True)
-        """
-        plt.figure(figsize=(15, 10))
-        ax = plt.axes()
-
-        total_time_ms = timing.total_cycle_time_ms * num_cycles
-
-        for i in range(num_cycles):
-            start = i * timing.total_cycle_time_ms
-            period_start = start
-            period_end = timing.period_time_ms + period_start
-            period_center = period_start + (period_end - period_start) / 2
-
-            rest_start = timing.period_time_ms + start
-            rest_end = timing.rest_time_ms + rest_start
-            rest_center = rest_start + (rest_end - rest_start) / 2
-
-            # plot yellow background for period times
-            ax.axvspan(period_start, period_end, facecolor='yellow', alpha=0.05, edgecolor='none')
-            # add text labels for time periods
-            ax.text(rest_center, channel.min_volts - 0.1 * channel.amplitude_volts,
-                    f'Rest: {timing.rest_time_ms:.2f} ms', ha='center', va='top', fontsize=9)
-            ax.text(period_center, channel.min_volts - 0.1 * channel.amplitude_volts,
-                    f'Period: {timing.period_time_ms:.2f} ms', ha='center', va='top', fontsize=9)
-
-        colors = ['blue', 'green', 'red', 'purple', 'cyan', 'orange']
-        color_idx = 0
-        for waveform_name, single_waveform in waveforms.items():
-            waveform = np.tile(single_waveform, num_cycles)
-            time_ms = np.linspace(0, total_time_ms, len(waveform))
-            plt.plot(time_ms, waveform, label=waveform_name, color=colors[color_idx])
-            color_idx = (color_idx + 1) % len(colors)
-
-        # Highlight config parameters
-        ax.axhline(y=channel.center_volts, color='purple', linestyle='--', alpha=0.7, label='Center Voltage')
-        ax.axhline(y=channel.max_volts, color='orange', linestyle=':', alpha=0.7, label='Max Voltage')
-        ax.axhline(y=channel.min_volts, color='cyan', linestyle=':', alpha=0.7, label='Min Voltage')
-
-        plt.title(f"Combined Waveforms ({num_cycles} cycles)")
-        plt.xlabel("Time (ms)")
-        plt.ylabel("Voltage (V)")
-
-        y_range = channel.amplitude_volts
-        y_padding = 0.3 * y_range
-        ax.set_ylim(channel.min_volts - y_padding, channel.max_volts + y_padding)
-        ax.set_xlim(0, total_time_ms)
-
-        ax.spines[['right', 'top']].set_visible(False)
-        plt.legend()
-        plt.grid(True, which='both', linestyle=':', alpha=0.5)
-
-        duty_cycle = (channel.end_time_ms - channel.start_time_ms) / timing.period_time_ms
-
-        # Add annotations for config parameters
-        plt.annotate(f"Duty Cycle: {duty_cycle:.2%}", xy=(0.02, 0.96), xycoords='axes fraction',
-                     verticalalignment='top', fontsize=10)
-        plt.annotate(f"Frequency: {timing.waveform_frequency_hz:.2f} Hz", xy=(0.02, 0.93), xycoords='axes fraction',
-                     verticalalignment='top', fontsize=10)
-        plt.annotate(f"Start Time: {channel.start_time_ms:.2f} ms", xy=(0.02, 0.90), xycoords='axes fraction',
-                     verticalalignment='top', fontsize=10)
-        plt.annotate(f"End Time: {channel.end_time_ms:.2f} ms", xy=(0.02, 0.87), xycoords='axes fraction',
-                     verticalalignment='top', fontsize=10)
-
-        if save:
-            if filename is None:
-                filename = f"combined_waveforms_{num_cycles}cycles.pdf"
-            plt.savefig(filename, bbox_inches='tight')
-            print(f"Combined waveform_type plot saved as {filename}")
         else:
             plt.show()

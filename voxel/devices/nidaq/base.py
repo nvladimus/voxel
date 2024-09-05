@@ -75,5 +75,13 @@ class VoxelDAQ(VoxelDevice):
         pass
 
     @abstractmethod
+    def wait_until_task_is_done(self, task_name: str, timeout: float):
+        pass
+
+    @abstractmethod
+    def is_task_done(self, task_name: str) -> bool:
+        pass
+
+    @abstractmethod
     def write_task_waveforms(self, task_name: str):
         pass

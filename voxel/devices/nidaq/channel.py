@@ -11,7 +11,6 @@ from enum import StrEnum
 from typing import Optional, Tuple
 
 import numpy as np
-from numba.cuda.cudadrv.devicearray import lru_cache
 from numpy.typing import NDArray
 from scipy import signal
 
@@ -65,9 +64,14 @@ class DAQTaskChannel:
     start_time_ms: float
     end_time_ms: float
     cut_off_frequency_hz: float
+    _timing: Optional[DAQTaskTiming] = None
 
     def __post_init__(self):
+        self._timing = None  # no timing by default
         self.validate()
+
+    def set_timing(self, timing: DAQTaskTiming):
+        self._timing = timing
 
     @property
     def min_volts(self) -> float:

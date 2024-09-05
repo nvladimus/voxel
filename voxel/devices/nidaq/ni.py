@@ -2,15 +2,16 @@ from functools import lru_cache
 from typing import List, Tuple, Dict
 
 import nidaqmx
-from nidaqmx.constants import AcquisitionType, Edge
+from nidaqmx.constants import AcquisitionType, Edge, Level, TaskMode
 
 from voxel.devices.nidaq.base import VoxelDAQ
-from voxel.devices.nidaq.task import DAQTask, DAQTaskType, DAQTaskChannel, DAQTaskTriggerMode, DAQTaskTriggerEdge
+from voxel.devices.nidaq.task import DAQTask, DAQTaskType, DAQTaskChannel, DAQTaskTriggerMode, DAQTaskTriggerEdge, \
+    DAQTaskSampleMode
 
 
-# TODO: Add Buffer management
-# TODO: Add methods for asynchronous task execution e.g. wait_for_task_completion()
-# TODO: Allow Task and Channel manipulation and improve their validation
+# Need?
+# TODO: Allow Task and Channel manipulation and improve their validation, use deliminated and enumerated properties
+# Extras
 # TODO: Consider caching channel waveforms.
 #   but be careful with memory usage especially if channel and task configurations are dynamic
 # TODO: Consider creating a context manager either for device or specific tasks (or specific tasks running)
@@ -95,13 +96,21 @@ class VoxelNIDAQ(VoxelDAQ):
             )
 
         def configure_trigger(task: DAQTask):
-            if task.trigger_mode == DAQTaskTriggerMode.ON and task.trigger_source:
-                trigger_edge = Edge.RISING if task.trigger_edge == DAQTaskTriggerEdge.RISING else Edge.FALLING
-                task.hardware_task.triggers.start_trigger.cfg_dig_edge_start_trig(
-                    trigger_source=f'/{self.device_name}/{task.trigger_source}',
-                    trigger_edge=trigger_edge
-                )
-                task.hardware_task.triggers.start_trigger.retriggerable = task.retriggerable
+            if task.task_type == DAQTaskType.CO:
+                if task.trigger_mode == DAQTaskTriggerMode.OFF:
+                    # TODO: Figure out how to pass in pulse_count
+                    pulse_count = {'sample_mode': DAQTaskSampleMode.CONTINUOUS}
+                    task.hardware_task.timing.cfg_implicit_timing(**pulse_count)
+                else:
+                    raise ValueError(f"Trigger mode {task.trigger_mode.name} not supported for CO tasks.")
+            elif task.task_type in [DAQTaskType.AO, DAQTaskType.DO]:
+                if task.trigger_mode == DAQTaskTriggerMode.ON and task.trigger_source:
+                    trigger_edge = Edge.RISING if task.trigger_edge == DAQTaskTriggerEdge.RISING else Edge.FALLING
+                    task.hardware_task.triggers.start_trigger.cfg_dig_edge_start_trig(
+                        trigger_source=f'/{self.device_name}/{task.trigger_source}',
+                        trigger_edge=trigger_edge
+                    )
+                    task.hardware_task.triggers.start_trigger.retriggerable = task.retriggerable
 
         def create_ao_channel(task: DAQTask, channel: DAQTaskChannel):
             task.hardware_task.ao_channels.add_ao_voltage_chan(f"/{self.device_name}/{channel.port}")
@@ -128,6 +137,10 @@ class VoxelNIDAQ(VoxelDAQ):
             configure_timing(task)
             configure_trigger(task)
 
+        # TODO: Figure out how to handle the following
+        setattr(task.hardware_task, f"{task.task_type.name.lower()}_line_states_done_state", Level.LOW)
+        setattr(task.hardware_task, f"{task.task_type.name.lower()}_line_states_paused_state", Level.LOW)
+
         self.tasks[task.name] = task
 
     def start_task(self, task_name: str):
@@ -148,13 +161,59 @@ class VoxelNIDAQ(VoxelDAQ):
         except KeyError:
             raise ValueError(f"Task {task_name} not found in DAQ manager.")
 
+    def wait_until_task_is_done(self, task_name: str, timeout=1.0):
+        try:
+            task = self.tasks[task_name]
+            if task.hardware_task:
+                task.hardware_task.wait_until_done(timeout)
+        except KeyError:
+            raise ValueError(f"Task {task_name} not found in DAQ manager.")
+
+    def is_task_done(self, task_name: str):
+        try:
+            task = self.tasks[task_name]
+            if task.hardware_task:
+                return task.hardware_task.is_task_done()
+        except KeyError:
+            raise ValueError(f"Task {task_name} not found in DAQ manager.")
+
     def write_task_waveforms(self, task_name: str):
+
+        def rereserve_buffer(task: DAQTask, buffer_size: int):
+            if task.hardware_task:
+                task.hardware_task.control(TaskMode.TASK_UNRESERVE)
+                task.hardware_task.out_stream.output_buf_size = buffer_size
+                task.hardware_task.control(TaskMode.TASK_COMMIT)
+
         try:
             task = self.tasks[task_name]
             if task.hardware_task:
                 waveforms = task.generate_waveforms()
-                if task.task_type in [DAQTaskType.AO, DAQTaskType.DO]:
-                    task.hardware_task.write(list(waveforms.values()), auto_start=True)
+                match task.task_type:
+                    case DAQTaskType.AO | DAQTaskType.DO:
+                        # Get the channel names directly from the hardware task
+                        channel_names = task.hardware_task.channel_names
+
+                        if len(waveforms) != len(channel_names):
+                            raise ValueError(
+                                f"Number of waveforms ({len(waveforms)}) "
+                                f"does not match number of channels ({len(channel_names)})")
+
+                        # Organize waveforms based on the hardware task's channel order
+                        ordered_waveforms = []
+                        for full_channel_name in channel_names:
+                            channel_name = full_channel_name.split('/')[-1]
+                            if channel_name not in waveforms:
+                                raise ValueError(f"Waveform for channel {channel_name} not found")
+                            ordered_waveforms.append(waveforms[channel_name])
+
+                        self.log.debug(f"Writing waveforms for task {task_name} in order: {channel_names}")
+
+                        if task.hardware_task.is_task_done():
+                            rereserve_buffer(task, len(ordered_waveforms[0]))
+                        task.hardware_task.write(ordered_waveforms, auto_start=True)
+                    case _:
+                        self.log.warning(f"Task {task_name} not supported for waveform writing.")
         except KeyError:
             raise ValueError(f"Task {task_name} not found in DAQ manager.")
 
