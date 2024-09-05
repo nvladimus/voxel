@@ -157,7 +157,7 @@ class DAQ(BaseDAQ):
             # if f"{self.id}/{ timing['output_port']}" not in self.dio_ports:
             #     raise ValueError("output port must be one of %r." % self.dio_ports)
 
-            if timing['frequency_hz'] < 0:
+            if timing['cut_off_frequency_hz'] < 0:
                 raise ValueError(f"frequency must be >0 Hz")
 
             for channel_number in task['counters']:
@@ -167,7 +167,7 @@ class DAQ(BaseDAQ):
                 co_chan = daq_task.co_channels.add_co_pulse_chan_freq(
                     counter=physical_name,
                     units=FrequencyUnits.HZ,
-                    freq=timing['frequency_hz'],
+                    freq=timing['cut_off_frequency_hz'],
                     duty_cycle=0.5)
                 co_chan.co_pulse_term = f'/{self.id}/{timing["output_port"]}'
                 pulse_count = {'sample_mode': AcqType.FINITE, 'samps_per_chan': pulse_count} \
@@ -179,7 +179,7 @@ class DAQ(BaseDAQ):
                 raise ValueError(f'triggering not support for counter output tasks.')
 
             # store the total task time
-            self.task_time_s[task['name']] = 1 / timing['frequency_hz']
+            self.task_time_s[task['name']] = 1 / timing['cut_off_frequency_hz']
 
         setattr(self, f"{task_type}_task", daq_task)  # set task attribute
 
@@ -215,15 +215,15 @@ class DAQ(BaseDAQ):
 
         waveform_attribute = getattr(self, f"{task_type}_waveforms")
         for name, channel in task['ports'].items():
-            # load waveform and variables
+            # load waveform_type and variables
             port = channel['port']
             device_min_volts = channel.get('device_min_volts', 0)
             device_max_volts = channel.get('device_max_volts', 5)
-            waveform = channel['waveform']
+            waveform = channel['waveform_type']
 
             valid = globals().get(f"{task_type.upper()}_WAVEFORMS")
             if waveform not in valid:
-                raise ValueError("waveform must be one of %r." % valid)
+                raise ValueError("waveform_type must be one of %r." % valid)
 
             start_time_ms = channel['parameters']['start_time_ms']['channels'][wavelength]
             if start_time_ms > timing['period_time_ms']:
@@ -285,7 +285,7 @@ class DAQ(BaseDAQ):
             if numpy.max(voltages[:]) > device_max_volts or numpy.min(voltages[:]) < device_min_volts:
                 raise ValueError(f"voltages are out of device range [{device_min_volts}, {device_max_volts}] volts")
 
-            # store 1d voltage array into 2d waveform array
+            # store 1d voltage array into 2d waveform_type array
 
             waveform_attribute[f"{port}: {name}"] = voltages
 
@@ -355,7 +355,7 @@ class DAQ(BaseDAQ):
         # pad before filtering with last value
         padding = int(2 / (cutoff_frequency_hz / (sampling_frequency_hz)))
         if padding > 0:
-            # waveform = numpy.hstack([waveform[:padding], waveform, waveform[-padding:]])
+            # waveform_type = numpy.hstack([waveform_type[:padding], waveform_type, waveform_type[-padding:]])
             waveform = numpy.pad(array=waveform,
                                  pad_width=(padding, padding),
                                  mode='constant',
@@ -399,7 +399,7 @@ class DAQ(BaseDAQ):
                       cutoff_frequency_hz: float
                       ):
 
-        # sawtooth with end time in center of waveform
+        # sawtooth with end time in center of waveform_type
         waveform = self.sawtooth(sampling_frequency_hz,
                                  period_time_ms,
                                  start_time_ms,

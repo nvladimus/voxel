@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from devices.linear_axis import VoxelLinearAxis
+from voxel.devices.linear_axis import VoxelLinearAxis
 
 
 # max speed = 1.92 mm/s
@@ -92,16 +92,16 @@ if __name__ == '__main__':
     # x_axis.acceleration_ms = 1
     # print(x_axis)
     #
-    # start_time = time.perf_counter()
+    # start_time_ms = time.perf_counter()
     # x_axis.position_mm += 1
     # x_axis.await_move()
-    # print(f"Time taken: {time.perf_counter() - start_time}")
+    # print(f"Time taken: {time.perf_counter() - start_time_ms}")
     # print(x_axis)
     #
-    # start_time = time.perf_counter()
+    # start_time_ms = time.perf_counter()
     # x_axis.position_mm = x_axis.upper_limit_mm
     # x_axis.await_move()
-    # print(f"Time taken: {time.perf_counter() - start_time}")
+    # print(f"Time taken: {time.perf_counter() - start_time_ms}")
     # print(x_axis)
 
     print(controller.joystick_mapping)
