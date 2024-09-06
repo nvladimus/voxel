@@ -72,20 +72,20 @@ class DAQTask:
         channel = self.channels[channel_name]
         return (channel.end_time_ms - channel.start_time_ms) / self.period_time_ms
 
-    def add_channel(self, channel: DAQTaskChannel):
+    def add_channel(self, channel: DAQTaskChannel, port: str):
         if channel.name in self.channels:
             raise ValueError(f"Channel with name '{channel.name}' already exists in this task")
 
         # Check if the channel port is valid
         match self.task_type:
             case DAQTaskType.AO:
-                if not self.daq.is_valid_port(channel.port, DAQTaskType.AO):
+                if not self.daq.is_valid_port(port, DAQTaskType.AO):
                     raise ValueError(f"Invalid port: '{channel.port}' Must be one of {self.daq.ao_physical_chans}")
             case DAQTaskType.DO:
-                if not self.daq.is_valid_port(channel.port, DAQTaskType.DO):
+                if not self.daq.is_valid_port(port, DAQTaskType.DO):
                     raise ValueError(f"Invalid port: '{channel.port}' Must be one of {self.daq.do_physical_chans}")
             case DAQTaskType.CO:
-                if not self.daq.is_valid_port(channel.port, DAQTaskType.CO):
+                if not self.daq.is_valid_port(port, DAQTaskType.CO):
                     raise ValueError(f"Invalid port: '{channel.port}' Must be one of {self.daq.co_physical_chans}")
 
         # check the waveform_type is valid for the task type
@@ -98,16 +98,20 @@ class DAQTask:
             raise ValueError(f"Channel '{channel.name}' exceeds the voltage range of the device. "
                              f"Range: {self.daq.ao_voltage_range}")
 
-        self.channels[channel.name] = channel
+        self.channels[port] = channel
         channel.set_timing(self.timing)
+        channel.port = port
         self._update_task()
 
     def remove_channel(self, channel_name: str):
         self.channels.pop(channel_name, None)
         self._update_task()
 
-    def get_channel(self, channel_name: str) -> Optional[DAQTaskChannel]:
-        return self.channels.get(channel_name)
+    def get_channel(self, port: Optional[str] = None, name: Optional[str] = None) -> Optional[DAQTaskChannel]:
+        if port:
+            return self.channels.get(port, None)
+        if name:
+            return next((channel for channel in self.channels.values() if channel.name == name), None)
 
     def _update_task(self):
         self.daq.register_task(self)
@@ -130,15 +134,9 @@ class DAQTask:
 
     def generate_waveforms(self) -> Dict[str, NDArray]:
         waveforms = {}
-        for name, channel in self.channels.items():
-            waveforms[channel.port] = channel.generate_waveform(self.timing)
+        for port, channel in self.channels.items():
+            waveforms[port] = channel.generate_waveform(self.timing)
         return waveforms
-
-    def get_channel_by_port(self, port: str) -> Optional[DAQTaskChannel]:
-        for channel in self.channels.values():
-            if channel.port == port:
-                return channel
-        return None
 
     def write_waveforms(self):
         self.daq.write_task_waveforms(self.name)
@@ -161,7 +159,7 @@ class DAQTask:
         colors = plt.cm.rainbow(np.linspace(0, 1, len(waveforms)))
         y_range = 0, 0
         for (port, waveform), color in zip(waveforms.items(), colors):
-            channel = self.get_channel_by_port(port)
+            channel = self.get_channel(port)
             y_range = min(y_range[0], channel.min_volts), max(y_range[1], channel.max_volts)
             full_waveform = np.tile(waveform, num_cycles)
             time_ms = np.linspace(0, total_time_ms, len(full_waveform))

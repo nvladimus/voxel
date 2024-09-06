@@ -57,17 +57,18 @@ class DAQTaskTiming:
 @dataclass
 class DAQTaskChannel:
     name: str
-    port: str
     waveform_type: DAQWaveform
     center_volts: float
     amplitude_volts: float
     start_time_ms: float
     end_time_ms: float
     cut_off_frequency_hz: float
+    port: Optional[str] = None
     _timing: Optional[DAQTaskTiming] = None
 
     def __post_init__(self):
         self._timing = None  # no timing by default
+        self.port = None
         self.validate()
 
     def set_timing(self, timing: DAQTaskTiming):

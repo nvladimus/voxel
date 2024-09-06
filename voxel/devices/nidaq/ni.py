@@ -2,6 +2,7 @@ from functools import lru_cache
 from typing import List, Tuple, Dict
 
 import nidaqmx
+import numpy as np
 from nidaqmx.constants import AcquisitionType, Edge, Level, TaskMode
 
 from voxel.devices.nidaq.base import VoxelDAQ
@@ -211,7 +212,8 @@ class VoxelNIDAQ(VoxelDAQ):
 
                         if task.hardware_task.is_task_done():
                             rereserve_buffer(task, len(ordered_waveforms[0]))
-                        task.hardware_task.write(ordered_waveforms, auto_start=True)
+                        print(np.array(ordered_waveforms))
+                        task.hardware_task.write(np.array(ordered_waveforms), auto_start=False)
                     case _:
                         self.log.warning(f"Task {task_name} not supported for waveform writing.")
         except KeyError:
