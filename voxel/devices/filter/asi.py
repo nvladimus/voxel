@@ -20,11 +20,11 @@ class ASIFilterWheel(VoxelFilterWheel):
         self._current_filter: Optional[str] = None
         self._is_closed = False
 
-    def add_filter(self, name: str, position: int):
+    def add_filter(self, filter_name: str, position: int):
         """Add a filter to the wheel."""
-        if name in self.filters:
-            raise ValueError(f"Filter '{name}' already exists on this wheel.")
-        self.filters[name] = position
+        if filter_name in self.filters:
+            raise ValueError(f"Filter '{filter_name}' already exists on this wheel.")
+        self.filters[filter_name] = position
 
     def set_filter(self, filter_name: str) -> None:
         """Set the filterwheel to the specified filter."""
@@ -67,12 +67,12 @@ class ASIFilterWheel(VoxelFilterWheel):
 
 
 class ASIFilter(VoxelFilter):
-    def __init__(self, name: str, name: str, wheel: ASIFilterWheel, position: int):
+    def __init__(self, name: str, filter_name: str, wheel: ASIFilterWheel, position: int):
         super().__init__(name)
-        self.name = name
+        self.filter_name = filter_name
         self.wheel = wheel
         self.position = position
-        self.wheel.add_filter(name, position)
+        self.wheel.add_filter(filter_name, position)
 
     def enable(self) -> None:
         """Enable this filter if no other filter is enabled"""

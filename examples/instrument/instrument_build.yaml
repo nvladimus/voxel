@@ -20,6 +20,12 @@ devices:
     daq_channel:
       task: ao-task
       port: ao0
+      waveform_type: square
+      center_volts: 2.5
+      amplitude_volts: 2.5
+      cut_off_freq_hz: 1000
+      start_time_ms: 0
+      end_time_ms: 5
   laser_488:
     module: voxel.devices.laser.simulated
     class: SimulatedLaser
@@ -34,14 +40,14 @@ devices:
     module: voxel.devices.filter.simulated
     class: SimulatedFilter
     kwds:
-      name: BP488
+      filter_name: BP488
       wheel: filterwheel
       position: 1
   filter_561:
     module: voxel.devices.filter.simulated
     class: SimulatedFilter
     kwds:
-      name: BP561
+      filter_name: BP561
       wheel: filterwheel
       position: 2
   x-axis:
@@ -65,9 +71,6 @@ devices:
       hardware_axis: Z
       dimension: Z
       tigerbox: tigerbox
-    daq_channel:
-      task: ao-task
-      port: ao1
   filterwheel:
     module: voxel.devices.filter.simulated
     class: SimulatedFilterWheel
@@ -82,10 +85,14 @@ devices:
     module: voxel.devices.nidaq.ni
     class: DAQTask
     kwds:
+      task_type: ao
+      sampling_frequency_hz: 350000
+      period_time_ms: 10
+      rest_time_ms: 0
       daq: nidaq
   nidaq:
     module: voxel.devices.nidaq.ni
-    class: NIDAQ
+    class: VoxelNIDAQ
     kwds:
       conn: Dev1
 

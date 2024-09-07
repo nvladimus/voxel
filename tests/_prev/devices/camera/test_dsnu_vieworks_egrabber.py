@@ -13,7 +13,7 @@ camera_config = config['devices']['cameras'][0]
 
 # grab _config values for creating object
 driver = camera_config['driver']
-camera_id = camera_config['name']
+camera_id = camera_config['id']
 # create camera object
 exec(f"from voxel.devices.camera import {driver}")
 exec(f"camera = {driver}.Camera('{camera_id}')")

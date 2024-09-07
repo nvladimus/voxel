@@ -40,9 +40,6 @@ class ASITigerBox(VoxelDevice):
         self.log = self.box.log
         self.log.debug(f"Connected to TigerBox on port {port}. Hardware Configuration: {self.build_config}")
 
-    def close(self):
-        self.box.ser.close()
-
     @property
     def hardware_axes(self) -> list[str]:
         return self.box.ordered_axes
@@ -54,11 +51,11 @@ class ASITigerBox(VoxelDevice):
     @property
     def joystick_mapping(self) -> Dict[str, str]:
         hardware_mapping = self.box.get_joystick_axis_mapping()
-        return {axis_id: hardware_mapping[hardware_axis] for axis_id, hardware_axis in self.axis_map.items()}
+        return {axis_name: hardware_mapping[hardware_axis] for axis_name, hardware_axis in self.axis_map.items()}
 
-    def register_device(self, axis_id: str, hardware_axis: str):
+    def register_device(self, axis_name: str, hardware_axis: str):
         """Register a device with the TigerBox controller.
-        :param axis_id: unique axis identifier
+        :param axis_name: unique axis identifier
         :param hardware_axis: hardware axis name, must be one of the available axes on the connected TigerBox
         :raises DeviceConnectionError: if the hardware axis is not found in the connected TigerBox
         or if the axis ID is already registered
@@ -70,20 +67,20 @@ class ASITigerBox(VoxelDevice):
         for axis, hw_axis in self.axis_map.items():
             if hw_axis == hardware_axis:
                 raise DeviceConnectionError(f"Hardware axis {hardware_axis} already registered as {axis}")
-            if axis_id == axis:
-                raise DeviceConnectionError(f"Axis ID {axis_id} already registered as {hw_axis}")
+            if axis_name == axis:
+                raise DeviceConnectionError(f"Axis ID {axis_name} already registered as {hw_axis}")
 
-        self.axis_map[axis_id] = hardware_axis
+        self.axis_map[axis_name] = hardware_axis
 
     def register_linear_axis(self,
-                             axis_id: str,
+                             axis_name: str,
                              hardware_axis: str,
                              dimension: LinearAxisDimension,
                              joystick_polarity: Literal[-1, 1] = 1,
                              joystick_input: Optional[JoystickInput] = None,
                              ):
         """Register a linear axis with the TigerBox controller.
-        :param axis_id: unique axis identifier
+        :param axis_name: unique axis identifier
         :param hardware_axis: hardware axis name, must be one of the available axes on the connected TigerBox
         :param dimension: LinearAxisDimension, X, Y, Z, or N
         :param joystick_input: JoystickInput, the joystick input to bind to this axis
@@ -91,13 +88,13 @@ class ASITigerBox(VoxelDevice):
         :raises DeviceConnectionError: if the hardware axis is not found in the connected TigerBox
         or if the axis ID is already registered
         """
-        self.register_device(axis_id, hardware_axis)
+        self.register_device(axis_name, hardware_axis)
 
         # there can be only one X, Y, Z axis but multiple N axes
         if dimension != LinearAxisDimension.N:
             if dimension in self.dimensions_map:
                 raise ValueError(f"Dimension {dimension} already registered as {self.dimensions_map[dimension]}")
-            self.dimensions_map[dimension] = axis_id
+            self.dimensions_map[dimension] = axis_name
 
         joystick_input = joystick_input or self._default_joystick_input(dimension)
         if joystick_input != JoystickInput.NONE:
@@ -105,14 +102,21 @@ class ASITigerBox(VoxelDevice):
             polarity = JoystickPolarity.INVERTED if joystick_polarity < 0 else JoystickPolarity.DEFAULT
             self.box.set_joystick_axis_polarity(**{hardware_axis: polarity})
 
-        # self.disable_zero_button(axis_id)
+        # self.disable_zero_button(axis_name)
 
-    def deregister_device(self, axis_id: str):
-        if axis_id in self.axis_map:
-            self.axis_map.pop(axis_id)
-        for dimension, axis in self.dimensions_map.items():
-            if axis == axis_id:
-                self.dimensions_map.pop(dimension)
+    def deregister_device(self, axis_name: str):
+        if axis_name in self.axis_map:
+            self.axis_map.pop(axis_name)
+
+        # Create a list of dimensions to remove
+        dimensions_to_remove = [
+            dimension for dimension, axis in self.dimensions_map.items()
+            if axis == axis_name
+        ]
+
+        # Remove the dimensions outside the loop
+        for dimension in dimensions_to_remove:
+            self.dimensions_map.pop(dimension)
 
     def close(self):
         if not self.axis_map:
@@ -120,96 +124,96 @@ class ASITigerBox(VoxelDevice):
                 self.box.stop_scan()
             self.box.ser.close()
 
-    def get_axis_position(self, axis_id: str) -> float:
-        box_axis = self.axis_map[axis_id]
+    def get_axis_position(self, axis_name: str) -> float:
+        box_axis = self.axis_map[axis_name]
         steps = float(self.box.get_position(box_axis)[box_axis])
         return steps / (STEPS_PER_UM * 1000)  # convert to mm
 
-    def move_absolute_mm(self, axis_id: str, position_mm: float) -> None:
-        self.box.move_absolute(**{self.axis_map[axis_id]: round(position_mm * 1000 * STEPS_PER_UM, 1), 'wait': True})
+    def move_absolute_mm(self, axis_name: str, position_mm: float) -> None:
+        self.box.move_absolute(**{self.axis_map[axis_name]: round(position_mm * 1000 * STEPS_PER_UM, 1), 'wait': True})
 
     def await_movement(self) -> None:
         self.box.wait()
 
-    def get_axis_limits(self, axis_id: str) -> tuple[float, float]:
-        box_axis = self.axis_map[axis_id]
+    def get_axis_limits(self, axis_name: str) -> tuple[float, float]:
+        box_axis = self.axis_map[axis_name]
         lower = float(self.box.get_lower_travel_limit(box_axis)[box_axis])
         upper = float(self.box.get_upper_travel_limit(box_axis)[box_axis])
         return lower, upper
 
-    def get_upper_travel_limit(self, axis_id: str) -> float:
-        return float(self.box.get_upper_travel_limit(self.axis_map[axis_id])[self.axis_map[axis_id]])
+    def get_upper_travel_limit(self, axis_name: str) -> float:
+        return float(self.box.get_upper_travel_limit(self.axis_map[axis_name])[self.axis_map[axis_name]])
 
-    def get_lower_travel_limit(self, axis_id: str) -> float:
-        return float(self.box.get_lower_travel_limit(self.axis_map[axis_id])[self.axis_map[axis_id]])
+    def get_lower_travel_limit(self, axis_name: str) -> float:
+        return float(self.box.get_lower_travel_limit(self.axis_map[axis_name])[self.axis_map[axis_name]])
 
-    def set_upper_travel_limit_in_place(self, axis_id: str):
-        self.box.set_upper_travel_limit(self.axis_map[axis_id])
+    def set_upper_travel_limit_in_place(self, axis_name: str):
+        self.box.set_upper_travel_limit(self.axis_map[axis_name])
 
-    def set_lower_travel_limit_in_place(self, axis_id: str):
-        self.box.set_lower_travel_limit(self.axis_map[axis_id])
+    def set_lower_travel_limit_in_place(self, axis_name: str):
+        self.box.set_lower_travel_limit(self.axis_map[axis_name])
 
-    def set_upper_travel_limit(self, axis_id: str, limit: float):
-        self.box.set_upper_travel_limit(**{self.axis_map[axis_id]: limit, 'wait': True})
+    def set_upper_travel_limit(self, axis_name: str, limit: float):
+        self.box.set_upper_travel_limit(**{self.axis_map[axis_name]: limit, 'wait': True})
 
-    def set_lower_travel_limit(self, axis_id: str, limit: float):
-        self.box.set_lower_travel_limit(**{self.axis_map[axis_id]: limit, 'wait': True})
+    def set_lower_travel_limit(self, axis_name: str, limit: float):
+        self.box.set_lower_travel_limit(**{self.axis_map[axis_name]: limit, 'wait': True})
 
-    def set_axis_limits(self, axis_id: str, lower_limit: float, upper_limit: float) -> None:
-        self.set_upper_travel_limit(axis_id, upper_limit)
-        self.set_lower_travel_limit(axis_id, lower_limit)
+    def set_axis_limits(self, axis_name: str, lower_limit: float, upper_limit: float) -> None:
+        self.set_upper_travel_limit(axis_name, upper_limit)
+        self.set_lower_travel_limit(axis_name, lower_limit)
 
-    def get_axis_speed(self, axis_id: str) -> float:
-        box_axis = self.axis_map[axis_id]
+    def get_axis_speed(self, axis_name: str) -> float:
+        box_axis = self.axis_map[axis_name]
         return float(self.box.get_speed(box_axis)[box_axis])
 
-    def set_axis_speed(self, axis_id: str, speed_mm_s: float) -> None:
-        box_axis = self.axis_map[axis_id]
+    def set_axis_speed(self, axis_name: str, speed_mm_s: float) -> None:
+        box_axis = self.axis_map[axis_name]
         self.box.set_speed(**{box_axis: speed_mm_s, 'wait': True})
 
-    def get_axis_acceleration(self, axis_id: str) -> float:
-        box_axis = self.axis_map[axis_id]
+    def get_axis_acceleration(self, axis_name: str) -> float:
+        box_axis = self.axis_map[axis_name]
         return float(self.box.get_acceleration(box_axis)[box_axis])
 
-    def set_axis_acceleration(self, axis_id: str, acceleration_ms: float) -> None:
-        box_axis = self.axis_map[axis_id]
+    def set_axis_acceleration(self, axis_name: str, acceleration_ms: float) -> None:
+        box_axis = self.axis_map[axis_name]
         self.box.set_acceleration(**{box_axis: acceleration_ms, 'wait': True})
 
-    def zero_in_place(self, axis_id: str) -> None:
-        self.box.zero_in_place(self.axis_map[axis_id])
+    def zero_in_place(self, axis_name: str) -> None:
+        self.box.zero_in_place(self.axis_map[axis_name])
 
-    def get_axis_home_position(self, axis_id: str) -> float:
-        return float(self.box.get_home(self.axis_map[axis_id]))
+    def get_axis_home_position(self, axis_name: str) -> float:
+        return float(self.box.get_home(self.axis_map[axis_name]))
 
-    def set_axis_home_position(self, axis_id: str, position_mm: float = None) -> None:
-        position_mm = position_mm or self.get_axis_position(axis_id)
-        self.box.set_home(**{self.axis_map[axis_id]: position_mm, 'wait': True})
+    def set_axis_home_position(self, axis_name: str, position_mm: float = None) -> None:
+        position_mm = position_mm or self.get_axis_position(axis_name)
+        self.box.set_home(**{self.axis_map[axis_name]: position_mm, 'wait': True})
 
-    def home(self, axis_id: str) -> None:
-        self.box.home(self.axis_map[axis_id])
+    def home(self, axis_name: str) -> None:
+        self.box.home(self.axis_map[axis_name])
 
-    def is_axis_moving(self, axis_id: str) -> bool:
-        return self.box.are_axes_moving(self.axis_map[axis_id])[self.axis_map[axis_id]]
+    def is_axis_moving(self, axis_name: str) -> bool:
+        return self.box.are_axes_moving(self.axis_map[axis_name])[self.axis_map[axis_name]]
 
-    # def get_axis_backlash(self, axis_id: str) -> float:
-    #     box_axis = self.axis_map[axis_id]
+    # def get_axis_backlash(self, axis_name: str) -> float:
+    #     box_axis = self.axis_map[axis_name]
     #     return float(self.box.get_axis_backlash(box_axis)[box_axis])
 
-    def set_axis_backlash(self, axis_id: str, backlash_mm: float) -> None:
-        box_axis = self.axis_map[axis_id]
+    def set_axis_backlash(self, axis_name: str, backlash_mm: float) -> None:
+        box_axis = self.axis_map[axis_name]
         self.box.set_axis_backlash(**{box_axis: backlash_mm, 'wait': True})
 
-    def setup_step_shoot_scan(self, axis_id: str, step_size_um: float) -> bool:
+    def setup_step_shoot_scan(self, axis_name: str, step_size_um: float) -> bool:
         """Queue a single-axis relative move of the specified amount."""
-        if not self.has_all_stage_axes or self.dimensions_map[axis_id] != LinearAxisDimension.Z:
+        if not self.has_all_stage_axes or self.dimensions_map[axis_name] != LinearAxisDimension.Z:
             return False
         try:
             if self.scan_state == ScanState.SCANNING:
                 self.box.stop_scan()
             step_size_steps = step_size_um * STEPS_PER_UM
             self.box.reset_ring_buffer()
-            self.box.setup_ring_buffer(self.axis_map[axis_id])
-            self.box.queue_buffered_move(**{self.axis_map[axis_id]: step_size_steps})
+            self.box.setup_ring_buffer(self.axis_map[axis_name])
+            self.box.queue_buffered_move(**{self.axis_map[axis_name]: step_size_steps})
             # TTL mode dictates whether ring buffer move is relative or absolute.
             self.box.set_ttl_pin_modes(TTLIn0Mode.MOVE_TO_NEXT_REL_POSITION,
                                        TTLOut0Mode.PULSE_AFTER_MOVING,
@@ -286,7 +290,7 @@ class ASITigerBox(VoxelDevice):
 
     # Input Management ________________________________________________________________________________________________
 
-    def bind_axis_to_joystick_input(self, axis_id: str, joystick_input: JoystickInput) -> None:
+    def bind_axis_to_joystick_input(self, axis_name: str, joystick_input: JoystickInput) -> None:
         """Bind a joystick input to the specified axis.
 
         Note: binding a tigerbox stage axis to a joystick input does not affect
@@ -296,43 +300,43 @@ class ASITigerBox(VoxelDevice):
         Note: binding a tigerbox stage axis to a joystick input `also` enables
         it.
 
-        :param axis_id: axis ID
+        :param axis_name: axis ID
         :param joystick_input: JoystickInput
         """
-        self.box.bind_axis_to_joystick_input(**{self.axis_map[axis_id]: joystick_input})
+        self.box.bind_axis_to_joystick_input(**{self.axis_map[axis_name]: joystick_input})
 
-    def set_axis_joystick_polarity(self, axis_id: str, polarity: int) -> None:
+    def set_axis_joystick_polarity(self, axis_name: str, polarity: int) -> None:
         """Set the polarity of the joystick axis.
-        :param axis_id: axis ID
+        :param axis_name: axis ID
         :param polarity: 1 for DEFAULT, -1 for INVERTED
         """
         if polarity < 0:
-            self.box.set_joystick_axis_polarity(**{self.axis_map[axis_id]: JoystickPolarity.INVERTED})
+            self.box.set_joystick_axis_polarity(**{self.axis_map[axis_name]: JoystickPolarity.INVERTED})
         else:
-            self.box.set_joystick_axis_polarity(**{self.axis_map[axis_id]: JoystickPolarity.DEFAULT})
+            self.box.set_joystick_axis_polarity(**{self.axis_map[axis_name]: JoystickPolarity.DEFAULT})
 
-    def enable_axis_joystick_input(self, axis_id: str) -> None:
+    def enable_axis_joystick_input(self, axis_name: str) -> None:
         """Enable the joystick input for the specified axis.
-        :param axis_id: axis ID
+        :param axis_name: axis ID
         """
-        self.box.enable_joystick_inputs(self.axis_map[axis_id])
+        self.box.enable_joystick_inputs(self.axis_map[axis_name])
 
-    def disable_axis_joystick_input(self, axis_id: str) -> None:
+    def disable_axis_joystick_input(self, axis_name: str) -> None:
         """Disable the joystick input for the specified axis.
-        :param axis_id: axis ID
+        :param axis_name: axis ID
         """
-        self.box.disable_joystick_inputs(self.axis_map[axis_id])
+        self.box.disable_joystick_inputs(self.axis_map[axis_name])
 
     # def disable_zero_button(self):
     #     """Disable the zero button functionality for all axes."""
     #     cmd_str = "BCA M=0"
     #     self.box.send(cmd_str)
 
-    # def disable_zero_button(self, axis_id: str) -> None:
+    # def disable_zero_button(self, axis_name: str) -> None:
     #     """Disable the zero button for the specified axis.
-    #     :param axis_id: axis ID
+    #     :param axis_name: axis ID
     #     """
-    #     card = self.box.axis_to_card[self.axis_map[axis_id]][0]
+    #     card = self.box.axis_to_card[self.axis_map[axis_name]][0]
     #     cmd_str = f"{card}BE M=0"
     #     self.box.send(cmd_str)
     #
@@ -370,18 +374,18 @@ class ASITigerBox(VoxelDevice):
     #     return all_assignments
 
     # Tunable Lens ____________________________________________________________________________________________________
-    def get_etl_temp(self, axis_id: str) -> float:
-        return self.box.get_etl_temp(self.axis_map[axis_id])
+    def get_etl_temp(self, axis_name: str) -> float:
+        return self.box.get_etl_temp(self.axis_map[axis_name])
 
-    def get_axis_control_mode(self, axis_id: str) -> TunableLensControlMode:
-        return self.box.get_axis_control_mode(self.axis_map[axis_id])
+    def get_axis_control_mode(self, axis_name: str) -> TunableLensControlMode:
+        return self.box.get_axis_control_mode(self.axis_map[axis_name])
 
-    def set_axis_control_mode(self, axis_id: str, mode: TunableLensControlMode) -> None:
-        self.box.set_axis_control_mode(**{self.axis_map[axis_id]: mode})
+    def set_axis_control_mode(self, axis_name: str, mode: TunableLensControlMode) -> None:
+        self.box.set_axis_control_mode(**{self.axis_map[axis_name]: mode})
 
     # Helpers _________________________________________________________________________________________________________
-    def get_axis_info(self, axis_id: str) -> dict:
-        return self.box.get_info(self.axis_map[axis_id])
+    def get_axis_info(self, axis_name: str) -> dict:
+        return self.box.get_info(self.axis_map[axis_name])
 
     @staticmethod
     def _default_joystick_input(dimension: LinearAxisDimension) -> JoystickInput:

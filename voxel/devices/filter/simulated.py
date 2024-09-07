@@ -18,12 +18,12 @@ class SimulatedFilterWheel(VoxelFilterWheel):
         self._is_closed = False
         self.log.info(f"Simulated Filter Wheel '{name}' initialized")
 
-    def add_filter(self, name: str, position: int):
+    def add_filter(self, filter_name: str, position: int):
         """Add a filter to the wheel."""
-        if name in self.filters:
-            raise ValueError(f"Filter '{name}' already exists on this wheel.")
-        self.filters[name] = position
-        self.log.info(f"Added filter '{name}' at position {position}")
+        if filter_name in self.filters:
+            raise ValueError(f"Filter '{filter_name}' already exists on this wheel.")
+        self.filters[filter_name] = position
+        self.log.info(f"Added filter '{filter_name}' at position {position}")
 
     def set_filter(self, filter_name: str) -> None:
         """Set the filterwheel to the specified filter."""
@@ -61,12 +61,12 @@ class SimulatedFilterWheel(VoxelFilterWheel):
 
 
 class SimulatedFilter(VoxelFilter):
-    def __init__(self, name: str, name: str, wheel: SimulatedFilterWheel, position: int):
+    def __init__(self, name: str, filter_name: str, wheel: SimulatedFilterWheel, position: int):
         super().__init__(name)
-        self.name = name
+        self.filter = filter_name
         self.wheel = wheel
         self.position = position
-        self.wheel.add_filter(name, position)
+        self.wheel.add_filter(filter_name, position)
         self.log.info(f"Simulated Filter '{name}' initialized")
 
     def enable(self) -> None:

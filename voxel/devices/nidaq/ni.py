@@ -10,8 +10,6 @@ from voxel.devices.nidaq.task import DAQTask, DAQTaskType, DAQTaskChannel, DAQTa
     DAQTaskSampleMode
 
 
-# Need?
-# TODO: Allow Task and Channel manipulation and improve their validation, use deliminated and enumerated properties
 # Extras
 # TODO: Consider caching channel waveforms.
 #   but be careful with memory usage especially if channel and task configurations are dynamic
@@ -139,8 +137,8 @@ class VoxelNIDAQ(VoxelDAQ):
             configure_trigger(task)
 
         # TODO: Figure out how to handle the following
-        setattr(task.hardware_task, f"{task.task_type.name.lower()}_line_states_done_state", Level.LOW)
-        setattr(task.hardware_task, f"{task.task_type.name.lower()}_line_states_paused_state", Level.LOW)
+        setattr(task.hardware_task, f"{task.task_type.lower()}_line_states_done_state", Level.LOW)
+        setattr(task.hardware_task, f"{task.task_type.lower()}_line_states_paused_state", Level.LOW)
 
         self.tasks[task.name] = task
 
@@ -224,14 +222,12 @@ class VoxelNIDAQ(VoxelDAQ):
             task = self.tasks[task_name]
             if task.hardware_task:
                 task.hardware_task.close()
-            del self.tasks[task_name]
         except KeyError:
-            raise ValueError(f"Task {task_name} not found in DAQ manager.")
+            pass  # Task already closed
 
     def close(self):
         for task in self.tasks.values():
-            if task.hardware_task:
-                task.hardware_task.close()
+            self.close_task(task.name)
         self.tasks.clear()
 
     @staticmethod

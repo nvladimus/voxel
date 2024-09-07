@@ -21,6 +21,9 @@ class VoxelDevice(ABC):
         self.device_type: Optional[VoxelDeviceType] = None
         self.log = logging.getLogger(f'{self.__class__.__name__}[{self.name}]')
 
+        self.daq_task = None
+        self.daq_channel = None
+
         # Ensure logging is configured
         self.configure_logging()
 

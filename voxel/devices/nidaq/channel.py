@@ -14,13 +14,17 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy import signal
 
+from voxel.descriptors.deliminated_property import deliminated_property
+from voxel.descriptors.enumerated_property import enumerated_property
+from voxel.devices import VoxelDevice
+
 
 class DAQWaveform(StrEnum):
     """
     Enumeration of available DAQ waveform_type types.
     """
-    SQUARE = "square wave"
-    TRIANGLE = "triangle wave"
+    SQUARE = "square"
+    TRIANGLE = "triangle"
 
 
 @dataclass
@@ -52,52 +56,95 @@ class DAQTaskTiming:
         return self.time_to_sample_index(0), self.time_to_sample_index(self.period_time_ms)
 
 
-# TODO Figure out if we need a start and end time for the waveform_type or just use a high/rise time to define the duty cycle
-# Should the rest time always be at the end of the waveform_type or can it be in the beggining? or maybe split in two?
-@dataclass
-class DAQTaskChannel:
-    name: str
-    waveform_type: DAQWaveform
-    center_volts: float
-    amplitude_volts: float
-    start_time_ms: float
-    end_time_ms: float
-    cut_off_frequency_hz: float
-    port: Optional[str] = None
-    _timing: Optional[DAQTaskTiming] = None
+class DAQTaskChannel(VoxelDevice):
+    def __init__(self, name: str, port: str, waveform_type: DAQWaveform,
+                 center_volts: float, amplitude_volts: float, max_device_volts: float, min_device_volts: float,
+                 task_timing: DAQTaskTiming, start_time_ms: float, end_time_ms: float, cut_off_frequency_hz: float):
+        super().__init__(name=name)
+        self.waveform_type = waveform_type
+        self.max_device_volts = max_device_volts
+        self.min_device_volts = min_device_volts
+        self.center_volts = center_volts
+        self.amplitude_volts = amplitude_volts
+        self.timing: DAQTaskTiming = task_timing
+        start_time_ms = 0 if start_time_ms < 0 else start_time_ms
+        start_time_ms = self.timing.period_time_ms if start_time_ms > self.timing.period_time_ms else start_time_ms
+        end_time_ms = self.timing.period_time_ms if end_time_ms > self.timing.period_time_ms else end_time_ms
+        end_time_ms = start_time_ms if end_time_ms < start_time_ms else end_time_ms
+        self._start_time_ms = start_time_ms
+        self._end_time_ms = end_time_ms
+        self.cut_off_frequency_hz = cut_off_frequency_hz
+        self.port = port
 
-    def __post_init__(self):
-        self._timing = None  # no timing by default
-        self.port = None  # no port by default
-        self.validate()
+    @enumerated_property(DAQWaveform, lambda self: [w for w in DAQWaveform])
+    def waveform_type(self) -> DAQWaveform:
+        return self._waveform_type
 
-    def set_timing(self, timing: DAQTaskTiming):
-        self._timing = timing
+    @waveform_type.setter
+    def waveform_type(self, value: DAQWaveform):
+        self._waveform_type = value
 
-    @property
-    def min_volts(self) -> float:
-        """Minimum voltage of the waveform_type."""
-        return self.center_volts - self.amplitude_volts / 2
+    @deliminated_property(
+        minimum=0,
+        maximum=lambda self: self._get_max_amplitude(),
+        unit="V",
+    )
+    def amplitude_volts(self) -> float:
+        return self._amplitude_volts
 
-    @property
-    def max_volts(self) -> float:
-        """Maximum voltage of the waveform_type."""
-        return self.center_volts + self.amplitude_volts / 2
+    @amplitude_volts.setter
+    def amplitude_volts(self, value: float):
+        self._amplitude_volts = value
 
-    def validate(self):
-        """Validate the configuration parameters."""
-        if self.cut_off_frequency_hz <= 0:
-            raise ValueError(f"Frequency must be greater than 0. Got {self.cut_off_frequency_hz}")
-        if self.start_time_ms < 0:
-            raise ValueError("start_time_ms must be non-negative")
-        if self.end_time_ms <= self.start_time_ms:
-            raise ValueError("end_time_ms must be greater than start_time_ms")
-        # if self.end_time_ms > self.period_time_ms:
-        #     raise ValueError("end_time_ms cannot exceed period_time_ms")
-        # if self.rest_time_ms < 0:
-        #     raise ValueError("rest_time_ms must be non-negative")
-        if self.amplitude_volts <= 0:
-            raise ValueError("amplitude_volts must be positive")
+    def _get_max_amplitude(self):
+        return min((self.max_device_volts - self.center_volts), (self.center_volts - self.min_device_volts))
+
+    @deliminated_property(
+        minimum=lambda self: self.min_device_volts,
+        maximum=lambda self: self.max_device_volts,
+    )
+    def center_volts(self) -> float:
+        return self._center_volts
+
+    @center_volts.setter
+    def center_volts(self, value: float):
+        self._center_volts = value
+
+    @deliminated_property(
+        minimum=0,
+        maximum=lambda self: self.end_time_ms,
+        unit="ms",
+    )
+    def start_time_ms(self) -> float:
+        return self._start_time_ms
+
+    @start_time_ms.setter
+    def start_time_ms(self, value: float):
+        self._start_time_ms = value
+
+    @deliminated_property(
+        minimum=lambda self: self.start_time_ms,
+        maximum=lambda self: self.timing.period_time_ms,
+        unit="ms",
+    )
+    def end_time_ms(self) -> float:
+        return self._end_time_ms
+
+    @end_time_ms.setter
+    def end_time_ms(self, value: float):
+        self._end_time_ms = value
+
+    @deliminated_property(
+        minimum=0,
+        maximum=lambda self: self.timing.sampling_frequency_hz / 2,
+        unit="Hz",
+    )
+    def cut_off_frequency_hz(self) -> float:
+        return self._cut_off_frequency_hz
+
+    @cut_off_frequency_hz.setter
+    def cut_off_frequency_hz(self, value: float):
+        self._cut_off_frequency_hz = value
 
     def generate_waveform(self, timing: 'DAQTaskTiming', filtered: Optional[bool] = None) -> NDArray:
         """
@@ -128,15 +175,14 @@ class DAQTaskChannel:
         samples = timing.samples_per_cycle()
         start = timing.time_to_sample_index(self.start_time_ms)
         end = timing.time_to_sample_index(self.end_time_ms)
-        waveform = np.full(samples, self.min_volts)
-        waveform[start:end] = self.max_volts
+        waveform = np.full(samples, self.center_volts - self.amplitude_volts)
+        waveform[start:end] = self.center_volts + self.amplitude_volts
         return waveform
 
     def _generate_triangular_waveform(self, timing: DAQTaskTiming) -> NDArray:
         samples = timing.samples_per_cycle()
         period_start, period_end = timing.get_period_sample_range()
-        # TODO: Figure out appropriate behavior. for now, adjust the start to the beginning of the period
-        # active_start = timing.time_to_sample_index(self.start_time_ms)
+        # adjust the start to the beginning of the period
         active_start = period_start
         active_end = timing.time_to_sample_index(self.end_time_ms)
 
@@ -157,8 +203,8 @@ class DAQTaskChannel:
         # Scale and shift the waveform_type to match the desired amplitude and center voltage
         waveform = self.center_volts + (self.amplitude_volts / 2) * triangle
 
-        delay_section = np.full(delay_samples, self.min_volts)
-        rest_section = np.full(rest_samples, self.min_volts)
+        delay_section = np.full(delay_samples, self.center_volts - self.amplitude_volts)
+        rest_section = np.full(rest_samples, self.center_volts - self.amplitude_volts)
         waveform = np.concatenate((delay_section, waveform, rest_section))
 
         return waveform
@@ -185,3 +231,6 @@ class DAQTaskChannel:
 
         # Return the central part of the filtered waveform_type
         return filtered[len(waveform):2 * len(waveform)]
+
+    def close(self):
+        pass

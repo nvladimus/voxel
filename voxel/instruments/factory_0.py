@@ -38,10 +38,12 @@ class InstrumentFactory:
         for instance in self._devices.values():
             instance.config = self._config
 
+        # Add DAQ channels
+        self._add_daq_channels()
+
         return self._devices
 
     def _create_device(self, instance_name: str, devices_schema: Dict[str, Any]):
-
         if instance_name in self._devices:
             return self._devices[instance_name]
 
@@ -66,47 +68,45 @@ class InstrumentFactory:
 
         # Initialize the device
         try:
-            device = device_class(**kwargs)
-            self._devices[instance_name] = device
+            self._devices[instance_name] = device_class(**kwargs)
             self.log.debug(f"Successfully created device: {instance_name}")
-
-            # Handle DAQ channel creation if specified
-            if 'daq_channel' in instance_specs:
-                self._create_daq_channel(device, instance_specs['daq_channel'])
-
         except Exception as e:
             self.log.error(f"Error creating device {instance_name}: {str(e)}")
             raise
 
         return self._devices[instance_name]
 
-    def _create_daq_channel(self, device: VoxelDevice, daq_channel_specs: Dict[str, Any]):
-        task_name = daq_channel_specs['task']
+    def _add_daq_channels(self):
+        for device_name, device_specs in self._config.devices_specs.items():
+            if 'daq_channel' in device_specs:
+                daq_channel_specs = device_specs['daq_channel']
+                task_name = daq_channel_specs['task']
 
-        # Create or get the DAQ task
-        if task_name not in self._devices:
-            self.log.debug(f"Creating DAQ task: {task_name}")
-            task = self._create_device(task_name, self._config.devices_specs)
-        else:
-            task = self._devices[task_name]
+                # Ensure the task exists
+                if task_name not in self._devices:
+                    self.log.error(f"DAQ task '{task_name}' not found for device '{device_name}'")
+                    continue
 
-        # Add the channel to the task
-        try:
-            assert isinstance(task, DAQTask)
-            channel = task.add_channel(
-                name=device.name,
-                port=daq_channel_specs['port'],
-                waveform_type=daq_channel_specs['waveform_type'],
-                center_volts=daq_channel_specs['center_volts'],
-                amplitude_volts=daq_channel_specs['amplitude_volts'],
-                start_time_ms=daq_channel_specs['start_time_ms'],
-                end_time_ms=daq_channel_specs['end_time_ms'],
-                cut_off_frequency_hz=daq_channel_specs['cut_off_freq_hz']
-            )
-            self.log.info(f"Added DAQ channel for device '{device.name}' to task '{task_name}'")
+                task = self._devices[task_name]
+                assert isinstance(task, DAQTask)
 
-            # Add daq_task and daq_channel attributes to the device
-            device.daq_task = task
-            device.daq_channel = channel
-        except AssertionError:
-            self.log.error(f"Device '{device.name}' is not a DAQTask")
+                # Ensure the task is a DAQTask
+                if not hasattr(task, 'add_channel'):
+                    self.log.error(f"Device '{task_name}' is not a DAQTask")
+                    continue
+
+                # Add the channel to the task
+                try:
+                    task.add_channel(
+                        name=device_name,
+                        port=daq_channel_specs['port'],
+                        waveform_type=daq_channel_specs['waveform_type'],
+                        center_volts=daq_channel_specs['center_volts'],
+                        amplitude_volts=daq_channel_specs['amplitude_volts'],
+                        start_time_ms=daq_channel_specs['start_time_ms'],
+                        end_time_ms=daq_channel_specs['end_time_ms'],
+                        cut_off_frequency_hz=daq_channel_specs['cut_off_freq_hz']
+                    )
+                    self.log.info(f"Added DAQ channel for device '{device_name}' to task '{task_name}'")
+                except Exception as e:
+                    self.log.error(f"Error adding DAQ channel for device '{device_name}': {str(e)}")

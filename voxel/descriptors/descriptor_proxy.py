@@ -41,6 +41,9 @@ class DescriptorProxy:
     def __hash__(self):
         return hash(self.value)
 
+    def __format__(self, format_spec):
+        return format(self.value, format_spec)
+
     def __add__(self, other):
         return self.value + other
 

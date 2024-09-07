@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 
 from voxel.devices.nidaq.channel import DAQWaveform
 from voxel.devices.nidaq.ni import VoxelNIDAQ
-from voxel.devices.nidaq.task import DAQTask, DAQTaskType, DAQTaskChannel
+from voxel.devices.nidaq.task import DAQTask, DAQTaskType
 
 USE_SIMULATED = False
 DEVICE_NAME = 'Dev1'
@@ -15,7 +15,8 @@ CH2 = 'ao4'
 CH3 = 'ao8'
 CH4 = 'ao12'
 
-if __name__ == '__main__':
+
+def main():
     daq = VoxelNIDAQ(name="example-daq", conn="Dev1", simulated=USE_SIMULATED)
 
     # Create a task
@@ -28,55 +29,53 @@ if __name__ == '__main__':
         daq=daq
     )
 
-    # Create channels
-    square_channel = DAQTaskChannel(
+    # Add channels
+    ao_task.add_channel(
         name="Square",
         waveform_type=DAQWaveform.SQUARE,
         center_volts=0,
         amplitude_volts=5,
         cut_off_frequency_hz=1000,
         start_time_ms=0,
-        end_time_ms=5
+        end_time_ms=5,
+        port=CH1
     )
 
-    triangle_channel = DAQTaskChannel(
+    ao_task.add_channel(
         name="Triangle",
         waveform_type=DAQWaveform.TRIANGLE,
         center_volts=0,
         amplitude_volts=2.5,
         cut_off_frequency_hz=1000,
         start_time_ms=0,
-        end_time_ms=5
+        end_time_ms=5,
+        port=CH2
     )
 
-    delayed_square_channel = DAQTaskChannel(
-        name="Delayed Square",
-        waveform_type=DAQWaveform.SQUARE,
-        center_volts=0,
-        amplitude_volts=2.5,
-        cut_off_frequency_hz=1000,
-        start_time_ms=2.5,
-        end_time_ms=7.5
-    )
-    sawtooth_channel = DAQTaskChannel(
-        name="Sawtooth",
-        waveform_type=DAQWaveform.TRIANGLE,
-        center_volts=0,
-        amplitude_volts=2.5,
-        cut_off_frequency_hz=1000,
-        start_time_ms=0,
-        end_time_ms=10
-    )
-
-    # Add channels to the task
-    ao_task.add_channel(square_channel, port=CH1)
-    ao_task.add_channel(triangle_channel, port=CH2)
-
-    # Simulated has only 2 channels
     if not USE_SIMULATED:
-        ao_task.add_channel(delayed_square_channel, port=CH3)
-        ao_task.add_channel(sawtooth_channel, port=CH4)
+        ao_task.add_channel(
+            name="Delayed Square",
+            waveform_type=DAQWaveform.SQUARE,
+            center_volts=0,
+            amplitude_volts=2.5,
+            cut_off_frequency_hz=1000,
+            start_time_ms=2.5,
+            end_time_ms=7.5,
+            port=CH3
+        )
 
+        ao_task.add_channel(
+            name="Sawtooth",
+            waveform_type=DAQWaveform.TRIANGLE,
+            center_volts=0,
+            amplitude_volts=2.5,
+            cut_off_frequency_hz=1000,
+            start_time_ms=0,
+            end_time_ms=10,
+            port=CH4
+        )
+
+    # Plot waveforms
     plt.ion()
     ao_task.plot_waveforms(num_cycles=3)
 
@@ -96,3 +95,7 @@ if __name__ == '__main__':
     finally:
         daq.close()
         plt.ioff()
+
+
+if __name__ == '__main__':
+    main()
