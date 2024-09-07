@@ -2,6 +2,7 @@ name: 'Example Instrument'
 description: 'A simulated instrument for testing purposes'
 module: voxel.instruments.instrument
 class: VoxelInstrument
+
 channels:
   red:
     camera: simulated_camera_1
@@ -11,6 +12,16 @@ channels:
     camera: simulated_camera_1
     laser: laser_488
     filter: filter_488
+
+daq:
+  conn: Dev1
+  tasks:
+    ao-task:
+      task_type: ao
+      sampling_frequency_hz: 350000
+      period_time_ms: 10
+      rest_time_ms: 0
+
 devices:
   simulated_camera_1:
     module: voxel.devices.camera.simulated
@@ -81,18 +92,4 @@ devices:
     class: ASITigerBox
     kwds:
       port: COM3
-  ao-task:
-    module: voxel.devices.nidaq.ni
-    class: DAQTask
-    kwds:
-      task_type: ao
-      sampling_frequency_hz: 350000
-      period_time_ms: 10
-      rest_time_ms: 0
-      daq: nidaq
-  nidaq:
-    module: voxel.devices.nidaq.ni
-    class: VoxelNIDAQ
-    kwds:
-      conn: Dev1
 

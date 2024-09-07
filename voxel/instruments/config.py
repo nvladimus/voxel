@@ -40,6 +40,10 @@ class InstrumentConfig(DeviceSpinnerConfig):
     def channels(self) -> Dict:
         return dict(self.cfg["channels"])
 
+    @property
+    def daq_specs(self) -> Dict:
+        return dict(self.cfg["daq"])
+
     def validate(self):
         errors = []
         if self.cfg is None:

@@ -1,4 +1,4 @@
-from voxel.devices.nidaq.task import DAQTask
+from voxel.devices.nidaq.ni import VoxelNIDAQ
 from voxel.instruments.config import InstrumentConfig
 from voxel.instruments.factory import InstrumentFactory
 from voxel.instruments.instrument import VoxelInstrument
@@ -18,22 +18,32 @@ def main():
 
     # Test specific device types
     print("\nTesting Cameras:")
-    for _, camera in instrument.cameras.items():
+    for camera in instrument.cameras.values():
         print(f"  Camera: {camera.name}")
         assert camera.name in config.devices_specs, f"Camera {camera.name} not in config"
 
     print("\nTesting Lasers:")
-    for _, laser in instrument.lasers.items():
+    for laser in instrument.lasers.values():
         print(f"  Laser: {laser.name}")
         assert laser.name in config.devices_specs, f"Laser {laser.name} not in config"
 
-    # Test DAQ tasks and channels
-    print("\nTesting DAQ Tasks and Channels:")
-    daq_tasks = [device for device in instrument.devices.values() if isinstance(device, DAQTask)]
+    # Test DAQ and tasks
+    print("\nTesting DAQ and Tasks:")
+    daq = instrument.daq
+    assert daq is not None, "DAQ not found in instrument"
+    assert isinstance(daq, VoxelNIDAQ), "DAQ is not a VoxelNIDAQ"
+    print(f"  DAQ: {daq.name}")
 
-    for task in daq_tasks:
+    for task_name, task_specs in config.daq_specs.get('tasks', {}).items():
+        task = daq.tasks.get(task_name)
+        assert task is not None, f"DAQ Task {task_name} not found"
         print(f"  DAQ Task: {task.name}")
-        assert task.name in config.devices_specs, f"DAQ Task {task.name} not in config"
+
+        assert task.task_type == task_specs['task_type'], f"Mismatch in task type for {task_name}"
+        assert task.sampling_frequency_hz == task_specs[
+            'sampling_frequency_hz'], f"Mismatch in sampling frequency for {task_name}"
+        assert task.period_time_ms == task_specs['period_time_ms'], f"Mismatch in period time for {task_name}"
+        assert task.rest_time_ms == task_specs['rest_time_ms'], f"Mismatch in rest time for {task_name}"
 
         for channel in task.channels.values():
             print(f"    Channel: {channel.name}")
@@ -54,7 +64,6 @@ def main():
             print(f"    {device_type}: {device.name}")
 
     print("\nAll tests passed successfully!")
-
     instrument.close()
 
 

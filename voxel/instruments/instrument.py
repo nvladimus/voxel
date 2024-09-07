@@ -9,9 +9,11 @@ from voxel.instruments.definitions import ChannelsDict
 
 class VoxelInstrument:
 
-    def __init__(self, config: InstrumentConfig, devices: Dict[str, VoxelDevice], channels: ChannelsDict, **kwds):
+    def __init__(self, config: InstrumentConfig, devices: Dict[str, VoxelDevice], daq: VoxelDeviceType,
+                 channels: ChannelsDict, **kwds):
         self.config = config
         self.devices = devices
+        self.daq = daq
         self.channels = channels
         self.kwds = kwds
         self.log = logging.getLogger(self.__class__.__name__)

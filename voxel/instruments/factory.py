@@ -3,6 +3,7 @@ import logging
 from typing import Dict, Any
 
 from voxel.devices import VoxelDevice
+from voxel.devices.nidaq.ni import VoxelNIDAQ
 from voxel.devices.nidaq.task import DAQTask
 from voxel.instruments.config import InstrumentConfig
 from voxel.instruments.instrument import VoxelInstrument
@@ -12,6 +13,8 @@ class InstrumentFactory:
     def __init__(self, config: InstrumentConfig):
         self.log = logging.getLogger(self.__class__.__name__)
         self._config = config
+        self._daq = self._create_daq()
+        self._daq_tasks = self._create_daq_tasks()
         self._devices: Dict[str, VoxelDevice] = {}
         self._generate_device_instances()
 
@@ -25,7 +28,37 @@ class InstrumentFactory:
             module = importlib.import_module(self._config.instrument_specs['module'])
             cls = getattr(module, self._config.instrument_specs['class'])
             kwds = self._config.instrument_specs.get('kwds', {})
-        return cls(config=self._config, devices=self._devices, channels=self._config.channels, **kwds)
+        return cls(config=self._config, devices=self._devices, channels=self._config.channels, daq=self._daq)
+
+    def _create_daq(self):
+        name = self._config.cfg.get('name', 'instrument').lower().replace(' ', '_')
+        name = f'{name}_daq'
+        if not self._config.daq_specs:
+            return None
+        if 'module' in self._config.daq_specs and 'class' in self._config.daq_specs:
+            module = importlib.import_module(self._config.daq_specs['module'])
+            cls = getattr(module, self._config.daq_specs['class'])
+        else:
+            module = importlib.import_module('voxel.devices.nidaq.ni')
+            cls = getattr(module, 'VoxelNIDAQ')
+        conn = self._config.daq_specs.get('conn', None)
+        simulated = self._config.daq_specs.get('simulated', False)
+        return cls(name=name, conn=conn, simulated=simulated)
+
+    def _create_daq_tasks(self):
+        if not self._daq:
+            self._daq = self._create_daq()
+        tasks = {}
+        for task_name, task_specs in self._config.daq_specs.get('tasks', {}).items():
+            tasks[task_name] = DAQTask(
+                name=task_name,
+                task_type=task_specs['task_type'],
+                sampling_frequency_hz=task_specs['sampling_frequency_hz'],
+                period_time_ms=task_specs['period_time_ms'],
+                rest_time_ms=task_specs['rest_time_ms'],
+                daq=self._daq
+            )
+        return tasks
 
     def _generate_device_instances(self) -> Dict[str, VoxelDevice]:
         devices_schema = self._config.devices_specs
@@ -83,15 +116,9 @@ class InstrumentFactory:
     def _create_daq_channel(self, device: VoxelDevice, daq_channel_specs: Dict[str, Any]):
         task_name = daq_channel_specs['task']
 
-        # Create or get the DAQ task
-        if task_name not in self._devices:
-            self.log.debug(f"Creating DAQ task: {task_name}")
-            task = self._create_device(task_name, self._config.devices_specs)
-        else:
-            task = self._devices[task_name]
-
         # Add the channel to the task
         try:
+            task = self._daq_tasks[task_name]
             assert isinstance(task, DAQTask)
             channel = task.add_channel(
                 name=device.name,
@@ -108,5 +135,7 @@ class InstrumentFactory:
             # Add daq_task and daq_channel attributes to the device
             device.daq_task = task
             device.daq_channel = channel
+        except KeyError:
+            self.log.error(f"Task '{task_name}' not found for device '{device.name}'")
         except AssertionError:
             self.log.error(f"Device '{device.name}' is not a DAQTask")
