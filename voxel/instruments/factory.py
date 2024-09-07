@@ -58,9 +58,9 @@ class InstrumentFactory:
             if isinstance(value, str) and value in devices_schema:
                 kwargs[key] = self._create_device(value, devices_schema)
 
-        # Add 'id' to kwargs if not present
-        if 'id' not in kwargs:
-            kwargs['id'] = instance_name
+        # Add 'name' to kwargs if not present
+        if 'name' not in kwargs:
+            kwargs['name'] = instance_name
 
         # Initialize the device
         try:

@@ -20,16 +20,16 @@ class PCOCamera(VoxelCamera):
     """Voxel driver for PCO cameras. \n
     :param conn: Connection string for the camera.
     :type conn: str
-    :id: Unique voxel identifier for the camera. Empty string if not provided.
+    :name: Unique voxel identifier for the camera. Empty string if not provided.
     :raises DeviceConnectionError: If the camera is not connected or not found.
     """
 
     BUFFER_SIZE_MB = 2400
 
-    def __init__(self, conn: str, id: str = ""):
-        super().__init__(id)
+    def __init__(self, conn: str, name: str = ""):
+        super().__init__(name)
         self._conn = conn
-        # note self._conn here is the interface, not a unique camera id
+        # note self._conn here is the interface, not a unique camera name
         # potential to do -> this could be hardcoded and changed in the pco sdk
         # error handling is taken care of within pco api
         try:

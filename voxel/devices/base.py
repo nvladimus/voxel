@@ -12,14 +12,14 @@ class VoxelDevice(ABC):
 
     _logging_configured = False
 
-    def __init__(self, id: Optional[str] = None):
+    def __init__(self, name: Optional[str] = None):
         """Initialize the device.
-        :param id: The unique identifier of the device.
-        :type id: str
+        :param name: The unique identifier of the device.
+        :type name: str
         """
-        self.id = id
+        self.name = name
         self.device_type: Optional[VoxelDeviceType] = None
-        self.log = logging.getLogger(f'{self.__class__.__name__}[{self.id}]')
+        self.log = logging.getLogger(f'{self.__class__.__name__}[{self.name}]')
 
         # Ensure logging is configured
         self.configure_logging()
@@ -30,7 +30,7 @@ class VoxelDevice(ABC):
         pass
 
     def __str__(self):
-        return f"{self.__class__.__name__}[{self.id}]"
+        return f"{self.__class__.__name__}[{self.name}]"
 
     @classmethod
     def configure_logging(cls):

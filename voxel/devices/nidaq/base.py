@@ -13,8 +13,8 @@ HardwareTask: TypeAlias = Union[nidaqmx.Task]  # Add other types as needed
 
 
 class VoxelDAQ(VoxelDevice):
-    def __init__(self, id: str):
-        super().__init__(id)
+    def __init__(self, name: str):
+        super().__init__(name)
         self.tasks: Dict[str, 'DAQTask'] = {}
 
     @property

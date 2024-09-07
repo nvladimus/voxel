@@ -4,8 +4,8 @@ from voxel.devices.base import VoxelDevice
 
 
 class VoxelFlipMount(VoxelDevice):
-    def __init__(self, id: str):
-        super().__init__(id)
+    def __init__(self, name: str):
+        super().__init__(name)
 
     @property
     @abstractmethod

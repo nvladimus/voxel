@@ -41,8 +41,8 @@ class AAOptoLaser(VoxelLaser):
     def close(self):
         pass
 
-    def __init__(self, id: str, port: str, wavelength: int, channel: int, coefficients: dict, daq: DAQ):
-        super().__init__(id)
+    def __init__(self, name: str, port: str, wavelength: int, channel: int, coefficients: dict, daq: DAQ):
+        super().__init__(name)
         self.aotf = MPDSSingleton(com_port=port)
         # TODO. THIS INHEREITS THE NIDAQ SO IT CAN UPDATE THE VOLTAGES...
         self.daq = daq

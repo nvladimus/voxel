@@ -105,7 +105,7 @@ def reset_dcam(provider: Dcamapi, dcam_idx: int) -> Dcam:
 class HamamatsuCamera(VoxelCamera):
     """Voxel driver for Hamamatsu cameras. \n
     :param serial_number: Serial number of the camera.
-    :param id: Unique voxel identifier for the camera. Empty string by default.
+    :param name: Unique voxel identifier for the camera. Empty string by default.
     :raises DeviceConnectionError: Failed to initialize DCAM API or no camera found.
     """
 
@@ -120,17 +120,17 @@ class HamamatsuCamera(VoxelCamera):
     except Exception as e:
         raise DeviceConnectionError("Failed to initialize DCAM API") from e
 
-    def __init__(self, serial_number: str, id: str = '') -> None:
+    def __init__(self, serial_number: str, name: str = '') -> None:
         """Voxel driver for Hamamatsu cameras.
 
-        :param id: Unique voxel identifier for the camera. Empty string by default.
+        :param name: Unique voxel identifier for the camera. Empty string by default.
         :param serial_number: Serial number of the camera.
-        :type id: str
+        :type name: str
         :raises ValueError: No camera found.
         """
-        super().__init__(id)
+        super().__init__(name)
 
-        self.log.info(f"Initializing Hamamatsu camera with id: {self.id} and serial number: {serial_number}")
+        self.log.info(f"Initializing Hamamatsu camera with name: {self.name} and serial number: {serial_number}")
 
         self.serial_number = serial_number
         self._dcam, self._dcam_idx = discover_dcam(self._dcam_provider, self.serial_number)
@@ -183,7 +183,7 @@ class HamamatsuCamera(VoxelCamera):
             "trigger_polarity", TriggerPolarity)
         self._trigger_active_lut: TriggerActiveLUT = self._get_enumerated_prop_lut(
             "trigger_active", TriggerActive)
-        self.log.info("Completed initialization of Hamamatsu camera with id: {self.id}")
+        self.log.info("Completed initialization of Hamamatsu camera with name: {self.name}")
 
     def __repr__(self):
         return (

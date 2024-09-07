@@ -17,6 +17,9 @@ devices:
     class: SimulatedCamera
     kwds:
       serial_number: 12345
+    daq_channel:
+      task: ao-task
+      port: ao0
   laser_488:
     module: voxel.devices.laser.simulated
     class: SimulatedLaser
@@ -62,6 +65,9 @@ devices:
       hardware_axis: Z
       dimension: Z
       tigerbox: tigerbox
+    daq_channel:
+      task: ao-task
+      port: ao1
   filterwheel:
     module: voxel.devices.filter.simulated
     class: SimulatedFilterWheel
@@ -72,3 +78,14 @@ devices:
     class: ASITigerBox
     kwds:
       port: COM3
+  ao-task:
+    module: voxel.devices.nidaq.ni
+    class: DAQTask
+    kwds:
+      daq: nidaq
+  nidaq:
+    module: voxel.devices.nidaq.ni
+    class: NIDAQ
+    kwds:
+      conn: Dev1
+

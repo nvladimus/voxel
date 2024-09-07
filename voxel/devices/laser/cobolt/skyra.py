@@ -66,7 +66,7 @@ class SkyraLaser(VoxelLaser):
 
     def __init__(
             self,
-            id: str,
+            name: str,
             wavelength: int,
             port: str,
             prefix: str,
@@ -85,7 +85,7 @@ class SkyraLaser(VoxelLaser):
         :param coefficients: polynomial coefficients describing
         the relationship between current mA and power mW
         """
-        super().__init__(id)
+        super().__init__(name)
 
         self._inst = CoboltLaser(port)
 

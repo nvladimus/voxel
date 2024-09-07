@@ -14,7 +14,7 @@ for filter_wheel in config['devices']['filter wheels']:
     # grab _config values for creating object
     driver = filter_wheel['driver']
     port = filter_wheel['port']
-    filter_wheel_id = filter_wheel['id']
+    filter_wheel_id = filter_wheel['name']
     filter_list = filter_wheel['filters']
     exec(f"from voxel.devices.filterwheel import {driver}")
     exec(f"filter_wheels.append({driver}.FilterWheel(filter_list))")

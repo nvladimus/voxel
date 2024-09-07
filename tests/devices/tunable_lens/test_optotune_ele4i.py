@@ -7,4 +7,4 @@ print(etl.mode)
 etl.mode = 'external'
 print(etl.mode)
 print(etl.temperature)
-print(etl.id)
+print(etl.name)

@@ -11,7 +11,7 @@ cameras=[]
 
 for camera in config['devices']['cameras'].items():
     driver = camera[1]['driver']
-    camera_id = camera[1]['id']
+    camera_id = camera[1]['name']
     exec(f"from voxel.devices.camera import {driver}")
     exec(f"cameras.append({driver}.Camera('{camera_id}'))")
 

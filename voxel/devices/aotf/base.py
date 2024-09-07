@@ -5,8 +5,8 @@ from voxel.devices.base import VoxelDevice
 
 class VoxelAOTF(VoxelDevice):
 
-    def __init__(self, id):
-        super().__init__(id)
+    def __init__(self, name):
+        super().__init__(name)
 
     @abstractmethod
     def enable_all(self):

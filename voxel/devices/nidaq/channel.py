@@ -68,7 +68,7 @@ class DAQTaskChannel:
 
     def __post_init__(self):
         self._timing = None  # no timing by default
-        self.port = None
+        self.port = None  # no port by default
         self.validate()
 
     def set_timing(self, timing: DAQTaskTiming):

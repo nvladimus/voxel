@@ -21,8 +21,8 @@ from voxel.devices.nidaq.task import DAQTask, DAQTaskType, DAQTaskChannel, DAQTa
 
 
 class VoxelNIDAQ(VoxelDAQ):
-    def __init__(self, id: str, conn: str, simulated: bool = False):
-        super().__init__(id)
+    def __init__(self, name: str, conn: str, simulated: bool = False):
+        super().__init__(name)
         devices = self.get_available_devices()
         conn = conn if not simulated else next((device for device in devices if 'Sim' in device), None)
         self.device_name = conn

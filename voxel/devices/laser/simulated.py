@@ -17,14 +17,14 @@ MAX_POWER_MW = 100
 
 class SimulatedLaser(VoxelLaser):
 
-    def __init__(self, wavelength: int, id: Optional[str] = None, prefix: str = ""):
+    def __init__(self, wavelength: int, name: Optional[str] = None, prefix: str = ""):
         """
         Communicate with specific Simulated laser in Simulated Combiner box.
 
-        :param id: voxel device id for this laser.
+        :param name: voxel device name for this laser.
         :param prefix: prefix specic to laser.
         """
-        super().__init__(id)
+        super().__init__(name)
 
         self.prefix = prefix
         self.ser = Serial
@@ -37,7 +37,7 @@ class SimulatedLaser(VoxelLaser):
         self._status = []
 
     def enable(self):
-        self.log.info(f"Enabling {self.id} laser")
+        self.log.info(f"Enabling {self.name} laser")
         pass
 
     def disable(self):

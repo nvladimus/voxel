@@ -12,18 +12,18 @@ from voxel.utils.geometry import Vec2D
 class VoxelCamera(VoxelDevice):
     """Base class for all voxel supported cameras."""
 
-    def __init__(self, id: str):
+    def __init__(self, name: str):
         """Initialize the camera.
 
-        :param id: The unique identifier of the camera.
-        :type id: str
+        :param name: The unique identifier of the camera.
+        :type name: str
         """
-        super().__init__(id)
+        super().__init__(name)
         self.device_type = VoxelDeviceType.CAMERA
 
     def __repr__(self):
         return (
-            f"{self.id}",
+            f"{self.name}",
             f"Sensor:           {self.sensor_width_px} x {self.sensor_height_px}",
             f"ROI:              {self.roi_width_px} x {self.roi_height_px}",
             f"ROI Offset:       ({self.roi_width_offset_px}, {self.roi_height_offset_px})",

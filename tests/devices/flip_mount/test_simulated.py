@@ -45,7 +45,7 @@ def test_toggle(simulated):
         current_pos = next_pos(current_pos)
         assert simulated.position == current_pos
         simulated.log.info(
-            f"Flip mount {simulated.id} toggled to position {current_pos}"
+            f"Flip mount {simulated.name} toggled to position {current_pos}"
         )
 
 

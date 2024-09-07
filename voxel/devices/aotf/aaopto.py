@@ -23,8 +23,8 @@ class MPDSSingleton(MPDS, metaclass=Singleton):
 
 class AOTF(VoxelAOTF):
 
-    def __init__(self, id: str, port: str):
-        super().__init__(id)
+    def __init__(self, name: str, port: str):
+        super().__init__(name)
         self.aotf = MPDSSingleton(com_port=port)
         self.product_id = self.aotf.get_product_id()
 

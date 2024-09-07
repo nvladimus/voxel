@@ -8,8 +8,8 @@ class VoxelPowerMeter(VoxelDevice):
     Abstract base class for a voxel power meter.
     """
 
-    def __init__(self, id: str) -> None:
-        super().__init__(id)
+    def __init__(self, name: str) -> None:
+        super().__init__(name)
 
     @property
     @abstractmethod

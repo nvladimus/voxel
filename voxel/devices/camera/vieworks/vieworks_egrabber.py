@@ -79,19 +79,19 @@ def _discover_grabber(serial_number: str, gentl_instance: Optional[EGenTL] = Non
 
 class VieworksCamera(VoxelCamera):
     """VoxelCamera implementation for Vieworks cameras using the EGrabber SDK.
-    :param id: Voxel ID for the device.
+    :param name: Voxel ID for the device.
     :param serial_number: Serial number of the camera - used to discover the camera.
-    :type id: str
+    :type name: str
     :type serial_number: str
     """
     BUFFER_SIZE_MB = 2400
 
     gentl = get_egentl_singleton()
 
-    def __init__(self, id, serial_number):
-        super().__init__(id)
+    def __init__(self, name, serial_number):
+        super().__init__(name)
         self.serial_number = serial_number
-        self.log.info(f"Initializing Vieworks camera with id: {self.id} and serial number: {self.serial_number}")
+        self.log.info(f"Initializing Vieworks camera with name: {self.name} and serial number: {self.serial_number}")
 
         self.grabber, self.egrabber = _discover_grabber(self.serial_number, self.gentl)
 
@@ -116,7 +116,7 @@ class VieworksCamera(VoxelCamera):
         self._trigger_mode_lut: Dict[TriggerMode, str] = self._get_trigger_setting_lut("TriggerMode")
         self._trigger_source_lut: Dict[TriggerSource, str] = self._get_trigger_setting_lut("TriggerSource")
         self._trigger_polarity_lut: Dict[TriggerPolarity, str] = self._get_trigger_setting_lut("TriggerActivation")
-        self.log.info(f"Completed initialization of Vieworks camera with id: {self.id}")
+        self.log.info(f"Completed initialization of Vieworks camera with name: {self.name}")
 
     @property
     def sensor_size_px(self) -> Vec2D:

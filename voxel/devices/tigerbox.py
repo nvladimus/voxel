@@ -8,16 +8,16 @@ from voxel.devices.base import VoxelDevice
 from voxel.devices.definitions import DeviceConnectionError
 from voxel.devices.linear_axis.definitions import LinearAxisDimension, ScanState
 
-AxisMap: TypeAlias = Dict[str, str]  # axis id -> hardware_axis
-JoystickMap: TypeAlias = Dict[str, str]  # axis id -> joystick axis
-DimensionsMap: TypeAlias = Dict[LinearAxisDimension, str]  # LinearAxisDimension -> axis id
+AxisMap: TypeAlias = Dict[str, str]  # axis name -> hardware_axis
+JoystickMap: TypeAlias = Dict[str, str]  # axis name -> joystick axis
+DimensionsMap: TypeAlias = Dict[LinearAxisDimension, str]  # LinearAxisDimension -> axis name
 
 STEPS_PER_UM = 10
 
 
 class ASITigerBox(VoxelDevice):
-    def __init__(self, port: str, id: Optional[str] = None):
-        super().__init__(id)
+    def __init__(self, port: str, name: Optional[str] = None):
+        super().__init__(name)
         self.box = TigerController(port)
         self.axis_map = {}
         self.dimensions_map = {}
@@ -248,7 +248,7 @@ class ASITigerBox(VoxelDevice):
         # :param slow_axis: the axis to move across to take tile stacks.
         # TODO: if position is unspecified, we should set is as
         #  "current position" from hardware.
-        # Get the axis id in machine coordinate frame.
+        # Get the axis name in machine coordinate frame.
 
         assert 100 >= retrace_speed_percent > 0
         fast_axis = self.axis_map[LinearAxisDimension.X]

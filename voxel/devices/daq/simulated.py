@@ -144,7 +144,7 @@ class DAQ(BaseDAQ):
             self._timing_checks(task_type)
 
             trigger_port = timing['trigger_port']
-            # if f"{self.id}/{trigger_port}" not in self.dio_ports:
+            # if f"{self.name}/{trigger_port}" not in self.dio_ports:
             #     raise ValueError("trigger port must be one of %r." % self.dio_ports)
 
             for port, specs in task['ports'].items():

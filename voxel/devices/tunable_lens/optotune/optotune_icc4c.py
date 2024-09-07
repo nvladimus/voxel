@@ -17,16 +17,16 @@ MODES = {TunableLensControlMode.INTERNAL: UnitType.FP, TunableLensControlMode.EX
 
 class OptotuneICC4CTunableLens(VoxelTunableLens):
 
-    def __init__(self, id: str, port: str, channel: int):
+    def __init__(self, name: str, port: str, channel: int):
         """Connect to OptotuneI ICC-4C Tunable Lens.
-        :param id: unique voxel id for this device.
+        :param name: unique voxel name for this device.
         :param port: serial port for the ICC-4-C controller.
         :param channel: channel number for the tunable lens.
-        :type id: str
+        :type name: str
         :type port: str
         :type channel: int
         """
-        super().__init__(id)
+        super().__init__(name)
         self.icc4c = optoICC.connect(port=port)
         self.icc4c.reset(force=True)
         self.icc4c.go_pro()
@@ -60,7 +60,7 @@ class OptotuneICC4CTunableLens(VoxelTunableLens):
 
     def log_metadata(self):
         return {
-            "id": self.id,
+            "name": self.name,
             "mode": self.mode,
             "temperature_c": self.temperature_c,
         }

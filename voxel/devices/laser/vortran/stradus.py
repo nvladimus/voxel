@@ -12,14 +12,14 @@ MODULATION_MODES = {
 
 class StradusLaser(VoxelLaser):
 
-    def __init__(self, id: str, port: str, wavelength: int):
+    def __init__(self, name: str, port: str, wavelength: int):
         """
         Communicate with stradus laser.
 
         :param port: comm port for lasers.
         :param wavelength: wavelength of laser
         """
-        super().__init__(id)
+        super().__init__(name)
         self._inst = StradusVortran(port)
         self._wavelength = wavelength
 

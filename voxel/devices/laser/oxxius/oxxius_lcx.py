@@ -7,7 +7,7 @@ from voxel.devices.laser.base import VoxelLaser
 
 class OxxiusLCXLaser(VoxelLaser):
 
-    def __init__(self, id: str, port: Serial | str, prefix: str, wavelength: int):
+    def __init__(self, name: str, port: Serial | str, prefix: str, wavelength: int):
         """
         Communicate with specific LBX laser in L6CC Combiner box.
 
@@ -15,7 +15,7 @@ class OxxiusLCXLaser(VoxelLaser):
         :param prefix: prefix specic to laser.
         :param wavelength: wavelength of laser
         """
-        super().__init__(id)
+        super().__init__(name)
         self._prefix = prefix
         self._inst = LCX(port, self._prefix)
         self._wavelength = wavelength

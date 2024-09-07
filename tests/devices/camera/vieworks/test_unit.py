@@ -4,7 +4,7 @@ from voxel.devices.camera.vieworks.egrabber import GenTLException
 
 
 def test_camera_initialization(mock_camera):
-    assert mock_camera.id == "mock_camera"
+    assert mock_camera.name == "mock_camera"
     assert mock_camera.serial_number == "12345"
 
 

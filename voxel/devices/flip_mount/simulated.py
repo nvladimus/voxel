@@ -8,8 +8,8 @@ FLIP_TIME_RANGE_MS: tuple[float, float, float] = (500.0, 2800.0, 100.0)  # min, 
 
 
 class SimulatedFlipMount(VoxelFlipMount):
-    def __init__(self, id, conn, positions):
-        super().__init__(id)
+    def __init__(self, name, conn, positions):
+        super().__init__(name)
         self._conn = conn
         self._positions = positions
         self._inst: Optional[Literal[0, 1]] = None

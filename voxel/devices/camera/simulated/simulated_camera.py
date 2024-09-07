@@ -31,9 +31,9 @@ TriggerPolarityLUT: TypeAlias = Dict[TriggerPolarity, str]
 
 class SimulatedCamera(VoxelCamera):
 
-    def __init__(self, id: str, serial_number: str, image_model: Optional[ImageModel] = None):
-        super().__init__(id)
-        self.log.info(f"Initializing simulated camera with id: {id}, serial number: {serial_number}")
+    def __init__(self, name: str, serial_number: str, image_model: Optional[ImageModel] = None):
+        super().__init__(name)
+        self.log.info(f"Initializing simulated camera with id: {name}, serial number: {serial_number}")
         self.serial_number = serial_number
         self.instance = SimulatedCameraHardware(image_model)
 
@@ -61,7 +61,7 @@ class SimulatedCamera(VoxelCamera):
 
         self.gpu_binning = GPUToolsDownSample2D(binning=self._binning)
 
-        self.log.info(f"simulated camera initialized with id: {id}, serial number: {serial_number}")
+        self.log.info(f"simulated camera initialized with id: {name}, serial number: {serial_number}")
 
     def __repr__(self):
         return (

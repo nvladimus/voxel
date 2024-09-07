@@ -7,8 +7,8 @@ from voxel.devices.base import VoxelDevice
 class VoxelRotationAxis(VoxelDevice):
     """Abstract base class for a voxel rotation axis."""
 
-    def __init__(self, id: str) -> None:
-        super().__init__(id)
+    def __init__(self, name: str) -> None:
+        super().__init__(name)
 
     @property
     @abstractmethod

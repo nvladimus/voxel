@@ -21,13 +21,13 @@ def mock_camera():
             "stream": 0
         }
         mock_discover.return_value = (mock_grabber, mock_egrabber_dict)
-        camera = VieworksCamera(id='mock_camera', serial_number='12345')
+        camera = VieworksCamera(name='mock_camera', serial_number='12345')
         camera.grabber = mock_grabber
         yield camera
 
 
 @pytest.fixture(scope="module")
 def real_camera():
-    camera = VieworksCamera(id='real_camera', serial_number=CAMERA_1_SN)
+    camera = VieworksCamera(name='real_camera', serial_number=CAMERA_1_SN)
     yield camera
     camera.close()

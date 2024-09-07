@@ -5,7 +5,7 @@ from voxel.devices.power_meter.simulated import SimulatedPowerMeter
 
 @pytest.fixture
 def power_meter():
-    pm = SimulatedPowerMeter(id="simulated-pm", wavelength_nm=538)
+    pm = SimulatedPowerMeter(name="simulated-pm", wavelength_nm=538)
     yield pm
     pm.close()
 

@@ -11,7 +11,7 @@ from voxel.devices.camera.hamamatsu.definitions import (
 
 
 def test_camera_initialization(real_camera):
-    assert real_camera.id == HAMAMATSU_CAMERA_ID
+    assert real_camera.name == HAMAMATSU_CAMERA_ID
     assert real_camera.serial_number == HAMAMATSU_SERIAL_NUMBER
 
 

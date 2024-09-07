@@ -8,13 +8,13 @@ from ..definitions import VoxelDeviceType
 class VoxelLaser(VoxelDevice):
     """Base class for all voxel laser devices."""
 
-    def __init__(self, id: str):
-        super().__init__(id)
+    def __init__(self, name: str):
+        super().__init__(name)
         self.device_type = VoxelDeviceType.LASER
 
     def __repr__(self):
         return (
-            f"voxel id:         {self.id}\n"
+            f"voxel id:         {self.name}\n"
             f"Wavelength:       {self.wavelength}\n"
             f"Power setpoint:   {self.power_setpoint_mw} mW\n"
             f"Power:            {self.power_mw} mW\n"

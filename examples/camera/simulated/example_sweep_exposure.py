@@ -64,7 +64,7 @@ if __name__ == "__main__":
     MIN_EXPOSURE_TIME_MS = 0.001
     MAX_EXPOSURE_TIME_MS = 6e2
 
-    simulated_camera = SimulatedCamera(id="main-camera", serial_number="sim-cam-001")
+    simulated_camera = SimulatedCamera(name="main-camera", serial_number="sim-cam-001")
     simulated_camera.roi_height_px //= 4
     simulated_camera.roi_width_px //= 4
 

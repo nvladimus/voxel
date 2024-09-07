@@ -20,13 +20,13 @@ class ASITriggeredStepAndShootConfig(ScanConfig):
 
 class ASITigerLinearAxis(VoxelLinearAxis):
     """ASI Tiger Linear Axis implementation.
-    :param id: Unique identifier for the device
+    :param name: Unique identifier for the device
     :param hardware_axis: The hardware axis of the stage
     :param dimension: The dimension of the stage
     :param tigerbox: The ASITigerBox instance
     :param joystick_polarity: The polarity of the joystick input
     :param joystick_input: The joystick input to use
-    :type id: str
+    :type name: str
     :type hardware_axis: str
     :type dimension: LinearAxisDimension
     :type tigerbox: ASITigerBox
@@ -37,21 +37,21 @@ class ASITigerLinearAxis(VoxelLinearAxis):
 
     def __init__(
             self,
-            id: str,
+            name: str,
             hardware_axis: str,
             dimension: LinearAxisDimension,
             tigerbox: ASITigerBox,
             joystick_polarity: Literal[1, -1] = 1,
             joystick_input: ASIJoystickInput = None,
     ):
-        super().__init__(id, dimension)
+        super().__init__(name, dimension)
         self._tigerbox = tigerbox
         self._hardware_axis = hardware_axis.upper()
         self._tigerbox.register_linear_axis(
-            self.id, self._hardware_axis, self.dimension, joystick_polarity, joystick_input)
+            self.name, self._hardware_axis, self.dimension, joystick_polarity, joystick_input)
 
     def close(self):
-        self._tigerbox.deregister_device(self.id)
+        self._tigerbox.deregister_device(self.name)
 
     # Scanning properties and methods ________________________________________________________________________________
 
@@ -59,7 +59,7 @@ class ASITigerLinearAxis(VoxelLinearAxis):
         if not self.dimension == LinearAxisDimension.Z:
             raise ValueError("Unable to configure scan. This axis is not used for scanning.")
         if isinstance(config, ASITriggeredStepAndShootConfig):
-            self._tigerbox.setup_step_shoot_scan(self.id, config.step_size_um)
+            self._tigerbox.setup_step_shoot_scan(self.name, config.step_size_um)
             return
 
     def start_scan(self):
@@ -82,46 +82,46 @@ class ASITigerLinearAxis(VoxelLinearAxis):
         unit='mm',
     )
     def position_mm(self) -> float:
-        return self._tigerbox.get_axis_position(self.id)
+        return self._tigerbox.get_axis_position(self.name)
 
     @position_mm.setter
     def position_mm(self, position_mm: float) -> None:
-        self._tigerbox.move_absolute_mm(self.id, position_mm)
+        self._tigerbox.move_absolute_mm(self.name, position_mm)
 
     @property
     def upper_limit_mm(self) -> float:
-        return self._tigerbox.get_upper_travel_limit(self.id)
+        return self._tigerbox.get_upper_travel_limit(self.name)
 
     @upper_limit_mm.setter
     def upper_limit_mm(self, upper_limit_mm: float) -> None:
-        self._tigerbox.set_upper_travel_limit(self.id, upper_limit_mm)
+        self._tigerbox.set_upper_travel_limit(self.name, upper_limit_mm)
 
     def set_upper_limit_mm_in_place(self) -> None:
-        self._tigerbox.set_upper_travel_limit_in_place(self.id)
+        self._tigerbox.set_upper_travel_limit_in_place(self.name)
 
     @property
     def lower_limit_mm(self) -> float:
-        return self._tigerbox.get_lower_travel_limit(self.id)
+        return self._tigerbox.get_lower_travel_limit(self.name)
 
     @lower_limit_mm.setter
     def lower_limit_mm(self, lower_limit_mm: float) -> None:
-        self._tigerbox.set_lower_travel_limit(self.id, lower_limit_mm)
+        self._tigerbox.set_lower_travel_limit(self.name, lower_limit_mm)
 
     def set_lower_limit_mm_in_place(self) -> None:
-        self._tigerbox.set_lower_travel_limit_in_place(self.id)
+        self._tigerbox.set_lower_travel_limit_in_place(self.name)
 
     @property
     def is_moving(self) -> bool:
-        return self._tigerbox.is_axis_moving(self.id)
+        return self._tigerbox.is_axis_moving(self.name)
 
     def await_movement(self):
         while self.is_moving:
             pass
-        self.log.info(f"Axis {self.id} has stopped moving. Current position: {self.position_mm}")
+        self.log.info(f"Axis {self.name} has stopped moving. Current position: {self.position_mm}")
 
     @property
     def home_position_mm(self) -> float:
-        return self._tigerbox.get_axis_home_position(self.id)
+        return self._tigerbox.get_axis_home_position(self.name)
 
     def set_home_position(self, home_position: float = None) -> None:
         """Set the home position of the axis
@@ -129,17 +129,17 @@ class ASITigerLinearAxis(VoxelLinearAxis):
         If None, the current position is set as the home position.
         """
         home_position = home_position or self.position_mm
-        self._tigerbox.set_axis_home_position(self.id, home_position)
+        self._tigerbox.set_axis_home_position(self.name, home_position)
 
     def home(self, wait=False) -> None:
         """Move the axis to the home position."""
-        self._tigerbox.home(self.id)
+        self._tigerbox.home(self.name)
         if wait:
             self.await_movement()
 
     def zero_in_place(self) -> None:
         """Set the current position as the zero position"""
-        return self._tigerbox.zero_in_place(self.id)
+        return self._tigerbox.zero_in_place(self.name)
 
     def go_to_origin(self, wait=False) -> None:
         """Move the axis to the origin."""
@@ -151,33 +151,33 @@ class ASITigerLinearAxis(VoxelLinearAxis):
 
     @property
     def speed_mm_s(self) -> float | None:
-        return self._tigerbox.get_axis_speed(self.id)
+        return self._tigerbox.get_axis_speed(self.name)
 
     @speed_mm_s.setter
     def speed_mm_s(self, speed_mm_s: float) -> None:
-        self._tigerbox.set_axis_speed(self.id, speed_mm_s)
+        self._tigerbox.set_axis_speed(self.name, speed_mm_s)
 
     @property
     def acceleration_ms(self) -> float | None:
-        return self._tigerbox.get_axis_acceleration(self.id)
+        return self._tigerbox.get_axis_acceleration(self.name)
 
     @acceleration_ms.setter
     def acceleration_ms(self, acceleration_ms: float) -> None:
-        self._tigerbox.set_axis_acceleration(self.id, acceleration_ms)
+        self._tigerbox.set_axis_acceleration(self.name, acceleration_ms)
 
     def set_backlash_mm(self, backlash_mm: float) -> None:
-        self._tigerbox.set_axis_backlash(self.id, backlash_mm)
+        self._tigerbox.set_axis_backlash(self.name, backlash_mm)
 
     # Input methods _____________________________________________________________________________________________
 
     def set_joystick_polarity(self, polarity: Literal[1, -1]) -> None:
-        self._tigerbox.set_axis_joystick_polarity(self.id, polarity)
+        self._tigerbox.set_axis_joystick_polarity(self.name, polarity)
 
     def enable_joystick(self) -> None:
-        self._tigerbox.enable_axis_joystick_input(self.id)
+        self._tigerbox.enable_axis_joystick_input(self.name)
 
     def disable_joystick(self) -> None:
-        self._tigerbox.disable_axis_joystick_input(self.id)
+        self._tigerbox.disable_axis_joystick_input(self.name)
 
     # Convenience methods ____________________________________________________________________________________________
 

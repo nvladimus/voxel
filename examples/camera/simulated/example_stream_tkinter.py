@@ -104,7 +104,7 @@ if __name__ == "__main__":
         baseline=0
     )
 
-    simulated_camera = SimulatedCamera(id="main-camera", serial_number="sim-cam-001", image_model=image_model)
+    simulated_camera = SimulatedCamera(name="main-camera", serial_number="sim-cam-001", image_model=image_model)
     simulated_camera.exposure_time_ms = 20
     simulated_camera.roi_width_px //= 1.1
     simulated_camera.roi_height_px //= 1.1
@@ -129,7 +129,7 @@ if __name__ == "__main__":
 #         bitdepth=16,
 #         baseline=0
 #     )
-#     simulated_camera = SimulatedCamera(id="main-camera", serial_number="sim-cam-001", image_model=image_model)
+#     simulated_camera = SimulatedCamera(name="main-camera", serial_number="sim-cam-001", image_model=image_model)
 #     simulated_camera.exposure_time_ms = 20
 #     simulated_camera.roi_width_px //= 1.1
 #     simulated_camera.roi_height_px //= 1.1

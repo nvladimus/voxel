@@ -16,7 +16,7 @@ CH3 = 'ao8'
 CH4 = 'ao12'
 
 if __name__ == '__main__':
-    daq = VoxelNIDAQ(id="example-daq", conn="Dev1", simulated=USE_SIMULATED)
+    daq = VoxelNIDAQ(name="example-daq", conn="Dev1", simulated=USE_SIMULATED)
 
     # Create a task
     ao_task = DAQTask(

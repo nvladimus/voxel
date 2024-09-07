@@ -14,7 +14,7 @@ MODULATION_MODES = {
 
 class OxxiusLBXLaser(VoxelLaser):
 
-    def __init__(self, id: str, port: Serial | str, wavelength: int, prefix: str, coefficients: dict):
+    def __init__(self, name: str, port: Serial | str, wavelength: int, prefix: str, coefficients: dict):
         """
         Communicate with specific LBX laser in L6CC Combiner box.
 
@@ -24,7 +24,7 @@ class OxxiusLBXLaser(VoxelLaser):
         :param wavelength: wavelength of laser
         the relationship between current percentage and power mw
         """
-        super().__init__(id)
+        super().__init__(name)
         self._prefix = prefix
         self._inst = LBX(port, self._prefix)
         self._coefficients = coefficients

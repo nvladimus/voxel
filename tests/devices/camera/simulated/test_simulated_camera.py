@@ -17,13 +17,13 @@ CAMERA_SN = "1234567890"
 
 @pytest.fixture
 def simulated_camera():
-    camera = SimulatedCamera(id=CAMERA_ID, serial_number=CAMERA_SN)
+    camera = SimulatedCamera(name=CAMERA_ID, serial_number=CAMERA_SN)
     yield camera
     camera.close()
 
 
 def test_camera_init(simulated_camera):
-    assert simulated_camera.id == CAMERA_ID
+    assert simulated_camera.name == CAMERA_ID
     assert simulated_camera.serial_number == CAMERA_SN
     assert simulated_camera.roi_width_offset_px == 0
     assert simulated_camera.roi_height_offset_px == 0

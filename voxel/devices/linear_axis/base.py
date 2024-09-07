@@ -7,17 +7,17 @@ from voxel.devices.linear_axis.definitions import LinearAxisDimension, ScanConfi
 class VoxelLinearAxis(VoxelDevice):
     """
     Base class for linear axis devices in Voxel
-    :param id: Unique voxel ID within a Voxel Instrument
+    :param name: Unique voxel ID within a Voxel Instrument
     :param dimension: LinearAxisDimension. X, Y, Z, or N
     """
 
-    def __init__(self, id: str, dimension: LinearAxisDimension):
-        super().__init__(id)
+    def __init__(self, name: str, dimension: LinearAxisDimension):
+        super().__init__(name)
         self.dimension: LinearAxisDimension = dimension
 
     def __repr__(self):
         return (
-            f"{self.id}, \n"
+            f"{self.name}, \n"
             f"dimension:        {self.dimension} \n"
             f"position_mm:      {self.position_mm}, \n"
             f"limits_mm:        {self.lower_limit_mm, self.upper_limit_mm}, \n"

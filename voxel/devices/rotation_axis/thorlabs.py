@@ -16,16 +16,16 @@ MODEL = 'K10CR1'
 
 class ThorlabsRotationAxis(VoxelRotationAxis):
     """Thorlabs rotation mount axis implementation.
-    :param id: Unique identifier for the device
+    :param name: Unique identifier for the device
     :param serial_number: Serial number of the rotation mount
-    :type id: str
+    :type name: str
     :type serial_number: str
     :raises VoxelDeviceError: If the rotation mount with the specified serial number is not found
     """
 
-    def __init__(self, id: str, serial_number: str):
+    def __init__(self, name: str, serial_number: str):
         """Constructor for the ThorlabsRotationAxis class."""
-        super().__init__(id)
+        super().__init__(name)
         self.serial_number = serial_number
         model = MODEL  # used to determine the step to scale units of the device
 

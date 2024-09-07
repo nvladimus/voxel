@@ -7,8 +7,8 @@ from voxel.devices.power_meter.base import VoxelPowerMeter
 
 
 class ThorlabsPowerMeter(VoxelPowerMeter):
-    def __init__(self, id: str, conn: str) -> None:
-        super().__init__(id)
+    def __init__(self, name: str, conn: str) -> None:
+        super().__init__(name)
         self._conn = conn
         self._inst: Optional[visa.resources.Resource] = None
         self._connect()
@@ -30,7 +30,7 @@ class ThorlabsPowerMeter(VoxelPowerMeter):
 
     def _check_connection(self):
         if self._inst is None:
-            raise Exception(f"Device {self.id} is not connected")
+            raise Exception(f"Device {self.name} is not connected")
 
     @property
     def power_mw(self) -> float:
@@ -46,7 +46,7 @@ class ThorlabsPowerMeter(VoxelPowerMeter):
     def wavelength_nm(self, wavelength: float) -> None:
         self._check_connection()
         self._inst.write(f"SENS:CORR:WAV {wavelength}")  # type: ignore
-        self.log.info(f"{self.id} - Set wavelength to {wavelength} nm")
+        self.log.info(f"{self.name} - Set wavelength to {wavelength} nm")
 
     def close(self) -> None:
         if self._inst is not None:

@@ -35,7 +35,7 @@ def obis_modulation_setter(instance, value: str, modes=None):
 
 class ObisLXLaser(VoxelLaser):
 
-    def __init__(self, id: str, wavelength: int, port: Serial | str, prefix: str = None):
+    def __init__(self, name: str, wavelength: int, port: Serial | str, prefix: str = None):
         """
         Communicate with specific LBX laser in L6CC Combiner box.
 
@@ -43,7 +43,7 @@ class ObisLXLaser(VoxelLaser):
         :param prefix: prefix specic to laser.
         :param wavelength: wavelength of laser
         """
-        super().__init__(id)
+        super().__init__(name)
         self.prefix = prefix
         self._wavelength = wavelength
         self._inst = ObisLX(port, self.prefix)

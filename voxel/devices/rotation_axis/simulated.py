@@ -6,13 +6,13 @@ from voxel.devices.rotation_axis.base import VoxelRotationAxis
 
 class SimulatedRotationAxis(VoxelRotationAxis):
     """Simulated rotation axis implementation.
-    :param id: Unique identifier for the device
-    :type id: str
+    :param name: Unique identifier for the device
+    :type name: str
     """
 
-    def __init__(self, id: str) -> None:
+    def __init__(self, name: str) -> None:
         """Constructor for the SimulatedRotationAxis class."""
-        super().__init__(id)
+        super().__init__(name)
         self._position_deg = 0.0
         self._target_position_deg = 0.0
         self._speed_deg_s = 10.0
@@ -91,7 +91,7 @@ class SimulatedRotationAxis(VoxelRotationAxis):
     def close(self) -> None:
         """Close the connection to the rotation axis."""
         self._movement_start_time = None
-        self.log.info(f"Rotation axis {self.id} closed.")
+        self.log.info(f"Rotation axis {self.name} closed.")
 
 
 # Example usage

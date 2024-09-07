@@ -25,8 +25,8 @@ def crc_16(s):
 
 class OptotuneELE4ITunableLens(VoxelTunableLens):
 
-    def __init__(self, id: str, port: str):
-        super().__init__(id)
+    def __init__(self, name: str, port: str):
+        super().__init__(name)
 
         self.debug = False
 
@@ -98,7 +98,7 @@ class OptotuneELE4ITunableLens(VoxelTunableLens):
 
     def log_metadata(self):
         return {
-            "id": self.id,
+            "name": self.name,
             "serial_number": self.serial_number,
             "mode": self.mode,
             "temperature_c": self.temperature_c,

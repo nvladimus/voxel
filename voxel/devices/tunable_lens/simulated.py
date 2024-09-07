@@ -2,8 +2,8 @@ from voxel.devices.tunable_lens.base import VoxelTunableLens, TunableLensControl
 
 
 class SimulatedTunableLens(VoxelTunableLens):
-    def __init__(self, id: str):
-        super().__init__(id)
+    def __init__(self, name: str):
+        super().__init__(name)
 
     @property
     def mode(self) -> TunableLensControlMode:
@@ -19,7 +19,7 @@ class SimulatedTunableLens(VoxelTunableLens):
 
     def log_metadata(self):
         return {
-            "id": self.id,
+            "name": self.name,
             "mode": self.mode,
             "temperature_c": self.temperature_c,
         }

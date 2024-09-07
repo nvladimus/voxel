@@ -601,7 +601,7 @@ class BdvWriter(BdvBase):
                         isetup = self._determine_setup_id(iillumination, ichannel, itile, iangle)
                         if any([self.setup_id_present[t][isetup] for t in range(len(self.setup_id_present))]):
                             vs = ET.SubElement(viewsets, 'ViewSetup')
-                            ET.SubElement(vs, 'id').text = str(isetup)
+                            ET.SubElement(vs, 'name').text = str(isetup)
                             ET.SubElement(vs, 'name').text = 'setup ' + str(isetup)
                             nz, ny, nx = tuple(self.stack_shapes[isetup])
                             ET.SubElement(vs, 'size').text = '{} {} {}'.format(nx, ny, nz)
@@ -627,7 +627,7 @@ class BdvWriter(BdvBase):
             attrs.set('name', attribute)
             for i_attr in range(self.attribute_counts[attribute]):
                 att = ET.SubElement(attrs, attribute.capitalize())
-                ET.SubElement(att, 'id').text = str(i_attr)
+                ET.SubElement(att, 'name').text = str(i_attr)
                 if attribute in self.attribute_labels.keys() and i_attr < len(self.attribute_labels[attribute]):
                     name = str(self.attribute_labels[attribute][i_attr])
                 else:
@@ -791,7 +791,7 @@ class BdvEditor(BdvBase):
         with open(self.filename_xml, 'r+') as file:
             self._get_xml_root()
             for elem in self._root.findall("./SequenceDescription/ViewSetups/ViewSetup"):
-                elem_id = elem.find("id")
+                elem_id = elem.find("name")
                 if int(elem_id.text) == isetup:
                     nz, ny, nx = tuple(view_arr.shape)
                     elem_size = elem.find("size")

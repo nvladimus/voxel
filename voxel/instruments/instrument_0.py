@@ -35,11 +35,11 @@ class Instrument:
     def _construct(self):
         """Construct device based on configuration yaml"""
         self.log.info(f'constructing instrument from {self.config_path}')
-        # grab instrument id
+        # grab instrument name
         try:
-            self.id = self.config['instrument']['id']
+            self.id = self.config['instrument']['name']
         except:
-            raise ValueError('no instrument id defined. check yaml file.')
+            raise ValueError('no instrument name defined. check yaml file.')
         # construct devices
         for device_name, device_specs in self.config['instrument']['devices'].items():
             self._construct_device(device_name, device_specs)

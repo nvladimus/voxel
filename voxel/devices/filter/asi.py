@@ -12,8 +12,8 @@ SWITCH_TIME_S = 0.1  # estimated timing
 class ASIFilterWheel(VoxelFilterWheel):
     """Filter Wheel Abstraction from an ASI Tiger Controller."""
 
-    def __init__(self, id: str, tigerbox: TigerController, wheel_id: str):
-        super().__init__(id)
+    def __init__(self, name: str, tigerbox: TigerController, wheel_id: str):
+        super().__init__(name)
         self.tigerbox = tigerbox
         self.wheel_id = wheel_id
         self.filters: Dict[str, int] = {}
@@ -67,8 +67,8 @@ class ASIFilterWheel(VoxelFilterWheel):
 
 
 class ASIFilter(VoxelFilter):
-    def __init__(self, id: str, name: str, wheel: ASIFilterWheel, position: int):
-        super().__init__(id)
+    def __init__(self, name: str, name: str, wheel: ASIFilterWheel, position: int):
+        super().__init__(name)
         self.name = name
         self.wheel = wheel
         self.position = position

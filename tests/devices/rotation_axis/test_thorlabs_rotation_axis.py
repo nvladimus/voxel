@@ -34,7 +34,7 @@ def thorlabs_axis():
 
 
 def test_initialization(thorlabs_axis):
-    assert thorlabs_axis.id == "test_id"
+    assert thorlabs_axis.name == "test_id"
     assert thorlabs_axis.serial_number in ["TEST123", ACTUAL_SERIAL_NUMBER]
 
 

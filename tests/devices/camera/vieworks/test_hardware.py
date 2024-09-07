@@ -8,7 +8,7 @@ from voxel.devices.camera.vieworks.definitions import (
 
 
 def test_camera_initialization(real_camera):
-    assert real_camera.id == 'real_camera'
+    assert real_camera.name == 'real_camera'
     assert real_camera.serial_number == CAMERA_1_SN
 
 

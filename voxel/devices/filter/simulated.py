@@ -10,13 +10,13 @@ SWITCH_TIME_S = 0.1  # simulated switching time
 class SimulatedFilterWheel(VoxelFilterWheel):
     """Simulated Filter Wheel for testing without hardware."""
 
-    def __init__(self, id: str, wheel_id: str):
-        super().__init__(id)
+    def __init__(self, name: str, wheel_id: str):
+        super().__init__(name)
         self.wheel_id = wheel_id
         self.filters: Dict[str, int] = {}
         self._current_filter: Optional[str] = None
         self._is_closed = False
-        self.log.info(f"Simulated Filter Wheel '{id}' initialized")
+        self.log.info(f"Simulated Filter Wheel '{name}' initialized")
 
     def add_filter(self, name: str, position: int):
         """Add a filter to the wheel."""
@@ -61,13 +61,13 @@ class SimulatedFilterWheel(VoxelFilterWheel):
 
 
 class SimulatedFilter(VoxelFilter):
-    def __init__(self, id: str, name: str, wheel: SimulatedFilterWheel, position: int):
-        super().__init__(id)
+    def __init__(self, name: str, name: str, wheel: SimulatedFilterWheel, position: int):
+        super().__init__(name)
         self.name = name
         self.wheel = wheel
         self.position = position
         self.wheel.add_filter(name, position)
-        self.log.info(f"Simulated Filter '{id}' initialized")
+        self.log.info(f"Simulated Filter '{name}' initialized")
 
     def enable(self) -> None:
         """Enable this filter if no other filter is enabled"""

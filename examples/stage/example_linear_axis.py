@@ -58,7 +58,7 @@ class VoxelStage:
 def sweep_axis(axis: VoxelLinearAxis, step: int = 10):
     axis.speed_mm_s = 1.9
     axis.position_mm = int(axis.lower_limit_mm)
-    print(f"Sweeping axis {axis.id}")
+    print(f"Sweeping axis {axis.name}")
     print(axis)
     for pos in range(int(axis.lower_limit_mm / 5), int(axis.upper_limit_mm / 5), step // 10):
         axis.position_mm = pos

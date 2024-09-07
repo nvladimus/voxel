@@ -6,8 +6,8 @@ from voxel.devices.base import VoxelDevice
 class VoxelChiller(VoxelDevice):
     """Base class for voxel chillers."""
 
-    def __init__(self, id: str):
-        super().__init__(id)
+    def __init__(self, name: str):
+        super().__init__(name)
 
     @property
     @abstractmethod

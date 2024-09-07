@@ -9,14 +9,14 @@ class SimulatedPowerMeter(VoxelPowerMeter):
     A simulated power meter device that implements the VoxelPowerMeter interface.
     """
 
-    def __init__(self, id: str, wavelength_nm: float) -> None:
+    def __init__(self, name: str, wavelength_nm: float) -> None:
         """
         Initialize the simulated power meter with a specific wavelength.
 
         Parameters:
         wavelength_nm (float): The wavelength in nanometers.
         """
-        super().__init__(id)
+        super().__init__(name)
         self._wavelength_nm = wavelength_nm
         self._is_connected = False
         self._connect()
@@ -32,7 +32,7 @@ class SimulatedPowerMeter(VoxelPowerMeter):
         Check if the device is connected and raise an exception if it's not.
         """
         if not self._is_connected:
-            raise DeviceConnectionError(f"Device {self.id} is not connected")
+            raise DeviceConnectionError(f"Device {self.name} is not connected")
 
     @property
     def power_mw(self) -> float:
