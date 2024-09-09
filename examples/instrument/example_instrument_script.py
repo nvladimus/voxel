@@ -3,29 +3,25 @@ from voxel.instrument.factory import InstrumentFactory
 from voxel.instrument.instrument import VoxelInstrument
 from voxel.instrument.nidaq import VoxelNIDAQ
 
-CONFIG_YAML = './example_instrument.yaml'
+INSTRUMENT_CONFIG_YAML = './example_instrument.yaml'
 
 
-def main():
-    config = InstrumentConfig(CONFIG_YAML)
-    factory = InstrumentFactory(config)
-    instrument: VoxelInstrument = factory.create_instrument()
-
-    print("Testing Instrument Factory...")
+def validate_instrument(instrument: VoxelInstrument, inst_config: InstrumentConfig):
+    print(f"Testing Instrument: {instrument.name}...")
 
     # Test general device creation
-    assert len(instrument.devices) == len(config.devices_specs), "Not all devices were created"
+    assert len(instrument.devices) == len(inst_config.devices_specs), "Not all devices were created"
 
     # Test specific device types
     print("\nTesting Cameras:")
     for camera in instrument.cameras.values():
-        print(f"  Camera: {camera.name}")
-        assert camera.name in config.devices_specs, f"Camera {camera.name} not in config"
+        print(f"  Camera: {repr(camera)}")
+        assert camera.name in inst_config.devices_specs, f"Camera {camera.name} not in inst_config"
 
     print("\nTesting Lasers:")
     for laser in instrument.lasers.values():
         print(f"  Laser: {laser.name}")
-        assert laser.name in config.devices_specs, f"Laser {laser.name} not in config"
+        assert laser.name in inst_config.devices_specs, f"Laser {laser.name} not in inst_config"
 
     # Test DAQ and tasks
     print("\nTesting DAQ and Tasks:")
@@ -34,7 +30,7 @@ def main():
     assert isinstance(daq, VoxelNIDAQ), "DAQ is not a VoxelNIDAQ"
     print(f"  DAQ: {daq.name}")
 
-    for task_name, task_specs in config.daq_specs.get('tasks', {}).items():
+    for task_name, task_specs in inst_config.daq_specs.get('tasks', {}).items():
         task = daq.tasks.get(task_name)
         assert task is not None, f"DAQ Task {task_name} not found"
         print(f"  DAQ Task: {task.name}")
@@ -56,7 +52,7 @@ def main():
 
     # Test channels configuration
     print("\nTesting Instrument Channels:")
-    for channel_name, channel_config in config.channels.items():
+    for channel_name, channel_config in inst_config.channels.items():
         print(f"  Channel: {channel_name}")
         for device_type, device_name in channel_config.items():
             device = instrument.devices.get(device_name)
@@ -64,6 +60,14 @@ def main():
             print(f"    {device_type}: {device.name}")
 
     print("\nAll tests passed successfully!")
+
+
+def main():
+    inst_config = InstrumentConfig(INSTRUMENT_CONFIG_YAML)
+    instrument_factory = InstrumentFactory(inst_config)
+    instrument: VoxelInstrument = instrument_factory.create_instrument()
+
+    validate_instrument(instrument, inst_config)
     instrument.close()
 
 

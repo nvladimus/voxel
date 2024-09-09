@@ -169,7 +169,7 @@ class SimulatedCamera(VoxelCamera):
     def binning(self) -> Binning:
         try:
             binning: Binning = next(key for key in self._binning_lut.keys() if key == self._binning)
-        except KeyError:
+        except StopIteration:
             self.log.error(f"Invalid binning: {self._binning}")
             binning: Binning = Binning.X1
         return binning
@@ -189,8 +189,8 @@ class SimulatedCamera(VoxelCamera):
     def pixel_type(self) -> PixelType:
         try:
             return next(key for key in self._pixel_type_lut.keys() if key == self.instance.pixel_type)
-        except KeyError:
-            self.log.error(f"Invalid pixel type: {self.instance.pixel_type}")
+        except StopIteration:
+            self.instance.pixel_type = self._pixel_type_lut[PixelType.MONO8]
             return PixelType.MONO8
 
     @pixel_type.setter

@@ -25,12 +25,15 @@ class InstrumentConfig(DeviceSpinnerConfig):
 
     @property
     def instrument_specs(self) -> Optional[Dict]:
-        if "module" in self.cfg and "class" in self.cfg:
-            return {
-                "module": self.cfg["module"],
-                "class": self.cfg["class"],
-                "kwds": self.cfg.get("kwds", {})
-            }
+        return {
+            "name": self._sanitize_name(self.cfg.get("name", "instrument")),
+            "module": self.cfg.get("module", "voxel.instrument.instrument"),
+            "class": self.cfg.get("class", "VoxelInstrument"), "kwds": self.cfg.get("kwds", {})
+        }
+
+    @staticmethod
+    def _sanitize_name(name: str) -> str:
+        return name.lower().replace(" ", "_")
 
     @property
     def devices_specs(self) -> Dict:
@@ -43,6 +46,10 @@ class InstrumentConfig(DeviceSpinnerConfig):
     @property
     def daq_specs(self) -> Dict:
         return dict(self.cfg["daq"])
+
+    def startup_settings(self) -> Optional[Dict]:
+        if "settings" in self.cfg:
+            return dict(self.cfg["settings"])
 
     def validate(self):
         errors = []

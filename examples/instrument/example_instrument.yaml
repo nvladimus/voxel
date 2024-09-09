@@ -119,3 +119,10 @@ devices:
     kwds:
       port: COM3
 
+settings:
+  simulated_camera_1:
+    exposure_time_ms: 20.0
+    pixel_type: 16
+    roi_height_px: 512
+    roi_width_px: 512
+    bit_packing_mode: msb

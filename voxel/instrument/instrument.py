@@ -1,5 +1,5 @@
 import logging
-from typing import Dict
+from typing import Dict, Any
 
 from voxel.instrument.config import InstrumentConfig
 from voxel.instrument.definitions import VoxelDeviceType, ChannelsDict
@@ -13,14 +13,16 @@ from voxel.instrument.nidaq import VoxelNIDAQ
 
 class VoxelInstrument:
 
-    def __init__(self, config: InstrumentConfig, devices: Dict[str, VoxelDevice], daq: VoxelNIDAQ,
+    def __init__(self, name: str, config: InstrumentConfig, devices: Dict[str, VoxelDevice], daq: VoxelNIDAQ,
                  channels: ChannelsDict, **kwds):
+        self.name = name
         self.config = config
         self.devices = devices
         self.daq = daq
         self.channels = channels
         self.kwds = kwds
         self.log = logging.getLogger(self.__class__.__name__)
+        self.apply_build_settings()
         self.activate_channel(list(self.channels.keys())[0])
 
     def __repr__(self):
@@ -82,7 +84,28 @@ class VoxelInstrument:
                 case _:
                     pass
 
+    def apply_build_settings(self):
+        self._apply_settings(self.config.startup_settings())
+
     def close(self):
         for device in self.devices.values():
             device.close()
         self.daq.close()
+
+    def _apply_settings(self, settings: Dict[str, Dict[str, Any]]):
+        if settings:
+            for name, device_settings in settings.items():
+                instance = self.devices[name] or self.daq.tasks[name]
+                if instance:
+                    self._apply_instance_settings(instance, device_settings)
+
+    def _apply_instance_settings(self, device: VoxelDevice, settings: Dict[str, Any]):
+        for key, value in settings.items():
+            try:
+                setattr(device, key, value)
+            except AttributeError:
+                self.log.error(f"Instance '{device.name}' has no attribute '{key}'")
+            except Exception as e:
+                self.log.error(f"Error setting '{key}' for '{device.name}': {str(e)}")
+                raise
+        self.log.info(f"Applied settings to '{device.name}'")

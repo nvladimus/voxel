@@ -28,7 +28,14 @@ class InstrumentFactory:
             module = importlib.import_module(self._config.instrument_specs['module'])
             cls = getattr(module, self._config.instrument_specs['class'])
             kwds = self._config.instrument_specs.get('kwds', {})
-        return cls(config=self._config, devices=self._devices, channels=self._config.channels, daq=self._daq, **kwds)
+        return cls(
+            name=self._config.instrument_specs['name'],
+            config=self._config,
+            devices=self._devices,
+            channels=self._config.channels,
+            daq=self._daq,
+            **kwds
+        )
 
     def _create_daq(self):
         name = self._config.cfg.get('name', 'instrument').lower().replace(' ', '_')

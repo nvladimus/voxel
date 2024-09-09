@@ -190,7 +190,7 @@ class VieworksCamera(VoxelCamera):
                 grabber_binning = self.grabber.remote.get("BinningHorizontal")
                 try:
                     self._binning_cache = next(k for k, v in self._binning_lut.items() if v == grabber_binning)
-                except KeyError:
+                except StopIteration:
                     self.log.error(f"Grabber binning ({grabber_binning}) not found in LUT({self._binning_lut})")
                     self._binning_cache = Binning(1)  # default to 1x1
             except Exception as e:
@@ -356,9 +356,6 @@ class VieworksCamera(VoxelCamera):
         grabber_pixel_type = self.grabber.remote.get("PixelFormat")
         try:
             return next(k for k, v in self._pixel_type_lut.items() if v == grabber_pixel_type)
-        except KeyError:
-            self.log.error(f"Grabber pixel type ({grabber_pixel_type}) not found in LUT({self._pixel_type_lut})")
-            return PixelType.MONO8
         except StopIteration:
             self.log.error(f"Pixel type not found in LUT({self._pixel_type_lut})")
             return PixelType.MONO8
@@ -392,7 +389,7 @@ class VieworksCamera(VoxelCamera):
         grabber_bit_packing = self.grabber.stream.get("UnpackingMode")
         try:
             return next(k for k, v in self._bit_packing_mode_lut.items() if v == grabber_bit_packing)
-        except KeyError:
+        except StopIteration:
             self.log.error(
                 f"Grabber bit packing mode ({grabber_bit_packing}) not found in LUT({self._bit_packing_mode_lut})")
             return BitPackingMode.NONE
@@ -493,7 +490,7 @@ class VieworksCamera(VoxelCamera):
                 self._trigger_setting_cache.mode = next(
                     k for k, v in self._trigger_mode_lut.items() if v == self.grabber.remote.get("TriggerMode")
                 )
-            except Exception as e:
+            except StopIteration as e:
                 self.log.error(f"Error getting trigger mode: {str(e)}")
         return self._trigger_setting_cache.mode
 
@@ -524,7 +521,7 @@ class VieworksCamera(VoxelCamera):
                 self._trigger_setting_cache.source = next(
                     k for k, v in self._trigger_source_lut.items() if v == self.grabber.remote.get("TriggerSource")
                 )
-            except Exception as e:
+            except StopIteration as e:
                 self.log.error(f"Error getting trigger source: {str(e)}")
         return self._trigger_setting_cache.source
 
@@ -554,7 +551,7 @@ class VieworksCamera(VoxelCamera):
             try:
                 self._trigger_setting_cache.polarity = next(k for k, v in self._trigger_polarity_lut.items()
                                                             if v == self.grabber.remote.get("TriggerActivation"))
-            except Exception as e:
+            except StopIteration as e:
                 self.log.error(f"Error getting trigger polarity: {str(e)}")
         return self._trigger_setting_cache.polarity
 
