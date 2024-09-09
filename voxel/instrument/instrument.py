@@ -1,6 +1,6 @@
-import logging
 from typing import Dict, Any
 
+from voxel.utils.logging_config import get_logger
 from voxel.instrument.config import InstrumentConfig
 from voxel.instrument.definitions import VoxelDeviceType, ChannelsDict
 from voxel.instrument.device import VoxelDevice
@@ -21,7 +21,7 @@ class VoxelInstrument:
         self.daq = daq
         self.channels = channels
         self.kwds = kwds
-        self.log = logging.getLogger(self.__class__.__name__)
+        self.log = get_logger(self.__class__.__name__)
         self.apply_build_settings()
         self.activate_channel(list(self.channels.keys())[0])
 

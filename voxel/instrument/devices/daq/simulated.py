@@ -1,4 +1,4 @@
-import logging
+from voxel.utils.logging_config import get_logger
 
 import matplotlib.pyplot as plt
 import numpy
@@ -86,7 +86,7 @@ class DAQ(BaseDAQ):
         self.co_task = None
         self._tasks = None
 
-        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)       
+        self.log = get_logger(__name__ + "." + self.__class__.__name__)
         self.id = dev
         self.ao_physical_chans = list()
         self.co_physical_chans = list()

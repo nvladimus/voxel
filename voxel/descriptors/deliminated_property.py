@@ -1,7 +1,7 @@
-import logging
 from typing import Union, Callable, Optional, Any
 
 from voxel.descriptors.descriptor_proxy import DescriptorProxy
+from voxel.utils.logging_config import get_logger
 
 Number = Union[int, float]
 StaticOrCallableNumber = Union[Number, Callable[[Any], Number]]
@@ -26,7 +26,7 @@ class DeliminatedProperty(property):
         self._unit = unit
         self._instance: Any = None
 
-        self.log = logging.getLogger(f"{self.__class__.__name__}")
+        self.log = get_logger(f"{self.__class__.__name__}")
 
     def __get__(self, instance: Any, owner=None) -> Union['DeliminatedProperty', 'DeliminatedPropertyProxy']:
         if instance is None:

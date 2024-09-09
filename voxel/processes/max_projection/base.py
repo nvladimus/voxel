@@ -1,4 +1,3 @@
-import logging
 from abc import abstractmethod
 from multiprocessing import Event, Process
 from multiprocessing.shared_memory import SharedMemory
@@ -6,6 +5,8 @@ from pathlib import Path
 
 import numpy
 import numpy as np
+
+from voxel.utils.logging_config import get_logger
 
 
 class BaseMaxProjection:
@@ -18,7 +19,7 @@ class BaseMaxProjection:
 
     def __init__(self, path: str) -> None:
         self._path = path
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.log = get_logger(f"{__name__}.{self.__class__.__name__}")
         self._path = Path(path)
         self._column_count_px = None
         self._row_count_px = None

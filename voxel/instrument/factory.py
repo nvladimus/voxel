@@ -1,5 +1,4 @@
 import importlib
-import logging
 from typing import Dict, Any
 
 from voxel.instrument.config import InstrumentConfig
@@ -7,11 +6,12 @@ from voxel.instrument.device import VoxelDevice
 from voxel.instrument.instrument import VoxelInstrument
 from voxel.instrument.nidaq import VoxelNIDAQ
 from voxel.instrument.nidaq.task import DAQTask
+from voxel.utils.logging_config import get_logger
 
 
 class InstrumentFactory:
     def __init__(self, config: InstrumentConfig):
-        self.log = logging.getLogger(self.__class__.__name__)
+        self.log = get_logger(self.__class__.__name__)
         self._config = config
         self._daq = self._create_daq()
         self._daq_tasks = self._create_daq_tasks()
@@ -122,7 +122,7 @@ class InstrumentFactory:
             channel_kwds = {k: v for k, v in daq_channel_specs.items() if k != 'task'}
             channel_kwds['name'] = device.name
             channel = task.add_channel(**channel_kwds)
-            self.log.info(f"Added DAQ channel for device '{device.name}' to task '{task_name}'")
+            self.log.debug(f"Added DAQ channel for device '{device.name}' to task '{task_name}'")
 
             # Add daq_task and daq_channel attributes to the device
             device.daq_task = task

@@ -1,9 +1,9 @@
-import logging
 from enum import Enum
 from typing import Type, Any, Callable, Optional, Union, List
 from weakref import WeakKeyDictionary
 
 from voxel.descriptors.descriptor_proxy import DescriptorProxy
+from voxel.utils.logging_config import get_logger
 
 
 class EnumeratedProperty:
@@ -22,7 +22,7 @@ class EnumeratedProperty:
         self._enum_class = enum_class
         self._options_getter = options_getter
         self._instance_proxies = WeakKeyDictionary()
-        self.log = logging.getLogger(f"{self.__class__.__name__}")
+        self.log = get_logger(f"{self.__class__.__name__}")
 
     def __get__(self, instance: Any, owner=None) -> Union['EnumeratedProperty', 'EnumeratedPropertyProxy', Enum]:
         if instance is None:

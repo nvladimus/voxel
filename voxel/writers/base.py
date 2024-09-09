@@ -1,4 +1,3 @@
-import logging
 from abc import abstractmethod
 from multiprocessing import Event, Queue, Value
 from pathlib import Path
@@ -7,6 +6,7 @@ from typing import Optional
 import numpy
 
 from voxel.descriptors.deliminated_property import DeliminatedProperty
+from voxel.utils.logging_config import get_logger
 
 
 class BaseWriter:
@@ -18,7 +18,7 @@ class BaseWriter:
     """
 
     def __init__(self, path: str):
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.log = get_logger(f"{__name__}.{self.__class__.__name__}")
         self._path = Path(path)
         self._channel = None
         self._filename = None
@@ -474,8 +474,8 @@ class BaseWriter:
         :rtype: float
         """
         # convert to %
-        self.log.info(f"Progress [%]: {self._progress.value*100}")
-        return self._progress.value*100
+        self.log.info(f"Progress [%]: {self._progress.value * 100}")
+        return self._progress.value * 100
 
     @abstractmethod
     def get_logs(self):

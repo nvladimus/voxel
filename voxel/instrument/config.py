@@ -3,6 +3,7 @@ from typing import Dict, Optional
 from device_spinner.config import Config as DeviceSpinnerConfig
 
 from voxel.instrument.definitions import CHANNEL_DEVICES
+from voxel.utils.logging_config import get_logger
 
 
 class InstrumentConfigError(Exception):
@@ -18,6 +19,7 @@ class InstrumentConfig(DeviceSpinnerConfig):
 
     def __init__(self, config_file: str) -> None:
         super().__init__(filepath=config_file)
+        self.log = get_logger(self.__class__.__name__)
         self.validate()
 
     def __repr__(self):

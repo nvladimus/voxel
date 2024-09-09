@@ -1,7 +1,8 @@
-import logging
 from abc import abstractmethod
 
 import numpy
+
+from voxel.utils.logging_config import get_logger
 
 
 class BaseDownSample():
@@ -14,13 +15,14 @@ class BaseDownSample():
 
     def __init__(self, binning: int) -> None:
         self._binning = binning
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.log = get_logger(f"{__name__}.{self.__class__.__name__}")
 
     @abstractmethod
     def run(self, method, image: numpy.array):
         """
         Run function for image downsampling.
 
+        :param method:
         :param image: Input image
         :type image: numpy.array
         """

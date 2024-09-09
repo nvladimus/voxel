@@ -1,14 +1,13 @@
-import logging
-
 from voxel import VoxelInstrument
 from voxel.acquisition.config import AcquisitionConfig
+from voxel.utils.logging_config import get_logger
 
 
 class VoxelAcquisition:
 
-    def __init__(self, config: AcquisitionConfig, instrument: VoxelInstrument, log_level='INFO'):
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self.log.setLevel(log_level)
-
+    def __init__(self, config: AcquisitionConfig, instrument: VoxelInstrument):
+        self.log = get_logger(f"{self.__class__.__name__}")
         self.config = config
         self.instrument = instrument
+        self.log.debug(f"Acquisition created with instrument: {instrument}")
+

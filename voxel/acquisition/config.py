@@ -1,5 +1,5 @@
 from device_spinner.config import Config as DeviceSpinnerConfig
-
+from voxel.utils.logging_config import get_logger
 
 class AcquisitionConfigError(Exception):
     pass
@@ -15,6 +15,7 @@ class AcquisitionConfig(DeviceSpinnerConfig):
 
     def __init__(self, config_file: str) -> None:
         super().__init__(filepath=config_file)
+        self.log = get_logger(self.__class__.__name__)
         self.validate()
 
     def __repr__(self):

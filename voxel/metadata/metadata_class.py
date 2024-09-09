@@ -1,20 +1,22 @@
 from datetime import datetime
-import logging
+
 import inflection
 
 from voxel.metadata.base import BaseMetadata
+from voxel.utils.logging_config import get_logger
 
 DATE_FORMATS = {'Year/Month/Day/Hour/Minute/Second': '%Y-%m-%d_%H-%M-%S',
                 'Month/Day/Year/Hour/Minute/Second': '%m-%d-%Y_%H-%M-%S',
                 'Month/Day/Year': '%m-%d-%Y',
                 'None': None}
 
+
 class MetadataClass(BaseMetadata):
     """Class to handle metadata"""
 
     def __init__(self, metadata_dictionary: dict, date_format: str = 'None', name_specs: dict = {}):
 
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.log = get_logger(f"{self.__class__.__name__}")
 
         super().__init__()
 

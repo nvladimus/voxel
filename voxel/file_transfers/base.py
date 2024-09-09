@@ -1,9 +1,10 @@
-import logging
 import threading
 from abc import abstractmethod
 from pathlib import Path
 
 from imohash import hashfile
+
+from voxel.utils.logging_config import get_logger
 
 
 class BaseFileTransfer:
@@ -24,7 +25,7 @@ class BaseFileTransfer:
     """
 
     def __init__(self, external_path: str, local_path: str):
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.log = get_logger(f"{__name__}.{self.__class__.__name__}")
         self._external_path = Path(external_path)
         self._local_path = Path(local_path)
         if self._external_path == self._local_path:

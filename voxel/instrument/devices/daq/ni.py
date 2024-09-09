@@ -1,4 +1,4 @@
-import logging
+from voxel.utils.logging_config import get_logger
 
 import matplotlib.pyplot as plt
 import nidaqmx
@@ -54,7 +54,7 @@ class DAQ(BaseDAQ):
         self.co_task = None
         self._tasks = None
 
-        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self.log = get_logger(__name__ + "." + self.__class__.__name__)
         self.devs = list()
         for device in nidaqmx.system.System.local().devices:
             self.devs.append(device.name)

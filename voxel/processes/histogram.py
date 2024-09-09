@@ -1,10 +1,11 @@
-import logging
 from multiprocessing import Event, Process
 from multiprocessing.shared_memory import SharedMemory
 from pathlib import Path
 
 import numpy as np
 from fast_histogram import histogram1d
+
+from voxel.utils.logging_config import get_logger
 
 
 class HistogramProjection:
@@ -25,7 +26,7 @@ class HistogramProjection:
     """
 
     def __init__(self, path: str):
-        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.log = get_logger(f"{__name__}.{self.__class__.__name__}")
         self._path = Path(path)
         self._column_count_px = None
         self._row_count_px = None
@@ -485,7 +486,7 @@ class HistogramProjection:
             x_index_list = np.arange(0, self._column_count_px, self._x_bin_count_px)
             if self._column_count_px not in x_index_list:
                 x_index_list = np.append(x_index_list, self._column_count_px)
-            self.histogram_x = np.zeros((self._x_bins, len(x_index_list)-1), dtype='float')
+            self.histogram_x = np.zeros((self._x_bins, len(x_index_list) - 1), dtype='float')
         if self._y_bin_count_px is None:
             y_projection = False
         else:
@@ -495,7 +496,7 @@ class HistogramProjection:
             y_index_list = np.arange(0, self._row_count_px, self._y_bin_count_px)
             if self._row_count_px not in y_index_list:
                 y_index_list = np.append(y_index_list, self._row_count_px)
-            self.histogram_y = np.zeros((self._y_bins, len(y_index_list)-1), dtype='float')
+            self.histogram_y = np.zeros((self._y_bins, len(y_index_list) - 1), dtype='float')
         if self._z_bin_count_px is None:
             z_projection = False
         else:
@@ -505,7 +506,7 @@ class HistogramProjection:
             z_index_list = np.arange(0, self._frame_count_px_px, self._z_bin_count_px)
             if self._frame_count_px_px not in z_index_list:
                 z_index_list = np.append(z_index_list, self._frame_count_px_px)
-            self.histogram_z = np.zeros((self._z_bins, len(z_index_list)-1), dtype='float')
+            self.histogram_z = np.zeros((self._z_bins, len(z_index_list) - 1), dtype='float')
 
         frame_index = 0
         z_chunk_number = 0
@@ -523,20 +524,20 @@ class HistogramProjection:
                                                                           range=[self._z_min_value, self._z_max_value])
                         z_chunk_number += 1
                 if x_projection:
-                    for i in range(0, len(x_index_list)-1):
-                        self.histogram_x[:, i] = histogram1d(self.latest_img[:, x_index_list[i]:x_index_list[i+1]],
+                    for i in range(0, len(x_index_list) - 1):
+                        self.histogram_x[:, i] = histogram1d(self.latest_img[:, x_index_list[i]:x_index_list[i + 1]],
                                                              bins=self._x_bins,
                                                              range=[self._x_min_value, self._x_max_value])
                 if y_projection:
-                    for i in range(0, len(y_index_list)-1):
-                        self.histogram_y[:, i] = histogram1d(self.latest_img[y_index_list[i]:y_index_list[i+1], :],
+                    for i in range(0, len(y_index_list) - 1):
+                        self.histogram_y[:, i] = histogram1d(self.latest_img[y_index_list[i]:y_index_list[i + 1], :],
                                                              bins=self._y_bins,
                                                              range=[self._y_min_value, self._y_max_value])
                 frame_index += 1
                 self.new_image.clear()
         # save projections as csv files
         self.log.info(f'saving {self.filename}_histogram_x.tiff')
-        x_bin_step = (self._x_max_value - self._x_min_value)/self._x_bins
+        x_bin_step = (self._x_max_value - self._x_min_value) / self._x_bins
         x_bin_centers = np.linspace(self._x_min_value + x_bin_step / 2,
                                     self._x_max_value - x_bin_step / 2, self._x_bins)
         x_projection_centers = np.zeros(shape=(1, len(x_index_list)), dtype='float')
@@ -545,7 +546,7 @@ class HistogramProjection:
                    np.row_stack((x_projection_centers, np.column_stack((x_bin_centers, self.histogram_x)))),
                    delimiter=',', fmt='%f')
         self.log.info(f'saving {self.filename}_histogram_y.tiff')
-        y_bin_step = (self._y_max_value - self._y_min_value)/self._y_bins
+        y_bin_step = (self._y_max_value - self._y_min_value) / self._y_bins
         y_bin_centers = np.linspace(self._y_min_value + y_bin_step / 2,
                                     self._y_max_value - y_bin_step / 2, self._y_bins)
         y_projection_centers = np.zeros(shape=(1, len(y_index_list)), dtype='float')
@@ -554,7 +555,7 @@ class HistogramProjection:
                    np.row_stack((y_projection_centers, np.column_stack((y_bin_centers, self.histogram_y)))),
                    delimiter=',', fmt='%f')
         self.log.info(f'saving {self.filename}_histogram_z.tiff')
-        z_bin_step = (self._z_max_value - self._z_min_value)/self._z_bins
+        z_bin_step = (self._z_max_value - self._z_min_value) / self._z_bins
         z_bin_centers = np.linspace(self._z_min_value + z_bin_step / 2,
                                     self._z_max_value - z_bin_step / 2, self._z_bins)
         z_projection_centers = np.zeros(shape=(1, len(z_index_list)), dtype='float')
