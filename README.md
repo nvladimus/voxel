@@ -134,15 +134,15 @@ Coherent HOPS. *(instructions coming soon)*
 1. Instantiating a single device:
 
     Individual device can be instantiated by importing the appropriate driver
-    class with the expected arguments. For example a camera object for a Vieworks
-    VP-151MX can be invoked as:
+   class with the expected arguments. For example a camera object for a Vieworks
+   VP-151MX can be invoked as:
     ```python
-    from voxel.devices.camera.vieworks_egrabber import VieworksCamera
+    from voxel.instrument.devices.camera import VieworksCamera
 
     camera = VieworksCamera(id='123456')
     ```
     Camera properties can then be queried and set by accessing attributes of the
-    camera object:
+   camera object:
     ```python
     camera.exposure_time ms = 10.0
     camera.pixel_type = 'mono16'
@@ -200,9 +200,9 @@ Coherent HOPS. *(instructions coming soon)*
             speed_mm_s: 1.0
     ```
     An instrument can be invoked by loading the YAML file with and the loaded devices
-    can be accessed with. The above example uses all simulated device classes.
+   can be accessed with. The above example uses all simulated device classes.
     ```python
-    from voxel.instruments.instrument import Instrument
+    from voxel.instrument.instrument import Instrument
 
     instrument = Instrument(config_path='example.yaml')
     instrument.cameras['vp-151mx camera']

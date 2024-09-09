@@ -1,5 +1,5 @@
 # Usage example
-from voxel.devices.filter import SimulatedFilterWheel, SimulatedFilter, VoxelDeviceError
+from voxel.instrument.devices import SimulatedFilterWheel, SimulatedFilter, VoxelDeviceError
 
 if __name__ == "__main__":
     import logging

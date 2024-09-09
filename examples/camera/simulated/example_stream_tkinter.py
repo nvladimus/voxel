@@ -5,8 +5,8 @@ from typing import Optional
 import numpy as np
 from PIL import Image, ImageTk
 
-from voxel.devices.camera.simulated.image_model import ImageModel
-from voxel.devices.camera.simulated.simulated_camera import SimulatedCamera
+from voxel.instrument.devices.camera.simulated import ImageModel
+from voxel.instrument.devices.camera.simulated import SimulatedCamera
 
 
 class FrameStreamApp(tk.Tk):

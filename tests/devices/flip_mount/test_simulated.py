@@ -1,5 +1,5 @@
 import pytest
-from voxel.devices.flip_mount import SimulatedFlipMount
+from voxel.instrument.devices.flip_mount import SimulatedFlipMount
 
 POSITIONS = {
     "A": 0,

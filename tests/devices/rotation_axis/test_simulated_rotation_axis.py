@@ -1,6 +1,6 @@
 import pytest
 import time
-from voxel.devices.rotation_axis.simulated import SimulatedRotationAxis
+from voxel.instrument.devices.rotation_axis.simulated import SimulatedRotationAxis
 
 
 @pytest.fixture

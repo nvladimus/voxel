@@ -1,6 +1,6 @@
 from unittest.mock import call
 
-from voxel.devices.camera.vieworks.egrabber import GenTLException
+from voxel.instrument.devices.camera import GenTLException
 
 
 def test_camera_initialization(mock_camera):

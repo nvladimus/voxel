@@ -2,7 +2,7 @@ import time
 
 import pytest
 
-from voxel.devices.power_meter import ThorlabsPowerMeter
+from voxel.instrument.devices import ThorlabsPowerMeter
 
 STRESS_TEST_MINUTES = 1
 

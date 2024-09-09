@@ -1,7 +1,7 @@
 import logging
 import time
 from pylablib.devices import Thorlabs
-from voxel.devices.filterwheel.base import BaseFilterWheel
+from voxel.instrument.devices import BaseFilterWheel
 
 # constants for the Thorlabs FW102C filter wheel
 

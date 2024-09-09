@@ -3,9 +3,9 @@ from typing import Tuple, List, Sequence
 
 import numpy as np
 
-from voxel.devices.camera.base import VoxelCamera
-from voxel.devices.camera.definitions import VoxelFrame
-from voxel.devices.camera.simulated.simulated_camera import SimulatedCamera
+from voxel.instrument.devices.camera.base import VoxelCamera
+from voxel.instrument.devices.camera.definitions import VoxelFrame
+from voxel.instrument.devices.camera.simulated import SimulatedCamera
 
 
 def grab_x_frames(camera: VoxelCamera, num_frames: int) -> Tuple[List[VoxelFrame], int, int, float]:

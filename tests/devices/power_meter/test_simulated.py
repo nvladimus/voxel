@@ -1,6 +1,6 @@
 import pytest
 
-from voxel.devices.power_meter.simulated import SimulatedPowerMeter
+from voxel.instrument.devices.power_meter.simulated import SimulatedPowerMeter
 
 
 @pytest.fixture

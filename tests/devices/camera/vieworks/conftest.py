@@ -2,7 +2,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from voxel.devices.camera.vieworks import VieworksCamera
+from voxel.instrument.devices.camera.vieworks import VieworksCamera
 
 CAMERA_1_SN = 'MB151BAY001'
 CAMERA_2_SN = 'MP151BBX006'

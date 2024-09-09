@@ -2,7 +2,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from voxel.devices.camera.hamamatsu import HamamatsuCamera
+from voxel.instrument.devices import HamamatsuCamera
 
 HAMAMATSU_SERIAL_NUMBER = '302482'
 HAMAMATSU_CAMERA_ID = 'test_hamamatsu_camera'

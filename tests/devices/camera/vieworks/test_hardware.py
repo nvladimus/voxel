@@ -1,7 +1,7 @@
 import pytest
 
 from tests.devices.camera.vieworks.conftest import CAMERA_1_SN, CAMERA_2_SN
-from voxel.devices.camera.vieworks.definitions import (
+from voxel.instrument.devices.camera.vieworks.definitions import (
     Binning, PixelType, BitPackingMode,
     TriggerMode, TriggerSource, TriggerPolarity
 )
@@ -13,7 +13,7 @@ def test_camera_initialization(real_camera):
 
 
 def test_multiple_cameras():
-    from voxel.devices.camera.vieworks import VieworksCamera
+    from voxel.instrument.devices.camera.vieworks import VieworksCamera
 
     camera1 = VieworksCamera('camera1', CAMERA_1_SN)
     camera2 = VieworksCamera('camera2', CAMERA_2_SN)

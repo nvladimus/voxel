@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import tifffile
 
-from voxel.devices.camera.base import VoxelCamera
+from voxel.instrument.devices.camera.base import VoxelCamera
 
 
 class BackgroundCollection:

@@ -1,6 +1,6 @@
 import pytest
 
-from voxel.devices.camera.simulated import (
+from voxel.instrument.devices.camera.simulated import (
     SimulatedCamera,
     MIN_WIDTH_PX,
     STEP_WIDTH_PX,

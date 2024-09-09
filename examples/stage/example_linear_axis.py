@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from voxel.devices.linear_axis import VoxelLinearAxis
+from voxel.instrument.devices import VoxelLinearAxis
 
 
 # max speed = 1.92 mm/s
@@ -69,9 +69,9 @@ def sweep_axis(axis: VoxelLinearAxis, step: int = 10):
 
 
 if __name__ == '__main__':
-    from voxel.devices.tigerbox import ASITigerBox
-    from voxel.devices.linear_axis import LinearAxisDimension
-    from voxel.devices.linear_axis.asi import ASITigerLinearAxis
+    from voxel.instrument.controllers.tigerbox import ASITigerBox
+    from voxel.instrument.devices import LinearAxisDimension
+    from voxel.instrument.devices import ASITigerLinearAxis
 
     PORT = 'COM3'
     controller = ASITigerBox(port=PORT)

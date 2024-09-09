@@ -1,7 +1,7 @@
 import time
 import pytest
-from voxel.devices.flip_mount import ThorlabsFlipMount
-from voxel.devices.flip_mount.thorlabs_mff101 import FLIP_TIME_RANGE
+from voxel.instrument.devices.flip_mount import ThorlabsFlipMount
+from voxel.instrument.devices.flip_mount.thorlabs_mff101 import FLIP_TIME_RANGE
 
 CONN = '37007737'
 POSITIONS = {

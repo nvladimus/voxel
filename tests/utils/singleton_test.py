@@ -1,4 +1,4 @@
-from voxel.devices.stage.asi import Stage
+from voxel.instrument.devices import Stage
 
 asi_stage1 = Stage(port='COM3', instrument_axis='X', hardware_axis='X')
 asi_stage2 = Stage(port='COM3', instrument_axis='Y', hardware_axis='Y')

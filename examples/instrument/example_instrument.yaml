@@ -1,0 +1,121 @@
+name: 'Example Instrument'
+description: 'A simulated instrument for testing purposes'
+module: voxel.instrument
+class: VoxelInstrument
+
+channels:
+  red:
+    camera: simulated_camera_1
+    laser: laser_561
+    filter: filter_561
+  green:
+    camera: simulated_camera_1
+    laser: laser_488
+    filter: filter_488
+
+daq:
+  conn: Dev1
+  tasks:
+    primary_ao_task:
+      task_type: ao
+      sampling_frequency_hz: 350000
+      period_time_ms: 10
+      rest_time_ms: 0
+
+  # Define reusable waveform anchors
+  default_waveforms:
+    square_waveform: &default_square_waveform
+      waveform_type: square
+      center_volts: 2.5
+      amplitude_volts: 2.5
+      cutoff_freq_hz: 1000
+      start_time_ms: 0
+      end_time_ms: 5
+    triangle_waveform: &default_triangle_waveform
+      waveform_type: triangle
+      center_volts: 2.5
+      amplitude_volts: 2.5
+      cutoff_freq_hz: 1000
+      peak_point: 0.5
+    sawtooth_waveform: &default_sawtooth_waveform
+      <<: *default_triangle_waveform
+      peak_point: 1
+
+devices:
+  simulated_camera_1:
+    module: voxel.instrument.devices.camera.simulated
+    class: SimulatedCamera
+    kwds:
+      serial_number: 12345
+    daq_channel:
+      task: primary_ao_task
+      port: ao0
+      <<: *default_square_waveform
+  laser_488:
+    module: voxel.instrument.devices.laser.simulated
+    class: SimulatedLaser
+    kwds:
+      wavelength: 488
+    daq_channel:
+      task: primary_ao_task
+      port: ao1
+      <<: *default_triangle_waveform
+  laser_561:
+    module: voxel.instrument.devices.laser.simulated
+    class: SimulatedLaser
+    kwds:
+      wavelength: 561
+    daq_channel:
+      task: primary_ao_task
+      port: ao2
+      <<: *default_sawtooth_waveform
+  filter_488:
+    module: voxel.instrument.devices.filter.simulated
+    class: SimulatedFilter
+    kwds:
+      filter_name: BP488
+      wheel: filterwheel
+      position: 1
+  filter_561:
+    module: voxel.instrument.devices.filter.simulated
+    class: SimulatedFilter
+    kwds:
+      filter_name: BP561
+      wheel: filterwheel
+      position: 2
+  x-axis:
+    module: voxel.instrument.devices.linear_axis.asi
+    class: ASITigerLinearAxis
+    kwds:
+      hardware_axis: X
+      dimension: X
+      tigerbox: tigerbox
+    daq_channel:
+      task: primary_ao_task
+      port: ao3
+      <<: *default_square_waveform
+  y-axis:
+    module: voxel.instrument.devices.linear_axis.asi
+    class: ASITigerLinearAxis
+    kwds:
+      hardware_axis: Y
+      dimension: Y
+      tigerbox: tigerbox
+  z-axis:
+    module: voxel.instrument.devices.linear_axis.asi
+    class: ASITigerLinearAxis
+    kwds:
+      hardware_axis: Z
+      dimension: Z
+      tigerbox: tigerbox
+  filterwheel:
+    module: voxel.instrument.devices.filter.simulated
+    class: SimulatedFilterWheel
+    kwds:
+      wheel_id: 1
+  tigerbox:
+    module: voxel.instrument.controllers.tigerbox
+    class: ASITigerBox
+    kwds:
+      port: COM3
+

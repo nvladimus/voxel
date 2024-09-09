@@ -1,5 +1,5 @@
 from pathlib import Path
-from voxel.devices.daq.ni import DAQ
+from voxel.instrument.devices import DAQ
 from ruamel.yaml import YAML
 
 this_dir = Path(__file__).parent.resolve() # directory of this test file.

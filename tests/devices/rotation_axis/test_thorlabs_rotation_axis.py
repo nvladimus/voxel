@@ -2,7 +2,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from voxel.devices.rotation_axis.thorlabs import ThorlabsRotationAxis
+from voxel.instrument.devices.rotation_axis.thorlabs import ThorlabsRotationAxis
 
 # This flag determines whether to use a mock device or real hardware
 USE_MOCK_DEVICE = True

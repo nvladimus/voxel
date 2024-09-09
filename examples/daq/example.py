@@ -2,9 +2,8 @@ import time
 
 from matplotlib import pyplot as plt
 
-from voxel.devices.nidaq.channel import DAQWaveform
-from voxel.devices.nidaq.ni import VoxelNIDAQ
-from voxel.devices.nidaq.task import DAQTask, DAQTaskType
+from voxel.instrument.nidaq import DAQWaveform, VoxelNIDAQ
+from voxel.instrument.nidaq.task import DAQTask, DAQTaskType
 
 USE_SIMULATED = False
 DEVICE_NAME = 'Dev1'
@@ -35,7 +34,7 @@ def main():
         waveform_type=DAQWaveform.SQUARE,
         center_volts=0,
         amplitude_volts=5,
-        cut_off_frequency_hz=1000,
+        cutoff_freq_hz=1000,
         start_time_ms=0,
         end_time_ms=5,
         port=CH1
@@ -46,7 +45,7 @@ def main():
         waveform_type=DAQWaveform.TRIANGLE,
         center_volts=0,
         amplitude_volts=2.5,
-        cut_off_frequency_hz=1000,
+        cutoff_freq_hz=1000,
         start_time_ms=0,
         end_time_ms=5,
         port=CH2
@@ -58,7 +57,7 @@ def main():
             waveform_type=DAQWaveform.SQUARE,
             center_volts=0,
             amplitude_volts=2.5,
-            cut_off_frequency_hz=1000,
+            cutoff_freq_hz=1000,
             start_time_ms=2.5,
             end_time_ms=7.5,
             port=CH3
@@ -69,7 +68,7 @@ def main():
             waveform_type=DAQWaveform.TRIANGLE,
             center_volts=0,
             amplitude_volts=2.5,
-            cut_off_frequency_hz=1000,
+            cutoff_freq_hz=1000,
             start_time_ms=0,
             end_time_ms=10,
             port=CH4

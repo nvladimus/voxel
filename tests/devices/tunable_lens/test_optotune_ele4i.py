@@ -1,4 +1,4 @@
-from voxel.devices.tunable_lens.optotune_ele4i import TunableLens
+from voxel.instrument.devices.tunable_lens import TunableLens
 
 etl = TunableLens(port='COM4')
 print(etl.mode)
