@@ -3,7 +3,7 @@ from datetime import datetime
 import inflection
 
 from voxel.metadata.base import BaseMetadata
-from voxel.utils.logging_config import get_logger
+from voxel.utils.logging import get_logger
 
 DATE_FORMATS = {'Year/Month/Day/Hour/Minute/Second': '%Y-%m-%d_%H-%M-%S',
                 'Month/Day/Year/Hour/Minute/Second': '%m-%d-%Y_%H-%M-%S',

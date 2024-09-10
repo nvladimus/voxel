@@ -4,7 +4,7 @@ import numpy as np
 import tifffile
 
 from voxel.instrument.devices.camera.base import VoxelCamera
-from voxel.utils.logging_config import get_logger
+from voxel.utils.logging import get_logger
 
 
 class BackgroundCollection:

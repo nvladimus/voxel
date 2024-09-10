@@ -6,7 +6,7 @@ from typing import Optional
 import numpy
 
 from voxel.descriptors.deliminated_property import DeliminatedProperty
-from voxel.utils.logging_config import get_logger
+from voxel.utils.logging import get_logger
 
 
 class BaseWriter:

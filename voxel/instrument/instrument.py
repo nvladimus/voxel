@@ -1,6 +1,6 @@
 from typing import Dict, Any
 
-from voxel.utils.logging_config import get_logger
+from voxel.utils.logging import get_logger
 from voxel.instrument.config import InstrumentConfig
 from voxel.instrument.definitions import VoxelDeviceType, ChannelsDict
 from voxel.instrument.device import VoxelDevice

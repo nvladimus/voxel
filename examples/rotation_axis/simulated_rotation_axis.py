@@ -1,6 +1,6 @@
 # Example usage
 from voxel.instrument.devices.rotation_axis.simulated import SimulatedRotationAxis
-from voxel.utils.logging_config import setup_logging
+from voxel.utils.logging import setup_logging
 
 if __name__ == '__main__':
     setup_logging(log_level='DEBUG')

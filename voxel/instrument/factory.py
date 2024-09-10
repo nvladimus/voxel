@@ -6,7 +6,7 @@ from voxel.instrument.device import VoxelDevice
 from voxel.instrument.instrument import VoxelInstrument
 from voxel.instrument.nidaq import VoxelNIDAQ
 from voxel.instrument.nidaq.task import DAQTask
-from voxel.utils.logging_config import get_logger
+from voxel.utils.logging import get_logger
 
 
 class InstrumentFactory:

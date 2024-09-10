@@ -3,7 +3,7 @@ from typing import Dict, Optional
 from device_spinner.config import Config as DeviceSpinnerConfig
 
 from voxel.instrument.definitions import CHANNEL_DEVICES
-from voxel.utils.logging_config import get_logger
+from voxel.utils.logging import get_logger
 
 
 class InstrumentConfigError(Exception):

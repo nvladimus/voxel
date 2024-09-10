@@ -12,7 +12,7 @@ import skimage.transform
 from tqdm import trange
 
 from voxel.processes.downsample.gpu.gputools.downsample_3d import GPUToolsDownSample3D
-from voxel.utils.logging_config import get_logger
+from voxel.utils.logging import get_logger
 
 
 class BdvBase:

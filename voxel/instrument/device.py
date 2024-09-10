@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from voxel.instrument.definitions import VoxelDeviceType
-from voxel.utils.logging_config import get_logger
+from voxel.utils.logging import get_logger
 
 
 class VoxelDevice(ABC):

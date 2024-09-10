@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 from fast_histogram import histogram1d
 
-from voxel.utils.logging_config import get_logger
+from voxel.utils.logging import get_logger
 
 
 class HistogramProjection:

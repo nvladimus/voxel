@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy
 import numpy as np
 
-from voxel.utils.logging_config import get_logger
+from voxel.utils.logging import get_logger
 
 
 class BaseMaxProjection:

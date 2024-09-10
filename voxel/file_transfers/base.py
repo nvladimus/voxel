@@ -4,7 +4,7 @@ from pathlib import Path
 
 from imohash import hashfile
 
-from voxel.utils.logging_config import get_logger
+from voxel.utils.logging import get_logger
 
 
 class BaseFileTransfer:

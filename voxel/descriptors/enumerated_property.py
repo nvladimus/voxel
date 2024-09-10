@@ -3,7 +3,7 @@ from typing import Type, Any, Callable, Optional, Union, List
 from weakref import WeakKeyDictionary
 
 from voxel.descriptors.descriptor_proxy import DescriptorProxy
-from voxel.utils.logging_config import get_logger
+from voxel.utils.logging import get_logger
 
 
 class EnumeratedProperty:

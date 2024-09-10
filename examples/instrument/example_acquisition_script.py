@@ -3,7 +3,7 @@ from voxel.acquisition.acquisition import VoxelAcquisition
 from voxel.acquisition.config import AcquisitionConfig
 from voxel.acquisition.factory import AcquisitionFactory
 from voxel.instrument.config import InstrumentConfig
-from voxel.utils.logging_config import setup_logging
+from voxel.utils.logging import setup_logging
 
 INSTRUMENT_CONFIG_YAML = './example_instrument.yaml'
 ACQUISITION_CONFIG_YAML = './example_acquisition.yaml'

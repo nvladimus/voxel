@@ -1,6 +1,6 @@
 from voxel import VoxelInstrument
 from voxel.acquisition.config import AcquisitionConfig
-from voxel.utils.logging_config import get_logger
+from voxel.utils.logging import get_logger
 
 
 class VoxelAcquisition:
