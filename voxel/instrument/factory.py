@@ -1,8 +1,13 @@
 import importlib
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
+from voxel.instrument.channel import VoxelChannel
 from voxel.instrument.config import InstrumentConfig
 from voxel.instrument.device import VoxelDevice
+from voxel.instrument.devices.camera import VoxelCamera
+from voxel.instrument.devices.filter import VoxelFilter
+from voxel.instrument.devices.laser import VoxelLaser
+from voxel.instrument.devices.lens import VoxelLens
 from voxel.instrument.instrument import VoxelInstrument
 from voxel.instrument.nidaq import VoxelNIDAQ
 from voxel.instrument.nidaq.task import DAQTask
@@ -15,8 +20,8 @@ class InstrumentFactory:
         self._config = config
         self._daq = self._create_daq()
         self._daq_tasks = self._create_daq_tasks()
-        self._devices: Dict[str, VoxelDevice] = {}
-        self._generate_device_instances()
+        self._devices: Dict[str, VoxelDevice] = self._create_device_instances()
+        self._channels: Optional[Dict[str, VoxelChannel]] = self._create_instrument_channels()
 
     def create_instrument(self):
         if not self._devices and not self._config.devices_specs:
@@ -32,7 +37,7 @@ class InstrumentFactory:
             name=self._config.instrument_specs['name'],
             config=self._config,
             devices=self._devices,
-            channels=self._config.channels,
+            channels=self._channels,
             daq=self._daq,
             **kwds
         )
@@ -59,7 +64,7 @@ class InstrumentFactory:
             )
         return tasks
 
-    def _generate_device_instances(self) -> Dict[str, VoxelDevice]:
+    def _create_device_instances(self) -> Dict[str, VoxelDevice]:
         devices_schema = self._config.devices_specs
 
         # Create all devices
@@ -131,3 +136,26 @@ class InstrumentFactory:
             self.log.error(f"Task '{task_name}' not found for device '{device.name}'")
         except AssertionError:
             self.log.error(f"Device '{device.name}' is not a DAQTask")
+
+    def _create_instrument_channels(self) -> Optional[Dict[str, VoxelChannel]]:
+        if not self._config.channels:
+            return
+        channels = {}
+        for channel_name, channel_specs in self._config.channels.items():
+            channels[channel_name] = self._create_instrument_channel(channel_name, channel_specs)
+
+    def _create_instrument_channel(self, name: str, settings: dict) -> VoxelChannel:
+        """Build a channel from config dict."""
+        try:
+            camera = self._devices[settings['detection']['camera']]
+            assert isinstance(camera, VoxelCamera), f"Device {camera.name} is not a VoxelCamera"
+            lens = self._devices[settings['detection']['lens']]
+            assert isinstance(lens, VoxelLens), f"Device {lens.name} is not a VoxelLens"
+            laser = self._devices[settings['illumination']['laser']]
+            assert isinstance(laser, VoxelLaser), f"Device {laser.name} is not a VoxelLaser"
+            filter_ = self._devices[settings['illumination']['filter']]
+            assert isinstance(filter_, VoxelFilter), f"Device {filter_.name} is not a VoxelFilter"
+            return VoxelChannel(name, camera, lens, laser, filter_)
+        except KeyError as e:
+            self.log.error(f"Error creating instrument channel {name}: {str(e)}")
+            raise

@@ -36,6 +36,27 @@ class VoxelCamera(VoxelDevice):
             f"Trigger:          {self.trigger_settings}",
         )
 
+    @property
+    def pixel_size_um(self) -> Vec2D:
+        """Get the size of the camera pixel in microns.
+
+        :return: The size of the camera pixel in microns.
+        :rtype: Vec2D
+        """
+        return Vec2D(1.0, 1.0)
+
+    @property
+    def sensor_size_um(self) -> Vec2D:
+        """Get the size of the camera sensor in microns.
+
+        :return: The size of the camera sensor in microns.
+        :rtype: Vec2D
+        """
+        return Vec2D(
+            self.sensor_size_px.x * self.pixel_size_um.x,
+            self.sensor_size_px.y * self.pixel_size_um.y
+        )
+
     # sensor properties
     @property
     @abstractmethod

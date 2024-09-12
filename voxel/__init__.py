@@ -1,4 +1,4 @@
 """Init package"""
 __version__ = "0.0.0"
 
-from .instrument import *
+from .instrument import VoxelInstrument, VoxelDevice

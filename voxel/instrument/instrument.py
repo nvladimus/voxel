@@ -1,20 +1,27 @@
-from typing import Dict, Any
+from typing import Dict, Optional
 
-from voxel.utils.logging import get_logger
+from instrument.channel import VoxelChannel
 from voxel.instrument.config import InstrumentConfig
-from voxel.instrument.definitions import VoxelDeviceType, ChannelsDict
+from voxel.instrument.definitions import VoxelDeviceType
 from voxel.instrument.device import VoxelDevice
 from voxel.instrument.devices.camera import VoxelCamera
 from voxel.instrument.devices.filter import VoxelFilter
 from voxel.instrument.devices.laser import VoxelLaser
 from voxel.instrument.devices.linear_axis import VoxelLinearAxis
 from voxel.instrument.nidaq import VoxelNIDAQ
+from voxel.utils.logging import get_logger
 
 
 class VoxelInstrument:
 
-    def __init__(self, name: str, config: InstrumentConfig, devices: Dict[str, VoxelDevice], daq: VoxelNIDAQ,
-                 channels: ChannelsDict, **kwds):
+    def __init__(self,
+                 devices: Dict[str, VoxelDevice],
+                 name: Optional[str] = None,
+                 config: Optional[InstrumentConfig] = None,
+                 daq: Optional[VoxelNIDAQ] = None,
+                 channels: Optional[Dict[str, VoxelChannel]] = None,
+                 **kwds
+                 ):
         self.name = name
         self.config = config
         self.devices = devices
@@ -22,8 +29,10 @@ class VoxelInstrument:
         self.channels = channels
         self.kwds = kwds
         self.log = get_logger(self.__class__.__name__)
+        self.active_devices = {device_name: False for device_name in self.devices.keys()}
         self.apply_build_settings()
-        self.activate_channel(list(self.channels.keys())[0])
+        if self.channels:
+            self.activate_channel(list(self.channels.keys())[0])
 
     def __repr__(self):
         devices_str = '\n\t - '.join([f"{device}" for device in self.devices.values()])
@@ -71,41 +80,34 @@ class VoxelInstrument:
         return stage_axes
 
     def activate_channel(self, channel_name: str):
+        if not self.channels:
+            return
         channel = self.channels[channel_name]
-        for device_type, device_name in channel.items():
-            device = self.devices[device_name]
-            match device.device_type:
-                case VoxelDeviceType.LASER:
-                    assert isinstance(device, VoxelLaser), f"Device {device_name} is not a VoxelLaser"
-                    device.enable()
-                case VoxelDeviceType.FILTER:
-                    assert isinstance(device, VoxelFilter), f"Device {device_name} is not a VoxelFilter"
-                    device.enable()
-                case _:
-                    pass
+        for device_name in channel.devices.keys():
+            if self.active_devices[device_name]:
+                self.log.error(f"Unable to activate channel {channel_name}. "
+                               f"Device {device_name} is possibly in use by another channel.")
+                return
+        channel.activate()
+        self.active_devices.update({device_name: True for device_name in channel.devices.keys()})
+
+    def deactivate_channel(self, channel_name: str):
+        if not self.channels:
+            return
+        channel = self.channels[channel_name]
+        channel.deactivate()
+        self.active_devices.update({device_name: False for device_name in channel.devices.keys()})
 
     def apply_build_settings(self):
-        self._apply_settings(self.config.startup_settings())
+        if self.config:
+            settings = self.config.startup_settings()
+            if settings:
+                for name, device_settings in settings.items():
+                    instance = self.devices[name]
+                    if instance:
+                        instance.apply_settings(device_settings)
 
     def close(self):
         for device in self.devices.values():
             device.close()
         self.daq.close()
-
-    def _apply_settings(self, settings: Dict[str, Dict[str, Any]]):
-        if settings:
-            for name, device_settings in settings.items():
-                instance = self.devices[name] or self.daq.tasks[name]
-                if instance:
-                    self._apply_instance_settings(instance, device_settings)
-
-    def _apply_instance_settings(self, device: VoxelDevice, settings: Dict[str, Any]):
-        for key, value in settings.items():
-            try:
-                setattr(device, key, value)
-            except AttributeError:
-                self.log.error(f"Instance '{device.name}' has no attribute '{key}'")
-            except Exception as e:
-                self.log.error(f"Error setting '{key}' for '{device.name}': {str(e)}")
-                raise
-        self.log.info(f"Applied settings to '{device.name}'")

@@ -6,10 +6,12 @@ class: VoxelInstrument
 channels:
   red:
     camera: simulated_camera_1
+    lens: objective_40x
     laser: laser_561
     filter: filter_561
   green:
     camera: simulated_camera_1
+    lens: objective_40x
     laser: laser_488
     filter: filter_488
 
@@ -51,6 +53,11 @@ devices:
       task: primary_ao_task
       port: ao0
       <<: *default_square_waveform
+  objective_40x:
+    module: voxel.instrument.devices.lens
+    class: VoxelLens
+    kwds:
+      magnification: 40
   laser_488:
     module: voxel.instrument.devices.laser.simulated
     class: SimulatedLaser

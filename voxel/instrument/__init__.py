@@ -1,3 +1,4 @@
+from .channel import VoxelChannel
 from .config import InstrumentConfig
 from .definitions import (
     VoxelDeviceError,
@@ -16,4 +17,5 @@ __all__ = [
     "InstrumentFactory",
     "VoxelInstrument",
     "VoxelDevice",
+    "VoxelChannel",
 ]

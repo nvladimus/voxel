@@ -69,7 +69,7 @@ def sweep_axis(axis: VoxelLinearAxis, step: int = 10):
 
 
 if __name__ == '__main__':
-    from voxel.instrument.controllers.tigerbox import ASITigerBox
+    from voxel.instrument.hubs.tigerbox import ASITigerBox
     from voxel.instrument.devices import LinearAxisDimension
     from voxel.instrument.devices import ASITigerLinearAxis
 

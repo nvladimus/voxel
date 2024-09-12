@@ -21,6 +21,18 @@ class VoxelDevice(ABC):
         self.daq_task = None
         self.daq_channel = None
 
+    def apply_settings(self, settings: dict):
+        """Apply settings to the device."""
+        for key, value in settings.items():
+            try:
+                setattr(self, key, value)
+            except AttributeError:
+                self.log.error(f"Instance '{self.name}' has no attribute '{key}'")
+            except Exception as e:
+                self.log.error(f"Error setting '{key}' for '{self.name}': {str(e)}")
+                raise
+        self.log.info(f"Applied settings to '{self.name}'")
+
     @abstractmethod
     def close(self):
         """Close the device."""

@@ -1,4 +1,4 @@
-from devices.tunable_lens.optotune.optotune_icc4c import OptotuneICC4CTunableLens
+from instrument.tunable_lens.optotune.optotune_icc4c import OptotuneICC4CTunableLens
 
 if __name__ == "__main__":
     etl = OptotuneICC4CTunableLens(id="optotune", port='COM7', channel=0)
