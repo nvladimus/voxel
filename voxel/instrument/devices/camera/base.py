@@ -6,7 +6,7 @@ from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.instrument.definitions import VoxelDeviceType
 from voxel.instrument.device import VoxelDevice
 from voxel.instrument.devices.camera.definitions import PixelType, AcquisitionState, Binning, VoxelFrame, ROI
-from voxel.utils.geometry import Vec2D
+from utils.geometry.vec import Vec2D
 
 
 class VoxelCamera(VoxelDevice):

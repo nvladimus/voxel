@@ -9,7 +9,7 @@ from numpy.typing import NDArray
 from voxel.instrument.devices.camera import ROI
 from voxel.instrument.devices.camera.simulated.definitions import TriggerMode, TriggerSource, TriggerPolarity, PixelType
 from voxel.instrument.devices.camera.simulated.image_model import ImageModel
-from voxel.utils.geometry import Vec2D
+from utils.geometry.vec import Vec2D
 
 BUFFER_SIZE_FRAMES = 8
 MIN_WIDTH_PX = 64

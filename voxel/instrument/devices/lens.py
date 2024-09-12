@@ -4,7 +4,7 @@ Module for a voxel lens device.
 from dataclasses import dataclass
 from typing import Optional
 
-from utils.geometry import Vec2D
+from utils.geometry.vec import Vec2D
 from voxel.instrument.device import VoxelDevice
 
 

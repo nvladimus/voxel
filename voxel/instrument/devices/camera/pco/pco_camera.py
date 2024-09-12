@@ -10,7 +10,7 @@ from voxel.instrument.devices.camera import VoxelCamera, AcquisitionState, Pixel
 from voxel.instrument.devices.camera.pco.definitions import pixel_type_lut, binning_lut, TriggerMode, ReadoutMode, \
     TriggerSettings, \
     TriggerSource
-from voxel.utils.geometry import Vec2D
+from utils.geometry.vec import Vec2D
 
 EnumeratedProp = Union[TriggerMode, TriggerSource, ReadoutMode]
 LimitType: TypeAlias = Literal['min', 'max', 'step']

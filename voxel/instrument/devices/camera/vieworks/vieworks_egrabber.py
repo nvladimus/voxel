@@ -6,7 +6,7 @@ from voxel.descriptors.deliminated_property import deliminated_property
 from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.instrument.definitions import DeviceConnectionError
 from voxel.instrument.devices.camera import VoxelCamera, VoxelFrame, AcquisitionState, BYTES_PER_MB
-from voxel.utils.geometry import Vec2D
+from utils.geometry.vec import Vec2D
 from voxel.utils.singleton import thread_safe_singleton
 from .definitions import (
     Binning, PixelType,

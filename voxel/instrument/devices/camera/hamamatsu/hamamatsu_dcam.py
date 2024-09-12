@@ -22,7 +22,7 @@ from voxel.instrument.devices.camera.hamamatsu.definitions import (
     TriggerMode, TriggerSource, TriggerPolarity, TriggerActive, TriggerSettings,
     PROPERTIES, ENUMERATED_PROPERTIES, DELIMINATED_PROPERTIES
 )
-from voxel.utils.geometry import Vec2D
+from utils.geometry.vec import Vec2D
 from voxel.utils.singleton import Singleton
 
 LimitType = Literal['min', 'max', 'step']

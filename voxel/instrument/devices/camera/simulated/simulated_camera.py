@@ -5,7 +5,7 @@ from voxel.descriptors.enumerated_property import enumerated_property
 from voxel.instrument.devices.camera import VoxelCamera
 from voxel.instrument.devices.camera.definitions import VoxelFrame, AcquisitionState
 from voxel.processes.downsample.gpu.gputools.downsample_2d import GPUToolsDownSample2D
-from voxel.utils.geometry import Vec2D
+from utils.geometry.vec import Vec2D
 from .definitions import (
     Binning, PixelType,
     TriggerSettings, TriggerMode, TriggerSource, TriggerPolarity,

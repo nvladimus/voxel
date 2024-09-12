@@ -1,6 +1,6 @@
 from typing import Dict, Optional
 
-from instrument.channel import VoxelChannel
+from voxel.instrument.channel import VoxelChannel
 from voxel.instrument.config import InstrumentConfig
 from voxel.instrument.definitions import VoxelDeviceType
 from voxel.instrument.device import VoxelDevice
