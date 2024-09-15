@@ -61,12 +61,11 @@ class SimulatedFilterWheel(VoxelFilterWheel):
 
 
 class SimulatedFilter(VoxelFilter):
-    def __init__(self, name: str, filter_name: str, wheel: SimulatedFilterWheel, position: int):
+    def __init__(self, name: str, wheel: SimulatedFilterWheel, position: int):
         super().__init__(name)
-        self.filter = filter_name
         self.wheel = wheel
         self.position = position
-        self.wheel.add_filter(filter_name, position)
+        self.wheel.add_filter(self.name, position)
         self.log.info(f"Simulated Filter '{name}' initialized")
 
     def enable(self) -> None:

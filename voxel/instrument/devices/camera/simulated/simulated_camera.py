@@ -1,11 +1,11 @@
-from typing import TypeAlias, Dict, Optional
+from typing import TypeAlias, Dict, Optional, Tuple
 
-from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.descriptors.enumerated_property import enumerated_property
+from utils.descriptors.deliminated_property import deliminated_property
+from utils.descriptors.enumerated_property import enumerated_property
+from utils.geometry.vec import Vec2D
 from voxel.instrument.devices.camera import VoxelCamera
 from voxel.instrument.devices.camera.definitions import VoxelFrame, AcquisitionState
-from voxel.processes.downsample.gpu.gputools.downsample_2d import GPUToolsDownSample2D
-from utils.geometry.vec import Vec2D
+from voxel.kit.downsample.gpu.gputools.downsample_2d import GPUToolsDownSample2D
 from .definitions import (
     Binning, PixelType,
     TriggerSettings, TriggerMode, TriggerSource, TriggerPolarity,
@@ -31,8 +31,9 @@ TriggerPolarityLUT: TypeAlias = Dict[TriggerPolarity, str]
 
 class SimulatedCamera(VoxelCamera):
 
-    def __init__(self, name: str, serial_number: str, image_model: Optional[ImageModel] = None):
-        super().__init__(name)
+    def __init__(self, serial_number: str, name: str = "", image_model: Optional[ImageModel] = None,
+                 pixel_size_um: Tuple[float, float] = (5.5, 5.5)):
+        super().__init__(name, pixel_size_um)
         self.log.info(f"Initializing simulated camera with id: {name}, serial number: {serial_number}")
         self.serial_number = serial_number
         self.instance = SimulatedCameraHardware(image_model)

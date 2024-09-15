@@ -29,6 +29,7 @@ class VoxelInstrument:
         self.channels = channels
         self.kwds = kwds
         self.log = get_logger(self.__class__.__name__)
+        self.validate_device_names()
         self.active_devices = {device_name: False for device_name in self.devices.keys()}
         self.apply_build_settings()
         if self.channels:
@@ -106,6 +107,12 @@ class VoxelInstrument:
                     instance = self.devices[name]
                     if instance:
                         instance.apply_settings(device_settings)
+
+    def validate_device_names(self):
+        for key, device in self.devices.items():
+            if device.name != key:
+                device.name = key
+                self.log.warning(f"Device name mismatch. Setting device name to {key}")
 
     def close(self):
         for device in self.devices.values():

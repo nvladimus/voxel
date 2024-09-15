@@ -15,11 +15,10 @@ class VoxelDevice(ABC):
         :type name: str
         """
         self.name = name
-        self.device_type: Optional[VoxelDeviceType] = None
-        self.log = get_logger(f'{self.__class__.__name__}[{self.name}]')
-
         self.daq_task = None
         self.daq_channel = None
+        self.device_type: Optional[VoxelDeviceType] = None
+        self.log = get_logger(f'{self.__class__.__name__}[{self.name}]')
 
     def apply_settings(self, settings: dict):
         """Apply settings to the device."""

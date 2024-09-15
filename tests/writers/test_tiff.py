@@ -6,8 +6,8 @@ import time
 
 import numpy
 
-from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
-from voxel.writers.tiff import TiffWriter
+from acquisition.writers import SharedDoubleBuffer
+from acquisition.writers import TiffWriter
 
 if __name__ == "__main__":
 

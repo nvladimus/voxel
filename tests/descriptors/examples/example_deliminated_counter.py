@@ -1,6 +1,6 @@
 from typing import Literal
 
-from descriptors.deliminated_property import deliminated_property
+from utils.descriptors.deliminated_property import deliminated_property
 
 if __name__ == "__main__":
     class Temperature:

@@ -1,7 +1,7 @@
 import numpy
 import time
 from multiprocessing.shared_memory import SharedMemory
-from voxel.processes.histogram import HistogramProjection
+from voxel.kit.histogram import HistogramProjection
 
 if __name__ == '__main__':
 

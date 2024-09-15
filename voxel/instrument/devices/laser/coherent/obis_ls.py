@@ -1,7 +1,7 @@
 from obis_laser import ObisLS
 from serial import Serial
 
-from voxel.descriptors.deliminated_property import deliminated_property
+from utils.descriptors.deliminated_property import deliminated_property
 from .obis_lx import obis_modulation_getter, obis_modulation_setter
 from ..base import VoxelLaser
 

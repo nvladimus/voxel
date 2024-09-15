@@ -1,9 +1,9 @@
 from time import sleep
-from typing import Optional, Literal, Dict
 
 from pylablib.devices import Thorlabs
 
-from voxel.descriptors.deliminated_property import deliminated_property
+from instrument import VoxelDeviceError
+from utils.descriptors.deliminated_property import deliminated_property
 from voxel.instrument.definitions import DeviceConnectionError
 from voxel.instrument.devices.flip_mount.base import VoxelFlipMount
 
@@ -12,85 +12,122 @@ FLIP_TIME_RANGE_MS = (500, 2800, 100)
 
 
 class ThorlabsFlipMount(VoxelFlipMount):
-    def __init__(self, name, conn, positions: Dict[str, Literal[0, 1]]):
+    def __init__(self, conn: str, position_1: str, position_2: str, name: str = "") -> None:
         """
         Initialize the Thorlabs flip mount. \n
 
         :param name: Provide a unique device name
         :param conn: Connection string - serial no.
-        :param positions: Dictionary of positions and their corresponding index
+        :param position_1: Name of the first position
+        :param position_2: Name of the second position
         """
         super().__init__(name)
         self._conn = conn
-        self._positions = positions
-        self._inst: Optional[Thorlabs.MFF] = None
-        self._connect()
-
-    def _connect(self):
-        try:
-            self._inst = Thorlabs.MFF(conn=self._conn)
-            self.position = next(iter(self._positions.keys()))  # set to first position
-            self.flip_time_ms = FLIP_TIME_RANGE_MS[0]  # min flip time
-        except Exception as e:
-            self.log.error(f'Could not connect to flip mount {self.name}: {e}')
-            raise DeviceConnectionError from e
-
-    def _disconnect(self):
-        if self._inst is not None:
-            self._inst.close()
-            self._inst = None
-            self.log.info(f'Flip mount {self.name} disconnected')
+        self._position_1 = self._sanitize_string(position_1)
+        self._position_2 = self._sanitize_string(position_2)
+        self._positions = {self._position_1: 0, self._position_2: 1}
+        self._inst: Thorlabs.MFF = self._get_hardware_inst()
+        self.position = self._position_1
+        self.flip_time_ms = FLIP_TIME_RANGE_MS[0]
 
     def wait(self):
+        """
+        Wait for the flip mount to finish flipping.
+        Note: This function is blocking.
+        """
         sleep(self.flip_time_ms * 1e-3)  # type: ignore
 
-    def toggle(self, wait=False):
-        if self._inst is None: raise ValueError('Flip mount not connected')
+    def toggle(self, wait=True):
+        """
+        Toggle the flip mount position. \n
+        :param wait: Wait for the flip mount to finish flipping. Default: True
+        """
+        if self._inst is None: raise DeviceConnectionError('Flip mount not connected')
         new_pos = 0 if self._inst.get_state() == 1 else 1
         self._inst.move_to_state(new_pos)
         if wait:
             self.wait()
 
     @property
-    def position(self) -> str | None:
-        if self._inst is None: raise ValueError(f'Position not found for {self.name} Flip mount not connected')
+    def position(self) -> str:
+        """
+        Position of the flip mount. \n
+        :return: Name of the current position. May be 'Unknown' if the position is not found.
+        """
+        if self._inst is None: raise VoxelDeviceError(f'Position not found for {self.name} Flip mount not connected')
         pos_idx = self._inst.get_state()
         return next((key for key, value in self._positions.items() if value == pos_idx), 'Unknown')
 
     @position.setter
     def position(self, position_name: str):
+        """
+        Set the flip mount to a specific position using the position name. \n
+        :param position_name: Name of the position to move to
+        :raises VoxelDeviceError: If the position is not found
+        Note: This function is blocking as it waits for the flip mount to finish flipping.
+        """
         if self._inst is None:
-            raise ValueError('Flip mount not connected')
+            raise DeviceConnectionError('Flip mount not connected')
         if position_name not in self._positions:
-            raise ValueError(f'Invalid position {position_name}. Valid positions are {list(self._positions.keys())}')
+            raise VoxelDeviceError(
+                f'Invalid position {position_name}. Valid positions are {list(self._positions.keys())}')
         self._inst.move_to_state(self._positions[position_name])
+        if wait:
+            self.wait()
         self.log.info(f'Flip mount {self.name} moved to position {position_name}')
 
     @deliminated_property(minimum=FLIP_TIME_RANGE_MS[0], maximum=FLIP_TIME_RANGE_MS[1], step=FLIP_TIME_RANGE_MS[2])
-    def flip_time_ms(self) -> int:
+    def flip_time_ms(self) -> float:
+        """
+        Time it takes to flip in milliseconds. \n
+        :return: Time in milliseconds
+        :raises DeviceConnectionError: If the flip time cannot be retrieved
+        :raises VoxelDeviceError: If the flip time cannot be retrieved
+        :rtype: float
+        """
         if self._inst is None:
-            raise ValueError('Flip mount not connected')
+            raise DeviceConnectionError('Flip mount not connected')
         try:
             parameters = self._inst.get_flipper_parameters()
-            flip_time_ms: int = int(parameters.transit_time * 1e3)
+            flip_time_ms: float = parameters.transit_time * 1e3
         except Exception:
-            # flip_time_ms = float((FLIP_TIME_RANGE_MS[0] + FLIP_TIME_RANGE_MS[1]) / 2) # sets to mid value
-            raise ValueError('Could not get flip time')
+            raise VoxelDeviceError(f'Unable to get flip time for device: {self.name}')
         return flip_time_ms
 
     @flip_time_ms.setter
     def flip_time_ms(self, time_ms: int):
-        if self._inst is None: raise ValueError('Flip mount not connected')
-        if not isinstance(time_ms, (int, float)) or time_ms <= 0:
-            raise ValueError('Switch time must be a positive number')
+        """
+        Set the flip mount switch time in milliseconds. \n
+        :param time_ms: Time in milliseconds
+        :raises DeviceConnectionError: If the flip time cannot be set
+        :raises VoxelDeviceError: If the flip time cannot be set
+        """
+        if self._inst is None:
+            raise DeviceConnectionError('Flip mount not connected')
+        if not isinstance(time_ms, (int, float)):
+            return
         time_ms = int(time_ms)
         clamped_time_ms = int(max(FLIP_TIME_RANGE_MS[0], min(time_ms, FLIP_TIME_RANGE_MS[1])))
         try:
             self._inst.setup_flipper(transit_time=clamped_time_ms / 1000)
-            self.log.info(f'Flip mount {self.name} switch time set to {clamped_time_ms} ms')
+            self.log.debug(f'Flip mount {self.name} switch time set to {clamped_time_ms} ms')
         except Exception as e:
-            raise ValueError(f'Could not set flip time: {e}')
+            raise VoxelDeviceError(f'Could not set flip time: {e}')
 
     def close(self):
-        self._disconnect()
+        """Disconnect from the flip mount."""
+        if self._inst is not None:
+            self._inst.close()
+            self._inst = None
         self.log.info(f'Flip mount {self.name} shutdown')
+
+    def _get_hardware_inst(self) -> Thorlabs.MFF:
+        try:
+            return Thorlabs.MFF(conn=self._conn)
+        except Exception as e:
+            self.log.error(f'Could not connect to flip mount {self.name}: {e}')
+            raise DeviceConnectionError from e
+
+    @staticmethod
+    def _sanitize_string(string: str) -> str:
+        return string.lower().replace(" ", "_")

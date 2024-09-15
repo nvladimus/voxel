@@ -85,9 +85,9 @@ class InstrumentConfig(DeviceSpinnerConfig):
         if "channels" not in self.cfg:
             errors.append("Config file must contain a 'channels' key")
         for name, devices in self.channels.items():
-            for key, device in devices.items():
-                if key not in CHANNEL_DEVICES:
-                    errors.append(f"Key {key} in channel '{name}' must be one of: {CHANNEL_DEVICES}")
+            for device_type, device in devices.items():
+                if device_type not in CHANNEL_DEVICES:
+                    errors.append(f"Key {device_type} in channel '{name}' must be one of: {CHANNEL_DEVICES}")
                 if device not in self.devices_specs:
                     errors.append(f"Device {device} in channel '{name}' not in your devices schema")
         return errors

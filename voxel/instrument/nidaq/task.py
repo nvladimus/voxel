@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.typing import NDArray
 
-from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.descriptors.enumerated_property import enumerated_property
+from utils.descriptors.deliminated_property import deliminated_property
+from utils.descriptors.enumerated_property import enumerated_property
 from voxel.instrument.device import VoxelDevice
 from voxel.instrument.nidaq.channel import DAQTaskChannel, DAQTaskTiming, DAQWaveform
 

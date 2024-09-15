@@ -2,13 +2,10 @@ import numpy
 import time
 import math
 import threading
-import os
 from pathlib import Path
 from ruamel.yaml import YAML
-from threading import Event, Thread
-from voxel.writers.data_structures.shared_double_buffer import SharedDoubleBuffer
-from multiprocessing.shared_memory import SharedMemory
-from voxel.writers.zarr_v3 import Writer
+from acquisition.writers import SharedDoubleBuffer
+from acquisition.writers import Writer
 
 if __name__ == '__main__':
 

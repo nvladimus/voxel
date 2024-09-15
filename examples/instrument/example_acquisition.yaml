@@ -1,23 +1,27 @@
 instrument: ./example_instrument.yaml
+settings: ./example_settings.yaml
 
 metadata:
-  module: voxel.metadata
-  class: Metadata
+  module: voxel.acquisition.metadata
+  class: AINDMetadata
   kwds:
-    deliminator: _
-    date_format: Year/Month/Day/Hour/Minute/Second
-    format: [ instrument_type, subject_id ]
-  details:
-    instrument_type: exaspim
+    instrument_name: exaspim
+    experiment_name: example_experiment
     subject_id: 123456
+    instrument_type: exaspim
     experimenter_name: adam glaser
-    immersion_medium: 0.05X SSC
-    immersion_medium_refractive_index: 1.33
-    x_anatomical_direction: Anterior_to_posterior
-    y_anatomical_direction: Inferior_to_superior
-    z_anatomical_direction: Left_to_right
+    x_anatomical_direction: anterior_to_posterior
+    y_anatomical_direction: inferior_to_superior
+    z_anatomical_direction: left_to_right
+    date_format: Year/Month/Day/Hour/Minute/Second
+    details:
+      immersion_medium: 0.05X SSC
+      immersion_medium_refractive_index: 1.33
+    name_format:
+      delimiter: _
+      properties: [ instrument_type, subject_id ]
 
-file_processing:
+file_handling:
   red:
     writer:
       module: voxel.writers.imaris
@@ -52,14 +56,6 @@ file_processing:
         verify_transfer: True
         max_retry: 3
         timeout_s: 60
-
-settings:
-  simulated_camera:
-    exposure_time_ms: 10.0
-  daq.ao_task:
-    rest_time_ms: 5
-  simulated_camera_1.daq_channel:
-    amplitude_volts: 5
 
 acquisition:
   tiles: [ ]

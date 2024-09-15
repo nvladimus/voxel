@@ -27,7 +27,7 @@ class PixelType(IntEnum):
     MONO16 = 16
 
     @property
-    def numpy_dtype(self) -> np.dtype:
+    def dtype(self) -> np.dtype:
         return np.uint8 if self == PixelType.MONO8 else np.uint16
 
     @property

@@ -12,7 +12,7 @@ SWITCH_TIME_S = 0.1  # estimated timing
 class ASIFilterWheel(VoxelFilterWheel):
     """Filter Wheel Abstraction from an ASI Tiger Controller."""
 
-    def __init__(self, name: str, tigerbox: TigerController, wheel_id: str):
+    def __init__(self, tigerbox: TigerController, wheel_id: str, name: str = ""):
         super().__init__(name)
         self.tigerbox = tigerbox
         self.wheel_id = wheel_id
@@ -67,12 +67,11 @@ class ASIFilterWheel(VoxelFilterWheel):
 
 
 class ASIFilter(VoxelFilter):
-    def __init__(self, name: str, filter_name: str, wheel: ASIFilterWheel, position: int):
+    def __init__(self, name: str, wheel: ASIFilterWheel, position: int):
         super().__init__(name)
-        self.filter_name = filter_name
         self.wheel = wheel
         self.position = position
-        self.wheel.add_filter(filter_name, position)
+        self.wheel.add_filter(self.name, position)
 
     def enable(self) -> None:
         """Enable this filter if no other filter is enabled"""

@@ -12,8 +12,8 @@ from voxel.instrument.devices.camera.hamamatsu.dcam.dcam import (
 )
 from voxel.instrument.devices.camera.hamamatsu.dcam.dcamapi4 import DCAMPROP_ATTR
 
-from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.descriptors.enumerated_property import enumerated_property
+from utils.descriptors.deliminated_property import deliminated_property
+from utils.descriptors.enumerated_property import enumerated_property
 from voxel.instrument.definitions import DeviceConnectionError
 from voxel.instrument.devices.camera import VoxelCamera, VoxelFrame, AcquisitionState, BYTES_PER_MB
 from voxel.instrument.devices.camera.hamamatsu.definitions import (
@@ -120,15 +120,18 @@ class HamamatsuCamera(VoxelCamera):
     except Exception as e:
         raise DeviceConnectionError("Failed to initialize DCAM API") from e
 
-    def __init__(self, serial_number: str, name: str = '') -> None:
+    def __init__(self, serial_number: str, pixel_size_um: Tuple[float, float], name: str = '') -> None:
         """Voxel driver for Hamamatsu cameras.
 
         :param name: Unique voxel identifier for the camera. Empty string by default.
         :param serial_number: Serial number of the camera.
+        :param pixel_size_um: The pixel size in micrometers.
         :type name: str
+        :type serial_number: str
+        :type pixel_size_um: Tuple[float, float]
         :raises ValueError: No camera found.
         """
-        super().__init__(name)
+        super().__init__(name, pixel_size_um)
 
         self.log.info(f"Initializing Hamamatsu camera with name: {self.name} and serial number: {serial_number}")
 

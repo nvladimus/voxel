@@ -1,7 +1,7 @@
 import numpy
 import time
 
-from voxel.processes.cpu.downsample_2d import DownSample2D
+from voxel.kit.cpu.downsample_2d import DownSample2D
 # tensorstore
 image = numpy.zeros((14192, 10640), dtype='uint16')
 print(f'original image size: {image.shape}')
@@ -13,7 +13,7 @@ run_time = end_time - start_time
 print(f'downsampled image size: {binned_image.shape}')
 print(f'run time = {run_time} [sec]')
 
-from voxel.processes.cpu.tensorstore.downsample_2d import DownSample2D
+from voxel.kit.cpu.tensorstore.downsample_2d import DownSample2D
 # tensorstore
 image = numpy.zeros((14192, 10640), dtype='uint16')
 print(f'original image size: {image.shape}')

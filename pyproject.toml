@@ -33,6 +33,7 @@ dependencies = [
     'tifffile >= 2024.1.30',
     'PyImarisWriter >= 0.7.0',
     'h5py >= 3.0.0', # for reading and writing HDF5 files
+    'tqdm >= 4.66.5',
     # essentials
     'numpy >= 1.23.0, < 1.24.0',
     'matplotlib >= 3.8.2',

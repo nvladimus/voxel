@@ -3,7 +3,7 @@ from typing import Literal
 
 from tigerasi.device_codes import JoystickInput
 
-from voxel.descriptors.deliminated_property import deliminated_property
+from utils.descriptors.deliminated_property import deliminated_property
 from voxel.instrument.hubs.tigerbox import ASITigerBox
 from voxel.instrument.devices.linear_axis import VoxelLinearAxis, LinearAxisDimension
 from voxel.instrument.devices.linear_axis.definitions import ScanConfig, ScanState

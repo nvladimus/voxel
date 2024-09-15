@@ -2,8 +2,8 @@ from typing import Tuple, Dict, List, Optional, Union, Any, TypeAlias
 
 import numpy as np
 
-from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.descriptors.enumerated_property import enumerated_property
+from utils.descriptors.deliminated_property import deliminated_property
+from utils.descriptors.enumerated_property import enumerated_property
 from voxel.instrument.definitions import DeviceConnectionError
 from voxel.instrument.devices.camera import VoxelCamera, VoxelFrame, AcquisitionState, BYTES_PER_MB
 from utils.geometry.vec import Vec2D
@@ -88,8 +88,9 @@ class VieworksCamera(VoxelCamera):
 
     gentl = get_egentl_singleton()
 
-    def __init__(self, name, serial_number):
-        super().__init__(name)
+    # FIXME: Update the default Vieworks pixel size or choose to always have it set by the user
+    def __init__(self, serial_number: str, name: str = "", pixel_size_um: Tuple[float, float] = (5.5, 5.5)):
+        super().__init__(name, pixel_size_um)
         self.serial_number = serial_number
         self.log.info(f"Initializing Vieworks camera with name: {self.name} and serial number: {self.serial_number}")
 

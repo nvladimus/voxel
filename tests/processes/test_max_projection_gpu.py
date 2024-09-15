@@ -1,7 +1,7 @@
 import numpy
 import time
 from multiprocessing.shared_memory import SharedMemory
-from voxel.processes.max_projection.gpu.max_projection import GPUMaxProjection
+from voxel.kit.max_projection.gpu.max_projection import GPUMaxProjection
 
 if __name__ == '__main__':
 

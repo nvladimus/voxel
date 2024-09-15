@@ -1,11 +1,9 @@
 from enum import StrEnum
-from typing import Dict
-
-from instrument.channel import VoxelChannel
 
 
 class VoxelDeviceType(StrEnum):
     CAMERA = 'camera'
+    LENS = 'lens'
     LASER = 'laser'
     FILTER = 'filter'
     LINEAR_AXIS = 'linear_axis'
@@ -17,6 +15,7 @@ class VoxelDeviceType(StrEnum):
     CHILLER = 'chiller'
 
 
+CHANNEL_DEVICES = [VoxelDeviceType.CAMERA, VoxelDeviceType.LENS, VoxelDeviceType.LASER, VoxelDeviceType.FILTER]
 
 
 class VoxelDeviceError(Exception):

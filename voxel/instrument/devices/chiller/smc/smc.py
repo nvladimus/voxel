@@ -11,7 +11,7 @@ SER_TIMEOUT = 1  # in seconds
 
 
 class SMCChiller(VoxelChiller):
-    def __init__(self, name: str, conn: str, unit=None, persist=True):
+    def __init__(self, conn: str, name: str = "", unit=None, persist=True):
         super().__init__(name)
         self.port = conn
         self.baudrate = BAUD_RATE

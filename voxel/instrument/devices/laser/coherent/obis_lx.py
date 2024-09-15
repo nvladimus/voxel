@@ -1,7 +1,7 @@
 from obis_laser import ObisLX, OperationalQuery, OperationalCmd
 from serial import Serial
 
-from voxel.descriptors.deliminated_property import deliminated_property
+from utils.descriptors.deliminated_property import deliminated_property
 from ..base import VoxelLaser
 
 MODULATION_MODES: dict[str, str] = {

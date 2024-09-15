@@ -1,16 +1,15 @@
 import time
-from typing import Dict, Union, Literal, TypeAlias
+from typing import Dict, Union, Literal, TypeAlias, Tuple
 
-from voxel.instrument.devices.camera.pco.sdk import Camera
-
-from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.descriptors.enumerated_property import enumerated_property
+from utils.descriptors.deliminated_property import deliminated_property
+from utils.descriptors.enumerated_property import enumerated_property
+from utils.geometry.vec import Vec2D
 from voxel.instrument.definitions import DeviceConnectionError
 from voxel.instrument.devices.camera import VoxelCamera, AcquisitionState, PixelType, Binning
 from voxel.instrument.devices.camera.pco.definitions import pixel_type_lut, binning_lut, TriggerMode, ReadoutMode, \
     TriggerSettings, \
     TriggerSource
-from utils.geometry.vec import Vec2D
+from voxel.instrument.devices.camera.pco.sdk import Camera
 
 EnumeratedProp = Union[TriggerMode, TriggerSource, ReadoutMode]
 LimitType: TypeAlias = Literal['min', 'max', 'step']
@@ -26,8 +25,8 @@ class PCOCamera(VoxelCamera):
 
     BUFFER_SIZE_MB = 2400
 
-    def __init__(self, conn: str, name: str = ""):
-        super().__init__(name)
+    def __init__(self, conn: str, pixel_size_um: Tuple[float, float], name: str = "", ):
+        super().__init__(name, pixel_size_um)
         self._conn = conn
         # note self._conn here is the interface, not a unique camera name
         # potential to do -> this could be hardcoded and changed in the pco sdk

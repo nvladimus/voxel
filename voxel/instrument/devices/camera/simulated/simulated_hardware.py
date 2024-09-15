@@ -6,10 +6,10 @@ from typing import Tuple, Optional
 import numpy as np
 from numpy.typing import NDArray
 
+from utils.geometry.vec import Vec2D
 from voxel.instrument.devices.camera import ROI
 from voxel.instrument.devices.camera.simulated.definitions import TriggerMode, TriggerSource, TriggerPolarity, PixelType
 from voxel.instrument.devices.camera.simulated.image_model import ImageModel
-from utils.geometry.vec import Vec2D
 
 BUFFER_SIZE_FRAMES = 8
 MIN_WIDTH_PX = 64
@@ -20,7 +20,6 @@ MIN_EXPOSURE_TIME_MS = 0.001
 MAX_EXPOSURE_TIME_MS = 1e3
 STEP_EXPOSURE_TIME_MS = 1
 INIT_EXPOSURE_TIME_MS = 500
-
 
 # Vieworks VNP-604MX
 # ImageModel(
@@ -45,7 +44,7 @@ LINE_INTERVAL_US_LUT = {PixelType.MONO8: 10.00, PixelType.MONO16: 20.00}
 
 class SimulatedCameraHardware:
 
-    def __init__(self, image_model: Optional[ImageModel]= None, reference_image_path: Optional[str] = None):
+    def __init__(self, image_model: Optional[ImageModel] = None, reference_image_path: Optional[str] = None):
 
         if image_model is None:
             image_model = ImageModel(**DEFAULT_IMAGE_MODEL, reference_image_path=reference_image_path)
@@ -124,8 +123,8 @@ class SimulatedCameraHardware:
             # Generate frame using ImageModel
             frame = self.image_model.generate_frame(
                 exposure_time=self.exposure_time_ms / 1000,
-                roi = self.roi,
-                pixel_type=self.pixel_type.numpy_dtype
+                roi=self.roi,
+                pixel_type=self.pixel_type.dtype
             )
             timestamp = time.time()
             self.frame_index += 1
@@ -160,7 +159,7 @@ class SimulatedCameraHardware:
             with self.queue_lock:
                 return self.frame_buffer.get_nowait()
         except queue.Empty:
-            return np.zeros((self.roi_height_px, self.roi_width_px), dtype=self.pixel_type.numpy_dtype), time.time(), 0
+            return np.zeros((self.roi_height_px, self.roi_width_px), dtype=self.pixel_type.dtype), time.time(), 0
 
     def stop_acquisition(self):
         """Stop frame acquisition."""

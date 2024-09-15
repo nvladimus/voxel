@@ -1,12 +1,11 @@
 from dataclasses import dataclass
 
-from voxel.instrument.definitions import VoxelDeviceType
+from voxel.acquisition.file_transfers.base import VoxelFileTransfer
+from voxel.acquisition.writers import VoxelWriter
 from voxel.instrument.devices.camera import VoxelCamera
 from voxel.instrument.devices.filter import VoxelFilter
 from voxel.instrument.devices.laser import VoxelLaser
 from voxel.instrument.devices.lens import VoxelLens
-
-CHANNEL_DEVICES = [VoxelDeviceType.CAMERA, VoxelDeviceType.LASER, VoxelDeviceType.FILTER]
 
 
 @dataclass
@@ -18,6 +17,8 @@ class VoxelChannel:
     laser: VoxelLaser
     emmision_filter: VoxelFilter
     is_active: bool = False
+    writer: VoxelWriter = None
+    file_transfer: VoxelFileTransfer = None
 
     def __post_init__(self):
         self._fov_um = self.camera.sensor_size_um / self.lens.magnification

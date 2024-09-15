@@ -1,8 +1,8 @@
 from abc import abstractmethod
-from typing import Any
+from typing import Any, Tuple
 
-from voxel.descriptors.deliminated_property import deliminated_property
-from voxel.descriptors.enumerated_property import enumerated_property
+from utils.descriptors.deliminated_property import deliminated_property
+from utils.descriptors.enumerated_property import enumerated_property
 from voxel.instrument.definitions import VoxelDeviceType
 from voxel.instrument.device import VoxelDevice
 from voxel.instrument.devices.camera.definitions import PixelType, AcquisitionState, Binning, VoxelFrame, ROI
@@ -12,14 +12,17 @@ from utils.geometry.vec import Vec2D
 class VoxelCamera(VoxelDevice):
     """Base class for all voxel supported cameras."""
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, pixel_size_um: Tuple[float, float]):
         """Initialize the camera.
 
         :param name: The unique identifier of the camera.
+        :param pixel_size_um: The size of the camera pixel in microns. (width, height)
         :type name: str
+        :type pixel_size_um: Tuple[float, float]
         """
         super().__init__(name)
         self.device_type = VoxelDeviceType.CAMERA
+        self._pixel_size_um = Vec2D(*pixel_size_um)
 
     def __repr__(self):
         return (
@@ -43,7 +46,7 @@ class VoxelCamera(VoxelDevice):
         :return: The size of the camera pixel in microns.
         :rtype: Vec2D
         """
-        return Vec2D(1.0, 1.0)
+        return self._pixel_size_um
 
     @property
     def sensor_size_um(self) -> Vec2D:
