@@ -377,7 +377,7 @@ class ImarisWriter(BaseWriter):
             shm.close()
             self.done_reading.set()
             # update shared value progress range 0-1
-            shared_progress.value = self.callback_class.progress
+            shared_progress.value = (chunk_num+1)/chunk_total
 
         # wait for file writing to finish
         if self.callback_class.progress < 1.0:

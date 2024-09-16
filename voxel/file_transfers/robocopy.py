@@ -109,7 +109,7 @@ class RobocopyFileTransfer(BaseFileTransfer):
                             except:
                                 file_progress = 0
                             # sum to transferred amount to track progress
-                            self.progress = (total_transferred_mb +
+                            self._progress = (total_transferred_mb +
                                             file_size_mb * file_progress / 100) / total_size_mb * 100
                             end_time_s = time.time()
                             # keep track of how long stuck at same progress
@@ -127,7 +127,7 @@ class RobocopyFileTransfer(BaseFileTransfer):
                             time.sleep(10.0)
                     else:
                         subprocess.wait()
-                        self.progress = (total_transferred_mb + file_size_mb) / total_size_mb * 100
+                        self._progress = (total_transferred_mb + file_size_mb) / total_size_mb * 100
                         self.log.info(f'file transfer is {self.progress:.2f} % complete.')
                     self.log.info(f'{filename} transfer complete')
                     # wait for process to finish before cleaning log file

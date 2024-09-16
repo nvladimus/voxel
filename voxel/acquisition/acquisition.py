@@ -25,7 +25,7 @@ class Acquisition:
         self.log.setLevel(log_level)
 
         # create yaml object to use when loading and dumping config
-        self.yaml = yaml_handler if yaml_handler is not None else YAML()
+        self.yaml = yaml_handler if yaml_handler is not None else YAML(typ='safe')
 
         self.config_path = Path(config_filename)
         self.config = self.yaml.load(Path(self.config_path))

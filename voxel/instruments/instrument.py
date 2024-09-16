@@ -12,6 +12,7 @@ import copy
 import re
 import sys
 
+
 class Instrument:
 
     def __init__(self, config_path: str, yaml_handler: YAML = None, log_level='INFO'):
@@ -19,7 +20,7 @@ class Instrument:
         self.log.setLevel(log_level)
 
         # create yaml object to use when loading and dumping config
-        self.yaml = yaml_handler if yaml_handler is not None else YAML()
+        self.yaml = yaml_handler if yaml_handler is not None else YAML(typ='safe')
 
         self.config_path = Path(config_path)
         self.config = self.yaml.load(self.config_path)
@@ -128,7 +129,6 @@ class Instrument:
         thread_safe_device_class = for_all_methods(lock, device_class)
         return thread_safe_device_class(**kwds)
 
-
     def _setup_device(self, device: object, properties: dict):
         """Setup device based on property dictionary
         :param device: device to be setup
@@ -150,7 +150,8 @@ class Instrument:
             properties = {}
             for attr_name in dir(device):
                 attr = getattr(type(device), attr_name, None)
-                if isinstance(attr, property) or isinstance(inspect.unwrap(attr), property):
+                if ((isinstance(attr, property) or isinstance(inspect.unwrap(attr), property))
+                        and attr_name != 'latest_frame'):
                     properties[attr_name] = getattr(device, attr_name)
             device_specs['properties'] = properties
 
@@ -183,6 +184,7 @@ def for_all_methods(lock, cls):
             setattr(cls, attr_name, lock_methods(attr, lock))
     return cls
 
+
 def lock_methods(fn, lock):
     """Wrapper that locks lock shared by all methods and properties so class is thread safe"""
 
@@ -190,4 +192,5 @@ def lock_methods(fn, lock):
     def wrapper(*args, **kwargs):
         with lock:
             return fn(*args, **kwargs)
+
     return wrapper

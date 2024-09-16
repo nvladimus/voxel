@@ -225,6 +225,10 @@ class BaseFileTransfer:
         self.log.info(f"{self._filename} transfer progress: {self._progress:.2f} [%]")
         return self._progress
 
+    @progress.setter
+    def progress(self, value):
+        self._progress = value
+
     @abstractmethod
     def start(self):
         """
