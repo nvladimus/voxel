@@ -15,9 +15,6 @@ class VoxelDeviceType(StrEnum):
     CHILLER = 'chiller'
 
 
-CHANNEL_DEVICES = [VoxelDeviceType.CAMERA, VoxelDeviceType.LENS, VoxelDeviceType.LASER, VoxelDeviceType.FILTER]
-
-
 class VoxelDeviceError(Exception):
     """Base class for all exceptions raised by devices."""
     pass

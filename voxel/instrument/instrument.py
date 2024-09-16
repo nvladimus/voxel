@@ -1,6 +1,8 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
-from voxel.instrument.channel import VoxelChannel
+from voxel.instrument.devices.lens import VoxelLens
+from voxel.instrument.devices.linear_axis import LinearAxisDimension
+from voxel.utils.geometry.vec import Vec3D
 from voxel.instrument.config import InstrumentConfig
 from voxel.instrument.definitions import VoxelDeviceType
 from voxel.instrument.device import VoxelDevice
@@ -19,21 +21,23 @@ class VoxelInstrument:
                  name: Optional[str] = None,
                  config: Optional[InstrumentConfig] = None,
                  daq: Optional[VoxelNIDAQ] = None,
-                 channels: Optional[Dict[str, VoxelChannel]] = None,
                  **kwds
                  ):
         self.name = name
         self.config = config
         self.devices = devices
         self.daq = daq
-        self.channels = channels
         self.kwds = kwds
         self.log = get_logger(self.__class__.__name__)
         self.validate_device_names()
-        self.active_devices = {device_name: False for device_name in self.devices.keys()}
+        if self.stage_axes:
+            try:
+                self.x_axis = self.stage_axes[LinearAxisDimension.X]
+                self.y_axis = self.stage_axes[LinearAxisDimension.Y]
+                self.z_axis = self.stage_axes[LinearAxisDimension.Z]
+            except KeyError as e:
+                self.log.error(f"Missing stage axis: {e}")
         self.apply_build_settings()
-        if self.channels:
-            self.activate_channel(list(self.channels.keys())[0])
 
     def __repr__(self):
         devices_str = '\n\t - '.join([f"{device}" for device in self.devices.values()])
@@ -41,7 +45,6 @@ class VoxelInstrument:
             f"{self.__class__.__name__} "
             f"Devices: \n\t - "
             f"{devices_str} \n"
-            f"Channels: \n{self.channels}"
         )
 
     @property
@@ -52,6 +55,15 @@ class VoxelInstrument:
                 assert isinstance(device, VoxelCamera), f"Device {name} is not a VoxelCamera"
                 cameras[name] = device
         return cameras
+
+    @property
+    def lenses(self) -> Dict[str, VoxelLens]:
+        lenses = {}
+        for name, device in self.devices.items():
+            if device.device_type == VoxelDeviceType.LENS:
+                assert isinstance(device, VoxelLens), f"Device {name} is not a VoxelLens"
+                lenses[name] = device
+        return lenses
 
     @property
     def lasers(self) -> Dict[str, VoxelLaser]:
@@ -72,32 +84,24 @@ class VoxelInstrument:
         return filters
 
     @property
-    def stage_axes(self) -> Dict[str, VoxelLinearAxis]:
+    def stage_axes(self) -> Dict[LinearAxisDimension, VoxelLinearAxis]:
         stage_axes = {}
         for name, device in self.devices.items():
             if device.device_type == VoxelDeviceType.LINEAR_AXIS:
                 assert isinstance(device, VoxelLinearAxis), f"Device {name} is not a VoxelLinearAxis"
-                stage_axes[name] = device
+                stage_axes[device.dimension] = device
         return stage_axes
 
-    def activate_channel(self, channel_name: str):
-        if not self.channels:
-            return
-        channel = self.channels[channel_name]
-        for device_name in channel.devices.keys():
-            if self.active_devices[device_name]:
-                self.log.error(f"Unable to activate channel {channel_name}. "
-                               f"Device {device_name} is possibly in use by another channel.")
-                return
-        channel.activate()
-        self.active_devices.update({device_name: True for device_name in channel.devices.keys()})
+    @property
+    def stage_position_mm(self) -> Vec3D:
+        """Return the current position of the stage in mm"""
+        return Vec3D(self.x_axis.position_mm, self.y_axis.position_mm, self.z_axis.position_mm)
 
-    def deactivate_channel(self, channel_name: str):
-        if not self.channels:
-            return
-        channel = self.channels[channel_name]
-        channel.deactivate()
-        self.active_devices.update({device_name: False for device_name in channel.devices.keys()})
+    @property
+    def stage_limits_mm(self) -> Tuple[Vec3D, Vec3D]:
+        """Return the limits of the stage in mm"""
+        return Vec3D(self.x_axis.lower_limit_mm, self.y_axis.lower_limit_mm, self.z_axis.lower_limit_mm), \
+            Vec3D(self.x_axis.upper_limit_mm, self.y_axis.upper_limit_mm, self.z_axis.upper_limit_mm)
 
     def apply_build_settings(self):
         if self.config:

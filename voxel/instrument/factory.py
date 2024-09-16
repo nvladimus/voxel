@@ -1,7 +1,7 @@
 import importlib
 from typing import Dict, Any, Optional
 
-from voxel.instrument.channel import VoxelChannel
+from acquisition.channel import VoxelChannel
 from voxel.instrument.config import InstrumentConfig
 from voxel.instrument.device import VoxelDevice
 from voxel.instrument.devices.camera import VoxelCamera
@@ -144,16 +144,16 @@ class InstrumentFactory:
         for channel_name, channel_specs in self._config.channels.items():
             channels[channel_name] = self._create_instrument_channel(channel_name, channel_specs)
 
-    def _create_instrument_channel(self, name: str, settings: dict) -> VoxelChannel:
-        """Build a channel from config dict."""
+    def _create_instrument_channel(self, name: str, channel_specs: Dict[str, Dict[str, str]]) -> VoxelChannel:
+        """Build a VoxelChannel from config dict."""
         try:
-            camera = self._devices[settings['detection']['camera']]
+            camera = self._devices[channel_specs['detection']['camera']]
             assert isinstance(camera, VoxelCamera), f"Device {camera.name} is not a VoxelCamera"
-            lens = self._devices[settings['detection']['lens']]
+            lens = self._devices[channel_specs['detection']['lens']]
             assert isinstance(lens, VoxelLens), f"Device {lens.name} is not a VoxelLens"
-            laser = self._devices[settings['illumination']['laser']]
+            laser = self._devices[channel_specs['illumination']['laser']]
             assert isinstance(laser, VoxelLaser), f"Device {laser.name} is not a VoxelLaser"
-            filter_ = self._devices[settings['illumination']['filter']]
+            filter_ = self._devices[channel_specs['illumination']['filter']]
             assert isinstance(filter_, VoxelFilter), f"Device {filter_.name} is not a VoxelFilter"
             return VoxelChannel(name, camera, lens, laser, filter_)
         except KeyError as e:

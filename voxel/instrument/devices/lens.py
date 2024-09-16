@@ -7,7 +7,18 @@ from voxel.instrument.device import VoxelDevice
 
 
 class VoxelLens(VoxelDevice):
-    """A voxel lens device."""
+    """A voxel lens device.
+    :param magnification: The magnification of the lens.
+    :param name: The name of the lens.
+    :param focal_length_um: The focal length of the lens in micrometers.
+    :param aperture_um: The aperture of the lens in micrometers.
+    :return lens: The lens device.
+    :type magnification: float
+    :type name: Optional[str]
+    :type focal_length_um: Optional[float]
+    :type aperture_um: Optional[float]
+    :rtype lens: VoxelLens
+    """
 
     def __init__(self,
                  magnification: float,
@@ -17,8 +28,8 @@ class VoxelLens(VoxelDevice):
                  ):
         super().__init__(name)
         self.magnification = magnification
-        self.focal_length_um = focal_length_um
-        self.aperture_um = aperture_um
+        self.focal_length_um: Optional[float] = focal_length_um
+        self.aperture_um: Optional[float] = aperture_um
 
     def close(self):
         """Close the lens."""

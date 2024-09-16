@@ -3,18 +3,6 @@ description: 'A simulated instrument for testing purposes'
 module: voxel.instrument
 class: VoxelInstrument
 
-channels:
-  red:
-    camera: simulated_camera_1
-    lens: objective_40x
-    laser: laser_561
-    filter: filter_561
-  green:
-    camera: simulated_camera_1
-    lens: objective_40x
-    laser: laser_488
-    filter: filter_488
-
 daq:
   conn: Dev1
   tasks:

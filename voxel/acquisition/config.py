@@ -2,7 +2,10 @@ from typing import List, Dict, Any
 
 from device_spinner.config import Config as DeviceSpinnerConfig
 
+from voxel.instrument import VoxelDeviceType
 from voxel.utils.logging import get_logger
+
+CHANNEL_DEVICES = [VoxelDeviceType.CAMERA, VoxelDeviceType.LENS, VoxelDeviceType.LASER, VoxelDeviceType.FILTER]
 
 
 class AcquisitionConfigError(Exception):
@@ -49,6 +52,27 @@ class AcquisitionConfig(DeviceSpinnerConfig):
                           f"Got: {self.cfg['instrument']}")
         return errors
 
+    def _validate_acquisition_specs(self):
+        errors = []
+        if "acquisition" in self.cfg:
+            if not isinstance(self.cfg["acquisition"], Dict):
+                errors.append(f"Config file 'acquisition' key expected a dictionary. "
+                              f"Got: {self.cfg['acquisition']}")
+            if "step_size" not in self.cfg["acquisition"]:
+                errors.append("Config file 'acquisition' key must contain a 'step_size' key")
+        return errors
+
+    def _validate_channel_specs(self):
+        errors = []
+        if "channels" not in self.cfg:
+            errors.append("Config file must contain a 'channels' key")
+        for name, devices in self.cfg["channels"].items():
+            for device_type, device in devices.items():
+                if device_type not in CHANNEL_DEVICES:
+                    errors.append(f"Key {device_type} in channel '{name}' must be one of: {CHANNEL_DEVICES}")
+                    # FIXME: add more validation here
+        return errors
+
     def _validate_file_handling(self):
         errors = []
         if "file_handling" in self.cfg:
@@ -65,6 +89,14 @@ class AcquisitionConfig(DeviceSpinnerConfig):
     @property
     def settings_path(self) -> str:
         return self.cfg.get("settings", "")
+
+    @property
+    def acquisition_specs(self) -> Dict[str, Any]:
+        return self.cfg.get("acquisition", {})
+
+    @property
+    def channel_specs(self) -> Dict[str, Dict[str, Any]]:
+        return self.cfg.get("channels", {})
 
     def metadata(self) -> Dict[str, Any]:
         return self.cfg.get("metadata", {})

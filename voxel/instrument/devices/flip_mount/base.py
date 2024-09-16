@@ -32,9 +32,9 @@ class VoxelFlipMount(VoxelDevice):
         pass
 
     @abstractmethod
-    def toggle(self, wait=True):
+    def toggle(self, wait=False):
         """Toggle the flip mount position \n
-        :param wait: Wait for the flip mount to finish flipping. Default: True
+        :param wait: Wait for the flip mount to finish flipping. Default: False
         :type wait: bool
         """
         pass

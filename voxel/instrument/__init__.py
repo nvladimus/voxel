@@ -1,4 +1,4 @@
-from .channel import VoxelChannel
+from acquisition.channel import VoxelChannel
 from .config import InstrumentConfig
 from .definitions import (
     VoxelDeviceError,

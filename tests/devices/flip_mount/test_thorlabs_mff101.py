@@ -1,88 +1,85 @@
 import time
+import os
+
 import pytest
-from voxel.instrument.devices.flip_mount import ThorlabsFlipMount
-from voxel.instrument.devices.flip_mount.thorlabs_mff101 import FLIP_TIME_RANGE
 
-CONN = '37007737'
-POSITIONS = {
-    'A': 0,
-    'B': 1,
-}
+from voxel.instrument.devices.flip_mount.thorlabs_mff101 import ThorlabsFlipMount, FLIP_TIME_RANGE_MS
+from tests.devices.conftest import thorlabs_mff101, POSITION_1, POSITION_2, WRONG_POSITION
 
-@pytest.fixture
-def mff101():
-    fm = ThorlabsFlipMount(
-            id='flip-mount-1',
-            conn=CONN,
-            positions=POSITIONS
-        )
-    yield fm
-    fm.close()
+POSITION_1 = 'A'
+POSITION_2 = 'B'
 
-def test_connect(mff101):
-    assert mff101._inst is not None
-    mff101.wait()
-    assert mff101.position ==  next(iter(POSITIONS.keys()))
 
-def test_close(mff101):
-    mff101.close()
-    assert mff101._inst is None
+def test_connect(thorlabs_mff101):
+    assert thorlabs_mff101._inst is not None
+    thorlabs_mff101.wait()
+    assert thorlabs_mff101.position == POSITION_1
 
-def test_position(mff101):
-    mff101.wait()
-    assert mff101.position == 'A'
 
-    mff101.position = 'B'
-    mff101.wait()
-    assert mff101.position == 'B'
+def test_close(thorlabs_mff101):
+    thorlabs_mff101.close()
+    assert thorlabs_mff101._inst is None
 
-    mff101.position = 'A'
-    mff101.wait()
-    assert mff101.position == 'A'
 
-def test_toggle(mff101):
-    mff101.wait()
-    assert mff101.position == 'A'
+def test_position(thorlabs_mff101):
+    thorlabs_mff101.wait()
+    assert thorlabs_mff101.position == POSITION_1
 
-    mff101.toggle(wait=True)
-    assert mff101.position == 'B'
+    thorlabs_mff101.position = POSITION_2
+    thorlabs_mff101.wait()
+    assert thorlabs_mff101.position == POSITION_2
 
-    mff101.toggle(wait=True)
-    assert mff101.position == 'A'
+    thorlabs_mff101.position = POSITION_1
+    thorlabs_mff101.wait()
+    assert thorlabs_mff101.position == POSITION_2
 
-def test_invalid_position(mff101):
+
+def test_toggle(thorlabs_mff101):
+    thorlabs_mff101.wait()
+    assert thorlabs_mff101.position == POSITION_1
+
+    thorlabs_mff101.toggle(wait=True)
+    assert thorlabs_mff101.position == POSITION_2
+
+    thorlabs_mff101.toggle(wait=True)
+    assert thorlabs_mff101.position == POSITION_1
+
+
+def test_invalid_position(thorlabs_mff101):
     with pytest.raises(ValueError):
-        mff101.position = 'C'
+        thorlabs_mff101.position = WRONG_POSITION
 
-def test_flip_time_ms(mff101):
-    assert mff101.flip_time_ms == 1000.0 # default switch time
-    mff101.flip_time_ms = 500.0
-    assert mff101.flip_time_ms == 500.0
-    mff101.flip_time_ms = 1000.0
-    assert mff101.flip_time_ms == 1000.0
 
-def test_invalid_flip_time(mff101):
+def test_flip_time_ms(thorlabs_mff101):
+    assert thorlabs_mff101.flip_time_ms == 1000.0  # default switch time
+    thorlabs_mff101.flip_time_ms = 500.0
+    assert thorlabs_mff101.flip_time_ms == 500.0
+    thorlabs_mff101.flip_time_ms = 1000.0
+    assert thorlabs_mff101.flip_time_ms == 1000.0
+
+
+def test_invalid_flip_time(thorlabs_mff101):
     # test lower bound
-    mff101.flip_time_ms = FLIP_TIME_RANGE[0] - 0.1
-    assert mff101.flip_time_ms == FLIP_TIME_RANGE[0]
+    thorlabs_mff101.flip_time_ms = FLIP_TIME_RANGE_MS[0] - 0.1
+    assert thorlabs_mff101.flip_time_ms == FLIP_TIME_RANGE_MS[0]
     # test upper bound
-    mff101.flip_time_ms = FLIP_TIME_RANGE[1] + 1
-    assert mff101.flip_time_ms == FLIP_TIME_RANGE[1]
+    thorlabs_mff101.flip_time_ms = FLIP_TIME_RANGE_MS[1] + 1
+    assert thorlabs_mff101.flip_time_ms == FLIP_TIME_RANGE_MS[1]
 
-def test_different_switch_times(mff101):
-    mff101.position = 'A'
-    mff101.wait()
+
+def test_different_switch_times(thorlabs_mff101):
+    thorlabs_mff101.position = POSITION_1
+    thorlabs_mff101.wait()
 
     cycles = 5
     switch_times = [500, 1000, 1500, 2000, 2800]
     for switch_time in switch_times:
-        mff101.flip_time_ms = switch_time
+        thorlabs_mff101.flip_time_ms = switch_time
         for _ in range(cycles):
+            time.sleep(1)
+            thorlabs_mff101.toggle(wait=True)
+            assert thorlabs_mff101.position == POSITION_2
 
             time.sleep(1)
-            mff101.toggle(wait=True)
-            assert mff101.position == 'B'
-
-            time.sleep(1)
-            mff101.toggle(wait=True)
-            assert mff101.position == 'A'
+            thorlabs_mff101.toggle(wait=True)
+            assert thorlabs_mff101.position == POSITION_1

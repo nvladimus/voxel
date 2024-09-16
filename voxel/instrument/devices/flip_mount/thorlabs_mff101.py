@@ -23,8 +23,8 @@ class ThorlabsFlipMount(VoxelFlipMount):
         """
         super().__init__(name)
         self._conn = conn
-        self._position_1 = self._sanitize_string(position_1)
-        self._position_2 = self._sanitize_string(position_2)
+        self._position_1 = position_1
+        self._position_2 = position_2
         self._positions = {self._position_1: 0, self._position_2: 1}
         self._inst: Thorlabs.MFF = self._get_hardware_inst()
         self.position = self._position_1
@@ -37,10 +37,10 @@ class ThorlabsFlipMount(VoxelFlipMount):
         """
         sleep(self.flip_time_ms * 1e-3)  # type: ignore
 
-    def toggle(self, wait=True):
+    def toggle(self, wait=False):
         """
         Toggle the flip mount position. \n
-        :param wait: Wait for the flip mount to finish flipping. Default: True
+        :param wait: Wait for the flip mount to finish flipping. Default: false
         """
         if self._inst is None: raise DeviceConnectionError('Flip mount not connected')
         new_pos = 0 if self._inst.get_state() == 1 else 1
@@ -72,8 +72,6 @@ class ThorlabsFlipMount(VoxelFlipMount):
             raise VoxelDeviceError(
                 f'Invalid position {position_name}. Valid positions are {list(self._positions.keys())}')
         self._inst.move_to_state(self._positions[position_name])
-        if wait:
-            self.wait()
         self.log.info(f'Flip mount {self.name} moved to position {position_name}')
 
     @deliminated_property(minimum=FLIP_TIME_RANGE_MS[0], maximum=FLIP_TIME_RANGE_MS[1], step=FLIP_TIME_RANGE_MS[2])
@@ -127,7 +125,3 @@ class ThorlabsFlipMount(VoxelFlipMount):
         except Exception as e:
             self.log.error(f'Could not connect to flip mount {self.name}: {e}')
             raise DeviceConnectionError from e
-
-    @staticmethod
-    def _sanitize_string(string: str) -> str:
-        return string.lower().replace(" ", "_")

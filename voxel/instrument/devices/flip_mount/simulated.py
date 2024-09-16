@@ -37,9 +37,9 @@ class SimulatedFlipMount(VoxelFlipMount):
         Note: This function is blocking."""
         sleep(self.flip_time_ms * 1e-3)
 
-    def toggle(self, wait=True):
+    def toggle(self, wait=False):
         """Toggle the flip mount position. \n
-        :param wait: Wait for the flip mount to finish flipping. Default: True
+        :param wait: Wait for the flip mount to finish flipping. Default: False
         """
         self._inst = 0 if self._inst else 1
         if wait:
@@ -63,7 +63,6 @@ class SimulatedFlipMount(VoxelFlipMount):
         try:
             new_position = next(k for k, v in self._positions.items() if v == position.lower())
             self._inst = self._positions[new_position]
-            self.wait()
         except KeyError:
             raise ValueError(f'Invalid position {position}. Valid positions are {list(self._positions.keys())}')
         except Exception as e:

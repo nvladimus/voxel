@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Dict, Tuple, List, TypeAlias
 
-from .volume import Tile
+from .volume import FrameStack
 
 
 def visualize_scan_plan(scan_plan: List[Tuple[int, int]]):
@@ -44,7 +44,7 @@ class ScanPlanStrategy(ABC):
         self.reverse = reverse
 
     @abstractmethod
-    def generate_plan(self, frames: Dict[Coordinate, Tile]) -> List[Tuple[int, int]]:
+    def generate_plan(self, frames: Dict[Coordinate, FrameStack]) -> List[Tuple[int, int]]:
         pass
 
 
@@ -56,7 +56,7 @@ class ParametricScanPlan(ScanPlanStrategy):
         self.direction = direction
         self.pattern = pattern
 
-    def generate_plan(self, frames: Dict[Tuple[int, int], Tile]) -> List[Tuple[int, int]]:
+    def generate_plan(self, frames: Dict[Tuple[int, int], FrameStack]) -> List[Tuple[int, int]]:
         x_frames = max(t[0] for t in frames.keys()) + 1
         y_frames = max(t[1] for t in frames.keys()) + 1
         scan_plan = []
@@ -98,7 +98,7 @@ class CustomScanPlan(ScanPlanStrategy):
         super().__init__(reverse)
         self.custom_plan = custom_plan
 
-    def generate_plan(self, frames: Dict[Tuple[int, int], Tile]) -> List[Tuple[int, int]]:
+    def generate_plan(self, frames: Dict[Tuple[int, int], FrameStack]) -> List[Tuple[int, int]]:
         for frame in self.custom_plan:
             if frame not in frames:
                 print(f"Tile {frame} is not in the frame set. Ignoring this frame.")
@@ -110,7 +110,7 @@ class CustomScanPlan(ScanPlanStrategy):
 
 # FIXME: Verify the correctness of this implementation
 class SpiralScanPlan(ScanPlanStrategy):
-    def generate_plan(self, frames: Dict[Tuple[int, int], Tile]) -> List[Tuple[int, int]]:
+    def generate_plan(self, frames: Dict[Tuple[int, int], FrameStack]) -> List[Tuple[int, int]]:
         x_frames = max(t[0] for t in frames.keys()) + 1
         y_frames = max(t[1] for t in frames.keys()) + 1
         scan_plan = []

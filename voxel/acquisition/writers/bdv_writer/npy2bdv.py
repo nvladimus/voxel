@@ -730,7 +730,7 @@ class BdvEditor(BdvBase):
             nt = int(element.find('last').text) - int(element.find('first').text) + 1 if element else 0
             ni = len(root.findall("./SequenceDescription/ViewSetups/Attributes[@name='illumination']/Illumination"))
             nch = len(root.findall("./SequenceDescription/ViewSetups/Attributes[@name='channel']/Channel"))
-            ntiles = len(root.findall("./SequenceDescription/ViewSetups/Attributes[@name='tile']/Tile"))
+            ntiles = len(root.findall("./SequenceDescription/ViewSetups/Attributes[@name='tile']/FrameStack"))
             nang = len(root.findall("./SequenceDescription/ViewSetups/Attributes[@name='angle']/Angle"))
         return nt, ni, nch, ntiles, nang
 

@@ -42,10 +42,6 @@ class InstrumentConfig(DeviceSpinnerConfig):
         return dict(self.cfg["devices"])
 
     @property
-    def channels(self) -> Dict:
-        return dict(self.cfg["channels"])
-
-    @property
     def daq_specs(self) -> Dict:
         return dict(self.cfg["daq"])
 
@@ -78,16 +74,4 @@ class InstrumentConfig(DeviceSpinnerConfig):
             errors.append("DAQ specs must contain a 'conn' key")
         if "tasks" not in self.cfg["daq"]:
             errors.append("DAQ specs must contain a 'tasks' key")
-        return errors
-
-    def _validate_channels(self):
-        errors = []
-        if "channels" not in self.cfg:
-            errors.append("Config file must contain a 'channels' key")
-        for name, devices in self.channels.items():
-            for device_type, device in devices.items():
-                if device_type not in CHANNEL_DEVICES:
-                    errors.append(f"Key {device_type} in channel '{name}' must be one of: {CHANNEL_DEVICES}")
-                if device not in self.devices_specs:
-                    errors.append(f"Device {device} in channel '{name}' not in your devices schema")
         return errors
