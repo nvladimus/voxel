@@ -1,7 +1,7 @@
 import time
 from typing import Dict, Optional
 
-from voxel.instrument.definitions import VoxelDeviceError
+from voxel.instrument._definitions import VoxelDeviceError
 from voxel.instrument.devices.filter.base import VoxelFilter, VoxelFilterWheel
 
 SWITCH_TIME_S = 0.1  # simulated switching time

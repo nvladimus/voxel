@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Optional
 
-from voxel.instrument.definitions import VoxelDeviceType
+from voxel.instrument._definitions import VoxelDeviceType
 from voxel.instrument.device import VoxelDevice
 
 

@@ -15,7 +15,7 @@ import numpy as np
 from PyImarisWriter import PyImarisWriter as pw
 from matplotlib.colors import hex2color
 
-from acquisition.writers.base import VoxelWriter
+from voxel.instrument.writers.base import VoxelWriter
 
 CHUNK_COUNT_PX = 64
 DIVISIBLE_FRAME_COUNT_PX = 64
@@ -47,11 +47,13 @@ class ImarisWriter(VoxelWriter):
     path\\acquisition_name\\filename.ims
 
     :param path: Path for the data writer
+    :param name: Name of the writer, default is "imaris"
     :type path: str
+    :type name: str
     """
 
-    def __init__(self, path: str):
-        super().__init__(path)
+    def __init__(self, path: str, name: str = "imaris"):
+        super().__init__(path, name)
         self._color = "#ffffff"  # initialize as white
         # Internal flow control attributes to monitor compression progress
         self.callback_class = ImarisProgressChecker()

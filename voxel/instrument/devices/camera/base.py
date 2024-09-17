@@ -3,7 +3,7 @@ from typing import Any, Tuple
 
 from utils.descriptors.deliminated_property import deliminated_property
 from utils.descriptors.enumerated_property import enumerated_property
-from voxel.instrument.definitions import VoxelDeviceType
+from voxel.instrument._definitions import VoxelDeviceType
 from voxel.instrument.device import VoxelDevice
 from voxel.instrument.devices.camera.definitions import PixelType, AcquisitionState, Binning, VoxelFrame, ROI
 from utils.geometry.vec import Vec2D
@@ -22,7 +22,10 @@ class VoxelCamera(VoxelDevice):
         """
         super().__init__(name)
         self.device_type = VoxelDeviceType.CAMERA
-        self._pixel_size_um = Vec2D(*pixel_size_um)
+        if isinstance(pixel_size_um, str):
+            self.pixel_size_um = Vec2D(*[float(x) for x in pixel_size_um.split(',')])
+        elif isinstance(pixel_size_um, tuple):
+            self.pixel_size_um = Vec2D(*pixel_size_um)
 
     def __repr__(self):
         return (
@@ -38,15 +41,6 @@ class VoxelCamera(VoxelDevice):
             f"Frame Time:       {self.frame_time_ms:.2f} ms",
             f"Trigger:          {self.trigger_settings}",
         )
-
-    @property
-    def pixel_size_um(self) -> Vec2D:
-        """Get the size of the camera pixel in microns.
-
-        :return: The size of the camera pixel in microns.
-        :rtype: Vec2D
-        """
-        return self._pixel_size_um
 
     @property
     def sensor_size_um(self) -> Vec2D:

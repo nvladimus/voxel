@@ -4,9 +4,11 @@ from dataclasses import dataclass
 from acquisition.acquisition import VoxelAcquisition
 from utils.logging import get_logger
 
+
 @dataclass
 class VoxelAcquisitionState:
     progress: float
+
 
 class VoxelAcquisitionEngine(ABC):
 

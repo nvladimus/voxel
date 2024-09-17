@@ -27,7 +27,7 @@ class VoxelLens(VoxelDevice):
                  aperture_um: Optional[float] = None,
                  ):
         super().__init__(name)
-        self.magnification = magnification
+        self.magnification = float(magnification)
         self.focal_length_um: Optional[float] = focal_length_um
         self.aperture_um: Optional[float] = aperture_um
 

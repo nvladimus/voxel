@@ -6,8 +6,8 @@ import time
 
 import numpy
 
-from acquisition.writers import BDVWriter
-from acquisition.writers import SharedDoubleBuffer
+from instrument.writers import BDVWriter
+from instrument.writers import SharedDoubleBuffer
 
 if __name__ == "__main__":
 

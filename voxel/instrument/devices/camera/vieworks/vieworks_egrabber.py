@@ -4,7 +4,7 @@ import numpy as np
 
 from utils.descriptors.deliminated_property import deliminated_property
 from utils.descriptors.enumerated_property import enumerated_property
-from voxel.instrument.definitions import DeviceConnectionError
+from voxel.instrument._definitions import DeviceConnectionError
 from voxel.instrument.devices.camera import VoxelCamera, VoxelFrame, AcquisitionState, BYTES_PER_MB
 from utils.geometry.vec import Vec2D
 from voxel.utils.singleton import thread_safe_singleton

@@ -10,8 +10,8 @@ from time import perf_counter, sleep
 
 import numpy as np
 
-from acquisition.writers.base import VoxelWriter
-from acquisition.writers.bdv_writer import npy2bdv
+from voxel.instrument.writers.base import VoxelWriter
+from voxel.instrument.writers.bdv_writer import npy2bdv
 
 CHUNK_COUNT_PX = 64
 DIVISIBLE_FRAME_COUNT_PX = 64
@@ -36,11 +36,13 @@ class BDVWriter(VoxelWriter):
     path\\acquisition_name\\filename.h5
 
     :param path: Path for the data writer
+    :param name: Name of the writer, default is "BDVWriter"
     :type path: str
+    :type name: str
     """
 
-    def __init__(self, path: str):
-        super().__init__(path)
+    def __init__(self, path: str, name: str = "BDVWriter"):
+        super().__init__(path, name)
         self.compression_opts = None
         # Lists for storing all datasets in a single BDV file
         self.current_tile_num = 0

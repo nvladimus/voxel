@@ -31,8 +31,8 @@ TriggerPolarityLUT: TypeAlias = Dict[TriggerPolarity, str]
 
 class SimulatedCamera(VoxelCamera):
 
-    def __init__(self, serial_number: str, name: str = "", image_model: Optional[ImageModel] = None,
-                 pixel_size_um: Tuple[float, float] = (5.5, 5.5)):
+    def __init__(self, serial_number: str, pixel_size_um: Tuple[float, float],
+                 name: str = "", image_model: Optional[ImageModel] = None):
         super().__init__(name, pixel_size_um)
         self.log.info(f"Initializing simulated camera with id: {name}, serial number: {serial_number}")
         self.serial_number = serial_number

@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from subprocess import DEVNULL, Popen
 
-from acquisition.file_transfers.base import VoxelFileTransfer
+from voxel.instrument.file_transfers.base import VoxelFileTransfer
 
 
 class RobocopyFileTransfer(VoxelFileTransfer):
@@ -23,8 +23,8 @@ class RobocopyFileTransfer(VoxelFileTransfer):
     :type local_path: str
     """
 
-    def __init__(self, external_path: str, local_path: str):
-        super().__init__(external_path, local_path)
+    def __init__(self, external_path: str, local_path: str, name: str = "robocopy"):
+        super().__init__(external_path, local_path, name)
         self._protocol = "robocopy"
 
     def _run(self):

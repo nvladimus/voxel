@@ -12,7 +12,7 @@ from pathlib import Path
 from psutil import virtual_memory
 from gputools import get_device
 from _prev.instrument import Instrument
-from acquisition.writers import SharedDoubleBuffer
+from instrument.writers import SharedDoubleBuffer
 import inflection
 import inspect
 

@@ -5,6 +5,7 @@ class: VoxelInstrument
 
 daq:
   conn: Dev1
+  simulated: True
   tasks:
     primary_ao_task:
       task_type: ao
@@ -31,12 +32,29 @@ daq:
       <<: *default_triangle_waveform
       peak_point: 1
 
+channels:
+  red:
+    camera: simulated_camera_1
+    lens: objective_40x
+    laser: laser_561
+    filter: filter_561
+    writer: imaris
+    file_transfer: robocopy
+  green:
+    camera: simulated_camera_1
+    lens: objective_40x
+    laser: laser_488
+    filter: filter_488
+    writer: imaris
+    file_transfer: robocopy
+
 devices:
   simulated_camera_1:
     module: voxel.instrument.devices.camera.simulated
     class: SimulatedCamera
     kwds:
       serial_number: 12345
+      pixel_size_um: 3.5, 3.5
     daq_channel:
       task: primary_ao_task
       port: ao0
@@ -68,51 +86,53 @@ devices:
     module: voxel.instrument.devices.filter.simulated
     class: SimulatedFilter
     kwds:
-      filter_name: BP488
       wheel: filterwheel
       position: 1
   filter_561:
     module: voxel.instrument.devices.filter.simulated
     class: SimulatedFilter
     kwds:
-      filter_name: BP561
       wheel: filterwheel
       position: 2
   x-axis:
-    module: voxel.instrument.devices.linear_axis.asi
-    class: ASITigerLinearAxis
+    module: voxel.instrument.devices.linear_axis.simulated
+    class: SimulatedLinearAxis
     kwds:
-      hardware_axis: X
       dimension: X
-      tigerbox: tigerbox
     daq_channel:
       task: primary_ao_task
       port: ao3
       <<: *default_square_waveform
   y-axis:
-    module: voxel.instrument.devices.linear_axis.asi
-    class: ASITigerLinearAxis
+    module: voxel.instrument.devices.linear_axis.simulated
+    class: SimulatedLinearAxis
     kwds:
-      hardware_axis: Y
       dimension: Y
-      tigerbox: tigerbox
   z-axis:
-    module: voxel.instrument.devices.linear_axis.asi
-    class: ASITigerLinearAxis
+    module: voxel.instrument.devices.linear_axis.simulated
+    class: SimulatedLinearAxis
     kwds:
-      hardware_axis: Z
       dimension: Z
-      tigerbox: tigerbox
   filterwheel:
     module: voxel.instrument.devices.filter.simulated
     class: SimulatedFilterWheel
     kwds:
       wheel_id: 1
-  tigerbox:
-    module: voxel.instrument.controllers.tigerbox
-    class: ASITigerBox
+
+writers:
+  imaris:
+    module: voxel.instrument.writers.imaris
+    class: ImarisWriter
     kwds:
-      port: COM3
+      path: E:\\
+
+transfers:
+  robocopy:
+    module: voxel.instrument.file_transfers.robocopy
+    class: RobocopyFileTransfer
+    kwds:
+      external_path: Z:\\scratch\\adam.glaser
+      local_path: E:\\
 
 settings:
   simulated_camera_1:
@@ -121,3 +141,12 @@ settings:
     roi_height_px: 512
     roi_width_px: 512
     bit_packing_mode: msb
+
+settings_other: # Figure out how to merge this with settings
+  imaris:
+    compression: lz4shuffle
+    data_type: uint16
+  robocopy:
+    verify_transfer: True
+    max_retry: 3
+    timeout_s: 60

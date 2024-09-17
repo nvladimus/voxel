@@ -1,70 +1,82 @@
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
-from voxel.acquisition.channel import VoxelChannel
+from acquisition.model.tile_list import YamlTilePersistence, JsonifyTiles, PickleTiles
+
+from acquisition._config import AcquisitionSpecs
+from acquisition._definitions import TileAcquisitionStrategy
+from acquisition.model import TilePlan, ParametricScanPlan, ScanPlanStrategy
+from acquisition.model.volume import Volume
 from voxel import VoxelInstrument
-from voxel.acquisition.config import AcquisitionConfig
-from voxel.acquisition.file_transfers.base import VoxelFileTransfer
 from voxel.acquisition.metadata.base import VoxelMetadata
-from voxel.acquisition.volume import Volume
-from voxel.acquisition.writers import VoxelWriter
 from voxel.utils.logging import get_logger
 
 
 class VoxelAcquisition:
 
-    def __init__(self, config: AcquisitionConfig, instrument: VoxelInstrument, metadata_handler: VoxelMetadata,
-                 writers: Dict[str, VoxelWriter], file_transfers: Dict[str, VoxelFileTransfer],
-                 name: Optional[str] = None):
+    def __init__(self,
+                 specs: AcquisitionSpecs,
+                 instrument: VoxelInstrument,
+                 metadata_handler: VoxelMetadata,
+                 name: Optional[str] = None
+                 ) -> None:
         self.log = get_logger(f"{self.__class__.__name__}")
         self.name = name
-        self.config = config
+        self.specs = specs
         self.instrument = instrument
         self.metadata = metadata_handler
-        self.writers = writers
-        self.file_transfers = file_transfers
-        self.channels = self._construct_channels()
-        self.active_devices = {device_name: False for device_name in self.instrument.devices.keys()}
         self.volume = Volume(
-            tile_name_prefix=f"{self.name}",
-            step_size=self.config.acquisition_specs["step_size"],
-            tile_overlap=0.15,
-            stage_limits_mm=self.instrument.stage_limits_mm
+            step_size=self.specs.step_size,
+            tile_overlap=self.specs.tile_overlap,
+            stage_limits_mm=self.instrument.stage.limits_mm
         )
+        self.tile_persistence = self._get_tile_persistence_handler()
+        self._tiles: Optional[TilePlan] = None
         self.log.debug(f"Acquisition created with instrument: {instrument}")
 
-    def _construct_channels(self) -> Dict[str, VoxelChannel]:
-        channels = {}
-        for channel_name, channel_specs in self.config.channel_specs.items():
-            channels[channel_name] = VoxelChannel(
-                name=channel_name,
-                camera=self.instrument.cameras[channel_specs["camera"]],
-                lens=self.instrument.lenses[channel_specs["lens"]],
-                laser=self.instrument.lasers[channel_specs["laser"]],
-                emmision_filter=self.instrument.filters[channel_specs["filter"]],
-                writer=self.writers[channel_specs["writer"]],
-                file_transfer=self.file_transfers[channel_specs["file_transfer"]]
-            )
-        return channels
+    @property
+    def tiles(self) -> List[TilePlan]:
+        match self.specs.strategy:
+            case TileAcquisitionStrategy.MULTI_SHOT:
+                tile_plans: List[TilePlan] = []
+                for channel_name in self.specs.channels:
+                    channel = self.instrument.channels.get(channel_name)
+                    channel_tiles = self.volume.generate_tiles(
+                        channels=[channel],
+                        name_prefix=channel_name
+                    )
+                    tile_plans.append(TilePlan(
+                        tiles=channel_tiles,
+                        scan_strategy=self.scan_path_strategy,
+                    ))
+                return tile_plans
+            case TileAcquisitionStrategy.ONE_SHOT:
+                channels = [self.instrument.channels.get(channel_name) for channel_name in self.specs.channels]
+                tile_plans: List[TilePlan] = [
+                    TilePlan(
+                        tiles=self.volume.generate_tiles(
+                            channels=channels,
+                            name_prefix="multi_channel"
+                        ),
+                        scan_strategy=self.scan_path_strategy
+                    )]
+                return tile_plans
 
-    def activate_channel(self, channel_name: str):
-        if not self.channels:
-            return
-        channel = self.channels[channel_name]
-        for device_name in channel.devices.keys():
-            if self.active_devices[device_name]:
-                self.log.error(f"Unable to activate channel {channel_name}. "
-                               f"Device {device_name} is possibly in use by another channel.")
-                return
-        channel.activate()
-        self.active_devices.update({device_name: True for device_name in channel.devices.keys()})
+    @property
+    def scan_path_strategy(self) -> ScanPlanStrategy:
+        match self.specs.scan_path_strategy:
+            case "parametric":
+                return ParametricScanPlan()
+            case "spiral":
+                raise NotImplementedError("Spiral scan path strategy not implemented yet")
 
-    def deactivate_channel(self, channel_name: str):
-        if not self.channels:
-            return
-        channel = self.channels[channel_name]
-        channel.deactivate()
-        self.active_devices.update({device_name: False for device_name in channel.devices.keys()})
+    def get_metadata(self) -> Dict:
+        return self.metadata.to_dict()
 
-
-def get_metadata(self) -> Dict:
-    return self.metadata.to_dict()
+    def _get_tile_persistence_handler(self):
+        match self.specs.tile_plan_persistence.lower():
+            case "yaml":
+                return YamlTilePersistence()
+            case "json":
+                return JsonifyTiles()
+            case "pickle":
+                return PickleTiles()

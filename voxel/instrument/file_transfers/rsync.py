@@ -6,7 +6,7 @@ from pathlib import Path
 from subprocess import Popen
 from typing import Any, Iterable, List
 
-from acquisition.file_transfers.base import VoxelFileTransfer
+from instrument.file_transfers.base import VoxelFileTransfer
 
 
 class RsyncFileTransfer(VoxelFileTransfer):
@@ -25,8 +25,8 @@ class RsyncFileTransfer(VoxelFileTransfer):
     :type local_path: str
     """
 
-    def __init__(self, external_path: str, local_path: str):
-        super().__init__(external_path, local_path)
+    def __init__(self, external_path: str, local_path: str, name: str = "rsync"):
+        super().__init__(external_path, local_path, name)
         self._protocol = "rsync"
         # print progress, delete files after transfer
         # check version of rsync

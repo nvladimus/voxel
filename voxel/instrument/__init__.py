@@ -1,12 +1,7 @@
-from acquisition.channel import VoxelChannel
-from .config import InstrumentConfig
-from .definitions import (
-    VoxelDeviceError,
-    DeviceConnectionError,
-    VoxelDeviceType,
-)
+from ._config import InstrumentConfig
+from ._definitions import VoxelDeviceError, DeviceConnectionError, VoxelDeviceType
+from ._factory import InstrumentFactory
 from .device import VoxelDevice
-from .factory import InstrumentFactory
 from .instrument import VoxelInstrument
 
 __all__ = [
@@ -17,5 +12,4 @@ __all__ = [
     "InstrumentFactory",
     "VoxelInstrument",
     "VoxelDevice",
-    "VoxelChannel",
 ]

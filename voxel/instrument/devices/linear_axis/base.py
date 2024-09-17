@@ -1,5 +1,6 @@
 from abc import abstractmethod
 
+from voxel.instrument._definitions import VoxelDeviceType
 from voxel.instrument.device import VoxelDevice
 from voxel.instrument.devices.linear_axis.definitions import LinearAxisDimension, ScanConfig, ScanState
 
@@ -13,7 +14,8 @@ class VoxelLinearAxis(VoxelDevice):
 
     def __init__(self, name: str, dimension: LinearAxisDimension):
         super().__init__(name)
-        self.dimension: LinearAxisDimension = dimension
+        self.dimension: LinearAxisDimension = LinearAxisDimension(dimension)
+        self.device_type = VoxelDeviceType.LINEAR_AXIS
 
     def __repr__(self):
         return (

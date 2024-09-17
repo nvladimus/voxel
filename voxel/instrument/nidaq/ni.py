@@ -1,14 +1,13 @@
 from functools import lru_cache
-from typing import List, Tuple, Dict, TypeAlias, Union
+from typing import List, Tuple, Dict, TypeAlias
 
 import nidaqmx
 import numpy as np
 from nidaqmx.constants import AcquisitionType, Edge, Level, TaskMode
 
-from voxel.instrument.device import VoxelDevice
+from voxel.instrument.nidaq.base import VoxelDAQ
 from voxel.instrument.nidaq.task import DAQTask, DAQTaskType, DAQTaskChannel, DAQTaskTriggerMode, DAQTaskTriggerEdge, \
     DAQTaskSampleMode
-
 
 # Extras
 # TODO: Consider caching channel waveforms.
@@ -18,11 +17,10 @@ from voxel.instrument.nidaq.task import DAQTask, DAQTaskType, DAQTaskChannel, DA
 # TODO: Add support for more task types
 
 
-HardwareDevice: TypeAlias = Union[nidaqmx.system.device.Device]
-HardwareTask: TypeAlias = Union[nidaqmx.Task]
+HardwareTask: TypeAlias = nidaqmx.Task
 
 
-class VoxelNIDAQ(VoxelDevice):
+class VoxelNIDAQ(VoxelDAQ):
     def __init__(self, name: str, conn: str, simulated: bool = False):
         super().__init__(name)
         devices = self.get_available_devices()

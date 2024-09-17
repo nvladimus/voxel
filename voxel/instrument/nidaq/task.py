@@ -8,10 +8,11 @@ from numpy.typing import NDArray
 from utils.descriptors.deliminated_property import deliminated_property
 from utils.descriptors.enumerated_property import enumerated_property
 from voxel.instrument.device import VoxelDevice
+from voxel.instrument.nidaq.base import VoxelDAQ
 from voxel.instrument.nidaq.channel import DAQTaskChannel, DAQTaskTiming, DAQWaveform
 
 if TYPE_CHECKING:
-    from voxel.instrument.nidaq.ni import HardwareTask, HardwareDevice
+    from voxel.instrument.nidaq.ni import HardwareTask
 
 
 class DAQTaskType(StrEnum):
@@ -37,7 +38,7 @@ class DAQTaskSampleMode(StrEnum):
 
 class DAQTask(VoxelDevice):
     def __init__(self, name: str, task_type: DAQTaskType, sampling_frequency_hz: float,
-                 period_time_ms: float, rest_time_ms: float, daq: 'HardwareDevice') -> None:
+                 period_time_ms: float, rest_time_ms: float, daq: VoxelDAQ) -> None:
         super().__init__(name=name)
         self.daq = daq
         self.task_type = task_type
@@ -52,6 +53,7 @@ class DAQTask(VoxelDevice):
         self.trigger_edge: DAQTaskTriggerEdge = DAQTaskTriggerEdge.RISING
         self.trigger_source: Optional[str] = None
         self.retriggerable: bool = False
+        self._update_task()
 
     def add_channel(self, name: str, port: str, waveform_type: DAQWaveform,
                     center_volts: float, amplitude_volts: float, cutoff_freq_hz: float,
@@ -78,8 +80,8 @@ class DAQTask(VoxelDevice):
             self.daq.log.warning(f"Channel '{name}' waveform_type changed to SQUARE for CO task")
 
         # channel volts must fit within the range of the device
-        if amplitude_volts > self.daq.ao_voltage_range[0] or center_volts - amplitude_volts < self.daq.ao_voltage_range[
-            1]:
+        if (amplitude_volts > self.daq.ao_voltage_range[0] or
+                center_volts - amplitude_volts < self.daq.ao_voltage_range[1]):
             raise ValueError(f"Channel '{name}' exceeds the voltage range of the device. "
                              f"Range: {self.daq.ao_voltage_range}")
 

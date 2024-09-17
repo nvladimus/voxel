@@ -6,8 +6,8 @@ import time
 
 import numpy
 
-from acquisition.writers import SharedDoubleBuffer
-from acquisition.writers import TiffWriter
+from instrument.writers import SharedDoubleBuffer
+from instrument.writers import TiffWriter
 
 if __name__ == "__main__":
 

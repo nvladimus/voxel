@@ -3,7 +3,7 @@ from typing import Optional
 
 from pylablib.devices import Thorlabs
 
-from voxel.instrument.definitions import DeviceConnectionError
+from voxel.instrument._definitions import DeviceConnectionError
 from voxel.instrument.devices.rotation_axis.base import VoxelRotationAxis
 
 MIN_POSITION_DEG = 0

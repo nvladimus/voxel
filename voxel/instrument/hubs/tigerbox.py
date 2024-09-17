@@ -5,7 +5,7 @@ from tigerasi.device_codes import TTLIn0Mode, TTLOut0Mode, ScanPattern, Joystick
 from tigerasi.tiger_controller import TigerController
 
 from voxel.instrument.device import VoxelDevice
-from voxel.instrument.definitions import DeviceConnectionError
+from voxel.instrument._definitions import DeviceConnectionError
 from voxel.instrument.devices.linear_axis.definitions import LinearAxisDimension, ScanState
 
 AxisMap: TypeAlias = Dict[str, str]  # axis name -> hardware_axis

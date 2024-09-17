@@ -7,6 +7,11 @@ class Vec2D:
     x: int | float
     y: int | float
 
+    def __post_init__(self):
+        for attr in ['x', 'y']:
+            if not isinstance(getattr(self, attr), (int, float)):
+                raise TypeError(f"Unsupported type for {attr}: {type(getattr(self, attr))}")
+
     def __repr__(self):
         return f"({self.x}, {self.y})"
 
@@ -37,6 +42,11 @@ class Vec3D:
     x: float
     y: float
     z: float
+
+    def __post_init__(self):
+        for attr in ['x', 'y', 'z']:
+            if not isinstance(getattr(self, attr), (int, float)):
+                raise TypeError(f"Unsupported type for {attr}: {type(getattr(self, attr))}")
 
     def __add__(self, other: 'Vec3D') -> 'Vec3D':
         return Vec3D(self.x + other.x, self.y + other.y, self.z + other.z)

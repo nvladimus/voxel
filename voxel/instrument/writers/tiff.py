@@ -11,7 +11,7 @@ from time import perf_counter, sleep
 import numpy as np
 import tifffile
 
-from acquisition.writers.base import VoxelWriter
+from voxel.instrument.writers.base import VoxelWriter
 
 CHUNK_COUNT_PX = 64
 
@@ -25,11 +25,13 @@ class TiffWriter(VoxelWriter):
     path\\acquisition_name\\filename.tiff
 
     :param path: Path for the data writer
+    :param name: Name of the writer, default is "tiff"
     :type path: str
+    :type name: str
     """
 
-    def __init__(self, path: str):
-        super().__init__(path)
+    def __init__(self, path: str, name: str = "tiff"):
+        super().__init__(path, name)
 
     @property
     def frame_count_px(self):

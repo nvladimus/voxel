@@ -4,8 +4,8 @@ import math
 import threading
 from pathlib import Path
 from ruamel.yaml import YAML
-from acquisition.writers import SharedDoubleBuffer
-from acquisition.writers import Writer
+from instrument.writers import SharedDoubleBuffer
+from instrument.writers import Writer
 
 if __name__ == '__main__':
 

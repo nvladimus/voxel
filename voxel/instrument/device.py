@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from voxel.instrument.definitions import VoxelDeviceType
+from voxel.instrument._definitions import VoxelDeviceType
 from voxel.utils.logging import get_logger
 
 

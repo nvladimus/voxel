@@ -17,8 +17,9 @@ class VoxelWriter:
     :type path: str
     """
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, name: str = "VoxelWriter"):
         self.log = get_logger(f"{__name__}.{self.__class__.__name__}")
+        self.name = name
         self._path = Path(path)
         self._channel = None
         self._filename = None

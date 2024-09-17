@@ -24,8 +24,9 @@ class VoxelFileTransfer:
     :raise ValueError: Same external and local path
     """
 
-    def __init__(self, external_path: str, local_path: str):
+    def __init__(self, external_path: str, local_path: str, name: str = "VoxelFileTransfer"):
         self.log = get_logger(f"{__name__}.{self.__class__.__name__}")
+        self.name = name
         self._external_path = Path(external_path)
         self._local_path = Path(local_path)
         if self._external_path == self._local_path:

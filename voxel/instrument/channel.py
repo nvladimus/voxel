@@ -1,9 +1,7 @@
 from dataclasses import dataclass
 
-import numpy as np
-
-from voxel.acquisition.file_transfers.base import VoxelFileTransfer
-from voxel.acquisition.writers import VoxelWriter
+from voxel.instrument.file_transfers import VoxelFileTransfer
+from voxel.instrument.writers import VoxelWriter
 from voxel.instrument.devices.camera import VoxelCamera
 from voxel.instrument.devices.filter import VoxelFilter
 from voxel.instrument.devices.laser import VoxelLaser

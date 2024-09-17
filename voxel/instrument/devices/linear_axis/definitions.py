@@ -3,10 +3,10 @@ from enum import StrEnum
 
 
 class LinearAxisDimension(StrEnum):
-    X = 'tiling_1'
-    Y = 'tiling_2'
-    Z = 'scanning'
-    N = 'calibration'  # for axes not used in defining the stage 3D space e.g. focusing
+    X = 'X'  # tiling axis
+    Y = 'Y'  # tiling axis
+    Z = 'Z'  # scanning axis
+    N = 'N'  # calibration axis
 
 
 class ScanType(StrEnum):
