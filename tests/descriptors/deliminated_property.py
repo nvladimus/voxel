@@ -1,5 +1,5 @@
 import pytest
-from utils.descriptors.deliminated_property import deliminated_property, DeliminatedProperty
+from voxel.utils.descriptors.deliminated_property import deliminated_property, DeliminatedProperty
 
 VALUE_MIN = 20
 VALUE_MAX = 100

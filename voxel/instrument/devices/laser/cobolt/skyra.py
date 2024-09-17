@@ -4,7 +4,7 @@ from enum import Enum
 from pycobolt import CoboltLaser
 from sympy import symbols, solve, Expr
 
-from utils.descriptors.deliminated_property import deliminated_property
+from voxel.utils.descriptors.deliminated_property import deliminated_property
 from voxel.instrument.devices.laser.base import VoxelLaser
 
 # Define StrEnums if they don't yet exist.

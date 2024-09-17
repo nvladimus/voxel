@@ -4,7 +4,7 @@ from aaopto_aotf import MPDS
 from aaopto_aotf.device_codes import *
 from sympy import symbols, solve
 
-from utils.descriptors.deliminated_property import deliminated_property
+from voxel.utils.descriptors.deliminated_property import deliminated_property
 from voxel.instrument.devices.laser.base import VoxelLaser
 from voxel.utils.singleton import Singleton
 

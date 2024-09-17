@@ -1,14 +1,11 @@
-from .tile import Tile, TilePlan, TileNeighbour, Tiles
-from .scan_plan import ScanPlanStrategy, ParametricScanPlan, Coordinate
+from .scan_plan import ScanPathStrategy, Coordinate
+from .tile import Tile, TilesSet
 from .volume import Volume
 
 __all__ = [
     'Tile',
-    'TilePlan',
-    'TileNeighbour',
-    'Tiles',
-    'ScanPlanStrategy',
-    'ParametricScanPlan',
+    'TilesSet',
+    'ScanPathStrategy',
     'Coordinate',
     'Volume'
 ]

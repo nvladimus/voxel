@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Type, Any, Callable, Optional, Union, List
 from weakref import WeakKeyDictionary
 
-from utils.descriptors.descriptor_proxy import DescriptorProxy
+from voxel.utils.descriptors.descriptor_proxy import DescriptorProxy
 from voxel.utils.logging import get_logger
 
 

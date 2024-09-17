@@ -1,5 +1,5 @@
 from acquisition.acquisition import VoxelAcquisition
-from utils.logging import get_logger
+from voxel.utils.logging import get_logger
 
 
 class VoxelRoutine:

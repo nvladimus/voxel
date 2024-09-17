@@ -1,12 +1,12 @@
 from abc import abstractmethod
 from typing import Any, Tuple
 
-from utils.descriptors.deliminated_property import deliminated_property
-from utils.descriptors.enumerated_property import enumerated_property
+from voxel.utils.descriptors.deliminated_property import deliminated_property
+from voxel.utils.descriptors.enumerated_property import enumerated_property
 from voxel.instrument._definitions import VoxelDeviceType
 from voxel.instrument.device import VoxelDevice
 from voxel.instrument.devices.camera.definitions import PixelType, AcquisitionState, Binning, VoxelFrame, ROI
-from utils.geometry.vec import Vec2D
+from voxel.utils.geometry.vec import Vec2D
 
 
 class VoxelCamera(VoxelDevice):

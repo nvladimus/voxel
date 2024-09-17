@@ -1,15 +1,33 @@
 instrument: ./example_instrument.yaml
-settings: ./example_settings.yaml
+
+specs:
+  step_size: 0.1
+  tile_overlap: 0.15
+  acquisition_strategy: one_shot
+  channels:
+    - red
+    - green
+
+scan_path:
+  strategy: parametric
+  kwds:
+    start_corner: 'top_left'
+    direction: 'row_wise'
+    pattern: 'serpentine'
+    reverse: True
+
+persistence:
+  handler: yaml
+  file_path: ./example_tile_data.yaml
 
 metadata:
-  module: voxel.acquisition.metadata
+  module: voxel.acquisition.metadata.aind_metadata
   class: AINDMetadata
   kwds:
     instrument_name: exaspim
-    experiment_name: example_experiment
+    experiment_id: example_experiment
     subject_id: 123456
-    instrument_type: exaspim
-    experimenter_name: adam glaser
+    experimenter_full_name: adam glaser
     x_anatomical_direction: anterior_to_posterior
     y_anatomical_direction: inferior_to_superior
     z_anatomical_direction: left_to_right
@@ -19,14 +37,4 @@ metadata:
       immersion_medium_refractive_index: 1.33
     name_format:
       delimiter: _
-      properties: [ instrument_type, subject_id ]
-
-acquisition:
-  step_size: 0.1
-  tile_overlap: 0.15
-  acquisition_strategy: one_shot
-  scan_path_strategy: parametric
-  persistence_handler: yaml
-  channels:
-    - red
-    - green
+      properties: [ instrument_name, subject_id ]

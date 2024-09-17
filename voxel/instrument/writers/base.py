@@ -5,7 +5,7 @@ from typing import Optional
 
 import numpy
 
-from utils.descriptors.deliminated_property import deliminated_property
+from voxel.utils.descriptors.deliminated_property import deliminated_property
 from voxel.utils.logging import get_logger
 
 

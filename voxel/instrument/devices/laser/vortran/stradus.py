@@ -1,6 +1,6 @@
 from vortran_laser import StradusLaser as StradusVortran, BoolVal
 
-from utils.descriptors.deliminated_property import deliminated_property
+from voxel.utils.descriptors.deliminated_property import deliminated_property
 from voxel.instrument.devices.laser.base import VoxelLaser
 
 MODULATION_MODES = {

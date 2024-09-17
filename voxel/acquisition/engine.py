@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from acquisition.acquisition import VoxelAcquisition
-from utils.logging import get_logger
+from voxel.utils.logging import get_logger
 
 
 @dataclass

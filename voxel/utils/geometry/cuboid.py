@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from utils.geometry.vec import Vec3D, Plane, Vec2D
+from voxel.utils.geometry.vec import Vec3D, Plane, Vec2D
+
 
 class CuboidBoundaryError(Exception):
     def __init__(self, message: str, min_value: float, max_value: float):
@@ -32,7 +33,8 @@ class Cuboid:
     @min_x.setter
     def min_x(self, plane: Plane):
         if plane.min_corner.x > self.max_corner.x:
-            raise CuboidBoundaryError("min_x cannot be greater than current max_x", plane.min_corner.x, self.max_corner.x)
+            raise CuboidBoundaryError("min_x cannot be greater than current max_x", plane.min_corner.x,
+                                      self.max_corner.x)
         self.min_corner.x = plane.min_corner.x
 
     @property
@@ -52,7 +54,8 @@ class Cuboid:
     @min_y.setter
     def min_y(self, plane: Plane):
         if plane.min_corner.y > self.max_corner.y:
-            raise CuboidBoundaryError("min_y cannot be greater than current max_y", plane.min_corner.y, self.max_corner.y)
+            raise CuboidBoundaryError("min_y cannot be greater than current max_y", plane.min_corner.y,
+                                      self.max_corner.y)
         self.min_corner.y = plane.min_corner.y
 
     @property
@@ -72,7 +75,8 @@ class Cuboid:
     @min_z.setter
     def min_z(self, plane: Plane):
         if plane.min_corner.z > self.max_corner.z:
-            raise CuboidBoundaryError("min_z cannot be greater than current max_z", plane.min_corner.z, self.max_corner.z)
+            raise CuboidBoundaryError("min_z cannot be greater than current max_z", plane.min_corner.z,
+                                      self.max_corner.z)
         self.min_corner.z = plane.min_corner.z
 
     @property

@@ -6,7 +6,7 @@ from typing import Tuple, Optional
 import numpy as np
 from numpy.typing import NDArray
 
-from utils.geometry.vec import Vec2D
+from voxel.utils.geometry.vec import Vec2D
 from voxel.instrument.devices.camera import ROI
 from voxel.instrument.devices.camera.simulated.definitions import TriggerMode, TriggerSource, TriggerPolarity, PixelType
 from voxel.instrument.devices.camera.simulated.image_model import ImageModel

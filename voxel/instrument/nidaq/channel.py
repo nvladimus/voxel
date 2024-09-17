@@ -14,8 +14,8 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy import signal
 
-from utils.descriptors.deliminated_property import deliminated_property
-from utils.descriptors.enumerated_property import enumerated_property
+from voxel.utils.descriptors.deliminated_property import deliminated_property
+from voxel.utils.descriptors.enumerated_property import enumerated_property
 from voxel.instrument.device import VoxelDevice
 
 

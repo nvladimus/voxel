@@ -3,7 +3,7 @@ from time import sleep
 from pylablib.devices import Thorlabs
 
 from instrument import VoxelDeviceError
-from utils.descriptors.deliminated_property import deliminated_property
+from voxel.utils.descriptors.deliminated_property import deliminated_property
 from voxel.instrument._definitions import DeviceConnectionError
 from voxel.instrument.devices.flip_mount.base import VoxelFlipMount
 

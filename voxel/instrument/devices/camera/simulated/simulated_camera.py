@@ -1,8 +1,8 @@
 from typing import TypeAlias, Dict, Optional, Tuple
 
-from utils.descriptors.deliminated_property import deliminated_property
-from utils.descriptors.enumerated_property import enumerated_property
-from utils.geometry.vec import Vec2D
+from voxel.utils.descriptors.deliminated_property import deliminated_property
+from voxel.utils.descriptors.enumerated_property import enumerated_property
+from voxel.utils.geometry.vec import Vec2D
 from voxel.instrument.devices.camera import VoxelCamera
 from voxel.instrument.devices.camera.definitions import VoxelFrame, AcquisitionState
 from voxel.kit.downsample.gpu.gputools.downsample_2d import GPUToolsDownSample2D

@@ -1,6 +1,6 @@
 from typing import Union, Callable, Optional, Any
 
-from utils.descriptors.descriptor_proxy import DescriptorProxy
+from voxel.utils.descriptors.descriptor_proxy import DescriptorProxy
 from voxel.utils.logging import get_logger
 
 Number = Union[int, float]

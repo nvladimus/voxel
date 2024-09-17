@@ -1,9 +1,9 @@
 import time
 from typing import Dict, Union, Literal, TypeAlias, Tuple
 
-from utils.descriptors.deliminated_property import deliminated_property
-from utils.descriptors.enumerated_property import enumerated_property
-from utils.geometry.vec import Vec2D
+from voxel.utils.descriptors.deliminated_property import deliminated_property
+from voxel.utils.descriptors.enumerated_property import enumerated_property
+from voxel.utils.geometry.vec import Vec2D
 from voxel.instrument._definitions import DeviceConnectionError
 from voxel.instrument.devices.camera import VoxelCamera, AcquisitionState, PixelType, Binning
 from voxel.instrument.devices.camera.pco.definitions import pixel_type_lut, binning_lut, TriggerMode, ReadoutMode, \

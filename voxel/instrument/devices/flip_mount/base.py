@@ -1,6 +1,6 @@
 from abc import abstractmethod
 
-from utils.descriptors.deliminated_property import deliminated_property
+from voxel.utils.descriptors.deliminated_property import deliminated_property
 from voxel.instrument.device import VoxelDevice
 
 

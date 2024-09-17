@@ -1,16 +1,12 @@
 import math
 from dataclasses import dataclass
-from enum import StrEnum
-from typing import Optional, Dict, Any, TypedDict, List
+from typing import Optional, Dict, Any, List, TypeAlias, Tuple
 
 import numpy as np
 
-from voxel.acquisition.model import ParametricScanPlan
-from voxel.acquisition.model.scan_plan import ScanPlanStrategy, Coordinate
 from voxel.instrument.channel import VoxelChannel
 from voxel.utils.geometry.vec import Vec3D
 from voxel.utils.logging import get_logger
-
 
 # example of tile settings
 # {
@@ -27,6 +23,8 @@ from voxel.utils.logging import get_logger
 #     "blue": { ... },
 # }
 
+Coordinate: TypeAlias = Tuple[int, int]
+
 
 @dataclass
 class Tile:
@@ -34,7 +32,6 @@ class Tile:
     pos: Vec3D
     size: Vec3D
     step_size: float
-    file_name_prefix: str
     tile_number: int
     channel_names: List[str]
     channels: Optional[Dict[str, VoxelChannel]] = None
@@ -55,56 +52,38 @@ class Tile:
     def get_total_size_mb(self) -> float:
         return sum(self.get_size_mb(channel) for channel in self.channels.values())
 
-    def get_file_name(self, channel: 'VoxelChannel') -> str:
-        return f'{self.file_name_prefix}_{self.tile_number:06}_ch_{channel.name}'
-
     def __str__(self):
         return f"Tile {self.tile_number} at {self.pos} with size {self.size}"
 
     def __repr__(self):
         return f"Tile {self.tile_number} at {self.pos} with size {self.size}"
 
+    def to_dict(self):
+        return {
+            "idx": self.idx,
+            "pos": self.pos.to_dict(),
+            "size": self.size.to_dict(),
+            "step_size": self.step_size,
+            "tile_number": self.tile_number,
+            "channel_names": self.channel_names,
+            "settings": self.settings
+        }
 
-Tiles = TypedDict[Coordinate, Tile]
+    @classmethod
+    def from_dict(cls, data):
+        def get_coords(idx: str) -> Tuple[int, int]:
+            split = idx.split(",")
+            return int(split[0]), int(split[1])
+
+        return cls(
+            idx=get_coords(data["idx"]),
+            pos=Vec3D.from_dict(data["pos"]),
+            size=Vec3D.from_dict(data["size"]),
+            step_size=data["step_size"],
+            tile_number=data["tile_number"],
+            channel_names=data["channel_names"],
+            settings=data["settings"]
+        )
 
 
-class TileNeighbour(StrEnum):
-    LEFT = 'left'
-    RIGHT = 'right'
-    UP = 'up'
-    DOWN = 'down'
-
-
-class TilePlan:
-    def __init__(self, tiles: Tiles, scan_strategy: ScanPlanStrategy = ParametricScanPlan()) -> None:
-        self.log = get_logger(self.__class__.__name__)
-        self.tiles: Tiles = tiles
-        self._scan_strategy: ScanPlanStrategy = scan_strategy
-        self._scan_path: Optional[List[Coordinate]] = None
-
-    @property
-    def scan_path(self):
-        if self._scan_path is None:
-            self._scan_path = self.scan_strategy.generate_plan(self.tiles)
-        return self._scan_path
-
-    @property
-    def scan_strategy(self):
-        return self._scan_strategy
-
-    @scan_strategy.setter
-    def scan_strategy(self, scan_strategy: ScanPlanStrategy):
-        self._scan_strategy = scan_strategy
-        self._scan_path = None
-
-    def get_neighbour(self, tile: Tile, direction: TileNeighbour) -> Optional[Tile]:
-        x, y = tile.idx
-        if direction == TileNeighbour.LEFT:
-            x -= 1
-        elif direction == TileNeighbour.RIGHT:
-            x += 1
-        elif direction == TileNeighbour.UP:
-            y += 1
-        elif direction == TileNeighbour.DOWN:
-            y -= 1
-        return self.tiles.get((x, y), None)
+TilesSet: TypeAlias = Dict[Coordinate, Tile]

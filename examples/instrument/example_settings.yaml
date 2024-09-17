@@ -1,5 +1,0 @@
-red:
-  camera:
-    exposure_time_ms: 10.0
-  camera.daq_channel:
-    amplitude_volts: 5

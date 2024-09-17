@@ -10,7 +10,7 @@ import inflection
 from ruamel.yaml import YAML
 from serial import Serial
 
-from utils.descriptors.deliminated_property import DeliminatedProperty
+from voxel.utils.descriptors.deliminated_property import DeliminatedProperty
 
 
 class Instrument:

@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Dict, Optional
 
-from acquisition.metadata.base import VoxelMetadata, MetadataNameFormat
+from voxel.acquisition.metadata.base import VoxelMetadata, MetadataNameFormat
 
 
 class DateTimeFormat(StrEnum):
@@ -48,7 +48,7 @@ ANATOMICAL_DIRECTIONS = {
 
 
 @dataclass
-class AINDMetaData(VoxelMetadata):
+class AINDMetadata(VoxelMetadata):
     """
     Metadata matching the AIND standard.
     """
