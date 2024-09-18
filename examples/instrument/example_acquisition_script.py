@@ -3,8 +3,8 @@ from colorama import Fore, Style, init
 from matplotlib import pyplot as plt
 
 from voxel.acquisition import AcquisitionConfig, AcquisitionFactory
-from voxel.acquisition.acquisition import VoxelAcquisition
-from voxel.acquisition.model.scan_plan import ScanPath, ParametricScanPathGenerator, StartCorner, \
+from voxel.acquisition._prev.acquisition import VoxelAcquisition
+from voxel.acquisition._prev.scan_plan import ScanPath, ParametricScanPathGenerator, StartCorner, \
     Direction, Pattern, SpiralScanPathGenerator
 from voxel.utils.geometry.vec import Vec3D
 from voxel.utils.logging import setup_logging

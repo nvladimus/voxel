@@ -3,8 +3,8 @@ from typing import Dict, List, Optional, Tuple, Any
 from pydantic import BaseModel, Field, field_validator
 from ruamel.yaml import YAML
 
-from voxel.acquisition._definitions import TileAcquisitionStrategy
-from voxel.acquisition.model.scan_plan import ScanPathStrategy, StartCorner, Direction, Pattern
+from voxel.acquisition._prev._definitions import TileAcquisitionStrategy
+from voxel.acquisition._prev.scan_plan import ScanPathStrategy, StartCorner, Direction, Pattern
 from voxel.utils.logging import get_logger
 
 

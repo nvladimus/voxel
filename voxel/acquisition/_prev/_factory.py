@@ -1,12 +1,12 @@
 from typing import Any
 
-from voxel.acquisition._config import AcquisitionConfig
-from voxel.acquisition.acquisition import VoxelAcquisition
+from voxel.acquisition._prev._config import AcquisitionConfig
+from voxel.acquisition._prev.acquisition import VoxelAcquisition
 from voxel.acquisition.metadata.base import VoxelMetadata
-from voxel.acquisition.model.scan_plan import (
+from voxel.acquisition._prev.scan_plan import (
     ScanPathGenerator, ParametricScanPathGenerator, SpiralScanPathGenerator, CustomScanPathGenerator, ScanPathStrategy
 )
-from voxel.acquisition.persistence import TilePersistenceHandler, YamlifyTiles, JsonifyTiles, PickleTiles
+from voxel.acquisition._prev.persistence import TilePersistenceHandler, YamlifyTiles, JsonifyTiles, PickleTiles
 from voxel.instrument import InstrumentConfig, VoxelInstrument, InstrumentFactory
 from voxel.utils.logging import get_logger
 

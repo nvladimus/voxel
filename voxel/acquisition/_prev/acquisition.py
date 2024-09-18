@@ -1,13 +1,13 @@
 import math
 from typing import Optional, Dict, List
 
-from voxel.acquisition._config import AcquisitionSpecs
-from voxel.acquisition._definitions import TileAcquisitionStrategy
+from voxel.acquisition._prev._config import AcquisitionSpecs
+from voxel.acquisition._prev._definitions import TileAcquisitionStrategy
 from voxel.acquisition.metadata.base import VoxelMetadata
-from voxel.acquisition.model import TilesSet, Tile
-from voxel.acquisition.model.scan_plan import ScanPathGenerator, ScanPath
-from voxel.acquisition.model.volume import Volume
-from voxel.acquisition.persistence import TilePersistenceHandler
+from voxel.acquisition._prev import TilesSet, Tile
+from voxel.acquisition._prev.scan_plan import ScanPathGenerator, ScanPath
+from voxel.acquisition._prev.volume import Volume
+from voxel.acquisition._prev.persistence import TilePersistenceHandler
 from voxel.instrument import VoxelInstrument
 from voxel.instrument.channel import VoxelChannel
 from voxel.utils.geometry.vec import Vec3D

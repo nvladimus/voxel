@@ -16,7 +16,6 @@ class VolumeBoundaryError(Exception):
         return f"{self.args[0]} (min: {self.min_value}, max: {self.max_value})"
 
 
-@dataclass
 class Volume:
 
     def __init__(self, min_corner: Vec3D, max_corner: Vec3D, step_size: float):

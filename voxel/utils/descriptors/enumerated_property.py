@@ -28,10 +28,12 @@ class EnumeratedProperty:
         if instance is None:
             return self
 
+        value = self.fget(instance)
+        value = self._unwrap_proxy(value)
         if instance not in self._instance_proxies:
-            value = self.fget(instance)
-            value = self._unwrap_proxy(value)
             self._instance_proxies[instance] = EnumeratedPropertyProxy(value, self)
+        else:
+            self._instance_proxies[instance].value = value
 
         return self._instance_proxies[instance]
 
@@ -54,8 +56,9 @@ class EnumeratedProperty:
         self.fset(instance, value)
 
         if instance in self._instance_proxies:
-            value = self._unwrap_proxy(value)
             self._instance_proxies[instance].value = value
+        else:
+            self._instance_proxies[instance] = EnumeratedPropertyProxy(value, self)
 
     def __delete__(self, instance: Any) -> None:
         if self.fdel is None:

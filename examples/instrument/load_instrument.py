@@ -1,5 +1,8 @@
+from voxel.acquisition.planner import AcquisitionPlanner
+from voxel.acquisition.scan_path import ScanPattern, ScanDirection, StartCorner, plot_scan_path
 from voxel.instrument import VoxelInstrument, InstrumentConfig, InstrumentFactory
 from voxel.instrument.nidaq.base import VoxelDAQ
+from voxel.utils.geometry.vec import Vec3D
 
 INSTRUMENT_CONFIG_YAML = './example_instrument.yaml'
 
@@ -81,6 +84,47 @@ def main():
     # Step 4: Validate the created instrument
     print("\nValidating instrument...")
     validate_instrument(instrument, inst_config)
+
+    z_step_size = 0.5
+    channel_names = ['red', 'green']
+
+    planner = AcquisitionPlanner(instrument, z_step_size, channel_names, './acquisition_plan.yaml')
+
+    # Modify volume
+    planner.volume.min_corner = Vec3D(0, 0, 0)
+    planner.volume.max_corner = Vec3D(100, 100, 50)
+
+    # plot_scan_path(planner.plan.scan_path, "Raster Scan Path")
+
+    planner.scan_pattern = ScanPattern.SERPENTINE
+    # plot_scan_path(planner.plan.scan_path, "Serpentine Scan Path")
+
+    planner.scan_direction = ScanDirection.COLUMN_WISE
+    # plot_scan_path(planner.plan.scan_path, "Column-wise Serpentine Scan Path")
+
+    planner.start_corner = StartCorner.BOTTOM_RIGHT
+    # plot_scan_path(planner.plan.scan_path, "Bottom-right Column-wise Serpentine Scan Path")
+
+    planner.reverse_scan_path = True
+    # plot_scan_path(planner.plan.scan_path, "Reversed Bottom-right Column-wise Serpentine Scan Path")
+
+    planner.reverse_scan_path = False
+    planner.scan_pattern = ScanPattern.SPIRAL
+    # plot_scan_path(planner.plan.scan_path, "Spiral Scan Path")
+
+    planner.start_corner = StartCorner.TOP_RIGHT
+    # plot_scan_path(planner.plan.scan_path, "Top-right Spiral Scan Path")
+
+    planner.reverse_scan_path = True
+    # plot_scan_path(planner.plan.scan_path, "Reversed Top-right Spiral Scan Path")
+
+    # from pprint import pprint
+    planner.save_to_yaml()
+    loaded_planner = AcquisitionPlanner.load_from_yaml(instrument, './acquisition_plan.yaml')
+
+    plot_scan_path(loaded_planner.plan.scan_path, "Loaded Spiral Scan Path")
+
+    assert planner == loaded_planner, "Loaded plan does not match original plan"
 
     # Step 5: Close the instrument (clean up resources)
     print("\nClosing instrument...")

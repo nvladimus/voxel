@@ -5,8 +5,8 @@ from typing import Tuple, List
 
 from ruamel.yaml import YAML
 
-from voxel.acquisition.model.scan_plan import ScanPath
-from voxel.acquisition.model.tile import TilesSet, Tile
+from voxel.acquisition._prev.scan_plan import ScanPath
+from voxel.acquisition._prev.tile import TilesSet, Tile
 
 
 class TilePersistenceHandler(ABC):

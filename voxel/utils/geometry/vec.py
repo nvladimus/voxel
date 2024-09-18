@@ -12,15 +12,21 @@ class Vec2D:
             if not isinstance(getattr(self, attr), (int, float)):
                 raise TypeError(f"Unsupported type for {attr}: {type(getattr(self, attr))}")
 
-    def to_dict(self):
-        return {"x": self.x, "y": self.y}
+    def to_str(self):
+        return f"({self.x}, {self.y})"
 
     @classmethod
-    def from_dict(cls, data):
-        return cls(x=data["x"], y=data["y"])
+    def from_str(cls, data: str):
+        split = data.strip(" ()").split(",")
+        if any("." in s for s in split):
+            return cls(x=float(split[0]), y=float(split[1]))
+        return cls(x=int(split[0]), y=int(split[1]))
 
     def __repr__(self):
-        return f"({self.x}, {self.y})"
+        return self.to_str()
+
+    def __hash__(self):
+        return hash((self.x, self.y))
 
     def __add__(self, other: 'Vec2D') -> 'Vec2D':
         return Vec2D(self.x + other.x, self.y + other.y)
@@ -55,12 +61,18 @@ class Vec3D:
             if not isinstance(getattr(self, attr), (int, float)):
                 raise TypeError(f"Unsupported type for {attr}: {type(getattr(self, attr))}")
 
-    def to_dict(self):
-        return {"x": self.x, "y": self.y, "z": self.z}
+    def to_str(self):
+        return f"({self.x}, {self.y}, {self.z})"
 
     @classmethod
-    def from_dict(cls, data):
-        return cls(x=data["x"], y=data["y"], z=data["z"])
+    def from_str(cls, data: str):
+        split = data.strip(" ()").split(",")
+        if any("." in s for s in split):
+            return cls(x=float(split[0]), y=float(split[1]), z=float(split[2]))
+        return cls(x=int(split[0]), y=int(split[1]), z=int(split[2]))
+
+    def __hash__(self):
+        return hash((self.x, self.y, self.z))
 
     def __add__(self, other: 'Vec3D') -> 'Vec3D':
         return Vec3D(self.x + other.x, self.y + other.y, self.z + other.z)

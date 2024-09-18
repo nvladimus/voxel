@@ -4,7 +4,7 @@ from typing import List, Tuple, TypeAlias
 
 from colorama import init
 
-from voxel.acquisition.model.tile import TilesSet, Coordinate
+from voxel.acquisition._prev.tile import TilesSet, Coordinate
 from voxel.utils.logging import get_logger
 
 init(autoreset=True)  # Initialize colorama

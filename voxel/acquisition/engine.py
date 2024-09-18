@@ -1,20 +1,24 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Optional, Dict, List
 
-from acquisition.acquisition import VoxelAcquisition
+from voxel import VoxelInstrument
+from voxel.acquisition.planner import AcquisitionPlan
+from voxel.utils.geometry.vec import Vec2D
 from voxel.utils.logging import get_logger
 
 
 @dataclass
-class VoxelAcquisitionState:
-    progress: float
+class AcquisitionState:
+    progress: Dict[Vec2D, List[float]]
 
 
 class VoxelAcquisitionEngine(ABC):
-
-    def __init__(self, acquisition: VoxelAcquisition):
-        self.log = get_logger(f"{self.__class__.__name__}")
-        self.acquisition = acquisition
+    def __init__(self, plan: AcquisitionPlan, instrument: VoxelInstrument) -> None:
+        self.plan = plan
+        self.instrument = instrument
+        self.log = get_logger(self.__class__.__name__)
+        self._current_tile: Optional[Vec2D] = None
 
     @abstractmethod
     def run(self):
@@ -22,5 +26,5 @@ class VoxelAcquisitionEngine(ABC):
 
     @property
     @abstractmethod
-    def state(self) -> VoxelAcquisitionState:
+    def state(self) -> AcquisitionState:
         pass
