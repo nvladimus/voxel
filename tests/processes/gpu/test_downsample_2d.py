@@ -1,7 +1,7 @@
 import numpy
 import time
 
-from voxel.kit.gpu.gputools.downsample_2d import DownSample2D
+from voxel.processing.gpu.gputools.downsample_2d import DownSample2D
 # gputools opencl
 image = numpy.zeros((14192, 10640), dtype='uint16')
 print(f'original image size: {image.shape}')
@@ -13,7 +13,7 @@ run_time = end_time - start_time
 print(f'downsampled image size: {binned_image.shape}')
 print(f'run time = {run_time} [sec]')
 
-from voxel.kit.gpu.cucim.downsample_2d import DownSample2D
+from voxel.processing.gpu.cucim.downsample_2d import DownSample2D
 # cucim cuda
 image = numpy.zeros((14192, 10640), dtype='uint16')
 print(f'original image size: {image.shape}')
@@ -25,7 +25,7 @@ run_time = end_time - start_time
 print(f'downsampled image size: {binned_image.shape}')
 print(f'run time = {run_time} [sec]')
 
-from voxel.kit.gpu.clesperanto.downsample_2d import DownSample2D
+from voxel.processing.gpu.clesperanto.downsample_2d import DownSample2D
 # pyclesperanto
 image = numpy.zeros((14192, 10640), dtype='uint16')
 print(f'original image size: {image.shape}')

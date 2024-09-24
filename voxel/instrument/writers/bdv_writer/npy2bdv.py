@@ -11,7 +11,7 @@ import numpy as np
 import skimage.transform
 from tqdm import trange
 
-from voxel.kit.downsample.gpu.gputools.downsample_3d import GPUToolsDownSample3D
+from voxel.processing.downsample.gpu.gputools.downsample_3d import GPUToolsDownSample3D
 from voxel.utils.logging import get_logger
 
 

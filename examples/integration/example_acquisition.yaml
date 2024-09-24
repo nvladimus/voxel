@@ -1,0 +1,115 @@
+instrument: ./example_instrument.yaml
+
+metadata:
+  module: voxel.acquisition.metadata.aind_metadata
+  class: AINDMetadata
+  kwds:
+    experiment_id: example_experiment
+    subject_id: 123456
+    experimenter_full_name: adam glaser
+    instrument_name: exaspim
+    immersion_medium: 0.05X SSC
+    immersion_medium_refractive_index: 1.33
+    x_anatomical_direction: anterior_to_posterior
+    y_anatomical_direction: inferior_to_superior
+    z_anatomical_direction: left_to_right
+    date_format: Year/Month/Day/Hour/Minute/Second
+    name_format:
+      delimiter: _
+      properties:
+        - instrument_name
+        - subject_id
+
+channels:
+  - red
+  - green
+
+specs:
+  z_step_size: 0.5
+  tile_overlap: 0.15
+  scan_pattern: raster
+  scan_direction: row_wise
+  start_corner: top_left
+  reverse_scan_path: false
+  volume_min_corner: (0, 0, 0)
+  volume_max_corner: (114.24, 114.24, 50)
+  file_path: ./example_acquisition.yaml
+
+plan:
+  frame_stacks:
+    (0, 0):
+      idx: (0, 0)
+      pos: (0.0, 0.0, 0)
+      size: (38.08, 38.08, 50)
+      z_step_size: 0.5
+      channels: &id001
+        - red
+        - green
+      settings:
+    (0, 1):
+      idx: (0, 1)
+      pos: (0.0, 38.08, 0)
+      size: (38.08, 38.08, 50)
+      z_step_size: 0.5
+      channels: *id001
+      settings:
+    (0, 2):
+      idx: (0, 2)
+      pos: (0.0, 76.16, 0)
+      size: (38.08, 38.08, 50)
+      z_step_size: 0.5
+      channels: *id001
+      settings:
+    (1, 0):
+      idx: (1, 0)
+      pos: (38.08, 0.0, 0)
+      size: (38.08, 38.08, 50)
+      z_step_size: 0.5
+      channels: *id001
+      settings:
+    (1, 1):
+      idx: (1, 1)
+      pos: (38.08, 38.08, 0)
+      size: (38.08, 38.08, 50)
+      z_step_size: 0.5
+      channels: *id001
+      settings:
+    (1, 2):
+      idx: (1, 2)
+      pos: (38.08, 76.16, 0)
+      size: (38.08, 38.08, 50)
+      z_step_size: 0.5
+      channels: *id001
+      settings:
+    (2, 0):
+      idx: (2, 0)
+      pos: (76.16, 0.0, 0)
+      size: (38.08, 38.08, 50)
+      z_step_size: 0.5
+      channels: *id001
+      settings:
+    (2, 1):
+      idx: (2, 1)
+      pos: (76.16, 38.08, 0)
+      size: (38.08, 38.08, 50)
+      z_step_size: 0.5
+      channels: *id001
+      settings:
+    (2, 2):
+      idx: (2, 2)
+      pos: (76.16, 76.16, 0)
+      size: (38.08, 38.08, 50)
+      z_step_size: 0.5
+      channels: *id001
+      settings:
+  scan_path:
+    - (0, 0)
+    - (1, 0)
+    - (2, 0)
+    - (0, 1)
+    - (1, 1)
+    - (2, 1)
+    - (0, 2)
+    - (1, 2)
+    - (2, 2)
+
