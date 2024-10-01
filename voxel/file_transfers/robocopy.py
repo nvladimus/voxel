@@ -122,13 +122,13 @@ class RobocopyFileTransfer(BaseFileTransfer):
                             else:
                                 stuck_time_s  = 0
                             previous_progress = self.progress
-                            self.log.info(f'file transfer is {self.progress:.2f} % complete.')
+                            self.log.info(f'{self.filename} transfer is {self.progress:.2f} [%] complete.')
                             # pause for 10 sec
                             time.sleep(10.0)
                     else:
                         subprocess.wait()
                         self._progress = (total_transferred_mb + file_size_mb) / total_size_mb * 100
-                        self.log.info(f'file transfer is {self.progress:.2f} % complete.')
+                        self.log.info(f'{self.filename} transfer is {self.progress:.2f} [%] complete.')
                     self.log.info(f'{filename} transfer complete')
                     # wait for process to finish before cleaning log file
                     time.sleep(10.0)
@@ -169,8 +169,10 @@ class RobocopyFileTransfer(BaseFileTransfer):
                             os.remove(local_file_path)
                     else:
                         raise ValueError(f'{local_file_path} is not a file or directory.')
+                    # TODO REMOVE
+                    os.remove(external_file_path)
                 end_time = time.time()
                 total_time = end_time - start_time
-                self.log.info(f'transfer complete, total time: {total_time} sec')
+                self.log.info(f'{self.filename} transfer complete, total time: {total_time:.2f} [s]')
                 subprocess.kill()
                 retry_num += 1

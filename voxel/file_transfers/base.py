@@ -59,7 +59,7 @@ class BaseFileTransfer:
         :type filename: str
         """
 
-        self.log.info(f"setting filename to: {filename}")
+        self.log.info(f"setting name to: {filename}")
         self._filename = filename
 
     @property
@@ -210,7 +210,7 @@ class BaseFileTransfer:
         """
 
         self._timeout_s = timeout_s
-        self.log.info(f"setting timeout to: {timeout_s}")
+        self.log.info(f"setting timeout to: {timeout_s} [s]")
 
     @DeliminatedProperty(minimum=0, maximum=100, unit='%')
     @abstractmethod
@@ -222,7 +222,6 @@ class BaseFileTransfer:
         :rtype: float
         """
 
-        self.log.info(f"{self._filename} transfer progress: {self._progress:.2f} [%]")
         return self._progress
 
     @progress.setter

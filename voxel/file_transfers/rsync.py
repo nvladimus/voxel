@@ -181,7 +181,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                                     break
                             previous_progress = self.progress
                             self.log.info(
-                                f"file transfer is {self.progress:.2f} % complete."
+                                self.log.info(f'{self.filename} transfer is {self.progress:.2f} [%] complete.')
                             )
                             # close temporary stdout file handle
                             f.close()
@@ -193,7 +193,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                             (total_transferred_mb + file_size_mb) / total_size_mb * 100
                         )
                         self.log.info(
-                            f"file transfer is {self.progress:.2f} % complete."
+                            self.log.info(f'{self.filename} transfer is {self.progress:.2f} [%] complete.')
                         )
                     self.log.info(f'{filename} transfer complete')
                     # wait for process to finish before cleaning log file
@@ -202,7 +202,6 @@ class RsyncFileTransfer(BaseFileTransfer):
                     os.remove(log_path)
                     # update the total transfered amount
                     total_transferred_mb += file_size_mb
-                    # self.log.info(f'file transfer is {self.progress:.2f} % complete.')
                 # clean up the local subdirs and files
                 for file in delete_list:
                     # f is a relative path, convert to absolute
@@ -248,7 +247,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                         )
                 end_time = time.time()
                 total_time = end_time - start_time
-                self.log.info(f'transfer complete, total time: {total_time} sec')
+                self.log.info(f'{self.filename} transfer complete, total time: {total_time:.2f} [s]')
                 subprocess.kill()
                 retry_num += 1
 

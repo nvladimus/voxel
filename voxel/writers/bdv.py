@@ -24,6 +24,7 @@ B3D_READ_NOISE = 1.5  # e-
 
 COMPRESSION_TYPES = {"none": None, "gzip": "gzip", "lzf": "lzf", "b3d": "b3d"}
 
+
 # TODO ADD DOWNSAMPLE METHOD TO GET PASSED INTO NPY2BDV
 
 
@@ -95,8 +96,8 @@ class BDVWriter(BaseWriter):
         self.log.info(f"setting frame count to: {frame_count_px} [px]")
         if frame_count_px % DIVISIBLE_FRAME_COUNT_PX != 0:
             frame_count_px = (
-                ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX)
-                * DIVISIBLE_FRAME_COUNT_PX
+                    ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX)
+                    * DIVISIBLE_FRAME_COUNT_PX
             )
             self.log.info(f"adjusting frame count to: {frame_count_px} [px]")
         self._frame_count_px_px = frame_count_px
@@ -405,7 +406,7 @@ class BDVWriter(BaseWriter):
             frames = np.ndarray(shm_shape, self._data_type, buffer=shm.buf)
             shared_log_queue.put(
                 f"{self._filename}: writing chunk "
-                f"{chunk_num+1}/{chunk_total} of size {frames.shape}."
+                f"{chunk_num + 1}/{chunk_total} of size {frames.shape}."
             )
             start_time = perf_counter()
             # write substack of data to BDV file at correct z position
@@ -419,27 +420,29 @@ class BDVWriter(BaseWriter):
             frames = None
             shared_log_queue.put(
                 f"{self._filename}: writing chunk took "
-                f"{perf_counter() - start_time:.3f} [s]"
+                f"{perf_counter() - start_time:.2f} [s]"
             )
             shm.close()
             self.done_reading.set()
             # update shared progress value
             shared_progress.value = (chunk_num + 1) / chunk_total
 
-        # wait for file writing to finish.
-        if shared_progress.value < 1.0:
             shared_log_queue.put(
-                f"{self._filename}: waiting for data writing to complete for "
-                f"{self._filename}. "
-                f"current progress is {100*shared_progress.value:.1f}%."
+                f"{self._filename}: {self._progress.value * 100:.2f} [%] complete."
             )
+
+        # wait for file writing to finish.
         while shared_progress.value < 1.0:
             sleep(0.5)
             shared_log_queue.put(
-                f"{self._filename}: waiting for data writing to complete for "
-                f"{self._filename}. "
-                f"current progress is {100*shared_progress.value:.1f}%."
+                f"waiting for data writing to complete for "
+                f"{self._filename}: "
+                f"{self._progress.value * 100:.2f} [%] complete."
             )
+
+        # check and empty queue to avoid code hanging in process
+        if not shared_log_queue.empty:
+            shared_log_queue.get_nowait()
 
         # write xml file
         bdv_writer.write_xml()

@@ -194,33 +194,35 @@ class TiffWriter(BaseWriter):
             frames = np.ndarray(shm_shape, self._data_type, buffer=shm.buf)
             shared_log_queue.put(
                 f"{self._filename}: writing chunk "
-                f"{chunk_num+1}/{chunk_total} of size {frames.shape}."
+                f"{chunk_num + 1}/{chunk_total} of size {frames.shape}."
             )
             start_time = perf_counter()
             writer.write(data=frames, metadata=metadata, compression=self._compression)
             frames = None
             shared_log_queue.put(
                 f"{self._filename}: writing chunk took "
-                f"{perf_counter() - start_time:.3f} [s]"
+                f"{perf_counter() - start_time:.2f} [s]"
             )
             shm.close()
             self.done_reading.set()
             shared_progress.value = (chunk_num + 1) / chunk_total
 
-        # Wait for file writing to finish.
-        if shared_progress.value < 1.0:
             shared_log_queue.put(
-                f"{self._filename}: waiting for data writing to complete for "
-                f"{self._filename}. "
-                f"current progress is {100*shared_progress.value:.1f}%."
+                f"{self._filename}: {self._progress.value * 100:.2f} [%] complete."
             )
+
+        # wait for file writing to finish.
         while shared_progress.value < 1.0:
             sleep(0.5)
             shared_log_queue.put(
-                f"{self._filename}: waiting for data writing to complete for "
-                f"{self._filename}. "
-                f"current progress is {100*shared_progress.value:.1f}%."
+                f"waiting for data writing to complete for "
+                f"{self._filename}: "
+                f"{self._progress.value * 100:.2f} [%] complete."
             )
+
+        # check and empty queue to avoid code hanging in process
+        if not shared_log_queue.empty:
+            shared_log_queue.get_nowait()
 
         writer.close()
 

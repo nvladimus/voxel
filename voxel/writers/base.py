@@ -471,8 +471,8 @@ class BaseWriter:
         :return: Progress in percent
         :rtype: float
         """
+
         # convert to %
-        self.log.info(f"Progress [%]: {self._progress.value*100}")
         return self._progress.value*100
 
     @abstractmethod
@@ -488,6 +488,7 @@ class BaseWriter:
         """
         Start the writer.
         """
+
         self.log.info(f"{self._filename}: starting writer.")
         self._process.start()
 
@@ -499,8 +500,6 @@ class BaseWriter:
 
         self.log.info(f"{self._filename}: waiting to finish.")
         self._process.join()
-        # log the finished writer %
-        self.log.info(f'progress percent: {self.progress}')
 
     @abstractmethod
     def delete_files(self):
