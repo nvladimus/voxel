@@ -1,5 +1,5 @@
 import time
-from typing import Optional, Literal, Dict, Union, Tuple, TypeAlias, Callable, List
+from typing import Optional, Literal, Dict, Union, Tuple, Callable, List
 
 from voxel.instrument.devices.camera.hamamatsu.dcam.dcam import (
     DCAM_IDSTR,
@@ -26,18 +26,18 @@ from voxel.utils.geometry.vec import Vec2D
 from voxel.utils.singleton import Singleton
 
 LimitType = Literal['min', 'max', 'step']
-EnumeratedProp: TypeAlias = Union[
+type EnumeratedProp = Union[
     PixelType, Binning, SensorMode, ReadoutDirection,
     TriggerMode, TriggerSource, TriggerPolarity, TriggerActive
 ]
-PixelTypeLUT: TypeAlias = Dict[PixelType, int]
-BinningLUT: TypeAlias = Dict[Binning, int]
-SensorModeLUT: TypeAlias = Dict[SensorMode, int]
-ReadoutDirectionLUT: TypeAlias = Dict[ReadoutDirection, int]
-TriggerModeLUT: TypeAlias = Dict[TriggerMode, int]
-TriggerSourceLUT: TypeAlias = Dict[TriggerSource, int]
-TriggerPolarityLUT: TypeAlias = Dict[TriggerPolarity, int]
-TriggerActiveLUT: TypeAlias = Dict[TriggerActive, int]
+type PixelTypeLUT = Dict[PixelType, int]
+type BinningLUT = Dict[Binning, int]
+type SensorModeLUT = Dict[SensorMode, int]
+type ReadoutDirectionLUT = Dict[ReadoutDirection, int]
+type TriggerModeLUT = Dict[TriggerMode, int]
+type TriggerSourceLUT = Dict[TriggerSource, int]
+type TriggerPolarityLUT = Dict[TriggerPolarity, int]
+type TriggerActiveLUT = Dict[TriggerActive, int]
 
 
 class DcamapiSingleton(Dcamapi, metaclass=Singleton):

@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -9,7 +8,7 @@ from voxel.utils.geometry.vec import Vec2D
 
 BYTES_PER_MB = 1_000_000
 
-VoxelFrame: TypeAlias = NDArray[np.uint8 | np.uint16]
+type VoxelFrame = NDArray[np.uint8 | np.uint16]
 
 
 class Binning(IntEnum):

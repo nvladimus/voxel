@@ -1,4 +1,4 @@
-from typing import Dict, TypeAlias, Optional, Literal
+from typing import Dict, Optional, Literal
 
 from tigerasi.device_codes import TTLIn0Mode, TTLOut0Mode, ScanPattern, JoystickPolarity, JoystickInput, \
     TunableLensControlMode
@@ -8,9 +8,9 @@ from voxel.instrument.device import VoxelDevice
 from voxel.instrument._definitions import DeviceConnectionError
 from voxel.instrument.devices.linear_axis.definitions import LinearAxisDimension, ScanState
 
-AxisMap: TypeAlias = Dict[str, str]  # axis name -> hardware_axis
-JoystickMap: TypeAlias = Dict[str, str]  # axis name -> joystick axis
-DimensionsMap: TypeAlias = Dict[LinearAxisDimension, str]  # LinearAxisDimension -> axis name
+type AxisMap = Dict[str, str]  # axis name -> hardware_axis
+type JoystickMap = Dict[str, str]  # axis name -> joystick axis
+type DimensionsMap = Dict[LinearAxisDimension, str]  # LinearAxisDimension -> axis name
 
 STEPS_PER_UM = 10
 

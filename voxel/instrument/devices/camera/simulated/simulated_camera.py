@@ -1,4 +1,4 @@
-from typing import TypeAlias, Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 from voxel.utils.descriptors.deliminated_property import deliminated_property
 from voxel.utils.descriptors.enumerated_property import enumerated_property
@@ -22,11 +22,11 @@ from .simulated_hardware import (
     STEP_EXPOSURE_TIME_MS,
 )
 
-PixelTypeLUT: TypeAlias = Dict[PixelType, str]
-BinningLUT: TypeAlias = Dict[Binning, str]
-TriggerModeLUT: TypeAlias = Dict[TriggerMode, str]
-TriggerSourceLUT: TypeAlias = Dict[TriggerSource, str]
-TriggerPolarityLUT: TypeAlias = Dict[TriggerPolarity, str]
+type PixelTypeLUT = Dict[PixelType, str]
+type BinningLUT = Dict[Binning, str]
+type TriggerModeLUT = Dict[TriggerMode, str]
+type TriggerSourceLUT = Dict[TriggerSource, str]
+type TriggerPolarityLUT = Dict[TriggerPolarity, str]
 
 
 class SimulatedCamera(VoxelCamera):

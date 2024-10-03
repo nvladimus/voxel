@@ -1,5 +1,5 @@
 import time
-from typing import Dict, Union, Literal, TypeAlias, Tuple
+from typing import Dict, Union, Literal, Tuple
 
 from voxel.utils.descriptors.deliminated_property import deliminated_property
 from voxel.utils.descriptors.enumerated_property import enumerated_property
@@ -11,8 +11,8 @@ from voxel.instrument.devices.camera.pco.definitions import pixel_type_lut, binn
     TriggerSource
 from voxel.instrument.devices.camera.pco.sdk import Camera
 
-EnumeratedProp = Union[TriggerMode, TriggerSource, ReadoutMode]
-LimitType: TypeAlias = Literal['min', 'max', 'step']
+type EnumeratedProp = Union[TriggerMode, TriggerSource, ReadoutMode]
+type LimitType = Literal['min', 'max', 'step']
 
 
 class PCOCamera(VoxelCamera):

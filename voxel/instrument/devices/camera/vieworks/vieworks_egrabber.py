@@ -1,4 +1,4 @@
-from typing import Tuple, Dict, List, Optional, Union, Any, TypeAlias
+from typing import Tuple, Dict, List, Optional, Union, Any
 
 import numpy as np
 
@@ -19,10 +19,10 @@ from .egrabber import (
     STREAM_INFO_NUM_QUEUED, STREAM_INFO_NUM_AWAIT_DELIVERY, STREAM_INFO_NUM_UNDERRUN, query, GenTLException,
 )
 
-TriggerSetting: TypeAlias = Union[TriggerMode, TriggerSource, TriggerPolarity]
-PixelTypeLUT: TypeAlias = Dict[PixelType, str]
-BinningLUT: TypeAlias = Dict[Binning, int]
-BitPackingModeLUT: TypeAlias = Dict[BitPackingMode, str]
+type TriggerSetting = Union[TriggerMode, TriggerSource, TriggerPolarity]
+type PixelTypeLUT = Dict[PixelType, str]
+type BinningLUT = Dict[Binning, int]
+type BitPackingModeLUT = Dict[BitPackingMode, str]
 
 
 @thread_safe_singleton

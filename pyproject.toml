@@ -4,23 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "voxel"
-description = "Base Library for building SPIM software"
+description = "Core Library for building SPIM software"
 license = { text = "MIT" }
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.12"
 authors = [
     { name = "Micah Woodard", email = "micah.woodard@alleninstitute.org" },
     { name = "Adam Glaser", email = "adam.glaser@alleninstitute.org" },
     { name = "Walter Mwaniki", email = "walter.mwaniki@alleninstitute.org" },
 ]
-classifiers = [
-    "Programming Language :: Python :: 3"
-]
+classifiers = ["Programming Language :: Python :: 3"]
 readme = "README.md"
 dynamic = ["version"]
 
 dependencies = [
     # base
     'ruamel-yaml >= 0.18.5',
+    'pydantic >= 2.9.2',
     # hardware
     'nidaqmx >= 0.9.0',
     'pyserial >= 3.5',
@@ -32,24 +31,24 @@ dependencies = [
     # writers
     'tifffile >= 2024.1.30',
     'PyImarisWriter >= 0.7.0',
-    'h5py >= 3.0.0', # for reading and writing HDF5 files
+    'h5py >= 3.0.0',           # for reading and writing HDF5 files
     'tqdm >= 4.66.5',
     # transfers
     'imohash >= 1.1.0',
     # essentials
-    'numpy >= 1.23.0, < 1.24.0',
+    'numpy >= 1.24.0',
     'matplotlib >= 3.8.2',
     'scipy >= 1.12.0',
     'scikit-image >= 0.20.0',
     'scikit-tensor-py3',
-    'tensorstore >= 0.1.56', # for reading and writing tensorstore files
+    'tensorstore >= 0.1.56',  # for reading and writing tensorstore files
     # utils
     'inflection >= 0.5.1',
     'gputools >= 0.2.14',
     'pyclesperanto >= 0.8.2', # for GPU acceleration
     'imohash >= 1.0.5',
     'psutil >= 5.9.8',
-    'sympy >= 1.12.1', # used for symbolic math
+    'sympy >= 1.12.1',        # used for symbolic math
 ]
 
 [project.optional-dependencies]
@@ -61,7 +60,7 @@ dev = [
     'interrogate',
     'isort',
     'Sphinx',
-    'furo'
+    'furo',
 ]
 #cameras = [
 #    'egrabber >= 0.0.2',
@@ -75,7 +74,7 @@ dev = [
 #]
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["voxel"]
 
 [tool.setuptools.dynamic]
 version = { attr = "voxel.__version__" }
@@ -110,7 +109,7 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "from",
     "import",
-    "pragma: no cover"
+    "pragma: no cover",
 ]
 fail_under = 100
 

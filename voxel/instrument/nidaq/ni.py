@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import List, Tuple, Dict, TypeAlias
+from typing import List, Tuple, Dict
 
 import nidaqmx
 import numpy as np
@@ -17,7 +17,7 @@ from voxel.instrument.nidaq.task import DAQTask, DAQTaskType, DAQTaskChannel, DA
 # TODO: Add support for more task types
 
 
-HardwareTask: TypeAlias = nidaqmx.Task
+type HardwareTask = nidaqmx.Task
 
 
 class VoxelNIDAQ(VoxelDAQ):

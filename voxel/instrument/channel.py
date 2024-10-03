@@ -1,16 +1,20 @@
 from dataclasses import dataclass
+from typing import Any, Dict
 
-from voxel.instrument.file_transfers import VoxelFileTransfer
-from voxel.instrument.writers import VoxelWriter
+from pydantic import Field
+
 from voxel.instrument.devices.camera import VoxelCamera
 from voxel.instrument.devices.filter import VoxelFilter
 from voxel.instrument.devices.laser import VoxelLaser
 from voxel.instrument.devices.lens import VoxelLens
+from voxel.instrument.file_transfers import VoxelFileTransfer
+from voxel.instrument.writers import VoxelWriter
 
 
 @dataclass
 class VoxelChannel:
     """A channel in a voxel instrument."""
+
     name: str
     camera: VoxelCamera
     lens: VoxelLens
@@ -28,18 +32,18 @@ class VoxelChannel:
     def fov_um(self):
         return self._fov_um
 
-    def apply_settings(self, settings: dict):
+    def apply_settings(self, settings: Dict[str, Dict[str, Any]]):
         """Apply settings to the channel."""
         if not settings:
             return
-        if 'camera' in settings:
-            self.camera.apply_settings(settings['camera'])
-        if 'lens' in settings:
-            self.lens.apply_settings(settings['lens'])
-        if 'laser' in settings:
-            self.laser.apply_settings(settings['laser'])
-        if 'filter' in settings:
-            self.emmision_filter.apply_settings(settings['filter'])
+        if "camera" in settings:
+            self.camera.apply_settings(settings["camera"])
+        if "lens" in settings:
+            self.lens.apply_settings(settings["lens"])
+        if "laser" in settings:
+            self.laser.apply_settings(settings["laser"])
+        if "filter" in settings:
+            self.emmision_filter.apply_settings(settings["filter"])
 
     def activate(self):
         """Activate the channel."""

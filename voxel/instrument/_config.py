@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional, TypeAlias, Union
+from typing import Any, Dict, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
 from ruamel.yaml import YAML
@@ -48,7 +48,7 @@ class ChannelSpec(BaseModel):
     file_transfer: str
 
 
-InstanceSpec: TypeAlias = Union[DeviceSpec, WriterSpec, FileTransferSpec]
+type InstanceSpec = Union[DeviceSpec, WriterSpec, FileTransferSpec]
 
 
 class InstrumentConfigError(Exception):
