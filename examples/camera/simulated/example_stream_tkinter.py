@@ -7,6 +7,7 @@ from PIL import Image, ImageTk
 
 from voxel.instrument.devices.camera.simulated import ImageModel
 from voxel.instrument.devices.camera.simulated import SimulatedCamera
+from voxel.instrument.devices.camera.simulated.simulated_hardware import ImageModelParams
 
 
 class FrameStreamApp(tk.Tk):
@@ -20,9 +21,9 @@ class FrameStreamApp(tk.Tk):
         self.frames_processed = 0
 
         self.title("Frame Stream")
-        self.geometry("800x600")
+        self.geometry(f"{camera.sensor_size_px.x}x{camera.sensor_size_px.y+200}")
 
-        self.canvas = tk.Canvas(self, width=800, height=500)
+        self.canvas = tk.Canvas(self, width=camera.sensor_size_px.x, height=camera.sensor_size_px.y)
         self.canvas.pack()
 
         self.info_label = tk.Label(self, text="", justify=tk.LEFT)
@@ -54,7 +55,9 @@ class FrameStreamApp(tk.Tk):
             # Only display the last frame if we processed multiple
             if _ == frames_to_process - 1:
                 # Normalize the frame to 0-255 range for display
-                frame_normalized = ((frame - frame.min()) * (255.0 / (frame.max() - frame.min()))).astype(np.uint8)
+                frame_normalized = ((frame - frame.min()) * (255.0 / (frame.max() - frame.min() + 1e-12))).astype(
+                    np.uint8
+                )
 
                 image = Image.fromarray(frame_normalized)
                 photo = ImageTk.PhotoImage(image=image)
@@ -68,17 +71,22 @@ class FrameStreamApp(tk.Tk):
                 self.canvas.image = photo  # Keep a reference to prevent garbage collection
 
         actual_fps = self.frames_processed / elapsed_time if elapsed_time > 0 else 0
-        info_text = (f"Camera Frame Rate: {state.frame_rate_fps:.2f} fps\n"
-                     f"Actual Frame Rate: {actual_fps:.2f} fps\n"
-                     f"Frame Index: {state.frame_index}\n"
-                     f"Processed Frames: {self.frames_processed}\n"
-                     f"Dropped Frames: {state.dropped_frames}\n"
-                     f"Data Rate: {state.data_rate_mbs:.2f} MB/s\n"
-                     f"Elapsed Time: {elapsed_time:.2f} s")
+        info_text = (
+            f"Camera Frame Rate: {state.frame_rate_fps:.2f} fps\n"
+            f"Actual Frame Rate: {actual_fps:.2f} fps\n"
+            f"Frame Index: {state.frame_index}\n"
+            f"Processed Frames: {self.frames_processed}\n"
+            f"Dropped Frames: {state.dropped_frames}\n"
+            f"Data Rate: {state.data_rate_mbs:.2f} MB/s\n"
+            f"Elapsed Time: {elapsed_time:.2f} s"
+        )
         self.info_label.config(text=info_text)
 
-        print(f"\rCamera FPS: {state.frame_rate_fps:.2f}, Actual FPS: {actual_fps:.2f}, "
-              f"Processed Frames: {self.frames_processed}, Elapsed Time: {elapsed_time:.2f} s", end="")
+        print(
+            f"\rCamera FPS: {state.frame_rate_fps:.2f}, Actual FPS: {actual_fps:.2f}, "
+            f"Processed Frames: {self.frames_processed}, Elapsed Time: {elapsed_time:.2f} ms",
+            end="",
+        )
 
         self.after(1, self.update_frame)  # Schedule the next update
 
@@ -88,61 +96,31 @@ class FrameStreamApp(tk.Tk):
 
 
 def stream_frames_tkinter(camera: SimulatedCamera, duration: Optional[float] = None):
-    app = FrameStreamApp(camera, duration)
-    app.protocol("WM_DELETE_WINDOW", app.on_closing)
-    app.mainloop()
-    print("\nStreaming stopped.")
+    try:
+        app = FrameStreamApp(camera, duration)
+        app.protocol("WM_DELETE_WINDOW", app.on_closing)
+        app.mainloop()
+        print("\nStreaming stopped.")
+    except KeyboardInterrupt:
+        print("\nStreaming interrupted by user.")
+        camera.stop()
 
 
 # Example usage
 if __name__ == "__main__":
-    image_model = ImageModel(
-        qe=0.7,
-        gain=8,
-        dark_noise=1.01,
-        bitdepth=16,
-        baseline=0
+    image_model_params: ImageModelParams = {
+        "qe": 0.5,
+        "gain": 1.0,
+        "dark_noise": 1.0,
+        "bitdepth": 16,
+        "baseline": 0,
+    }
+    simulated_camera = SimulatedCamera(
+        name="main-camera", serial_number="sim-cam-001", pixel_size_um=1.0, image_model_params=image_model_params
     )
+    simulated_camera.exposure_time_ms = 30
 
-    simulated_camera = SimulatedCamera(name="main-camera", serial_number="sim-cam-001", image_model=image_model)
-    simulated_camera.exposure_time_ms = 20
-    simulated_camera.roi_width_px //= 1.1
-    simulated_camera.roi_height_px //= 1.1
-    simulated_camera.roi_width_offset_px = 0
-    simulated_camera.roi_height_offset_px = 0
+    stream_frames_tkinter(simulated_camera, duration=60)
 
-    print(simulated_camera)
-
-    print("Starting frame streaming.")
-    try:
-        stream_frames_tkinter(simulated_camera, duration=60)  # Stream for 60 seconds
-    except KeyboardInterrupt:
-        print("\nStreaming interrupted by user.")
-    finally:
-        simulated_camera.close()
+    simulated_camera.close()
     print("Done")
-# if __name__ == "__main__":
-#     image_model = ImageModel(
-#         qe=0.7,
-#         gain=8,
-#         dark_noise=1.01,
-#         bitdepth=16,
-#         baseline=0
-#     )
-#     simulated_camera = SimulatedCamera(name="main-camera", serial_number="sim-cam-001", image_model=image_model)
-#     simulated_camera.exposure_time_ms = 20
-#     simulated_camera.roi_width_px //= 1.1
-#     simulated_camera.roi_height_px //= 1.1
-#     simulated_camera.roi_width_offset_px = 0
-#     simulated_camera.roi_height_offset_px = 0
-#
-#     print(simulated_camera)
-#
-#     print("Starting frame streaming.")
-#     try:
-#         stream_frames_tkinter(simulated_camera, duration=1*60)  # Stream for 30 seconds
-#     except KeyboardInterrupt:
-#         print("\nStreaming interrupted by user.")
-#     finally:
-#         simulated_camera.close()
-#     print("Done")

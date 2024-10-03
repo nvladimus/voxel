@@ -17,6 +17,7 @@ from .definitions import (
 )
 from .image_model import ImageModel
 from .simulated_hardware import (
+    ImageModelParams,
     SimulatedCameraHardware,
     MIN_WIDTH_PX,
     STEP_WIDTH_PX,
@@ -41,12 +42,13 @@ class SimulatedCamera(VoxelCamera):
         serial_number: str,
         pixel_size_um: Tuple[float, float],
         name: str = "",
-        image_model: Optional[ImageModel] = None,
+        image_model_params: Optional[ImageModelParams] = None,
+        reference_image_path: Optional[str] = None,
     ):
         super().__init__(name, pixel_size_um)
         self.log.info(f"Initializing simulated camera with id: {name}, serial number: {serial_number}")
         self.serial_number = serial_number
-        self.instance = SimulatedCameraHardware(image_model)
+        self.instance = SimulatedCameraHardware(image_model_params, reference_image_path)
 
         # Property LUTs
         self._pixel_type_lut: PixelTypeLUT = {
@@ -97,7 +99,9 @@ class SimulatedCamera(VoxelCamera):
 
     @roi_width_px.setter
     def roi_width_px(self, value: int) -> None:
+        # Update hardware ROI width
         self.instance.roi_width_px = value
+        # Update offset if necessary
         centered_offset_px = (
             round((self.instance.sensor_width_px / 2 - value / 2) / self.instance.roi_step_width_px)
             * self.instance.roi_step_width_px
@@ -122,7 +126,9 @@ class SimulatedCamera(VoxelCamera):
 
     @roi_height_px.setter
     def roi_height_px(self, value: int) -> None:
+        # Update hardware ROI height
         self.instance.roi_height_px = value
+        # Update offset if necessary
         centered_offset_px = (
             round((self.instance.sensor_height_px / 2 - value / 2) / self.instance.roi_step_height_px)
             * self.instance.roi_step_height_px
@@ -259,13 +265,11 @@ class SimulatedCamera(VoxelCamera):
 
     @property
     def acquisition_state(self) -> AcquisitionState:
+        buffer_fill = (self.instance.head.value - self.instance.tail.value) % self.instance.buffer_size
         return AcquisitionState(
             frame_index=self.instance.frame_index.value,
-            input_buffer_size=(
-                self.instance.buffer_size
-                - (self.instance.head.value - self.instance.tail.value) % self.instance.buffer_size
-            ),
-            output_buffer_size=(self.instance.head.value - self.instance.tail.value) % self.instance.buffer_size,
+            input_buffer_size=self.instance.buffer_size - buffer_fill,
+            output_buffer_size=buffer_fill,
             dropped_frames=self.instance.dropped_frames.value,
             data_rate_mbs=self.instance.frame_rate.value
             * self.roi_width_px

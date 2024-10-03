@@ -1,6 +1,3 @@
-import os
-from typing import Optional
-
 import numpy as np
 import tifffile
 
@@ -8,9 +5,7 @@ from voxel.instrument.devices.camera import ROI
 
 
 class ImageModel:
-    def __init__(self, qe, gain, dark_noise, bitdepth, baseline, reference_image_path: Optional[str] = None):
-        if reference_image_path is None:
-            reference_image_path = os.path.join(os.path.dirname(__file__), 'reference_image.tif')
+    def __init__(self, qe, gain, dark_noise, bitdepth, baseline, reference_image_path) -> None:
         self.raw_reference_image = tifffile.imread(reference_image_path)
         self.sensor_size_px = self.raw_reference_image.shape
         self.qe = qe
@@ -44,7 +39,7 @@ class ImageModel:
         # crop the center of the image
         start_h = roi.origin.y
         start_w = roi.origin.x
-        return image[start_h:start_h + roi.size.x, start_w:start_w + roi.size.y]
+        return image[start_h : start_h + roi.size.x, start_w : start_w + roi.size.y]
 
     def _add_camera_noise(self, image):
         # Add shot noise
@@ -57,7 +52,7 @@ class ImageModel:
         electrons_out = np.random.normal(scale=self.dark_noise, size=electrons.shape) + electrons
 
         # Convert to ADU and add baseline
-        max_adu = 2 ** self.bitdepth - 1
+        max_adu = 2**self.bitdepth - 1
         image_out = (electrons_out * self.gain).astype(int)
         image_out += self.baseline
         np.clip(image_out, 0, max_adu, out=image_out)

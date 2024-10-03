@@ -1,12 +1,13 @@
-import queue
+import os
 import time
-from typing import Tuple, Optional
-from multiprocessing import Process, Event, Lock, Value, shared_memory
-
+from multiprocessing import Process, Lock, Event, Value, shared_memory
+from typing import Optional, Tuple, TypedDict
 
 import numpy as np
 from numpy.typing import NDArray
+import tifffile
 
+from voxel.instrument.writers import tiff
 from voxel.utils.geometry.vec import Vec2D
 from voxel.instrument.devices.camera import ROI
 from voxel.instrument.devices.camera.simulated.definitions import TriggerMode, TriggerSource, TriggerPolarity, PixelType
@@ -21,18 +22,19 @@ MIN_EXPOSURE_TIME_MS = 0.001
 MAX_EXPOSURE_TIME_MS = 1e3
 STEP_EXPOSURE_TIME_MS = 1
 INIT_EXPOSURE_TIME_MS = 500
+LINE_INTERVAL_US_LUT = {PixelType.MONO8: 10.00, PixelType.MONO16: 20.00}
 
-# Vieworks VNP-604MX
-# ImageModel(
-#     qe=0.85,
-#     gain=0.08,
-#     dark_noise=6.89,
-#     bitdepth=12,
-#     baseline=0
-#     reference_image_path=reference_image_path,
-# )
 
-DEFAULT_IMAGE_MODEL = {
+class ImageModelParams(TypedDict):
+    qe: float
+    gain: float
+    dark_noise: float
+    bitdepth: int
+    baseline: int
+    reference_image_path: Optional[str]
+
+
+DEFAULT_IMAGE_MODEL: ImageModelParams = {
     "qe": 0.85,
     "gain": 0.08,
     "dark_noise": 6.89,
@@ -40,26 +42,28 @@ DEFAULT_IMAGE_MODEL = {
     "baseline": 0,
 }
 
-LINE_INTERVAL_US_LUT = {PixelType.MONO8: 10.00, PixelType.MONO16: 20.00}
-
 
 class SimulatedCameraHardware:
 
-    def __init__(self, image_model: Optional[ImageModel] = None, reference_image_path: Optional[str] = None):
+    def __init__(self, image_model_params: Optional[dict] = None, reference_image_path: Optional[str] = None):
+        if image_model_params is None:
+            image_model_params = DEFAULT_IMAGE_MODEL
 
-        if image_model is None:
-            image_model = ImageModel(**DEFAULT_IMAGE_MODEL, reference_image_path=reference_image_path)
+        if reference_image_path is None:
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            reference_image_path = os.path.join(current_dir, "reference_image.tif")
 
-        self.image_model = image_model
+        self.image_model_params = image_model_params
+        self.reference_image_path = reference_image_path
+
+        self.image_model = ImageModel(**self.image_model_params, reference_image_path=self.reference_image_path)
+
         self.sensor_width_px: int = self.image_model.sensor_size_px[1]
         self.sensor_height_px: int = self.image_model.sensor_size_px[0]
-        self.roi_width_px: int = self.sensor_width_px
-        self.roi_height_px: int = self.sensor_height_px
         self.roi_step_width_px: int = STEP_WIDTH_PX
         self.roi_step_height_px: int = STEP_HEIGHT_PX
         self.roi_width_offset_px: int = 0
         self.roi_height_offset_px: int = 0
-        self.pixel_type = next(iter(PixelType))
         self.min_exposure_time_ms: float = MIN_EXPOSURE_TIME_MS
         self.max_exposure_time_ms: float = MAX_EXPOSURE_TIME_MS
         self.step_exposure_time_ms: float = STEP_EXPOSURE_TIME_MS
@@ -81,18 +85,16 @@ class SimulatedCameraHardware:
         self.is_running: bool = False
         self.generation_process = None
 
+        # Initialize ROI dimensions
+        self._roi_width_px = self.sensor_width_px
+        self._roi_height_px = self.sensor_height_px
+        # Initialize pixel type
+        self._pixel_type = next(iter(PixelType))
+
         # Shared memory setup
         self.buffer_size = BUFFER_SIZE_FRAMES
-        self.frame_shape = (self.roi_height_px, self.roi_width_px)
-        self.frame_dtype = self.pixel_type.dtype
-        self.frame_size = np.prod(self.frame_shape) * self.frame_dtype.itemsize
-        total_size = self.frame_size * self.buffer_size
-
-        # Create shared memory for frames
-        self.shared_mem = shared_memory.SharedMemory(create=True, size=total_size)
-        self.shared_array = np.ndarray(
-            ß(self.buffer_size, *self.frame_shape), dtype=self.frame_dtype, buffer=self.shared_mem.buf
-        )
+        self._initialize_shared_memory()
+        self.shared_mem_name = self.shared_mem.name
 
         # Shared variables for buffer indices and dropped frames
         self.head = Value("i", 0)  # Next write position
@@ -101,6 +103,67 @@ class SimulatedCameraHardware:
         self.frame_index = Value("i", 0)
         self.frame_rate = Value("d", 0.0)
         self.start_time = None
+
+    def _initialize_shared_memory(self):
+        # Close existing shared memory if necessary
+        if hasattr(self, "shared_mem"):
+            self.shared_mem.close()
+            self.shared_mem.unlink()
+
+        self.frame_shape = (self.roi_height_px, self.roi_width_px)
+        self.frame_dtype = np.dtype(self.pixel_type.dtype)
+        self.frame_size = np.prod(self.frame_shape) * self.frame_dtype.itemsize
+        total_size = self.frame_size * self.buffer_size
+        # Create shared memory for frames
+        self.shared_mem = shared_memory.SharedMemory(create=True, size=total_size)
+        self.shared_array = np.ndarray(
+            (self.buffer_size, *self.frame_shape), dtype=self.frame_dtype, buffer=self.shared_mem.buf
+        )
+
+    @property
+    def roi_width_px(self):
+        return self._roi_width_px
+
+    @roi_width_px.setter
+    def roi_width_px(self, value):
+        self._set_roi(width_px=value, height_px=self._roi_height_px)
+
+    @property
+    def roi_height_px(self):
+        return self._roi_height_px
+
+    @roi_height_px.setter
+    def roi_height_px(self, value):
+        self._set_roi(width_px=self._roi_width_px, height_px=value)
+
+    def _set_roi(self, width_px, height_px):
+        was_running = self.is_running
+        if was_running:
+            self.stop_acquisition()
+        # Update ROI dimensions
+        self._roi_width_px = width_px
+        self._roi_height_px = height_px
+        # Reinitialize shared memory
+        self._initialize_shared_memory()
+        if was_running:
+            self.start_acquisition()
+
+    @property
+    def pixel_type(self):
+        return self._pixel_type
+
+    @pixel_type.setter
+    def pixel_type(self, value):
+        if value != self._pixel_type:
+            was_running = self.is_running
+            if was_running:
+                self.stop_acquisition()
+            # Update pixel type
+            self._pixel_type = value
+            # Reinitialize shared memory
+            self._initialize_shared_memory()
+            if was_running:
+                self.start_acquisition()
 
     @property
     def roi(self) -> ROI:
@@ -111,14 +174,15 @@ class SimulatedCameraHardware:
         )
 
     def _calculate_frame_time_s(self) -> float:
-        readout_time = (self.line_interval_us_lut[self.pixel_type] * self.roi_height_px) / 1000
-        frame_time_ms = self.exposure_time_ms + readout_time
-        return frame_time_ms / 1000
+        readout_time_ms = (self.line_interval_us_lut[self.pixel_type] * self.roi_height_px) / 1000
+        frame_time_s = max(self.exposure_time_ms, readout_time_ms) / 1000
+        return frame_time_s
 
     def start_acquisition(self, frame_count: int = -1):
         if self.is_running:
             return
-        self.frame_rate.value = 0.0
+        with self.frame_rate.get_lock():
+            self.frame_rate.value = 0.0
         with self.frame_index.get_lock():
             self.frame_index.value = 0
         with self.dropped_frames.get_lock():
@@ -130,49 +194,61 @@ class SimulatedCameraHardware:
         self.generation_process.start()
 
     def _generate_frames_process(self, frame_count: int = -1):
-        frame_time_s = self._calculate_frame_time_s()
-        frames_generated = 0
-        self.start_time = time.perf_counter()
-
-        while self.is_running and (frame_count == -1 or frames_generated < frame_count):
-            frame_start_time = time.perf_counter()
-
-            # Generate frame using ImageModel
-            frame = self.image_model.generate_frame(
-                exposure_time=self.exposure_time_ms / 1000, roi=self.roi, pixel_type=self.pixel_type.dtype
+        try:
+            self.shared_mem = shared_memory.SharedMemory(name=self.shared_mem_name)
+            self.shared_array = np.ndarray(
+                (self.buffer_size, *self.frame_shape), dtype=self.frame_dtype, buffer=self.shared_mem.buf
             )
+            frame_time_s = self._calculate_frame_time_s()
+            frames_generated = 0
+            self.start_time = time.perf_counter()
 
-            with self.lock:
-                next_head = (self.head.value + 1) % self.buffer_size
-                if next_head == self.tail.value:
-                    # Buffer is full, increment dropped frames and move tail
-                    self.tail.value = (self.tail.value + 1) % self.buffer_size
-                    with self.dropped_frames.get_lock():
-                        self.dropped_frames.value += 1
+            while self.is_running and (frame_count == -1 or frames_generated < frame_count):
+                frame_start_time = time.perf_counter()
 
-                # Copy frame into shared array
-                self.shared_array[self.head.value][:] = frame
-                self.head.value = next_head
+                # Generate frame using ImageModel
+                frame = self.image_model.generate_frame(
+                    exposure_time=self.exposure_time_ms / 1000, roi=self.roi, pixel_type=self.frame_dtype
+                )
 
-                with self.frame_index.get_lock():
-                    self.frame_index.value += 1
+                with self.lock:
+                    next_head = (self.head.value + 1) % self.buffer_size
+                    if next_head == self.tail.value:
+                        # Buffer is full, increment dropped frames and move tail
+                        self.tail.value = (self.tail.value + 1) % self.buffer_size
+                        with self.dropped_frames.get_lock():
+                            self.dropped_frames.value += 1
 
-            frames_generated += 1
+                    # Copy frame into shared array
+                    self.shared_array[self.head.value][:] = frame
+                    self.head.value = next_head
 
-            # Calculate time to sleep
-            elapsed_time = time.perf_counter() - frame_start_time
-            sleep_time = frame_time_s - elapsed_time
+                    with self.frame_index.get_lock():
+                        self.frame_index.value += 1
 
-            if sleep_time > 0:
-                time.sleep(sleep_time)
+                frames_generated += 1
 
-            # Update frame rate
-            elapsed_since_start = time.perf_counter() - self.start_time
-            with self.frame_rate.get_lock():
-                self.frame_rate.value = frames_generated / elapsed_since_start if elapsed_since_start > 0 else 0.0
+                # Calculate time to sleep
+                elapsed_time = time.perf_counter() - frame_start_time
+                sleep_time = frame_time_s - elapsed_time
 
-            if self.stop_event.is_set():
-                break
+                if sleep_time > 0:
+                    time.sleep(sleep_time * 0.9)
+
+                # Update frame rate
+                elapsed_since_start = time.perf_counter() - self.start_time
+                with self.frame_rate.get_lock():
+                    self.frame_rate.value = frames_generated / elapsed_since_start if elapsed_since_start > 0 else 0.0
+
+                if self.stop_event.is_set():
+                    break
+        except KeyboardInterrupt:
+            pass
+        except Exception as e:
+            print(f"Exception in _generate_frames_process: {e}")
+            import traceback
+
+            traceback.print_exc()
 
     def grab_frame(self) -> NDArray[np.int_]:
         """Grab a frame from the shared memory buffer."""
