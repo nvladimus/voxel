@@ -40,8 +40,8 @@ class SimulatedCamera(VoxelCamera):
     def __init__(
         self,
         serial_number: str,
-        pixel_size_um: Tuple[float, float],
         name: str = "",
+        pixel_size_um: Tuple[float, float] = (1.0, 1.0),
         image_model_params: Optional[ImageModelParams] = None,
         reference_image_path: Optional[str] = None,
     ):
@@ -265,19 +265,19 @@ class SimulatedCamera(VoxelCamera):
 
     @property
     def acquisition_state(self) -> AcquisitionState:
-        buffer_fill = (self.instance.head.value - self.instance.tail.value) % self.instance.buffer_size
+        state = self.instance.acquisition_state
         return AcquisitionState(
-            frame_index=self.instance.frame_index.value,
-            input_buffer_size=self.instance.buffer_size - buffer_fill,
-            output_buffer_size=buffer_fill,
-            dropped_frames=self.instance.dropped_frames.value,
-            data_rate_mbs=self.instance.frame_rate.value
-            * self.roi_width_px
-            * self.roi_height_px
+            frame_index=state["frame_index"],
+            input_buffer_size=state["input_buffer_size"],
+            output_buffer_size=state["output_buffer_size"],
+            dropped_frames=state["dropped_frames"],
+            data_rate_mbs=state["frame_rate"]
+            * self.instance.roi_width_px
+            * self.instance.roi_height_px
             * (16 if self.pixel_type == PixelType.MONO16 else 8)
             / 8
             / 1e6,
-            frame_rate_fps=self.instance.frame_rate.value,
+            frame_rate_fps=state["frame_rate"],
         )
 
     def log_metadata(self) -> None:

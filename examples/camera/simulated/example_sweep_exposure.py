@@ -37,24 +37,30 @@ def plot_exposure_times_vs_frame_rate(exposure_times: Sequence, frame_rates: Lis
     :param title: Title of the plot.
     """
     plt.figure(figsize=(12, 8))
-    plt.semilogx(exposure_times, frame_rates, marker='o', linestyle='-', markersize=4)
-    plt.xlabel('Exposure Time (ms)')
-    plt.ylabel('Frame Rate (fps)')
+    plt.semilogx(exposure_times, frame_rates, marker="o", linestyle="-", markersize=4)
+    plt.xlabel("Exposure Time (ms)")
+    plt.ylabel("Frame Rate (fps)")
     plt.title(title)
     plt.grid(True, which="both", ls="-", alpha=0.2)
     plt.xlim(MIN_EXPOSURE_TIME_MS, MAX_EXPOSURE_TIME_MS)
 
     # Format x-axis labels
-    plt.gca().xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{x:.0f}' if x >= 1 else f'{x:.1e}'))
+    plt.gca().xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:.0f}" if x >= 1 else f"{x:.1e}"))
 
     # Add some value annotations (not all to avoid clutter)
     for i in range(0, len(exposure_times), len(exposure_times) // 10):
-        plt.annotate(f'{frame_rates[i]:.2f}', (exposure_times[i], frame_rates[i]),
-                     textcoords="offset points", xytext=(0, 10), ha='center', fontsize=8)
+        plt.annotate(
+            f"{frame_rates[i]:.2f}",
+            (exposure_times[i], frame_rates[i]),
+            textcoords="offset points",
+            xytext=(0, 10),
+            ha="center",
+            fontsize=8,
+        )
 
     plt.tight_layout()
     file_name = title.replace(" ", "_").lower()
-    plt.savefig(f'{file_name}.png', dpi=300)
+    plt.savefig(f"{file_name}.png", dpi=300)
     plt.show()
 
 
