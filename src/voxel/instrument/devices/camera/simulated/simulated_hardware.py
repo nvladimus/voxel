@@ -1,7 +1,8 @@
 import queue
 import time
-from threading import Thread, Lock, Event
 from typing import Tuple, Optional
+from multiprocessing import Process, Event, Lock, Value, shared_memory
+
 
 import numpy as np
 from numpy.typing import NDArray
@@ -74,14 +75,31 @@ class SimulatedCameraHardware:
 
         self.line_interval_us_lut = LINE_INTERVAL_US_LUT
 
-        self.is_running: bool = False
-        self.frame_buffer = queue.Queue(maxsize=BUFFER_SIZE_FRAMES)
-        self.queue_lock = Lock()
-        self.generation_thread = None
+        # Synchronization primitives
+        self.lock = Lock()
         self.stop_event = Event()
-        self.frame_rate = 1 / self._calculate_frame_time_s()
-        self.dropped_frames = 0
-        self.frame_index = 0
+        self.is_running: bool = False
+        self.generation_process = None
+
+        # Shared memory setup
+        self.buffer_size = BUFFER_SIZE_FRAMES
+        self.frame_shape = (self.roi_height_px, self.roi_width_px)
+        self.frame_dtype = self.pixel_type.dtype
+        self.frame_size = np.prod(self.frame_shape) * self.frame_dtype.itemsize
+        total_size = self.frame_size * self.buffer_size
+
+        # Create shared memory for frames
+        self.shared_mem = shared_memory.SharedMemory(create=True, size=total_size)
+        self.shared_array = np.ndarray(
+            ß(self.buffer_size, *self.frame_shape), dtype=self.frame_dtype, buffer=self.shared_mem.buf
+        )
+
+        # Shared variables for buffer indices and dropped frames
+        self.head = Value("i", 0)  # Next write position
+        self.tail = Value("i", 0)  # Next read position
+        self.dropped_frames = Value("i", 0)
+        self.frame_index = Value("i", 0)
+        self.frame_rate = Value("d", 0.0)
         self.start_time = None
 
     @property
@@ -89,7 +107,7 @@ class SimulatedCameraHardware:
         return ROI(
             origin=Vec2D(self.roi_width_offset_px, self.roi_height_offset_px),
             size=Vec2D(self.roi_width_px, self.roi_height_px),
-            bounds=Vec2D(self.sensor_width_px, self.sensor_height_px)
+            bounds=Vec2D(self.sensor_width_px, self.sensor_height_px),
         )
 
     def _calculate_frame_time_s(self) -> float:
@@ -100,19 +118,18 @@ class SimulatedCameraHardware:
     def start_acquisition(self, frame_count: int = -1):
         if self.is_running:
             return
-        self.frame_rate = 0.0
-        self.dropped_frames = 0
-        self.frame_index = 0
+        self.frame_rate.value = 0.0
+        with self.frame_index.get_lock():
+            self.frame_index.value = 0
+        with self.dropped_frames.get_lock():
+            self.dropped_frames.value = 0
         self.start_time = None
         self.is_running = True
         self.stop_event.clear()
-        self.generation_thread = Thread(
-            target=self._generate_frames_thread,
-            args=(frame_count,)
-        )
-        self.generation_thread.start()
+        self.generation_process = Process(target=self._generate_frames_process, args=(frame_count,))
+        self.generation_process.start()
 
-    def _generate_frames_thread(self, frame_count: int = -1):
+    def _generate_frames_process(self, frame_count: int = -1):
         frame_time_s = self._calculate_frame_time_s()
         frames_generated = 0
         self.start_time = time.perf_counter()
@@ -122,22 +139,23 @@ class SimulatedCameraHardware:
 
             # Generate frame using ImageModel
             frame = self.image_model.generate_frame(
-                exposure_time=self.exposure_time_ms / 1000,
-                roi=self.roi,
-                pixel_type=self.pixel_type.dtype
+                exposure_time=self.exposure_time_ms / 1000, roi=self.roi, pixel_type=self.pixel_type.dtype
             )
-            timestamp = time.time()
-            self.frame_index += 1
-            frame_with_metadata = (frame, timestamp, self.frame_index)
 
-            with self.queue_lock:
-                if self.frame_buffer.full():
-                    try:
-                        self.frame_buffer.get_nowait()
-                        self.dropped_frames += 1
-                    except queue.Empty:
-                        pass
-                self.frame_buffer.put(frame_with_metadata)
+            with self.lock:
+                next_head = (self.head.value + 1) % self.buffer_size
+                if next_head == self.tail.value:
+                    # Buffer is full, increment dropped frames and move tail
+                    self.tail.value = (self.tail.value + 1) % self.buffer_size
+                    with self.dropped_frames.get_lock():
+                        self.dropped_frames.value += 1
+
+                # Copy frame into shared array
+                self.shared_array[self.head.value][:] = frame
+                self.head.value = next_head
+
+                with self.frame_index.get_lock():
+                    self.frame_index.value += 1
 
             frames_generated += 1
 
@@ -148,27 +166,35 @@ class SimulatedCameraHardware:
             if sleep_time > 0:
                 time.sleep(sleep_time)
 
-            self.frame_rate = frames_generated / (time.perf_counter() - self.start_time)
+            # Update frame rate
+            elapsed_since_start = time.perf_counter() - self.start_time
+            with self.frame_rate.get_lock():
+                self.frame_rate.value = frames_generated / elapsed_since_start if elapsed_since_start > 0 else 0.0
 
             if self.stop_event.is_set():
                 break
 
-    def grab_frame(self) -> Tuple[NDArray[np.int_], float, int]:
-        """Grab a frame from the queue."""
-        try:
-            with self.queue_lock:
-                return self.frame_buffer.get_nowait()
-        except queue.Empty:
-            return np.zeros((self.roi_height_px, self.roi_width_px), dtype=self.pixel_type.dtype), time.time(), 0
+    def grab_frame(self) -> NDArray[np.int_]:
+        """Grab a frame from the shared memory buffer."""
+        with self.lock:
+            if self.head.value == self.tail.value:
+                # Buffer is empty
+                return np.zeros(self.frame_shape, dtype=self.frame_dtype)
+            else:
+                frame = self.shared_array[self.tail.value].copy()
+                self.tail.value = (self.tail.value + 1) % self.buffer_size
+                return frame
 
     def stop_acquisition(self):
         """Stop frame acquisition."""
         self.is_running = False
         self.stop_event.set()
-        if self.generation_thread:
-            self.generation_thread.join()
-        self.generation_thread = None
+        if self.generation_process:
+            self.generation_process.join()
+        self.generation_process = None
 
     def close(self):
         """Clean up resources."""
         self.stop_acquisition()
+        self.shared_mem.close()
+        self.shared_mem.unlink()
