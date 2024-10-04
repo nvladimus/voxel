@@ -61,7 +61,7 @@ Checkout the [Writers and File Transfers section](#writers-and-file-transfers) f
 2. Clone the repository:
 
     ```bash
-    git clone https://github.com/AllenNeuralDynamics/voxel.git
+    git clone https://github.com/AllenNeuralDynamics/voxel.git && cd voxel
     ```
 
 3. To use the software, in the root directory, run:
@@ -75,6 +75,14 @@ Checkout the [Writers and File Transfers section](#writers-and-file-transfers) f
     ```bash
     pip install -e .[dev]
     ```
+
+5. To install specific device drivers that have SDK requirements, run:
+
+    ```bash
+    pip install -e .[egrabber, imaris]
+    ```
+
+Check out the [list of supported devices](#devices) for more information on device drivers.
 
 ### Documentation
 
