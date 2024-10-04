@@ -1,6 +1,8 @@
-<h1 style="display: flex; justify-content: space-between">
-    <span>Voxel</span>
-    <img src="voxel-logo.png" alt="Voxel Logo" width="50" height="50">
+<h1>
+    <div>
+        <img src="voxel-logo.png" alt="Voxel Logo" width="50" height="50">
+    </div>
+    Voxel
 </h1>
 
 Voxel is a Python package that provides core components and functionality for controlling Light Sheet Microscopy
