@@ -10,8 +10,4 @@ from .base import BaseMaxProjection
 from voxel.processing.max_projection.cpu.numpy import CPUMaxProjection
 from voxel.processing.max_projection.gpu.pyclesperanto import GPUMaxProjection
 
-__all__ = [
-    "BaseMaxProjection",
-    "CPUMaxProjection",
-    "GPUMaxProjection"
-]
+__all__ = ["BaseMaxProjection", "CPUMaxProjection", "GPUMaxProjection"]

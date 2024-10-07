@@ -5,7 +5,7 @@ from typing import Union, Any
 
 @total_ordering
 class DescriptorProxy:
-    __slots__ = ('value', '_descriptor')
+    __slots__ = ("value", "_descriptor")
 
     def __init__(self, value: Union[int, float, Enum], descriptor: Any):
         self.value = value
@@ -14,7 +14,7 @@ class DescriptorProxy:
     def __getattribute__(self, name):
         if name in DescriptorProxy.__slots__:
             return object.__getattribute__(self, name)
-        return object.__getattribute__(object.__getattribute__(self, 'value'), name)
+        return object.__getattribute__(object.__getattribute__(self, "value"), name)
 
     def __int__(self):
         return int(self.value)

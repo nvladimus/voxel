@@ -29,25 +29,29 @@ class FrameStack:
             "size": self.size.to_str(),
             "z_step_size": self.z_step_size,
             "channels": self.channels,
-            "settings": self.settings
+            "settings": self.settings,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'FrameStack':
+    def from_dict(cls, data: Dict[str, Any]) -> "FrameStack":
         return cls(
             idx=Vec2D.from_str(data["idx"]),
             pos=Vec3D.from_str(data["pos"]),
             size=Vec3D.from_str(data["size"]),
             z_step_size=data["z_step_size"],
             channels=data["channels"],
-            settings=data.get("settings")
+            settings=data.get("settings"),
         )
 
 
 def get_frame_stack_size_mb(frame_stack: FrameStack, instrument: VoxelInstrument) -> float:
-    def get_size_mb(channel: 'VoxelChannel') -> float:
-        frame_size_mb = channel.camera.frame_size_px.x * channel.camera.frame_size_px.y * np.dtype(
-            channel.writer.data_type).itemsize / 1024 ** 2
+    def get_size_mb(channel: "VoxelChannel") -> float:
+        frame_size_mb = (
+            channel.camera.frame_size_px.x
+            * channel.camera.frame_size_px.y
+            * np.dtype(channel.writer.data_type).itemsize
+            / 1024**2
+        )
         return frame_size_mb * frame_stack.num_frames
 
     total_size_mb = 0

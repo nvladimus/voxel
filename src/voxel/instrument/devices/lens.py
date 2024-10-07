@@ -1,9 +1,10 @@
 """
 Module for a voxel lens device.
 """
+
 from typing import Optional
 
-from voxel.instrument.device import VoxelDevice
+from .base import VoxelDevice, VoxelDeviceType
 
 
 class VoxelLens(VoxelDevice):
@@ -20,13 +21,14 @@ class VoxelLens(VoxelDevice):
     :rtype lens: VoxelLens
     """
 
-    def __init__(self,
-                 magnification: float,
-                 name: Optional[str] = None,
-                 focal_length_um: Optional[float] = None,
-                 aperture_um: Optional[float] = None,
-                 ):
-        super().__init__(name)
+    def __init__(
+        self,
+        magnification: float,
+        name: Optional[str] = None,
+        focal_length_um: Optional[float] = None,
+        aperture_um: Optional[float] = None,
+    ):
+        super().__init__(name, device_type=VoxelDeviceType.LENS)
         self.magnification = float(magnification)
         self.focal_length_um: Optional[float] = focal_length_um
         self.aperture_um: Optional[float] = aperture_um

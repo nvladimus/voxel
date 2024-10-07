@@ -7,9 +7,9 @@ from ruamel.yaml import YAML
 from instrument.writers import SharedDoubleBuffer
 from instrument.writers import Writer
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    this_dir = Path(__file__).parent.resolve() # directory of this test file.
+    this_dir = Path(__file__).parent.resolve()  # directory of this test file.
     config_path = this_dir / Path("test_zarr_v3.yaml")
     config = YAML().load(Path(config_path))
 
@@ -21,24 +21,24 @@ if __name__ == '__main__':
     tile_index = 0
 
     for tile_index in range(num_tiles):
-        
-        stack_writer_worker = Writer(config['writer']['path'])
+
+        stack_writer_worker = Writer(config["writer"]["path"])
         stack_writer_worker.row_count_px = 2304
         stack_writer_worker.column_count_px = 2304
         stack_writer_worker.x_voxel_size_um = 0.748
         stack_writer_worker.y_voxel_size_um = 0.748
         stack_writer_worker.z_voxel_size_um = 1
         stack_writer_worker.frame_count_px = num_frames
-        stack_writer_worker.compression = config['writer']['compression']
-        stack_writer_worker.compression_level = config['writer']['compression_level']
-        stack_writer_worker.shuffle = config['writer']['shuffle']
-        stack_writer_worker.data_type = config['writer']['data_type']
-        stack_writer_worker.downsample_method = config['writer']['downsample_method']
-        stack_writer_worker.channel = '488'
-        stack_writer_worker.filename = 'test'
+        stack_writer_worker.compression = config["writer"]["compression"]
+        stack_writer_worker.compression_level = config["writer"]["compression_level"]
+        stack_writer_worker.shuffle = config["writer"]["shuffle"]
+        stack_writer_worker.data_type = config["writer"]["data_type"]
+        stack_writer_worker.downsample_method = config["writer"]["downsample_method"]
+        stack_writer_worker.channel = "488"
+        stack_writer_worker.filename = "test"
 
         # move tile over 1 mm
-        stack_writer_worker.x_position_mm = 0 + tile_index*1.000
+        stack_writer_worker.x_position_mm = 0 + tile_index * 1.000
         stack_writer_worker.y_position_mm = 0
         stack_writer_worker.z_position_mm = 0
         stack_writer_worker.prepare()
@@ -49,12 +49,9 @@ if __name__ == '__main__':
         last_chunk_size = chunk_size_frames if not remainder else remainder
         last_frame_index = num_frames - 1
 
-        mem_shape = (chunk_size_frames,
-                     stack_writer_worker.row_count_px,
-                     stack_writer_worker.column_count_px)
+        mem_shape = (chunk_size_frames, stack_writer_worker.row_count_px, stack_writer_worker.column_count_px)
 
-        img_buffer = SharedDoubleBuffer(mem_shape,
-                                        dtype=config['writer']['data_type'])
+        img_buffer = SharedDoubleBuffer(mem_shape, dtype=config["writer"]["data_type"])
 
         chunk_lock = threading.Lock()
 
@@ -68,21 +65,23 @@ if __name__ == '__main__':
                 remaining_chunks = chunk_count - chunks_filled
             # Grab simulated frame
             if chunks_filled % 2 == 0:
-                img_buffer.add_image( \
-                numpy.random.randint(
-                    low=0,
-                    high=256,
-                    size=(stack_writer_worker.row_count_px, stack_writer_worker.column_count_px),
-                    dtype = config['writer']['data_type']
-                ))
+                img_buffer.add_image(
+                    numpy.random.randint(
+                        low=0,
+                        high=256,
+                        size=(stack_writer_worker.row_count_px, stack_writer_worker.column_count_px),
+                        dtype=config["writer"]["data_type"],
+                    )
+                )
             else:
-                img_buffer.add_image( \
+                img_buffer.add_image(
                     numpy.random.randint(
                         low=0,
                         high=32,
                         size=(stack_writer_worker.row_count_px, stack_writer_worker.column_count_px),
-                        dtype = config['writer']['data_type']
-                    ))
+                        dtype=config["writer"]["data_type"],
+                    )
+                )
 
             # mimic 5 fps imaging
             time.sleep(0.05)
@@ -101,9 +100,8 @@ if __name__ == '__main__':
                 # written yet.
                 with chunk_lock:
                     img_buffer.toggle_buffers()
-                    if config['writer']['path'] is not None:
-                        stack_writer_worker.shm_name = \
-                            img_buffer.read_buf_mem_name
+                    if config["writer"]["path"] is not None:
+                        stack_writer_worker.shm_name = img_buffer.read_buf_mem_name
                         stack_writer_worker.done_reading.clear()
 
         stack_writer_worker.wait_to_finish()

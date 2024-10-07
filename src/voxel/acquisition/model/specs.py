@@ -17,17 +17,17 @@ class AcquisitionSpecs(BaseModel):
     volume_max_corner: str | None = None
 
     @classmethod
-    @field_validator('file_path')
+    @field_validator("file_path")
     def validate_file_path(cls, v):
         try:
             with open(v) as file:
-                YAML(typ='safe').load(file)
+                YAML(typ="safe").load(file)
         except Exception as e:
             raise ValueError(f"Invalid file path: {e}")
         return v
 
     @classmethod
-    @field_validator('volume_min_corner', 'volume_max_corner')
+    @field_validator("volume_min_corner", "volume_max_corner")
     def validate_volume_min_corner(cls, v):
         if v is None:
             return None

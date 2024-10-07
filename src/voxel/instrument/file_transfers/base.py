@@ -24,7 +24,7 @@ class VoxelFileTransfer:
     :raise ValueError: Same external and local path
     """
 
-    def __init__(self, external_path: str, local_path: str, name: str = "VoxelFileTransfer"):
+    def __init__(self, external_path: str, local_path: str, name: str = "voxel_file_transfer") -> None:
         self.log = get_logger(f"{__name__}.{self.__class__.__name__}")
         self.name = name
         self._external_path = Path(external_path)
@@ -280,9 +280,7 @@ class VoxelFileTransfer:
             self.log.info(f"{local_file_path} and {external_file_path} hashes match")
             return True
         else:
-            self.log.info(
-                f"hash mismatch for {local_file_path} and {external_file_path}"
-            )
+            self.log.info(f"hash mismatch for {local_file_path} and {external_file_path}")
             self.log.info(f"{local_file_path} hash = {local_hash}")
             self.log.info(f"{external_file_path} hash = {external_hash}")
             return False

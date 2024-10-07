@@ -9,7 +9,7 @@ from voxel.utils.geometry.vec import Vec2D
 
 def update_yaml_content(file_path: str, new_content: Dict[str, Any]) -> None:
     try:
-        yaml = YAML(typ='safe')
+        yaml = YAML(typ="safe")
         yaml.default_flow_style = False
         yaml.indent(mapping=2, sequence=4, offset=2)
 
@@ -46,23 +46,23 @@ class VoxelAcquisitionPlan:
     def __len__(self):
         return len(self.scan_path)
 
-    def __eq__(self, other: 'VoxelAcquisitionPlan') -> bool:
+    def __eq__(self, other: "VoxelAcquisitionPlan") -> bool:
         if not isinstance(other, VoxelAcquisitionPlan):
             return NotImplemented
 
         return self.frame_stacks == other.frame_stacks and self.scan_path == other.scan_path
 
-    def __ne__(self, other: 'VoxelAcquisitionPlan') -> bool:
+    def __ne__(self, other: "VoxelAcquisitionPlan") -> bool:
         return not self.__eq__(other)
 
     def to_dict(self):
         return {
             "frame_stacks": {str(idx): frame_stack.to_dict() for idx, frame_stack in self.frame_stacks.items()},
-            "scan_path": [str(idx) for idx in self.scan_path]
+            "scan_path": [str(idx) for idx in self.scan_path],
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Dict[str, Dict[str, any]]]) -> 'VoxelAcquisitionPlan':
+    def from_dict(cls, data: Dict[str, Dict[str, Dict[str, any]]]) -> "VoxelAcquisitionPlan":
         frame_stacks = {}
         for idx_str, frame_stack_data in data["frame_stacks"].items():
             idx = Vec2D.from_str(idx_str)
@@ -74,7 +74,7 @@ class VoxelAcquisitionPlan:
         update_yaml_content(file_path, {"plan": self.to_dict()})
 
     @classmethod
-    def load_from_yaml(cls, file_path: str) -> 'VoxelAcquisitionPlan':
+    def load_from_yaml(cls, file_path: str) -> "VoxelAcquisitionPlan":
         with open(file_path) as f:
             yaml = YAML()
             data = yaml.load(f)

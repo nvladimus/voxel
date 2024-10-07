@@ -5,7 +5,7 @@ import numpy
 from voxel.utils.logging import get_logger
 
 
-class BaseDownSample():
+class BaseDownSample:
     """
     Base class for image downsampling.
 

@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 
 from voxel.utils.descriptors.deliminated_property import deliminated_property
 from voxel.utils.descriptors.enumerated_property import enumerated_property
-from voxel.instrument.device import VoxelDevice
+from voxel.instrument.devices import VoxelDevice
 from voxel.instrument.nidaq.base import VoxelDAQ
 from voxel.instrument.nidaq.channel import DAQTaskChannel, DAQTaskTiming, DAQWaveform
 

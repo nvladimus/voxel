@@ -8,7 +8,7 @@ class Vec2D:
     y: int | float
 
     def __post_init__(self):
-        for attr in ['x', 'y']:
+        for attr in ["x", "y"]:
             if not isinstance(getattr(self, attr), (int, float)):
                 raise TypeError(f"Unsupported type for {attr}: {type(getattr(self, attr))}")
 
@@ -28,10 +28,10 @@ class Vec2D:
     def __hash__(self):
         return hash((self.x, self.y))
 
-    def __add__(self, other: 'Vec2D') -> 'Vec2D':
+    def __add__(self, other: "Vec2D") -> "Vec2D":
         return Vec2D(self.x + other.x, self.y + other.y)
 
-    def __sub__(self, other: 'Vec2D') -> 'Vec2D':
+    def __sub__(self, other: "Vec2D") -> "Vec2D":
         return Vec2D(self.x - other.x, self.y - other.y)
 
     def __mul__(self, other):
@@ -57,7 +57,7 @@ class Vec3D:
     z: float
 
     def __post_init__(self):
-        for attr in ['x', 'y', 'z']:
+        for attr in ["x", "y", "z"]:
             if not isinstance(getattr(self, attr), (int, float)):
                 raise TypeError(f"Unsupported type for {attr}: {type(getattr(self, attr))}")
 
@@ -74,10 +74,10 @@ class Vec3D:
     def __hash__(self):
         return hash((self.x, self.y, self.z))
 
-    def __add__(self, other: 'Vec3D') -> 'Vec3D':
+    def __add__(self, other: "Vec3D") -> "Vec3D":
         return Vec3D(self.x + other.x, self.y + other.y, self.z + other.z)
 
-    def __sub__(self, other: 'Vec3D') -> 'Vec3D':
+    def __sub__(self, other: "Vec3D") -> "Vec3D":
         return Vec3D(self.x - other.x, self.y - other.y, self.z - other.z)
 
 

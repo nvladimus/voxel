@@ -8,13 +8,13 @@ from voxel.utils.logging import get_logger
 
 class EnumeratedProperty:
     def __init__(
-            self,
-            fget: Optional[Callable[[Any], Enum]] = None,
-            fset: Optional[Callable[[Any, Enum], None]] = None,
-            fdel: Optional[Callable[[Any], None]] = None,
-            *,
-            enum_class: Type[Enum],
-            options_getter: Optional[Callable[[Any], List]] = None
+        self,
+        fget: Optional[Callable[[Any], Enum]] = None,
+        fset: Optional[Callable[[Any, Enum], None]] = None,
+        fdel: Optional[Callable[[Any], None]] = None,
+        *,
+        enum_class: Type[Enum],
+        options_getter: Optional[Callable[[Any], List]] = None,
     ):
         self.fget = fget
         self.fset = fset
@@ -24,7 +24,7 @@ class EnumeratedProperty:
         self._instance_proxies = WeakKeyDictionary()
         self.log = get_logger(f"{self.__class__.__name__}")
 
-    def __get__(self, instance: Any, owner=None) -> Union['EnumeratedProperty', 'EnumeratedPropertyProxy', Enum]:
+    def __get__(self, instance: Any, owner=None) -> Union["EnumeratedProperty", "EnumeratedPropertyProxy", Enum]:
         if instance is None:
             return self
 
@@ -72,25 +72,17 @@ class EnumeratedProperty:
             return [option for option in self._enum_class]
         return self._options_getter(instance)
 
-    def get_instance_for_proxy(self, proxy: 'EnumeratedPropertyProxy') -> Any:
+    def get_instance_for_proxy(self, proxy: "EnumeratedPropertyProxy") -> Any:
         for instance, stored_proxy in self._instance_proxies.items():
             if stored_proxy is proxy:
                 return instance
         raise ValueError("Proxy not associated with any known instance")
 
-    def setter(self, fset: Callable[[Any, Enum], None]) -> 'EnumeratedProperty':
-        return type(self)(
-            self.fget, fset, self.fdel,
-            enum_class=self._enum_class,
-            options_getter=self._options_getter
-        )
+    def setter(self, fset: Callable[[Any, Enum], None]) -> "EnumeratedProperty":
+        return type(self)(self.fget, fset, self.fdel, enum_class=self._enum_class, options_getter=self._options_getter)
 
-    def deleter(self, fdel: Callable[[Any], None]) -> 'EnumeratedProperty':
-        return type(self)(
-            self.fget, self.fset, fdel,
-            enum_class=self._enum_class,
-            options_getter=self._options_getter
-        )
+    def deleter(self, fdel: Callable[[Any], None]) -> "EnumeratedProperty":
+        return type(self)(self.fget, self.fset, fdel, enum_class=self._enum_class, options_getter=self._options_getter)
 
     @staticmethod
     def _unwrap_proxy(value: Any):
@@ -100,11 +92,11 @@ class EnumeratedProperty:
 
 
 class EnumeratedPropertyProxy(DescriptorProxy):
-    def __init__(self, value: Enum, descriptor: 'EnumeratedProperty'):
+    def __init__(self, value: Enum, descriptor: "EnumeratedProperty"):
         super().__init__(value, descriptor)
 
     def __getattribute__(self, name):
-        if name == 'options':
+        if name == "options":
             return self._descriptor.get_options(self._descriptor.get_instance_for_proxy(self))
         return super().__getattribute__(name)
 
@@ -114,8 +106,7 @@ class EnumeratedPropertyProxy(DescriptorProxy):
 
 
 def enumerated_property(
-        enum_class: Type[Enum],
-        options_getter: Optional[Callable[[Any], List]] = None
+    enum_class: Type[Enum], options_getter: Optional[Callable[[Any], List]] = None
 ) -> Callable[[Callable[[Any], Enum]], EnumeratedProperty]:
     def decorator(func: Callable[[Any], Enum]) -> EnumeratedProperty:
         return EnumeratedProperty(func, enum_class=enum_class, options_getter=options_getter)

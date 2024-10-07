@@ -1,9 +1,8 @@
 # Usage example
-from voxel.instrument.devices import SimulatedFilterWheel, SimulatedFilter, VoxelDeviceError
+from voxel.instrument.drivers import SimulatedFilterWheel, SimulatedFilter, VoxelDeviceError
 
 if __name__ == "__main__":
     import logging
-
 
     def setup_simulated_filter_system():
         wheel = SimulatedFilterWheel("main_wheel", "simulated_wheel_id")
@@ -14,10 +13,8 @@ if __name__ == "__main__":
 
         return red_filter, green_filter, blue_filter, wheel
 
-
     def print_active_filter(w: SimulatedFilterWheel):
         w.log.info(f"Active filter: {w.current_filter or 'None'}")
-
 
     logging.basicConfig(level=logging.INFO)
 

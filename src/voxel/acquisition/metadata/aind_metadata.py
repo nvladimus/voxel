@@ -6,28 +6,28 @@ from voxel.acquisition.metadata.base import VoxelMetadata, MetadataNameFormat
 
 
 class DateTimeFormat(StrEnum):
-    ISO = 'Year/Month/Day/Hour/Minute/Second'
-    US = 'Month/Day/Year/Hour/Minute/Second'
-    US_NO_TIME = 'Month/Day/Year'
-    ISO_NO_TIME = 'Day/Month/Year'
+    ISO = "Year/Month/Day/Hour/Minute/Second"
+    US = "Month/Day/Year/Hour/Minute/Second"
+    US_NO_TIME = "Month/Day/Year"
+    ISO_NO_TIME = "Day/Month/Year"
 
 
 class AnatomicalDirection(StrEnum):
-    ANTERIOR_POSTERIOR = 'anterior_to_posterior'
-    POSTERIOR_ANTERIOR = 'posterior_to_anterior'
-    SUPERIOR_INFERIOR = 'superior_to_inferior'
-    INFERIOR_SUPERIOR = 'inferior_to_superior'
-    LEFT_RIGHT = 'left_to_right'
-    RIGHT_LEFT = 'right_to_left'
+    ANTERIOR_POSTERIOR = "anterior_to_posterior"
+    POSTERIOR_ANTERIOR = "posterior_to_anterior"
+    SUPERIOR_INFERIOR = "superior_to_inferior"
+    INFERIOR_SUPERIOR = "inferior_to_superior"
+    LEFT_RIGHT = "left_to_right"
+    RIGHT_LEFT = "right_to_left"
 
 
 class Medium(StrEnum):
-    AIR = 'air'
-    MULTI = 'multi'
-    OIL = 'oil'
-    PBS = 'PBS'
-    WATER = 'water'
-    OTHER = 'other'
+    AIR = "air"
+    MULTI = "multi"
+    OIL = "oil"
+    PBS = "PBS"
+    WATER = "water"
+    OTHER = "other"
 
 
 DATE_FORMATS: Dict[DateTimeFormat, str] = {
@@ -38,12 +38,12 @@ DATE_FORMATS: Dict[DateTimeFormat, str] = {
 }
 
 ANATOMICAL_DIRECTIONS = {
-    AnatomicalDirection.ANTERIOR_POSTERIOR: 'Anterior_to_posterior',
-    AnatomicalDirection.POSTERIOR_ANTERIOR: 'Posterior_to_anterior',
-    AnatomicalDirection.SUPERIOR_INFERIOR: 'Superior_to_inferior',
-    AnatomicalDirection.INFERIOR_SUPERIOR: 'Inferior_to_superior',
-    AnatomicalDirection.LEFT_RIGHT: 'Left_to_right',
-    AnatomicalDirection.RIGHT_LEFT: 'Right_to_left',
+    AnatomicalDirection.ANTERIOR_POSTERIOR: "Anterior_to_posterior",
+    AnatomicalDirection.POSTERIOR_ANTERIOR: "Posterior_to_anterior",
+    AnatomicalDirection.SUPERIOR_INFERIOR: "Superior_to_inferior",
+    AnatomicalDirection.INFERIOR_SUPERIOR: "Inferior_to_superior",
+    AnatomicalDirection.LEFT_RIGHT: "Left_to_right",
+    AnatomicalDirection.RIGHT_LEFT: "Right_to_left",
 }
 
 
@@ -52,6 +52,7 @@ class AINDMetadata(VoxelMetadata):
     """
     Metadata matching the AIND standard.
     """
+
     instrument_name: str
     experiment_id: str
     subject_id: str
@@ -79,5 +80,5 @@ class AINDMetadata(VoxelMetadata):
                 "y_anatomical_direction": self.y_anatomical_direction.value,
                 "z_anatomical_direction": self.z_anatomical_direction.value,
             },
-            **self.details
+            **self.details,
         }

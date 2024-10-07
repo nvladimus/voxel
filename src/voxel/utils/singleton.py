@@ -2,6 +2,7 @@ from threading import Lock
 
 from functools import wraps
 
+
 def thread_safe_singleton(func):
     """
     A decorator that makes a function a thread-safe singleton.

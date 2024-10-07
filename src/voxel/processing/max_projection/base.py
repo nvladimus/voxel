@@ -279,9 +279,7 @@ class BaseMaxProjection:
         self.shm_shape = (self._row_count_px, self._column_count_px)
         # create attributes to open shared memory in run function
         self.shm = SharedMemory(shm_name, create=False)
-        self.latest_img = np.ndarray(
-            self.shm_shape, self._data_type, buffer=self.shm.buf
-        )
+        self.latest_img = np.ndarray(self.shm_shape, self._data_type, buffer=self.shm.buf)
 
     @abstractmethod
     def wait_to_finish(self):

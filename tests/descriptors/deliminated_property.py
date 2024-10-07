@@ -10,7 +10,9 @@ class DummyDevice:
     device_property3 = DeliminatedProperty(
         fget=lambda instance: getattr(instance, "_device_property3"),
         fset=lambda instance, value: setattr(instance, "_device_property3", value),
-        minimum=VALUE_MIN, maximum=VALUE_MAX, step=VALUE_STEP
+        minimum=VALUE_MIN,
+        maximum=VALUE_MAX,
+        step=VALUE_STEP,
     )
 
     def __init__(self):
@@ -62,11 +64,7 @@ class DynamicDevice:
     def _initialize_values(self):
         self.dynamic_property = 50
 
-    @deliminated_property(
-        minimum=lambda self: self._min,
-        maximum=lambda self: self._max,
-        step=lambda self: self._step
-    )
+    @deliminated_property(minimum=lambda self: self._min, maximum=lambda self: self._max, step=lambda self: self._step)
     def dynamic_property(self):
         return self._value
 
@@ -110,9 +108,9 @@ def test_property_attributes(device):
     properties = ["device_property0", "device_property1", "device_property2", "device_property3"]
     expected_values = [
         (VALUE_MIN, VALUE_MAX, VALUE_STEP),
-        (float('-inf'), float('inf'), None),
-        (VALUE_MIN, float('inf'), None),
-        (VALUE_MIN, VALUE_MAX, VALUE_STEP)
+        (float("-inf"), float("inf"), None),
+        (VALUE_MIN, float("inf"), None),
+        (VALUE_MIN, VALUE_MAX, VALUE_STEP),
     ]
 
     for prop, (min_val, max_val, step_val) in zip(properties, expected_values):

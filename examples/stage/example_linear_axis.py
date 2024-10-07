@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from voxel.instrument.devices import VoxelLinearAxis
+from voxel.instrument.drivers import VoxelLinearAxis
 
 
 # max speed = 1.92 mm/s
+
 
 @dataclass
 class VoxelStage:
@@ -13,11 +14,7 @@ class VoxelStage:
     z: VoxelLinearAxis
 
     def __repr__(self):
-        return (
-            f"x: \n{self.x}--- \n"
-            f"y: \n{self.y}--- \n"
-            f"z: \n{self.z}--- \n"
-        )
+        return f"x: \n{self.x}--- \n" f"y: \n{self.y}--- \n" f"z: \n{self.z}--- \n"
 
     @property
     def position_mm(self):
@@ -37,7 +34,7 @@ class VoxelStage:
         return (
             (self.x.lower_limit_mm, self.x.upper_limit_mm),
             (self.y.lower_limit_mm, self.y.upper_limit_mm),
-            (self.z.lower_limit_mm, self.z.upper_limit_mm)
+            (self.z.lower_limit_mm, self.z.upper_limit_mm),
         )
 
     @property
@@ -68,21 +65,21 @@ def sweep_axis(axis: VoxelLinearAxis, step: int = 10):
     print(axis)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from voxel.instrument.hubs.tigerbox import ASITigerBox
-    from voxel.instrument.devices import LinearAxisDimension
-    from voxel.instrument.devices import ASITigerLinearAxis
+    from voxel.instrument.drivers import LinearAxisDimension
+    from voxel.instrument.drivers import ASITigerLinearAxis
 
-    PORT = 'COM3'
+    PORT = "COM3"
     controller = ASITigerBox(port=PORT)
 
     # print('Hardware axes: ', controller.box.ordered_axes)
 
-    x_axis = ASITigerLinearAxis('x-axis', 'x', LinearAxisDimension.X, controller)
-    y_axis = ASITigerLinearAxis('y-axis', 'y', LinearAxisDimension.Y, controller)
-    scanning_axis = ASITigerLinearAxis('step-shoot-axis', 'z', LinearAxisDimension.Z, controller)
+    x_axis = ASITigerLinearAxis("x-axis", "x", LinearAxisDimension.X, controller)
+    y_axis = ASITigerLinearAxis("y-axis", "y", LinearAxisDimension.Y, controller)
+    scanning_axis = ASITigerLinearAxis("step-shoot-axis", "z", LinearAxisDimension.Z, controller)
     stage = VoxelStage(x_axis, y_axis, scanning_axis)
-    n_axis = ASITigerLinearAxis('objective-axis', 't', LinearAxisDimension.N, controller)
+    n_axis = ASITigerLinearAxis("objective-axis", "t", LinearAxisDimension.N, controller)
 
     x_axis.speed_mm_s = 2
     x_axis.go_to_origin()

@@ -29,7 +29,7 @@ class VoxelWriter:
         self._row_count_px = None
         self._column_count_px = None
         self._frame_count_px_px = None
-        self._shm_name = ''
+        self._shm_name = ""
         self._frame_count_px = None
         self._x_voxel_size_um = None
         self._y_voxel_size_um = None
@@ -466,7 +466,7 @@ class VoxelWriter:
         self._shm_name[len(name)] = "\x00"  # Null terminate the string.
         self.log.info(f"setting shared memory to: {name}")
 
-    @deliminated_property(minimum=0, maximum=100, unit='%')
+    @deliminated_property(minimum=0, maximum=100, unit="%")
     @abstractmethod
     def signal_progress_percent(self) -> float:
         """Get the progress of the writer.

@@ -19,20 +19,16 @@ class VoxelMetadata:
 
     def __post_init__(self):
         if not self.name_format:
-            self.name_format = {
-                'delimiter': '_',
-                'properties': ['instrument_type', 'subject_id']
-            }
-        if not self.name_format['properties']:
+            self.name_format = {"delimiter": "_", "properties": ["instrument_type", "subject_id"]}
+        if not self.name_format["properties"]:
             raise ValueError("Name format must contain at least one property.")
-        for prop in self.name_format['properties']:
+        for prop in self.name_format["properties"]:
             if not hasattr(self, prop):
                 raise ValueError(f"Property {prop} not found in metadata.")
 
     @property
     def name(self):
-        return self.name_format['delimiter'].join(
-            [str(getattr(self, prop)) for prop in self.name_format['properties']])
+        return self.name_format["delimiter"].join([str(getattr(self, prop)) for prop in self.name_format["properties"]])
 
     def to_dict(self):
         return {

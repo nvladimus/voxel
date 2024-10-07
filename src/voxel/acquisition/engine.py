@@ -35,11 +35,11 @@ class VoxelAcquisitionEngine(ABC):
         #   - Check that the channels in the plan are available in the instrument
         pass
 
-    def check_local_disk_space(self, frame_stack: 'FrameStack') -> bool:
+    def check_local_disk_space(self, frame_stack: "FrameStack") -> bool:
         # Check that there is enough disk space to save the frames
         pass
 
-    def check_external_disk_space(self, frame_stack: 'FrameStack') -> bool:
+    def check_external_disk_space(self, frame_stack: "FrameStack") -> bool:
         # Check that there is enough disk space to save the frames
         pass
 

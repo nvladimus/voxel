@@ -23,6 +23,7 @@ class DAQWaveform(StrEnum):
     """
     Enumeration of available DAQ waveform_type types.
     """
+
     SQUARE = "square"
     TRIANGLE = "triangle"
 
@@ -78,10 +79,21 @@ class DAQTaskChannel(VoxelDevice):
         Start and end times are ignored if peak point is provided.
     """
 
-    def __init__(self, name: str, port: str, waveform_type: DAQWaveform,
-                 center_volts: float, amplitude_volts: float, max_device_volts: float, min_device_volts: float,
-                 task_timing: DAQTaskTiming, cutoff_freq_hz: float, start_time_ms: Optional[float] = None,
-                 end_time_ms: Optional[float] = None, peak_point: Optional[float] = None):
+    def __init__(
+        self,
+        name: str,
+        port: str,
+        waveform_type: DAQWaveform,
+        center_volts: float,
+        amplitude_volts: float,
+        max_device_volts: float,
+        min_device_volts: float,
+        task_timing: DAQTaskTiming,
+        cutoff_freq_hz: float,
+        start_time_ms: Optional[float] = None,
+        end_time_ms: Optional[float] = None,
+        peak_point: Optional[float] = None,
+    ):
         super().__init__(name=name)
         self.waveform_type = waveform_type
         self.max_device_volts = max_device_volts
@@ -175,7 +187,7 @@ class DAQTaskChannel(VoxelDevice):
     def cut_off_frequency_hz(self, value: float):
         self._cut_off_frequency_hz = value
 
-    def generate_waveform(self, timing: 'DAQTaskTiming', filtered: Optional[bool] = None) -> NDArray:
+    def generate_waveform(self, timing: "DAQTaskTiming", filtered: Optional[bool] = None) -> NDArray:
         """
         Generate the waveform_type based on the enum type.
 
@@ -187,7 +199,7 @@ class DAQTaskChannel(VoxelDevice):
         """
         generators = {
             DAQWaveform.SQUARE: self._generate_square_waveform,
-            DAQWaveform.TRIANGLE: self._generate_triangular_waveform
+            DAQWaveform.TRIANGLE: self._generate_triangular_waveform,
         }
         if filtered is None:
             filtered = self == DAQWaveform.TRIANGLE
@@ -197,7 +209,7 @@ class DAQTaskChannel(VoxelDevice):
         return self._apply_low_pass_filter(
             waveform=generators[self.waveform_type](timing),
             sampling_frequency_hz=timing.sampling_frequency_hz,
-            cut_off_frequency_hz=self.cut_off_frequency_hz
+            cut_off_frequency_hz=self.cut_off_frequency_hz,
         )
 
     def _generate_square_waveform(self, timing: DAQTaskTiming) -> NDArray:
@@ -250,7 +262,7 @@ class DAQTaskChannel(VoxelDevice):
         """
         # Apply a low-pass filter if requested
         n = 6  # Filter order
-        sos = signal.bessel(n, cut_off_frequency_hz / (sampling_frequency_hz / 2), output='sos')
+        sos = signal.bessel(n, cut_off_frequency_hz / (sampling_frequency_hz / 2), output="sos")
 
         # Extend the waveform_type by repeating it once on each side
         extended_waveform = np.tile(waveform, 3)
@@ -259,7 +271,7 @@ class DAQTaskChannel(VoxelDevice):
         filtered = signal.sosfiltfilt(sos, extended_waveform)
 
         # Return the central part of the filtered waveform_type
-        return filtered[len(waveform):2 * len(waveform)]
+        return filtered[len(waveform) : 2 * len(waveform)]
 
     def close(self):
         pass

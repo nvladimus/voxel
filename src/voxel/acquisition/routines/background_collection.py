@@ -39,8 +39,9 @@ class BackgroundCollection(VoxelRoutine):
 
         camera.prepare()
         camera.start(frame_count=-1)
-        background_stack = np.zeros(shape=(self._num_frames, camera.frame_height_px, camera.frame_width_px),
-                                    dtype=camera.pixel_type.dtype)
+        background_stack = np.zeros(
+            shape=(self._num_frames, camera.frame_height_px, camera.frame_width_px), dtype=camera.pixel_type.dtype
+        )
         for frame in range(self._num_frames):
             background_stack[frame] = camera.grab_frame()
 

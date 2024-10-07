@@ -6,13 +6,13 @@ from voxel.instrument.nidaq import DAQWaveform, VoxelNIDAQ
 from voxel.instrument.nidaq.task import DAQTask, DAQTaskType
 
 USE_SIMULATED = False
-DEVICE_NAME = 'Dev1'
+DEVICE_NAME = "Dev1"
 
 # Analog output channels connected to scope
-CH1 = 'ao0'
-CH2 = 'ao4'
-CH3 = 'ao8'
-CH4 = 'ao12'
+CH1 = "ao0"
+CH2 = "ao4"
+CH3 = "ao8"
+CH4 = "ao12"
 
 
 def main():
@@ -25,7 +25,7 @@ def main():
         sampling_frequency_hz=350e3,
         period_time_ms=10,
         rest_time_ms=0,
-        daq=daq
+        daq=daq,
     )
 
     # Add channels
@@ -37,7 +37,7 @@ def main():
         cutoff_freq_hz=1000,
         start_time_ms=0,
         end_time_ms=5,
-        port=CH1
+        port=CH1,
     )
 
     ao_task.add_channel(
@@ -48,7 +48,7 @@ def main():
         cutoff_freq_hz=1000,
         start_time_ms=0,
         end_time_ms=5,
-        port=CH2
+        port=CH2,
     )
 
     if not USE_SIMULATED:
@@ -60,7 +60,7 @@ def main():
             cutoff_freq_hz=1000,
             start_time_ms=2.5,
             end_time_ms=7.5,
-            port=CH3
+            port=CH3,
         )
 
         ao_task.add_channel(
@@ -71,7 +71,7 @@ def main():
             cutoff_freq_hz=1000,
             start_time_ms=0,
             end_time_ms=10,
-            port=CH4
+            port=CH4,
         )
 
     # Plot waveforms
@@ -96,5 +96,5 @@ def main():
         plt.ioff()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

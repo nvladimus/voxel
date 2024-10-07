@@ -9,15 +9,15 @@ StaticOrCallableNumber = Union[Number, Callable[[Any], Number]]
 
 class DeliminatedProperty(property):
     def __init__(
-            self,
-            fget: Optional[Callable[[Any], Number]] = None,
-            fset: Optional[Callable[[Any, Number], None]] = None,
-            fdel: Optional[Callable[[Any], None]] = None,
-            *,
-            minimum: StaticOrCallableNumber = float('-inf'),
-            maximum: StaticOrCallableNumber = float('inf'),
-            step: Optional[StaticOrCallableNumber] = None,
-            unit: str = ''
+        self,
+        fget: Optional[Callable[[Any], Number]] = None,
+        fset: Optional[Callable[[Any, Number], None]] = None,
+        fdel: Optional[Callable[[Any], None]] = None,
+        *,
+        minimum: StaticOrCallableNumber = float("-inf"),
+        maximum: StaticOrCallableNumber = float("inf"),
+        step: Optional[StaticOrCallableNumber] = None,
+        unit: str = "",
     ):
         super().__init__(fget, fset, fdel)
         self._minimum = minimum
@@ -28,7 +28,7 @@ class DeliminatedProperty(property):
 
         self.log = get_logger(f"{self.__class__.__name__}")
 
-    def __get__(self, instance: Any, owner=None) -> Union['DeliminatedProperty', 'DeliminatedPropertyProxy']:
+    def __get__(self, instance: Any, owner=None) -> Union["DeliminatedProperty", "DeliminatedPropertyProxy"]:
         if instance is None:
             return self
 
@@ -57,25 +57,19 @@ class DeliminatedProperty(property):
             raise AttributeError("can't delete attribute")
         self.fdel(instance)
 
-    def getter(self, fget: Callable[[Any], Number]) -> 'DeliminatedProperty':
+    def getter(self, fget: Callable[[Any], Number]) -> "DeliminatedProperty":
         return type(self)(
-            fget, self.fset, self.fdel,
-            minimum=self._minimum, maximum=self._maximum,
-            step=self._step, unit=self._unit
+            fget, self.fset, self.fdel, minimum=self._minimum, maximum=self._maximum, step=self._step, unit=self._unit
         )
 
-    def setter(self, fset: Callable[[Any, Number], None]) -> 'DeliminatedProperty':
+    def setter(self, fset: Callable[[Any, Number], None]) -> "DeliminatedProperty":
         return type(self)(
-            self.fget, fset, self.fdel,
-            minimum=self._minimum, maximum=self._maximum,
-            step=self._step, unit=self._unit
+            self.fget, fset, self.fdel, minimum=self._minimum, maximum=self._maximum, step=self._step, unit=self._unit
         )
 
-    def deleter(self, fdel: Callable[[Any], None]) -> 'DeliminatedProperty':
+    def deleter(self, fdel: Callable[[Any], None]) -> "DeliminatedProperty":
         return type(self)(
-            self.fget, self.fset, fdel,
-            minimum=self._minimum, maximum=self._maximum,
-            step=self._step, unit=self._unit
+            self.fget, self.fset, fdel, minimum=self._minimum, maximum=self._maximum, step=self._step, unit=self._unit
         )
 
     @property
@@ -110,13 +104,8 @@ class DeliminatedProperty(property):
     def __repr__(self):
         min_repr = self.minimum
         max_repr = self.maximum
-        step_repr = self.step if self._step else '_'
-        return (
-            f"(min={min_repr}, "
-            f"max={max_repr}, "
-            f"step={step_repr}, "
-            f"unit={self.unit})"
-        )
+        step_repr = self.step if self._step else "_"
+        return f"(min={min_repr}, " f"max={max_repr}, " f"step={step_repr}, " f"unit={self.unit})"
 
     @staticmethod
     def _unwrap_proxy(value: Any):
@@ -147,7 +136,7 @@ class DeliminatedPropertyProxy(DescriptorProxy):
         :type item: str
         :return: The attribute of the descriptor or the default __getattribute__ method.
         """
-        if item in ['minimum', 'maximum', 'step', 'unit']:
+        if item in ["minimum", "maximum", "step", "unit"]:
             return self._descriptor.__getattribute__(item)
         return super().__getattribute__(item)
 
@@ -173,20 +162,21 @@ class DeliminatedPropertyProxy(DescriptorProxy):
             "minimum": self._descriptor.minimum,
             "maximum": self._descriptor.maximum,
             "step": self._descriptor.step,
-            "unit": self._descriptor.unit
+            "unit": self._descriptor.unit,
         }
 
 
 def deliminated_property(
-        minimum: StaticOrCallableNumber = float('-inf'),
-        maximum: StaticOrCallableNumber = float('inf'),
-        step: Optional[StaticOrCallableNumber] = None,
-        unit: str = ''
+    minimum: StaticOrCallableNumber = float("-inf"),
+    maximum: StaticOrCallableNumber = float("inf"),
+    step: Optional[StaticOrCallableNumber] = None,
+    unit: str = "",
 ) -> Callable[[Callable[[Any], Number]], DeliminatedProperty]:
     def decorator(func: Callable[[Any], Number]) -> DeliminatedProperty:
         return DeliminatedProperty(func, minimum=minimum, maximum=maximum, step=step, unit=unit)
 
     return decorator
+
 
 def set_deliminated_property_value(prop: DeliminatedProperty, percentage: float) -> float:
     prop = prop.minimum + (prop.maximum - prop.minimum) * percentage

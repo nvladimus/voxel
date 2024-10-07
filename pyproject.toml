@@ -1,88 +1,75 @@
-[build-system]
-requires = ["setuptools", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "voxel"
-description = "Core Library for building SPIM software"
+version = "0.1.0"
+description = "Python Library for building SPIM software"
+readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.12"
 authors = [
     { name = "Micah Woodard", email = "micah.woodard@alleninstitute.org" },
     { name = "Adam Glaser", email = "adam.glaser@alleninstitute.org" },
     { name = "Walter Mwaniki", email = "walter.mwaniki@alleninstitute.org" },
 ]
 classifiers = ["Programming Language :: Python :: 3"]
-readme = "README.md"
-dynamic = ["version"]
-
+requires-python = ">=3.12"
 dependencies = [
-    # base
-    'ruamel-yaml >= 0.18.5',
-    'pydantic >= 2.9.2',
+    # core
+    "numpy>=2.1.2",
+    "matplotlib>=3.9.2",
+    "pydantic>=2.9.2",
+    "ruamel-yaml >= 0.18.5",
     # hardware
-    'nidaqmx >= 0.9.0',
-    'pyserial >= 3.5',
-    'pyusb >= 1.2.1',
-    'PyVISA >= 1.14.1',
-    'PyVISA-py >= 0.7.2',
-    'pylablib >= 1.4.2',
-    'tigerasi >= 0.0.26',
-    # writers
-    'tifffile >= 2024.1.30',
-    'PyImarisWriter >= 0.7.0',
-    'h5py >= 3.0.0',           # for reading and writing HDF5 files
-    'tqdm >= 4.66.5',
-    # transfers
-    'imohash >= 1.1.0',
-    # essentials
-    'numpy >= 1.24.0',
-    'matplotlib >= 3.8.2',
-    'scipy >= 1.12.0',
-    'scikit-image >= 0.20.0',
-    'scikit-tensor-py3',
-    'tensorstore >= 0.1.56',  # for reading and writing tensorstore files
+    "nidaqmx>=1.0.1",
+    "pyserial >= 3.5",
+    "pyusb >= 1.2.1",
+    "PyVISA-py >= 0.7.2",
+    "tigerasi >= 0.0.26",
+    # files
+    "imohash>=1.1.0",
+    "tifffile>=2024.9.20",
+    # processing
+    "gputools >= 0.2.14",
     # utils
-    'inflection >= 0.5.1',
-    'gputools >= 0.2.14',
-    'pyclesperanto >= 0.8.2', # for GPU acceleration
-    'imohash >= 1.0.5',
-    'psutil >= 5.9.8',
-    'sympy >= 1.12.1',        # used for symbolic math
+    "sympy >= 1.12.1",
 ]
 
 [project.optional-dependencies]
-dev = [
-    'black',
-    'coverage',
-    'flake8',
-    'interrogate',
-    'isort',
-    'Sphinx',
-    'furo',
-    'pytest >= 8.2.1',
+bdv = ["h5py>=3.12.1", "tqdm>=4.66.5"]
+imaris = ["pyimariswriter>=0.7.0"]
+aaopto = ["aaopto-aotf>=0.0.11"]
+thorlabs = ["pylablib>=1.4.2"]
+cobolt_laser = ["pycobolt @ git+https://github.com/cobolt-lasers/pycobolt.git"]
+coherent_laser = ["coherent_lasers @ git+https://github.com/AllenNeuralDynamics/coherent_lasers.git"]
+vortran_laser = ["vortran_laser @ git+https://github.com/AllenNeuralDynamics/vortran_laser.git"]
+oxxius_laser = ["oxxius_laser @ git+https://github.com/AllenNeuralDynamics/oxxius_laser.git"]
+# obis_laser = ["obis_laser @ git+https://github.com/AllenNeuralDynamics/obis-laser.git"]
+
+lasers = [
+    "pycobolt @ git+https://github.com/cobolt-lasers/pycobolt.git",
+    "coherent_lasers @ git+https://github.com/AllenNeuralDynamics/coherent_lasers.git",
+    "vortran_laser @ git+https://github.com/AllenNeuralDynamics/vortran_laser.git",
+    "oxxius_laser @ git+https://github.com/AllenNeuralDynamics/oxxius_laser.git",
+    # "obis_laser @ git+https://github.com/AllenNeuralDynamics/obis-laser.git"
 ]
 
-#cameras = [
-#    'egrabber >= 0.0.2',
-#]
-#lasers = [
-#    'pycobolt @ git+https://github.com/cobolt-lasers/pycobolt.git',
-#    'coherent_lasers @ git+https://github.com/AllenNeuralDynamics/coherent_lasers.git',
-#    'vortran_laser @ git+https://github.com/AllenNeuralDynamics/vortran_laser.git',
-#    'oxxius_laser @ git+https://github.com/AllenNeuralDynamics/oxxius_laser.git',
-#    'obis_laser @ git+https://github.com/AllenNeuralDynamics/obis_laser.git',
-#]
+dev = [
+    "pytest>=8.1.1,<9",
+    "black",
+    "coverage",
+    "flake8",
+    "interrogate",
+    "isort",
+    "Sphinx",
+    "furo",
+]
 
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.setuptools.dynamic]
-version = { attr = "voxel.__version__" }
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
 
 [tool.black]
+src = "voxel"
 line-length = 120
-target_version = ['py36']
+target_version = ["py36"]
 exclude = '''
 
 (

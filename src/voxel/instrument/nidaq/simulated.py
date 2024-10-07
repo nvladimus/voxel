@@ -35,7 +35,7 @@ class SimulatedNIDAQ(VoxelDAQ):
 
     @property
     def ao_physical_chans(self) -> List[str]:
-        ports = [ 'ao0', 'ao1', 'ao2', 'ao3', 'ao4', 'ao5', 'ao6', 'ao7', 'ao8', 'ao9', 'ao10', 'ao11', 'ao12']
+        ports = ["ao0", "ao1", "ao2", "ao3", "ao4", "ao5", "ao6", "ao7", "ao8", "ao9", "ao10", "ao11", "ao12"]
         return [f"{self.device_name}/{port}" for port in ports]
 
     @property

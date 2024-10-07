@@ -68,7 +68,7 @@ class Volume:
         return Vec3D(
             self.max_corner.x - self.min_corner.x,
             self.max_corner.y - self.min_corner.y,
-            self.max_corner.z - self.min_corner.z
+            self.max_corner.z - self.min_corner.z,
         )
 
     @property
@@ -76,33 +76,42 @@ class Volume:
         return Vec3D(
             (self.min_corner.x + self.max_corner.x) / 2,
             (self.min_corner.y + self.max_corner.y) / 2,
-            (self.min_corner.z + self.max_corner.z) / 2
+            (self.min_corner.z + self.max_corner.z) / 2,
         )
 
     def contains(self, point: Vec3D) -> bool:
-        return (self.min_corner.x <= point.x <= self.max_corner.x and
-                self.min_corner.y <= point.y <= self.max_corner.y and
-                self.min_corner.z <= point.z <= self.max_corner.z)
+        return (
+            self.min_corner.x <= point.x <= self.max_corner.x
+            and self.min_corner.y <= point.y <= self.max_corner.y
+            and self.min_corner.z <= point.z <= self.max_corner.z
+        )
 
-    def intersects(self, other: 'Volume') -> bool:
-        return (self.min_corner.x <= other.max_corner.x and self.max_corner.x >= other.min_corner.x and
-                self.min_corner.y <= other.max_corner.y and self.max_corner.y >= other.min_corner.y and
-                self.min_corner.z <= other.max_corner.z and self.max_corner.z >= other.min_corner.z)
+    def intersects(self, other: "Volume") -> bool:
+        return (
+            self.min_corner.x <= other.max_corner.x
+            and self.max_corner.x >= other.min_corner.x
+            and self.min_corner.y <= other.max_corner.y
+            and self.max_corner.y >= other.min_corner.y
+            and self.min_corner.z <= other.max_corner.z
+            and self.max_corner.z >= other.min_corner.z
+        )
 
     def _set_boundary(self, attribute: str, plane: Plane):
         current_min = getattr(self.min_corner, attribute)
         current_max = getattr(self.max_corner, attribute)
         new_value = getattr(plane.min_corner, attribute)
 
-        if attribute.startswith('min'):
+        if attribute.startswith("min"):
             if new_value > current_max:
-                raise VolumeBoundaryError(f"{attribute} cannot be greater than current max_{attribute}", new_value,
-                                          current_max)
+                raise VolumeBoundaryError(
+                    f"{attribute} cannot be greater than current max_{attribute}", new_value, current_max
+                )
             setattr(self.min_corner, attribute, new_value)
         else:  # max
             if new_value < current_min:
-                raise VolumeBoundaryError(f"{attribute} cannot be less than current min_{attribute}", current_min,
-                                          new_value)
+                raise VolumeBoundaryError(
+                    f"{attribute} cannot be less than current min_{attribute}", current_min, new_value
+                )
             setattr(self.max_corner, attribute, new_value)
 
         self._notify_observers()
@@ -113,7 +122,7 @@ class Volume:
 
     @min_x.setter
     def min_x(self, plane: Plane):
-        self._set_boundary('x', plane)
+        self._set_boundary("x", plane)
 
     @property
     def max_x(self):
@@ -121,7 +130,7 @@ class Volume:
 
     @max_x.setter
     def max_x(self, plane: Plane):
-        self._set_boundary('x', plane)
+        self._set_boundary("x", plane)
 
     @property
     def min_y(self):
@@ -129,7 +138,7 @@ class Volume:
 
     @min_y.setter
     def min_y(self, plane: Plane):
-        self._set_boundary('y', plane)
+        self._set_boundary("y", plane)
 
     @property
     def max_y(self):
@@ -137,7 +146,7 @@ class Volume:
 
     @max_y.setter
     def max_y(self, plane: Plane):
-        self._set_boundary('y', plane)
+        self._set_boundary("y", plane)
 
     @property
     def min_z(self):
@@ -145,9 +154,10 @@ class Volume:
 
     @min_z.setter
     def min_z(self, plane: Plane):
-        self._set_boundary('z', plane)
+        self._set_boundary("z", plane)
         valid_min_z = self.max_corner.z - (
-                math.ceil((self.max_corner.z - self.min_corner.z) / self.step_size) * self.step_size)
+            math.ceil((self.max_corner.z - self.min_corner.z) / self.step_size) * self.step_size
+        )
         self.min_corner.z = valid_min_z
 
     @property
@@ -156,7 +166,8 @@ class Volume:
 
     @max_z.setter
     def max_z(self, plane: Plane):
-        self._set_boundary('z', plane)
-        valid_max_z = (math.ceil(
-            (self.max_corner.z - self.min_corner.z) / self.step_size) * self.step_size) + self.min_corner.z
+        self._set_boundary("z", plane)
+        valid_max_z = (
+            math.ceil((self.max_corner.z - self.min_corner.z) / self.step_size) * self.step_size
+        ) + self.min_corner.z
         self.max_corner.z = valid_max_z

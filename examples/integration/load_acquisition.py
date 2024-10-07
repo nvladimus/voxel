@@ -5,7 +5,7 @@ from voxel.instrument import VoxelInstrument, InstrumentConfig
 from voxel.instrument.nidaq.base import VoxelDAQ
 from voxel.utils.geometry.vec import Vec3D
 
-ACQUISITION_CONFIG_YAML = './example_acquisition.yaml'
+ACQUISITION_CONFIG_YAML = "./example_acquisition.yaml"
 
 
 def validate_instrument(instrument: VoxelInstrument, inst_config: InstrumentConfig):
@@ -37,8 +37,9 @@ def validate_instrument(instrument: VoxelInstrument, inst_config: InstrumentConf
         print(f"  DAQ Task: {task}")
 
         assert task.task_type == task_specs.task_type, f"Mismatch in task type for {task_name}"
-        assert task.sampling_frequency_hz == task_specs.sampling_frequency_hz, \
-            f"Mismatch in sampling frequency for {task_name}"
+        assert (
+            task.sampling_frequency_hz == task_specs.sampling_frequency_hz
+        ), f"Mismatch in sampling frequency for {task_name}"
         assert task.period_time_ms == task_specs.period_time_ms, f"Mismatch in period time for {task_name}"
         assert task.rest_time_ms == task_specs.rest_time_ms, f"Mismatch in rest time for {task_name}"
 
@@ -48,8 +49,8 @@ def validate_instrument(instrument: VoxelInstrument, inst_config: InstrumentConf
         if device_spec.daq_channel:
             device = instrument.devices.get(device_name)
             assert device is not None, f"Device {device_name} not found"
-            assert hasattr(device, 'daq_task'), f"Device {device_name} missing daq_task attribute"
-            assert hasattr(device, 'daq_channel'), f"Device {device_name} missing daq_channel attribute"
+            assert hasattr(device, "daq_task"), f"Device {device_name} missing daq_task attribute"
+            assert hasattr(device, "daq_channel"), f"Device {device_name} missing daq_channel attribute"
             print(f"  Device {device_name} DAQ channel: {device.daq_channel}")
 
     # Test writers

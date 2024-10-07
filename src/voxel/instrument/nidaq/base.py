@@ -65,7 +65,7 @@ class VoxelDAQ(VoxelDevice):
         pass
 
     @abstractmethod
-    def register_task(self, task: 'DAQTask'):
+    def register_task(self, task: "DAQTask"):
         pass
 
     @abstractmethod

@@ -5,13 +5,11 @@ from typing import Optional
 import numpy as np
 from PIL import Image, ImageTk
 
-from voxel.instrument.devices.camera.simulated import ImageModel
-from voxel.instrument.devices.camera.simulated import SimulatedCamera
-from voxel.instrument.devices.camera.simulated.simulated_hardware import ImageModelParams
+from voxel.instrument.drivers.cameras.simulated import SimulatedCamera, ImageModelParams
 
 
 class FrameStreamApp(tk.Tk):
-    def __init__(self, camera: SimulatedCamera, duration: Optional[float] = None):
+    def __init__(self, camera: SimulatedCamera, duration: Optional[float] = None) -> None:
         super().__init__()
 
         self.camera = camera

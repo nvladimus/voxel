@@ -1,15 +1,10 @@
-from typing import Dict, Optional, Tuple
-
-from voxel.instrument._config import InstrumentConfig
-from voxel.instrument._definitions import VoxelDeviceType
 from voxel.instrument.channel import VoxelChannel
-from voxel.instrument.device import VoxelDevice
+from voxel.instrument.devices import VoxelDevice, VoxelDeviceType
 from voxel.instrument.devices.camera import VoxelCamera
 from voxel.instrument.devices.filter import VoxelFilter
 from voxel.instrument.devices.laser import VoxelLaser
 from voxel.instrument.devices.lens import VoxelLens
-from voxel.instrument.devices.linear_axis import LinearAxisDimension
-from voxel.instrument.devices.linear_axis import VoxelLinearAxis
+from voxel.instrument.devices.linear_axis import LinearAxisDimension, VoxelLinearAxis
 from voxel.instrument.file_transfers.base import VoxelFileTransfer
 from voxel.instrument.nidaq import VoxelNIDAQ
 from voxel.instrument.writers import VoxelWriter
@@ -18,7 +13,7 @@ from voxel.utils.logging import get_logger
 
 
 class VoxelStage:
-    def __init__(self, x: VoxelLinearAxis, y: VoxelLinearAxis, z: Optional[VoxelLinearAxis] = None):
+    def __init__(self, x: VoxelLinearAxis, y: VoxelLinearAxis, z: VoxelLinearAxis | None = None):
         self.x = x
         self.y = y
         self.z = z
@@ -28,26 +23,28 @@ class VoxelStage:
         return Vec3D(self.x.position_mm, self.y.position_mm, self.z.position_mm or 0)
 
     @property
-    def limits_mm(self) -> Tuple[Vec3D, Vec3D]:
-        return Vec3D(self.x.lower_limit_mm, self.y.lower_limit_mm, self.z.lower_limit_mm or 0), \
-            Vec3D(self.x.upper_limit_mm, self.y.upper_limit_mm, self.z.upper_limit_mm or 0)
+    def limits_mm(self) -> tuple[Vec3D, Vec3D]:
+        return Vec3D(self.x.lower_limit_mm, self.y.lower_limit_mm, self.z.lower_limit_mm or 0), Vec3D(
+            self.x.upper_limit_mm, self.y.upper_limit_mm, self.z.upper_limit_mm or 0
+        )
 
 
 class VoxelInstrument:
 
-    def __init__(self,
-                 devices: Dict[str, VoxelDevice],
-                 channels: Optional[Dict[str, VoxelChannel]] = None,
-                 writers: Optional[Dict[str, VoxelWriter]] = None,
-                 file_transfers: Optional[Dict[str, VoxelFileTransfer]] = None,
-                 name: Optional[str] = None,
-                 config: Optional[InstrumentConfig] = None,
-                 daq: Optional[VoxelNIDAQ] = None,
-                 **kwds
-                 ):
+    def __init__(
+            self,
+            devices: dict[str, VoxelDevice],
+            channels: dict[str, VoxelChannel] | None = None,
+            writers: dict[str, VoxelWriter] | None = None,
+            file_transfers: dict[str, VoxelFileTransfer] | None = None,
+            name: str | None = None,
+            build_settings=None,
+            daq: VoxelNIDAQ | None = None,
+            **kwds,
+    ):
         self.log = get_logger(self.__class__.__name__)
         self.name = name
-        self.config = config
+        self.build_settings = build_settings
         self.devices = devices
         self.writers = writers
         self.file_transfers = file_transfers
@@ -60,12 +57,8 @@ class VoxelInstrument:
         self.apply_build_settings()
 
     def __repr__(self):
-        devices_str = '\n\t - '.join([f"{device}" for device in self.devices.values()])
-        return (
-            f"{self.__class__.__name__} "
-            f"Devices: \n\t - "
-            f"{devices_str} \n"
-        )
+        devices_str = "\n\t - ".join([f"{device}" for device in self.devices.values()])
+        return f"{self.__class__.__name__} " f"Devices: \n\t - " f"{devices_str} \n"
 
     def activate_channel(self, channel_name: str):
         if not self.channels:
@@ -73,8 +66,10 @@ class VoxelInstrument:
         channel = self.channels[channel_name]
         for device_name in channel.devices.keys():
             if self.active_devices[device_name]:
-                self.log.error(f"Unable to activate channel {channel_name}. "
-                               f"Device {device_name} is possibly in use by another channel.")
+                self.log.error(
+                    f"Unable to activate channel {channel_name}. "
+                    f"Device {device_name} is possibly in use by another channel."
+                )
                 return
         channel.activate()
         self.active_devices.update({device_name: True for device_name in channel.devices.keys()})
@@ -87,7 +82,7 @@ class VoxelInstrument:
         self.active_devices.update({device_name: False for device_name in channel.devices.keys()})
 
     @property
-    def cameras(self) -> Dict[str, VoxelCamera]:
+    def cameras(self) -> dict[str, VoxelCamera]:
         cameras = {}
         for name, device in self.devices.items():
             if device.device_type == VoxelDeviceType.CAMERA:
@@ -96,7 +91,7 @@ class VoxelInstrument:
         return cameras
 
     @property
-    def lenses(self) -> Dict[str, VoxelLens]:
+    def lenses(self) -> dict[str, VoxelLens]:
         lenses = {}
         for name, device in self.devices.items():
             if device.device_type == VoxelDeviceType.LENS:
@@ -105,7 +100,7 @@ class VoxelInstrument:
         return lenses
 
     @property
-    def lasers(self) -> Dict[str, VoxelLaser]:
+    def lasers(self) -> dict[str, VoxelLaser]:
         lasers = {}
         for name, device in self.devices.items():
             if device.device_type == VoxelDeviceType.LASER:
@@ -114,7 +109,7 @@ class VoxelInstrument:
         return lasers
 
     @property
-    def filters(self) -> Dict[str, VoxelFilter]:
+    def filters(self) -> dict[str, VoxelFilter]:
         filters = {}
         for name, device in self.devices.items():
             if device.device_type == VoxelDeviceType.FILTER:
@@ -123,13 +118,11 @@ class VoxelInstrument:
         return filters
 
     def apply_build_settings(self):
-        if self.config:
-            settings = self.config.settings
-            if settings:
-                for name, device_settings in settings.items():
-                    instance = self.devices[name]
-                    if instance:
-                        instance.apply_settings(device_settings)
+        if self.build_settings:
+            for name, device_settings in self.build_settings.items():
+                instance = self.devices[name]
+                if instance:
+                    instance.apply_settings(device_settings)
 
     def validate_device_names(self):
         for key, device in self.devices.items():
