@@ -118,28 +118,3 @@ def plot_scan_path(scan_path: List[Vec2D], title: str):
 
     plt.tight_layout()
     plt.show()
-
-# Example usage
-# if __name__ == "__main__":
-#     # Define grid size
-#     grid_size = Vec2D(5, 4)
-#
-#     # Generate different scan paths
-#     generators = [
-#         ScanPathGenerator(),
-#         ScanPathGenerator(ScanPattern.SERPENTINE),
-#         ScanPathGenerator(ScanPattern.SPIRAL),
-#         ScanPathGenerator(ScanPattern.SERPENTINE, ScanDirection.COLUMN_WISE, StartCorner.BOTTOM_RIGHT, reverse=True)
-#     ]
-#
-#     titles = [
-#         "Raster Scan (Row-wise, Top-Left Start)",
-#         "Serpentine Scan (Row-wise, Top-Left Start)",
-#         "Spiral Scan (Top-Left Start)",
-#         "Reversed Column-wise Serpentine (Bottom-Right Start)"
-#     ]
-#
-#     # Generate and plot each scan path
-#     for generator, title in zip(generators, titles):
-#         scan_path = generator.generate_path(grid_size)
-#         plot_scan_path(scan_path, title)

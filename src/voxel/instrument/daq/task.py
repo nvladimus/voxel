@@ -8,11 +8,11 @@ from numpy.typing import NDArray
 from voxel.utils.descriptors.deliminated_property import deliminated_property
 from voxel.utils.descriptors.enumerated_property import enumerated_property
 from voxel.instrument.devices import VoxelDevice
-from voxel.instrument.nidaq.base import VoxelDAQ
-from voxel.instrument.nidaq.channel import DAQTaskChannel, DAQTaskTiming, DAQWaveform
+from voxel.instrument.daq.base import VoxelDAQ
+from voxel.instrument.daq.channel import DAQTaskChannel, DAQTaskTiming, DAQWaveform
 
 if TYPE_CHECKING:
-    from voxel.instrument.nidaq.ni import HardwareTask
+    from voxel.instrument.daq.ni import HardwareTask
 
 
 class DAQTaskType(StrEnum):

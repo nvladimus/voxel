@@ -1,5 +1,5 @@
-from .instrument_factory import InstrumentConfig, InstrumentFactory
-from .acquisition_factory import AcquisitionConfig, AcquisitionFactory
+from ..instrument.factory import InstrumentConfig, InstrumentFactory
+from ..acquisition.factory import AcquisitionConfig, AcquisitionFactory
 
 all = [
     InstrumentConfig,

@@ -28,6 +28,7 @@ dependencies = [
     "tifffile>=2024.9.20",
     # processing
     "gputools >= 0.2.14",
+    "fast-histogram >= 0.14",
     # utils
     "sympy >= 1.12.1",
 ]

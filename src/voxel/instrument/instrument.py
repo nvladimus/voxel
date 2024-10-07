@@ -1,32 +1,15 @@
 from voxel.instrument.channel import VoxelChannel
+from voxel.instrument.daq import VoxelNIDAQ
 from voxel.instrument.devices import VoxelDevice, VoxelDeviceType
 from voxel.instrument.devices.camera import VoxelCamera
 from voxel.instrument.devices.filter import VoxelFilter
 from voxel.instrument.devices.laser import VoxelLaser
 from voxel.instrument.devices.lens import VoxelLens
 from voxel.instrument.devices.linear_axis import LinearAxisDimension, VoxelLinearAxis
-from voxel.instrument.transfers.base import VoxelFileTransfer
-from voxel.instrument.nidaq import VoxelNIDAQ
+from voxel.instrument.stage import VoxelStage
+from voxel.instrument.transfers import VoxelFileTransfer
 from voxel.instrument.writers import VoxelWriter
-from voxel.utils.geometry.vec import Vec3D
 from voxel.utils.logging import get_logger
-
-
-class VoxelStage:
-    def __init__(self, x: VoxelLinearAxis, y: VoxelLinearAxis, z: VoxelLinearAxis | None = None):
-        self.x = x
-        self.y = y
-        self.z = z
-
-    @property
-    def position_mm(self) -> Vec3D:
-        return Vec3D(self.x.position_mm, self.y.position_mm, self.z.position_mm or 0)
-
-    @property
-    def limits_mm(self) -> tuple[Vec3D, Vec3D]:
-        return Vec3D(self.x.lower_limit_mm, self.y.lower_limit_mm, self.z.lower_limit_mm or 0), Vec3D(
-            self.x.upper_limit_mm, self.y.upper_limit_mm, self.z.upper_limit_mm or 0
-        )
 
 
 class VoxelInstrument:
@@ -41,7 +24,7 @@ class VoxelInstrument:
         build_settings=None,
         daq: VoxelNIDAQ | None = None,
         **kwds,
-    ):
+    ) -> None:
         self.log = get_logger(self.__class__.__name__)
         self.name = name
         self.build_settings = build_settings
@@ -56,11 +39,11 @@ class VoxelInstrument:
         self.stage = self._create_stage()
         self.apply_build_settings()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         devices_str = "\n\t - ".join([f"{device}" for device in self.devices.values()])
         return f"{self.__class__.__name__} " f"Devices: \n\t - " f"{devices_str} \n"
 
-    def activate_channel(self, channel_name: str):
+    def activate_channel(self, channel_name: str) -> None:
         if not self.channels:
             return
         channel = self.channels[channel_name]
@@ -74,7 +57,7 @@ class VoxelInstrument:
         channel.activate()
         self.active_devices.update({device_name: True for device_name in channel.devices.keys()})
 
-    def deactivate_channel(self, channel_name: str):
+    def deactivate_channel(self, channel_name: str) -> None:
         if not self.channels:
             return
         channel = self.channels[channel_name]

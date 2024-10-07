@@ -1,11 +1,7 @@
-from voxel.acquisition.config import AcquisitionConfig, AcquisitionFactory
-from voxel.acquisition.manager import VoxelAcquisitionManager
-from voxel.acquisition.model.scan_path import plot_scan_path
-from voxel.instrument import VoxelInstrument, InstrumentConfig
-from voxel.instrument.nidaq.base import VoxelDAQ
-from voxel.utils.geometry.vec import Vec3D
+from voxel.instrument import VoxelInstrument, InstrumentConfig, InstrumentFactory
+from voxel.instrument.daq.base import VoxelDAQ
 
-ACQUISITION_CONFIG_YAML = "./example_acquisition.yaml"
+INSTRUMENT_CONFIG_YAML = "./example_instrument.yaml"
 
 
 def validate_instrument(instrument: VoxelInstrument, inst_config: InstrumentConfig):
@@ -71,41 +67,25 @@ def validate_instrument(instrument: VoxelInstrument, inst_config: InstrumentConf
 def main():
     # Step 1: Load the configuration from YAML file
     print("Loading configuration from YAML file...")
-    acq_config = AcquisitionConfig.from_file(ACQUISITION_CONFIG_YAML)
-    print(f"Configuration loaded: {acq_config}")
+    inst_config = InstrumentConfig.from_yaml(INSTRUMENT_CONFIG_YAML)
+    print(f"Configuration loaded: {inst_config}")
 
-    # step 2: Create an acquisition factory with the loaded configuration
-    print("\nCreating acquisition factory...")
-    acq_factory = AcquisitionFactory(acq_config)
+    # Step 2: Create an instrument factory with the loaded configuration
+    print("\nCreating instrument factory...")
+    instrument_factory = InstrumentFactory(inst_config)
 
-    # Step 3: Use the factory to create the acquisition
-    print("\nCreating acquisition...")
-    acq = acq_factory.load_acquisition()
+    # Step 3: Use the factory to create the instrument
+    print("\nCreating instrument...")
+    instrument: VoxelInstrument = instrument_factory.create_instrument()
+    print(f"Instrument created: {instrument}")
 
-    print(f"Acquisition created: {acq}")
+    # Step 4: Use instrument: In this example we will validate the created instrument
+    print("\nValidating instrument...")
+    validate_instrument(instrument, inst_config)
 
-    # Step 4: modify acquisition volume
-    acq.volume.min_corner = Vec3D(0, 0, 0)
-    acq.volume.max_corner = Vec3D(100, 100, 50)
-
-    # plot scan path
-    # plot_scan_path(acq.plan.scan_path, "Scan Path")
-
-    # step 5: Save the acquisition plan to a YAML file
-    print("\nSaving acquisition plan to YAML file...")
-    acq.save_to_yaml()
-
-    # Load the acquisition plan from the YAML file
-    print("\nLoading acquisition plan from YAML file...")
-    loaded_acq = VoxelAcquisitionManager.load_from_yaml(acq.instrument, ACQUISITION_CONFIG_YAML)
-
-    # plot_scan_path(loaded_acq.plan.scan_path, "Loaded Scan Path")
-
-    assert acq == loaded_acq, "Loaded acquisition does not match original acquisition"
-
-    # Step 6: Close the instrument (clean up resources)
+    # Step 5: Close the instrument (clean up resources)
     print("\nClosing instrument...")
-    acq.instrument.close()
+    instrument.close()
 
     print("\nTest completed successfully!")
 

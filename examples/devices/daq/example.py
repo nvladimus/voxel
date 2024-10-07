@@ -2,8 +2,8 @@ import time
 
 from matplotlib import pyplot as plt
 
-from voxel.instrument.nidaq import DAQWaveform, VoxelNIDAQ
-from voxel.instrument.nidaq.task import DAQTask, DAQTaskType
+from voxel.instrument.daq import DAQWaveform, VoxelNIDAQ
+from voxel.instrument.daq.task import DAQTask, DAQTaskType
 
 USE_SIMULATED = False
 DEVICE_NAME = "Dev1"

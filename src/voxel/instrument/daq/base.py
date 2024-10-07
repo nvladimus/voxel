@@ -4,7 +4,7 @@ from typing import List, Tuple, TYPE_CHECKING, Dict
 from voxel.instrument.device import VoxelDevice
 
 if TYPE_CHECKING:
-    from voxel.instrument.nidaq.task import DAQTask
+    from voxel.instrument.daq.task import DAQTask
 
 
 # Extras

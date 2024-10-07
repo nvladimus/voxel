@@ -2,24 +2,150 @@ import importlib
 import platform
 from typing import Any
 
+from ruamel.yaml import YAML
+
+from pydantic import BaseModel, Field, field_validator
+
+from voxel.instrument.daq import VoxelDAQ
 from voxel.utils.logging import get_logger
-from voxel.factory.instrument_config import InstrumentConfig, InstanceSpec
 from voxel.instrument.channel import VoxelChannel
 from voxel.instrument.devices.drivers import VoxelDevice
 from voxel.instrument.transfers import VoxelFileTransfer
 from voxel.instrument.instrument import VoxelInstrument
-from voxel.instrument.nidaq import VoxelNIDAQ
-from voxel.instrument.nidaq.simulated import SimulatedNIDAQ
-from voxel.instrument.nidaq.task import DAQTask, DAQTaskType
+from voxel.instrument.daq import VoxelNIDAQ
+from voxel.instrument.daq.simulated import SimulatedNIDAQ
+from voxel.instrument.daq.task import DAQTask, DAQTaskType
 from voxel.instrument.writers import VoxelWriter
 
 
+class DAQTaskSpecs(BaseModel):
+    task_type: str
+    sampling_frequency_hz: int
+    period_time_ms: float
+    rest_time_ms: float
+
+
+class DAQSpecs(BaseModel):
+    conn: str
+    tasks: dict[str, DAQTaskSpecs]
+    simulated: bool = False
+
+
+class DeviceSpec(BaseModel):
+    module: str
+    class_name: str = Field(..., alias="class")
+    kwds: dict[str, Any] = {}
+    daq_channel: dict[str, Any] | None = None
+
+
+class WriterSpec(BaseModel):
+    module: str
+    class_name: str = Field(..., alias="class")
+    kwds: dict[str, Any] = {}
+
+
+class FileTransferSpec(BaseModel):
+    module: str
+    class_name: str = Field(..., alias="class")
+    kwds: dict[str, Any] = {}
+
+
+class ChannelSpec(BaseModel):
+    camera: str
+    lens: str
+    laser: str
+    writer: str
+    filter_: str = Field(None, alias="filter")
+    writer: str
+    file_transfer: str
+
+
+type InstanceSpec = DeviceSpec | WriterSpec | FileTransferSpec
+
+
+class InstrumentConfigError(Exception):
+    pass
+
+
+class InstrumentConfig(BaseModel):
+    """Instrument configuration class."""
+
+    name: str
+    description: str | None = None
+    module: str = "voxel.instrument.instrument"
+    class_name: str = Field("VoxelInstrument", alias="class")
+    instrument_kwds: dict[str, Any] = Field(default_factory=dict)
+    daq: DAQSpecs
+    devices: dict[str, DeviceSpec]
+    writers: dict[str, WriterSpec] = {}
+    file_transfers: dict[str, FileTransferSpec] = Field({}, alias="transfers")
+    channels: dict[str, ChannelSpec] = {}
+    settings: dict[str, dict[str, Any]] = {}
+
+    @classmethod
+    @field_validator("name")
+    def sanitize_name(cls, v):
+        return v.lower().replace(" ", "_")
+
+    @classmethod
+    @field_validator("settings")
+    def validate_devices_in_settings(cls, v, info):
+        devices = info.data.get("devices", {})
+        for device_name in v:
+            if device_name not in devices:
+                raise ValueError(
+                    f"Device {device_name} in settings not found in devices"
+                )
+        return v
+
+    @classmethod
+    @field_validator("channels")
+    def validate_channel_items(cls, v, info):
+        items = (
+            info.data.get("devices", {})
+            | info.data.get("writers", {})
+            | info.data.get("transfers", {})
+        )
+        for channel_name, channel in v.items():
+            for item_name in [
+                "camera",
+                "lens",
+                "laser",
+                "writer",
+                "filter",
+                "transfer",
+            ]:
+                if channel[item_name] not in items:
+                    raise ValueError(
+                        f"Item {channel[item_name]} in channel {channel_name} not found in devices, "
+                        f"writers or transfers"
+                    )
+
+    @classmethod
+    def from_yaml(cls, config_file: str) -> 'InstrumentConfig':
+        try:
+            yaml = YAML(typ="safe", pure=True)
+            with open(config_file, "r") as f:
+                config_data = yaml.load(f)
+            return cls(**config_data)
+        except Exception as e:
+            raise ValueError(f"Error loading configuration: {e}")
+
+    def __post_init__(self, **data):
+        super().__init__(**data)
+        self.log = get_logger(self.__class__.__name__)
+
+    def __repr__(self):
+        return f"InstrumentConfig(name={self.name}, devices={len(self.devices)})"
+
+
+
 class InstrumentFactory:
-    def __init__(self, config: InstrumentConfig):
+    def __init__(self, config: InstrumentConfig) -> None:
         self.log = get_logger(self.__class__.__name__)
         self._config = config
 
-    def create_instrument(self):
+    def create_instrument(self) -> VoxelInstrument:
         devices = self.create_devices()
         writers = self.create_writers()
         file_transfers = self.create_file_transfers()
@@ -167,3 +293,63 @@ class InstrumentFactory:
                 raise
 
         return register[instance_name]
+
+
+def validate_instrument(instrument: VoxelInstrument, inst_config: InstrumentConfig):
+    print(f"Testing Instrument: {instrument.name}...")
+
+    # Test general device creation
+    assert len(instrument.devices) == len(inst_config.devices), "Not all devices were created"
+
+    # Test specific device types
+    print("\nTesting Cameras:")
+    for camera in instrument.cameras.values():
+        print(f"  Camera: {camera}")
+        assert camera.name in inst_config.devices, f"Camera {camera.name} not in config"
+
+    print("\nTesting Lasers:")
+    for laser in instrument.lasers.values():
+        print(f"  Laser: {laser}")
+        assert laser.name in inst_config.devices, f"Laser {laser.name} not in config"
+
+    # Test DAQ and tasks
+    print("\nTesting DAQ and Tasks:")
+    daq = instrument.daq
+    assert isinstance(daq, VoxelDAQ), "DAQ is not a VoxelNIDAQ"
+    print(f"  DAQ: {daq}")
+
+    for task_name, task_specs in inst_config.daq.tasks.items():
+        task = daq.tasks.get(task_name)
+        assert task is not None, f"DAQ Task {task_name} not found"
+        print(f"  DAQ Task: {task}")
+
+        assert task.task_type == task_specs.task_type, f"Mismatch in task type for {task_name}"
+        assert (
+            task.sampling_frequency_hz == task_specs.sampling_frequency_hz
+        ), f"Mismatch in sampling frequency for {task_name}"
+        assert task.period_time_ms == task_specs.period_time_ms, f"Mismatch in period time for {task_name}"
+        assert task.rest_time_ms == task_specs.rest_time_ms, f"Mismatch in rest time for {task_name}"
+
+    # Test DAQ channels
+    print("\nTesting DAQ Channels:")
+    for device_name, device_spec in inst_config.devices.items():
+        if device_spec.daq_channel:
+            device = instrument.devices.get(device_name)
+            assert device is not None, f"Device {device_name} not found"
+            assert hasattr(device, "daq_task"), f"Device {device_name} missing daq_task attribute"
+            assert hasattr(device, "daq_channel"), f"Device {device_name} missing daq_channel attribute"
+            print(f"  Device {device_name} DAQ channel: {device.daq_channel}")
+
+    # Test writers
+    print("\nTesting Writers:")
+    for writer_name in inst_config.writers:
+        assert writer_name in instrument.writers, f"Writer {writer_name} not created"
+        print(f"  Writer: {instrument.writers[writer_name]}")
+
+    # Test file transfers
+    print("\nTesting File Transfers:")
+    for transfer_name in inst_config.file_transfers:
+        assert transfer_name in instrument.file_transfers, f"File transfer {transfer_name} not created"
+        print(f"  File Transfer: {instrument.file_transfers[transfer_name]}")
+
+    print("\nAll tests passed successfully!")

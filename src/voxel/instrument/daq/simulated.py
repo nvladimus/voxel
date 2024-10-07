@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict
 
-from voxel.instrument.nidaq import DAQTask, DAQTaskType
-from voxel.instrument.nidaq.base import VoxelDAQ
+from voxel.instrument.daq import DAQTask, DAQTaskType
+from voxel.instrument.daq.base import VoxelDAQ
 
 
 class SimulatedHardwareTask:

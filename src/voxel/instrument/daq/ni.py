@@ -5,8 +5,8 @@ import nidaqmx
 import numpy as np
 from nidaqmx.constants import AcquisitionType, Edge, Level, TaskMode
 
-from voxel.instrument.nidaq.base import VoxelDAQ
-from voxel.instrument.nidaq.task import DAQTask, DAQTaskType, DAQTaskChannel, DAQTaskTriggerMode, DAQTaskTriggerEdge, \
+from voxel.instrument.daq.base import VoxelDAQ
+from voxel.instrument.daq.task import DAQTask, DAQTaskType, DAQTaskChannel, DAQTaskTriggerMode, DAQTaskTriggerEdge, \
     DAQTaskSampleMode
 
 # Extras

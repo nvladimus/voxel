@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Any
 
 from pydantic import BaseModel, Field
 from ruamel.yaml import YAML
@@ -13,14 +13,14 @@ from voxel.utils.logging import get_logger
 class MetadataSpecs(BaseModel):
     module: str
     class_name: str = Field(..., alias="class")
-    kwds: Dict[str, Any] = {}
+    kwds: dict[str, Any] = {}
 
 
 class AcquisitionConfig(BaseModel):
     instrument: str
     specs: AcquisitionSpecs
     metadata: MetadataSpecs
-    channels: List[str]
+    channels: list[str]
 
     @classmethod
     def from_file(cls, file_path: str) -> "AcquisitionConfig":
