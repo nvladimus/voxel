@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
 from ruamel.yaml import YAML
@@ -15,27 +15,27 @@ class DAQTaskSpecs(BaseModel):
 
 class DAQSpecs(BaseModel):
     conn: str
-    tasks: Dict[str, DAQTaskSpecs]
+    tasks: dict[str, DAQTaskSpecs]
     simulated: bool = False
 
 
 class DeviceSpec(BaseModel):
     module: str
     class_name: str = Field(..., alias="class")
-    kwds: Dict[str, Any] = {}
-    daq_channel: Optional[Dict[str, Any]] = None
+    kwds: dict[str, Any] = {}
+    daq_channel: Optional[dict[str, Any]] = None
 
 
 class WriterSpec(BaseModel):
     module: str
     class_name: str = Field(..., alias="class")
-    kwds: Dict[str, Any] = {}
+    kwds: dict[str, Any] = {}
 
 
 class FileTransferSpec(BaseModel):
     module: str
     class_name: str = Field(..., alias="class")
-    kwds: Dict[str, Any] = {}
+    kwds: dict[str, Any] = {}
 
 
 class ChannelSpec(BaseModel):
@@ -62,13 +62,13 @@ class InstrumentConfig(BaseModel):
     description: Optional[str] = None
     module: str = "voxel.instrument.instrument"
     class_name: str = Field("VoxelInstrument", alias="class")
-    instrument_kwds: Dict[str, Any] = Field(default_factory=dict)
+    instrument_kwds: dict[str, Any] = Field(default_factory=dict)
     daq: DAQSpecs
-    devices: Dict[str, DeviceSpec]
-    writers: Dict[str, WriterSpec] = {}
-    file_transfers: Dict[str, FileTransferSpec] = Field({}, alias="transfers")
-    channels: Dict[str, ChannelSpec] = {}
-    settings: Dict[str, Dict[str, Any]] = {}
+    devices: dict[str, DeviceSpec]
+    writers: dict[str, WriterSpec] = {}
+    file_transfers: dict[str, FileTransferSpec] = Field({}, alias="transfers")
+    channels: dict[str, ChannelSpec] = {}
+    settings: dict[str, dict[str, Any]] = {}
 
     @classmethod
     @field_validator("name")

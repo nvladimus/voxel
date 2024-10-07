@@ -1,12 +1,12 @@
 import importlib
 import platform
-from typing import Dict, Any
+from typing import Any
 
 from voxel.utils.logging import get_logger
 from voxel.factory.instrument_config import InstrumentConfig, InstanceSpec
 from voxel.instrument.channel import VoxelChannel
-from voxel.instrument.drivers import VoxelDevice
-from voxel.instrument.file_transfers import VoxelFileTransfer
+from voxel.instrument.devices.drivers import VoxelDevice
+from voxel.instrument.transfers import VoxelFileTransfer
 from voxel.instrument.instrument import VoxelInstrument
 from voxel.instrument.nidaq import VoxelNIDAQ
 from voxel.instrument.nidaq.simulated import SimulatedNIDAQ
@@ -42,13 +42,13 @@ class InstrumentFactory:
             **kwds,
         )
 
-    def create_devices(self) -> Dict[str, VoxelDevice]:
+    def create_devices(self) -> dict[str, VoxelDevice]:
         return self._create_multiple_instances(self._config.devices)
 
-    def create_writers(self) -> Dict[str, VoxelWriter]:
+    def create_writers(self) -> dict[str, VoxelWriter]:
         return self._create_multiple_instances(self._config.writers)
 
-    def create_file_transfers(self) -> Dict[str, VoxelFileTransfer]:
+    def create_file_transfers(self) -> dict[str, VoxelFileTransfer]:
         return self._create_multiple_instances(self._config.file_transfers)
 
     def create_daq(self, device_specs, devices) -> VoxelNIDAQ:
@@ -104,7 +104,7 @@ class InstrumentFactory:
 
     def create_channels(
         self, devices, writers, file_transfers
-    ) -> Dict[str, VoxelChannel]:
+    ) -> dict[str, VoxelChannel]:
         """
         Create a channel instance and return the channel name and instance.
         :param devices: Dictionary of devices created by the factory
@@ -126,7 +126,7 @@ class InstrumentFactory:
             )
         return channels
 
-    def _create_multiple_instances(self, specs) -> Dict[str, Any]:
+    def _create_multiple_instances(self, specs) -> dict[str, Any]:
         register = {}
         for instance_name in specs:
             register[instance_name] = self._create_instance(
@@ -137,8 +137,8 @@ class InstrumentFactory:
     def _create_instance(
         self,
         instance_name: str,
-        instances_spec: Dict[str, InstanceSpec],
-        register: Dict[str, Any],
+        instances_spec: dict[str, InstanceSpec],
+        register: dict[str, Any],
     ):
         if instance_name not in register:
             instance_spec = instances_spec[instance_name]

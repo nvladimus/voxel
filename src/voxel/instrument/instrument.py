@@ -5,7 +5,7 @@ from voxel.instrument.devices.filter import VoxelFilter
 from voxel.instrument.devices.laser import VoxelLaser
 from voxel.instrument.devices.lens import VoxelLens
 from voxel.instrument.devices.linear_axis import LinearAxisDimension, VoxelLinearAxis
-from voxel.instrument.file_transfers.base import VoxelFileTransfer
+from voxel.instrument.transfers.base import VoxelFileTransfer
 from voxel.instrument.nidaq import VoxelNIDAQ
 from voxel.instrument.writers import VoxelWriter
 from voxel.utils.geometry.vec import Vec3D
@@ -32,15 +32,15 @@ class VoxelStage:
 class VoxelInstrument:
 
     def __init__(
-            self,
-            devices: dict[str, VoxelDevice],
-            channels: dict[str, VoxelChannel] | None = None,
-            writers: dict[str, VoxelWriter] | None = None,
-            file_transfers: dict[str, VoxelFileTransfer] | None = None,
-            name: str | None = None,
-            build_settings=None,
-            daq: VoxelNIDAQ | None = None,
-            **kwds,
+        self,
+        devices: dict[str, VoxelDevice],
+        channels: dict[str, VoxelChannel] | None = None,
+        writers: dict[str, VoxelWriter] | None = None,
+        file_transfers: dict[str, VoxelFileTransfer] | None = None,
+        name: str | None = None,
+        build_settings=None,
+        daq: VoxelNIDAQ | None = None,
+        **kwds,
     ):
         self.log = get_logger(self.__class__.__name__)
         self.name = name

@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from subprocess import DEVNULL, Popen
 
-from voxel.instrument.file_transfers.base import VoxelFileTransfer
+from voxel.instrument.transfers.base import VoxelFileTransfer
 
 
 class RobocopyFileTransfer(VoxelFileTransfer):
