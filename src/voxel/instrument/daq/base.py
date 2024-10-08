@@ -4,7 +4,7 @@ from typing import List, Tuple, TYPE_CHECKING, Dict
 from voxel.instrument.device import VoxelDevice
 
 if TYPE_CHECKING:
-    from voxel.instrument.daq.task import DAQTask
+    from voxel.instrument.daq.task import VoxelDAQTask
 
 
 # Extras
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class VoxelDAQ(VoxelDevice):
     def __init__(self, name: str):
         super().__init__(name)
-        self.tasks: Dict[str, DAQTask] = {}
+        self.tasks: Dict[str, VoxelDAQTask] = {}
 
     @property
     @abstractmethod
@@ -65,7 +65,7 @@ class VoxelDAQ(VoxelDevice):
         pass
 
     @abstractmethod
-    def register_task(self, task: "DAQTask"):
+    def register_task(self, task: "VoxelDAQTask"):
         pass
 
     @abstractmethod

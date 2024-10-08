@@ -20,10 +20,6 @@ metadata:
         - instrument_name
         - subject_id
 
-channels:
-  - red
-  - green
-
 specs:
   z_step_size: 0.5
   tile_overlap: 0.15
@@ -34,6 +30,9 @@ specs:
   volume_min_corner: (0, 0, 0)
   volume_max_corner: (114.24, 114.24, 50)
   file_path: ./example_acquisition.yaml
+  channels:
+    - red
+    - green
 
 plan:
   frame_stacks:
@@ -112,4 +111,3 @@ plan:
     - (0, 2)
     - (1, 2)
     - (2, 2)
-

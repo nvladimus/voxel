@@ -20,7 +20,6 @@ class AcquisitionConfig(BaseModel):
     instrument: str
     specs: AcquisitionSpecs
     metadata: MetadataSpecs
-    channels: list[str]
 
     @classmethod
     def from_file(cls, file_path: str) -> "AcquisitionConfig":
@@ -36,7 +35,8 @@ class AcquisitionConfig(BaseModel):
 
 
 class AcquisitionFactory:
-    def __init__(self, config: AcquisitionConfig) -> None:
+    def __init__(self, config: AcquisitionConfig, instrument: VoxelInstrument | None = None) -> None:
+        self.instrument
         self.config = config
         self.log = get_logger(self.__class__.__name__)
 

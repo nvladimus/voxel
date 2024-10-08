@@ -9,12 +9,12 @@ from pydantic import BaseModel, Field, field_validator
 from voxel.instrument.daq import VoxelDAQ
 from voxel.utils.logging import get_logger
 from voxel.instrument.channel import VoxelChannel
-from voxel.instrument.devices.drivers import VoxelDevice
+from voxel.instrument.device.drivers import VoxelDevice
 from voxel.instrument.transfers import VoxelFileTransfer
 from voxel.instrument.instrument import VoxelInstrument
 from voxel.instrument.daq import VoxelNIDAQ
 from voxel.instrument.daq.simulated import SimulatedNIDAQ
-from voxel.instrument.daq.task import DAQTask, DAQTaskType
+from voxel.instrument.daq.task import VoxelDAQTask, DAQTaskType
 from voxel.instrument.writers import VoxelWriter
 
 
@@ -74,7 +74,6 @@ class InstrumentConfig(BaseModel):
     description: str | None = None
     module: str = "voxel.instrument.instrument"
     class_name: str = Field("VoxelInstrument", alias="class")
-    instrument_kwds: dict[str, Any] = Field(default_factory=dict)
     daq: DAQSpecs
     devices: dict[str, DeviceSpec]
     writers: dict[str, WriterSpec] = {}
@@ -155,17 +154,15 @@ class InstrumentFactory:
         module = importlib.import_module(self._config.module)
         cls = getattr(module, self._config.class_name)
         assert issubclass(cls, VoxelInstrument), f"Class {cls} is not a VoxelInstrument"
-        kwds = self._config.instrument_kwds or {}
 
         return cls(
             name=self._config.name,
-            config=self._config,
+            build_settings=self._config.settings,
             devices=devices,
             writers=writers,
             file_transfers=file_transfers,
             channels=channels,
             daq=daq,
-            **kwds,
         )
 
     def create_devices(self) -> dict[str, VoxelDevice]:
@@ -204,7 +201,7 @@ class InstrumentFactory:
                 raise ValueError(f"Unsupported platform: {this_platform}")
         tasks = {}
         for task_name, task_specs in daq_specs.tasks.items():
-            tasks[task_name] = DAQTask(
+            tasks[task_name] = VoxelDAQTask(
                 name=task_name,
                 task_type=DAQTaskType(task_specs.task_type),
                 sampling_frequency_hz=task_specs.sampling_frequency_hz,
@@ -252,7 +249,7 @@ class InstrumentFactory:
             )
         return channels
 
-    def _create_multiple_instances(self, specs) -> dict[str, Any]:
+    def _create_multiple_instances[T](self, specs: dict[str, T]) -> dict[str, T]:
         register = {}
         for instance_name in specs:
             register[instance_name] = self._create_instance(
@@ -260,12 +257,12 @@ class InstrumentFactory:
             )
         return register
 
-    def _create_instance(
+    def _create_instance[T](
         self,
         instance_name: str,
         instances_spec: dict[str, InstanceSpec],
-        register: dict[str, Any],
-    ):
+        register: dict[str, T],
+    ) -> T:
         if instance_name not in register:
             instance_spec = instances_spec[instance_name]
             module = importlib.import_module(instance_spec.module)

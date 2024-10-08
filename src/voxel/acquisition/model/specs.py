@@ -15,6 +15,7 @@ class AcquisitionSpecs(BaseModel):
     reverse_scan_path: bool = False
     volume_min_corner: str | None = None
     volume_max_corner: str | None = None
+    channels: list[str] = ["all"]
 
     @classmethod
     @field_validator("file_path")

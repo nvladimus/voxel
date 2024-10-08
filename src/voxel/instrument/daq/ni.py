@@ -6,7 +6,7 @@ import numpy as np
 from nidaqmx.constants import AcquisitionType, Edge, Level, TaskMode
 
 from voxel.instrument.daq.base import VoxelDAQ
-from voxel.instrument.daq.task import DAQTask, DAQTaskType, DAQTaskChannel, DAQTaskTriggerMode, DAQTaskTriggerEdge, \
+from voxel.instrument.daq.task import VoxelDAQTask, DAQTaskType, VoxelDAQTaskChannel, DAQTaskTriggerMode, DAQTaskTriggerEdge, \
     DAQTaskSampleMode
 
 # Extras
@@ -26,7 +26,7 @@ class VoxelNIDAQ(VoxelDAQ):
         devices = self.get_available_devices()
         conn = conn if not simulated else next((device for device in devices if 'Sim' in device), None)
         self.device_name = conn
-        self.tasks: Dict[str, DAQTask] = {}
+        self.tasks: Dict[str, VoxelDAQTask] = {}
         self.log.info('resetting nidaq')
         self.device.reset_device()
 
@@ -80,7 +80,7 @@ class VoxelNIDAQ(VoxelDAQ):
         elif task_type == DAQTaskType.CO:
             return port in self.co_physical_chans
 
-    def register_task(self, task: DAQTask):
+    def register_task(self, task: VoxelDAQTask):
         if task.name in self.tasks:
             # If the task already exists, close and remove it
             self.tasks[task.name].hardware_task.close()
@@ -88,7 +88,7 @@ class VoxelNIDAQ(VoxelDAQ):
 
         task.hardware_task = nidaqmx.Task(task.name)
 
-        def configure_timing(task: DAQTask):
+        def configure_timing(task: VoxelDAQTask):
             samples_per_channel = int(task.sampling_frequency_hz * task.period_time_ms / 1000)
             task.hardware_task.timing.cfg_samp_clk_timing(
                 rate=task.sampling_frequency_hz,
@@ -96,7 +96,7 @@ class VoxelNIDAQ(VoxelDAQ):
                 samps_per_chan=samples_per_channel
             )
 
-        def configure_trigger(task: DAQTask):
+        def configure_trigger(task: VoxelDAQTask):
             if task.task_type == DAQTaskType.CO:
                 if task.trigger_mode == DAQTaskTriggerMode.OFF:
                     # TODO: Figure out how to pass in pulse_count
@@ -113,13 +113,13 @@ class VoxelNIDAQ(VoxelDAQ):
                     )
                     task.hardware_task.triggers.start_trigger.retriggerable = task.retriggerable
 
-        def create_ao_channel(task: DAQTask, channel: DAQTaskChannel):
+        def create_ao_channel(task: VoxelDAQTask, channel: VoxelDAQTaskChannel):
             task.hardware_task.ao_channels.add_ao_voltage_chan(f"/{self.device_name}/{channel.port}")
 
-        def create_do_channel(task: DAQTask, channel: DAQTaskChannel):
+        def create_do_channel(task: VoxelDAQTask, channel: VoxelDAQTaskChannel):
             task.hardware_task.do_channels.add_do_chan(f"/{self.device_name}/{channel.port}")
 
-        def create_co_channel(task: DAQTask, channel: DAQTaskChannel):
+        def create_co_channel(task: VoxelDAQTask, channel: VoxelDAQTaskChannel):
             task.hardware_task.co_channels.add_co_pulse_chan_freq(
                 f"/{self.device_name}/{channel.port}",
                 freq=task.waveform_frequency_hz,
@@ -180,7 +180,7 @@ class VoxelNIDAQ(VoxelDAQ):
 
     def write_task_waveforms(self, task_name: str):
 
-        def rereserve_buffer(task: DAQTask, buffer_size: int):
+        def rereserve_buffer(task: VoxelDAQTask, buffer_size: int):
             if task.hardware_task:
                 task.hardware_task.control(TaskMode.TASK_UNRESERVE)
                 task.hardware_task.out_stream.output_buf_size = buffer_size

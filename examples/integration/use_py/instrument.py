@@ -1,18 +1,18 @@
 # build.py
 
 from voxel.instrument.instrument import VoxelInstrument
-from voxel.instrument.devices.camera import SimulatedCamera
-from voxel.instrument.devices.lens import VoxelLens
-from voxel.instrument.devices.laser import SimulatedLaser
-from voxel.instrument.devices.filter import SimulatedFilter, SimulatedFilterWheel
-from voxel.instrument.devices.linear_axis import SimulatedLinearAxis, LinearAxisDimension
+from voxel.instrument.device.camera import SimulatedCamera
+from voxel.instrument.device.lens import VoxelLens
+from voxel.instrument.device.laser import SimulatedLaser
+from voxel.instrument.device.filter import SimulatedFilter, SimulatedFilterWheel
+from voxel.instrument.device.linear_axis import SimulatedLinearAxis, LinearAxisDimension
 from voxel.instrument.writers import ImarisWriter
 from voxel.instrument.transfers import RobocopyFileTransfer
-from voxel.instrument.daq import VoxelNIDAQ, DAQTask, DAQTaskType
+from voxel.instrument.daq import VoxelNIDAQ, VoxelDAQTask, DAQTaskType
 
 # Create DAQ
 daq = VoxelNIDAQ(name="example_daq", conn="Dev1", simulated=True)
-primary_ao_task = DAQTask(
+primary_ao_task = VoxelDAQTask(
     name="primary_ao_task",
     task_type=DAQTaskType.AO,
     sampling_frequency_hz=350000,

@@ -29,7 +29,7 @@ class DAQWaveform(StrEnum):
 
 
 @dataclass
-class DAQTaskTiming:
+class VoxelDAQTaskTiming:
     sampling_frequency_hz: float
     period_time_ms: float
     rest_time_ms: float
@@ -57,7 +57,7 @@ class DAQTaskTiming:
         return self.time_to_sample_index(0), self.time_to_sample_index(self.period_time_ms)
 
 
-class DAQTaskChannel(VoxelDevice):
+class VoxelDAQTaskChannel(VoxelDevice):
     """
     Configuration for a single channel of a DAQ task.
     :param name: Name of the channel.
@@ -88,7 +88,7 @@ class DAQTaskChannel(VoxelDevice):
         amplitude_volts: float,
         max_device_volts: float,
         min_device_volts: float,
-        task_timing: DAQTaskTiming,
+        task_timing: VoxelDAQTaskTiming,
         cutoff_freq_hz: float,
         start_time_ms: Optional[float] = None,
         end_time_ms: Optional[float] = None,
@@ -100,7 +100,7 @@ class DAQTaskChannel(VoxelDevice):
         self.min_device_volts = min_device_volts
         self.center_volts = center_volts
         self.amplitude_volts = amplitude_volts
-        self.timing: DAQTaskTiming = task_timing
+        self.timing: VoxelDAQTaskTiming = task_timing
         if not start_time_ms and not end_time_ms and not peak_point:
             start_time_ms = 0
             end_time_ms = self.timing.period_time_ms // 2
@@ -187,7 +187,7 @@ class DAQTaskChannel(VoxelDevice):
     def cut_off_frequency_hz(self, value: float):
         self._cut_off_frequency_hz = value
 
-    def generate_waveform(self, timing: "DAQTaskTiming", filtered: Optional[bool] = None) -> NDArray:
+    def generate_waveform(self, timing: "VoxelDAQTaskTiming", filtered: Optional[bool] = None) -> NDArray:
         """
         Generate the waveform_type based on the enum type.
 
@@ -212,7 +212,7 @@ class DAQTaskChannel(VoxelDevice):
             cut_off_frequency_hz=self.cut_off_frequency_hz,
         )
 
-    def _generate_square_waveform(self, timing: DAQTaskTiming) -> NDArray:
+    def _generate_square_waveform(self, timing: VoxelDAQTaskTiming) -> NDArray:
         samples = timing.samples_per_cycle()
         start = timing.time_to_sample_index(self.start_time_ms)
         end = timing.time_to_sample_index(self.end_time_ms)
@@ -220,7 +220,7 @@ class DAQTaskChannel(VoxelDevice):
         waveform[start:end] = self.center_volts + self.amplitude_volts
         return waveform
 
-    def _generate_triangular_waveform(self, timing: DAQTaskTiming) -> NDArray:
+    def _generate_triangular_waveform(self, timing: VoxelDAQTaskTiming) -> NDArray:
         samples = timing.samples_per_cycle()
         period_start, period_end = timing.get_period_sample_range()
         # adjust the start to the beginning of the period

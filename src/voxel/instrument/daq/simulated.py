@@ -1,6 +1,6 @@
 from typing import List, Tuple, Dict
 
-from voxel.instrument.daq import DAQTask, DAQTaskType
+from voxel.instrument.daq import VoxelDAQTask, DAQTaskType
 from voxel.instrument.daq.base import VoxelDAQ
 
 
@@ -23,7 +23,7 @@ class SimulatedNIDAQ(VoxelDAQ):
     def __init__(self, name: str, conn: str):
         super().__init__(name)
         self.device_name = conn
-        self.tasks: Dict[str, DAQTask] = {}
+        self.tasks: Dict[str, VoxelDAQTask] = {}
         self.hardware_tasks: Dict[str, SimulatedHardwareTask] = {}
 
     def __repr__(self):
@@ -72,7 +72,7 @@ class SimulatedNIDAQ(VoxelDAQ):
             return full_port in self.co_physical_chans
         return False
 
-    def register_task(self, task: DAQTask):
+    def register_task(self, task: VoxelDAQTask):
         self.tasks[task.name] = task
         self.hardware_tasks[task.name] = SimulatedHardwareTask(task.name)
         task.hardware_task = self.hardware_tasks[task.name]

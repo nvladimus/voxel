@@ -7,9 +7,9 @@ from numpy.typing import NDArray
 
 from voxel.utils.descriptors.deliminated_property import deliminated_property
 from voxel.utils.descriptors.enumerated_property import enumerated_property
-from voxel.instrument.devices import VoxelDevice
+from voxel.instrument.device import VoxelDevice
 from voxel.instrument.daq.base import VoxelDAQ
-from voxel.instrument.daq.channel import DAQTaskChannel, DAQTaskTiming, DAQWaveform
+from voxel.instrument.daq.channel import VoxelDAQTaskChannel, VoxelDAQTaskTiming, DAQWaveform
 
 if TYPE_CHECKING:
     from voxel.instrument.daq.ni import HardwareTask
@@ -36,7 +36,7 @@ class DAQTaskSampleMode(StrEnum):
     FINITE = "finite"
 
 
-class DAQTask(VoxelDevice):
+class VoxelDAQTask(VoxelDevice):
     def __init__(self, name: str, task_type: DAQTaskType, sampling_frequency_hz: float,
                  period_time_ms: float, rest_time_ms: float, daq: VoxelDAQ) -> None:
         super().__init__(name=name)
@@ -46,7 +46,7 @@ class DAQTask(VoxelDevice):
         self.period_time_ms = period_time_ms
         self.rest_time_ms = rest_time_ms
 
-        self.channels: Dict[str, DAQTaskChannel] = {}
+        self.channels: Dict[str, VoxelDAQTaskChannel] = {}
         self.hardware_task: Optional['HardwareTask'] = None
         self.sample_mode: DAQTaskSampleMode = DAQTaskSampleMode.CONTINUOUS
         self.trigger_mode: DAQTaskTriggerMode = DAQTaskTriggerMode.OFF
@@ -58,7 +58,7 @@ class DAQTask(VoxelDevice):
     def add_channel(self, name: str, port: str, waveform_type: DAQWaveform,
                     center_volts: float, amplitude_volts: float, cutoff_freq_hz: float,
                     start_time_ms: Optional[float] = None, end_time_ms: Optional[float] = None,
-                    peak_point: Optional[float] = None) -> DAQTaskChannel:
+                    peak_point: Optional[float] = None) -> VoxelDAQTaskChannel:
         if name in self.channels:
             raise ValueError(f"Channel with name '{name}' already exists in this task")
 
@@ -85,7 +85,7 @@ class DAQTask(VoxelDevice):
             raise ValueError(f"Channel '{name}' exceeds the voltage range of the device. "
                              f"Range: {self.daq.ao_voltage_range}")
 
-        channel = DAQTaskChannel(
+        channel = VoxelDAQTaskChannel(
             name=name,
             waveform_type=waveform_type,
             center_volts=center_volts,
@@ -107,7 +107,7 @@ class DAQTask(VoxelDevice):
         self.channels.pop(channel_name, None)
         self._update_task()
 
-    def get_channel(self, port: Optional[str] = None, name: Optional[str] = None) -> Optional[DAQTaskChannel]:
+    def get_channel(self, port: Optional[str] = None, name: Optional[str] = None) -> Optional[VoxelDAQTaskChannel]:
         if port:
             return self.channels.get(port, None)
         if name:
@@ -166,8 +166,8 @@ class DAQTask(VoxelDevice):
         self._rest_time_ms = value
 
     @property
-    def timing(self) -> DAQTaskTiming:
-        return DAQTaskTiming(
+    def timing(self) -> VoxelDAQTaskTiming:
+        return VoxelDAQTaskTiming(
             sampling_frequency_hz=self.sampling_frequency_hz,
             period_time_ms=self.period_time_ms,
             rest_time_ms=self.rest_time_ms

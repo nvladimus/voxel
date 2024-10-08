@@ -1,11 +1,11 @@
 from voxel.instrument.channel import VoxelChannel
 from voxel.instrument.daq import VoxelNIDAQ
-from voxel.instrument.devices import VoxelDevice, VoxelDeviceType
-from voxel.instrument.devices.camera import VoxelCamera
-from voxel.instrument.devices.filter import VoxelFilter
-from voxel.instrument.devices.laser import VoxelLaser
-from voxel.instrument.devices.lens import VoxelLens
-from voxel.instrument.devices.linear_axis import LinearAxisDimension, VoxelLinearAxis
+from voxel.instrument.device import VoxelDevice, VoxelDeviceType
+from voxel.instrument.device.camera import VoxelCamera
+from voxel.instrument.device.filter import VoxelFilter
+from voxel.instrument.device.laser import VoxelLaser
+from voxel.instrument.device.lens import VoxelLens
+from voxel.instrument.device.linear_axis import LinearAxisDimension, VoxelLinearAxis
 from voxel.instrument.stage import VoxelStage
 from voxel.instrument.transfers import VoxelFileTransfer
 from voxel.instrument.writers import VoxelWriter
@@ -23,7 +23,6 @@ class VoxelInstrument:
         name: str | None = None,
         build_settings=None,
         daq: VoxelNIDAQ | None = None,
-        **kwds,
     ) -> None:
         self.log = get_logger(self.__class__.__name__)
         self.name = name
@@ -33,7 +32,6 @@ class VoxelInstrument:
         self.file_transfers = file_transfers
         self.channels = channels
         self.daq = daq
-        self.kwds = kwds
         self.validate_device_names()
         self.active_devices = {device_name: False for device_name in self.devices.keys()}
         self.stage = self._create_stage()

@@ -3,7 +3,7 @@ import time
 from matplotlib import pyplot as plt
 
 from voxel.instrument.daq import DAQWaveform, VoxelNIDAQ
-from voxel.instrument.daq.task import DAQTask, DAQTaskType
+from voxel.instrument.daq.task import VoxelDAQTask, DAQTaskType
 
 USE_SIMULATED = False
 DEVICE_NAME = "Dev1"
@@ -19,7 +19,7 @@ def main():
     daq = VoxelNIDAQ(name="example-daq", conn="Dev1", simulated=USE_SIMULATED)
 
     # Create a task
-    ao_task = DAQTask(
+    ao_task = VoxelDAQTask(
         name="AO_Task",
         task_type=DAQTaskType.AO,
         sampling_frequency_hz=350e3,

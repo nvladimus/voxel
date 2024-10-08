@@ -1,4 +1,4 @@
-from voxel.instrument.devices.linear_axis import VoxelLinearAxis
+from voxel.instrument.device.linear_axis import VoxelLinearAxis
 from voxel.utils.geometry.vec import Vec3D
 
 

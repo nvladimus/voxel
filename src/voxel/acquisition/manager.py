@@ -1,6 +1,6 @@
 import math
 from pprint import pprint
-from typing import List, Dict, Callable
+from typing import Callable
 
 from ruamel.yaml import YAML
 
@@ -35,7 +35,6 @@ class VoxelAcquisitionManager:
             self,
             instrument: 'VoxelInstrument',
             specs: AcquisitionSpecs,
-            channel_names: List[str] = 'all',
             plan: VoxelAcquisitionPlan = None
     ) -> None:
         self.log = get_logger(self.__class__.__name__)
@@ -50,12 +49,12 @@ class VoxelAcquisitionManager:
         self._reverse_scan_path = self._specs.reverse_scan_path
         self._file_path = self._specs.file_path
 
-        if channel_names == 'all':
+        if specs.channels == 'all':
             self.channels = list(instrument.channels.values())
         else:
-            self.channels = [instrument.channels[channel_name] for channel_name in channel_names]
+            self.channels = [instrument.channels[channel_name] for channel_name in specs.channels]
 
-        self._observers: List[Callable[[], None]] = []
+        self._observers: list[Callable[[], None]] = []
         self._hash = None
 
         if self._specs.volume_min_corner:
@@ -90,6 +89,12 @@ class VoxelAcquisitionManager:
         frame_stacks = self.generate_frame_stacks(self.channels)
         scan_path = self.generate_scan_path(frame_stacks)
         return VoxelAcquisitionPlan(frame_stacks, scan_path)
+
+    @property
+    def channels(self) -> list[VoxelChannel]:
+        return self._channels
+
+
 
     @property
     def z_step_size(self):
@@ -151,7 +156,7 @@ class VoxelAcquisitionManager:
         y_max = max(frame_stack.idx.y for frame_stack in frame_stacks.values())
         return Vec2D(x_max + 1, y_max + 1)
 
-    def generate_frame_stacks(self, channels: List[VoxelChannel]) -> Dict[Vec2D, FrameStack]:
+    def generate_frame_stacks(self, channels: list[VoxelChannel]) -> dict[Vec2D, FrameStack]:
         channel_names = [channel.name for channel in channels]
         # all channels must have the same fov
         fov = channels[0].fov_um
@@ -186,7 +191,7 @@ class VoxelAcquisitionManager:
 
         return frame_stacks
 
-    def generate_scan_path(self, frame_stacks) -> List[Vec2D]:
+    def generate_scan_path(self, frame_stacks) -> list[Vec2D]:
         grid_size = self._get_grid_size(frame_stacks)
         match self.scan_pattern:
             case ScanPattern.RASTER:
@@ -214,8 +219,8 @@ class VoxelAcquisitionManager:
             "volume_min_corner": self.volume.min_corner.to_str(),
             "volume_max_corner": self.volume.max_corner.to_str(),
             "file_path": self._file_path,
+            "channels": [channel.name for channel in self.channels]
         }
-        channels = [channel.name for channel in self.channels]
 
         clean_yaml_file(self._file_path)
 
@@ -232,7 +237,6 @@ class VoxelAcquisitionManager:
 
         # Update the necessary keys
         data["specs"] = specs
-        data["channels"] = channels
         data["plan"] = self.plan.to_dict()
 
         # Write updated content back to file
@@ -284,9 +288,9 @@ class VoxelAcquisitionManager:
             ))
         return self._hash
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if not isinstance(other, VoxelAcquisitionManager):
-            return NotImplemented
+           raise NotImplementedError("Cannot compare VoxelAcquisitionManager with other types")
         return hash(self) == hash(other)
 
     def __ne__(self, other: 'VoxelAcquisitionManager') -> bool:

@@ -3,10 +3,10 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from voxel.instrument.devices.camera import VoxelCamera
-from voxel.instrument.devices.filter import VoxelFilter
-from voxel.instrument.devices.laser import VoxelLaser
-from voxel.instrument.devices.lens import VoxelLens
+from voxel.instrument.device.camera import VoxelCamera
+from voxel.instrument.device.filter import VoxelFilter
+from voxel.instrument.device.laser import VoxelLaser
+from voxel.instrument.device.lens import VoxelLens
 from voxel.instrument.transfers import VoxelFileTransfer
 from voxel.instrument.writers import VoxelWriter
 from voxel.utils.geometry.vec import Vec2D
