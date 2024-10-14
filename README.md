@@ -57,7 +57,10 @@ Checkout the [Writers](#writers) and [File Transfers](#file-transfers) for a lis
 
 ### Prerequisites
 
-- **Python>=3.9** (tested) (Recommended to install via [Anaconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
+- **Python: >=3.10, <=3.11** (tested)
+- We using a virtual environment:
+  - [venv](https://docs.python.org/3.11/library/venv.html)
+  - Conda: [Anaconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
 - For control of some specific devices, you will need the appropriate SDK installed:
   - [Cameras](./voxel/devices/camera/README.md):
     - eGrabber (Windows and Linux)
@@ -73,6 +76,13 @@ Checkout the [Writers](#writers) and [File Transfers](#file-transfers) for a lis
     ```bash
     conda create -n voxel
     conda activate voxel
+    ```
+
+    or
+
+    ```bash
+    python -m venv voxel
+    .\voxel\Scripts\activate
     ```
 
 2. Clone the repository:
@@ -93,10 +103,16 @@ Checkout the [Writers](#writers) and [File Transfers](#file-transfers) for a lis
     pip install -e .[dev]
     ```
 
-5. To install specific device drivers that have SDK requirements, run:
+5. To install all dependencies including all optional device drivers, run:
 
     ```bash
-    pip install -e .[egrabber, imaris]
+    pip install -e .[all]
+    ```
+
+6. To install specific device drivers that have SDK requirements, run:
+
+    ```bash
+    pip install -e .[imaris tiff]
     ```
 
 Check out the [list of supported devices](#devices) for more information on device drivers.
@@ -216,10 +232,10 @@ Currently supported device types and models are listed below.
 | ------------ | ---------------- | --------------- | -------------------------------- | ------ |
 | Simulated    | MockCamera       | SimulatedCamera | `voxel.devices.camera.simulated` | ✅      |
 | Vieworks     | VP-151MX         | VieworksCamera  | `voxel.devices.camera.vieworks`  | ✅      |
-| Vieworks     | VNP-604MX        |                 |                                  | ✅      |
+| Vieworks     | VNP-604MX        | VieworksCamera  | `voxel.devices.camera.vieworks`  | ✅      |
 | Hamamatsu    | ORCA-Flash4.0 V3 | HamamatsuCamera | `voxel.devices.camera.hamamatsu` | ✅      |
-| Hamamatsu    | ORCA-Fusion BT   |                 |                                  | ✅      |
-| PCO          |                  | PCOCamera       | `voxel.devices.camera.pco`       | ❌      |
+| Hamamatsu    | ORCA-Fusion BT   | HamamatsuCamera | `voxel.devices.camera.hamamatsu` | ✅      |
+| PCO          | ----             | PCOCamera       | `voxel.devices.camera.pco`       | ❌      |
 
 #### Lasers
 
@@ -232,14 +248,14 @@ Currently supported device types and models are listed below.
 | Vortran      | Stradus   | StradusLaser   | `voxel.devices.laser.vortran`              | ❌      |
 | Oxxius       | LBX       | OxxiusLBXLaser | `voxel.devices.laser.oxxius`               | ❌      |
 | Oxxius       | LCX       | OxxiusLCXLaser | `voxel.devices.laser.oxxius`               | ❌      |
-| Cobolt       |           | CoboltLaser    | `voxel.devices.laser.cobolt`               | ❌      |
+| Cobolt       | Skyra     | CoboltLaser    | `voxel.devices.laser.cobolt`               | ❌      |
 
 #### Stages
 
 | Manufacturer | Model     | Class          | Module                          | Tested |
 | ------------ | --------- | -------------- | ------------------------------- | ------ |
 | Simulated    | MockStage | SimulatedStage | `voxel.devices.stage.simulated` | ✅      |
-| ASI          |           | ASIStage       | `voxel.devices.stage.asi`       | ✅      |
+| ASI          | Tiger     | ASIStage       | `voxel.devices.stage.asi`       | ✅      |
 
 #### Rotation mounts
 
@@ -253,7 +269,7 @@ Currently supported device types and models are listed below.
 | Manufacturer | Model    | Class         | Module                         | Tested |
 | ------------ | -------- | ------------- | ------------------------------ | ------ |
 | Simulated    | MockAOTF | SimulatedAOTF | `voxel.devices.aotf.simulated` | ✅      |
-| AAOpto       |          | AAOptoAOTF    | `voxel.devices.aotf.aaopto`    | ❌      |
+| AAOpto       | MPDSxx   | AAOptoAOTF    | `voxel.devices.aotf.aaopto`    | ❌      |
 
 #### Filterwheel
 
