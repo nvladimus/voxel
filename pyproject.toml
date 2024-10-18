@@ -1,11 +1,7 @@
-[build-system]
-requires = ["setuptools", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "voxel"
 description = "A python package for controlling Light Sheet Microscopes"
-license = { text = "MIT" }
+license = { file = "LICENSE" }
 requires-python = ">=3.10, <3.12"
 authors = [
     { name = "Micah Woodard", email = "micah.woodard@alleninstitute.org" },
@@ -80,6 +76,13 @@ dependencies = [
     "voxel[dev]",
 ]
 
+[project.urls]
+"Homepage" = "https://github.com/AllenNeuralDynamics/voxel"
+"Issues" = "https://github.com/AllenNeuralDynamics/voxel/issues"
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
@@ -90,7 +93,7 @@ version = { attr = "voxel.__version__" }
 
 [tool.black]
 line-length = 120
-target-version = ["py37"]
+target-version = ["py311"]
 exclude = '''
 (
     /(
@@ -110,7 +113,7 @@ exclude = '''
 
 [tool.coverage.run]
 omit = ["*__init__*"]
-source = ["src", "tests"]
+source = ["voxel", "tests"]
 
 [tool.coverage.report]
 exclude_lines = [
