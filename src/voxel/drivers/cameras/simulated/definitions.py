@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Optional
 
-from voxel.instrument.drivers.camera import Binning, PixelType
+from voxel.core.instrument.drivers.camera import Binning, PixelType
 
 
 class TriggerMode(StrEnum):

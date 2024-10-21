@@ -3,8 +3,8 @@ from typing import Optional
 
 from serial import Serial
 
-from voxel.utils.descriptors.deliminated_property import deliminated_property
-from voxel.instrument.device.laser import VoxelLaser
+from voxel.core.utils.descriptors.deliminated_property import deliminated_property
+from voxel.core.instrument.device.laser import VoxelLaser
 
 MODULATION_MODES = {
     "off": {"external_control_mode": "OFF", "digital_modulation": "OFF"},

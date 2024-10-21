@@ -1,7 +1,7 @@
-from voxel.utils.descriptors.deliminated_property import deliminated_property
-from voxel.utils.descriptors.enumerated_property import enumerated_property
-from voxel.utils.geometry.vec import Vec2D
-from voxel.instrument.device.camera import VoxelCamera, VoxelFrame, AcquisitionState
+from voxel.core.utils.descriptors.deliminated_property import deliminated_property
+from voxel.core.utils.descriptors.enumerated_property import enumerated_property
+from voxel.core.utils.geometry.vec import Vec2D
+from voxel.core.instrument.device.camera import VoxelCamera, VoxelFrame, AcquisitionState
 from voxel.processing.downsample.gpu.gputools.downsample_2d import GPUToolsDownSample2D
 
 from .definitions import (

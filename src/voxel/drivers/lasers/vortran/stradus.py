@@ -1,7 +1,7 @@
 from vortran_laser import StradusLaser as StradusVortran, BoolVal
 
-from voxel.utils.descriptors.deliminated_property import deliminated_property
-from voxel.instrument.device.laser import VoxelLaser
+from voxel.core.utils.descriptors.deliminated_property import deliminated_property
+from voxel.core.instrument.device.laser import VoxelLaser
 
 MODULATION_MODES = {
     "off": {"external_control": BoolVal.OFF, "digital_modulation": BoolVal.OFF},

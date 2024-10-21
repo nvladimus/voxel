@@ -1,8 +1,8 @@
 from aaopto_aotf import MPDS
 from aaopto_aotf.device_codes import BlankingMode, InputMode
 
-from voxel.instrument.device.aotf import VoxelAOTF
-from voxel.utils.singleton import Singleton
+from voxel.core.instrument.device.aotf import VoxelAOTF
+from voxel.core.utils.singleton import Singleton
 
 BLANKING_MODES = {
     "external": BlankingMode.EXTERNAL,

@@ -1,5 +1,5 @@
-from voxel.utils.descriptors.deliminated_property import deliminated_property
-from voxel.instrument.device.linear_axis import VoxelLinearAxis, ScanState, ScanConfig, LinearAxisDimension
+from voxel.core.utils.descriptors.deliminated_property import deliminated_property
+from voxel.core.instrument.device.linear_axis import VoxelLinearAxis, ScanState, ScanConfig, LinearAxisDimension
 
 
 class SimulatedLinearAxis(VoxelLinearAxis):

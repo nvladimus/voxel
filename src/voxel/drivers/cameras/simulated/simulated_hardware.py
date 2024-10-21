@@ -2,20 +2,20 @@ import threading
 import queue
 import time
 import os
-from typing import Optional, Tuple, TypedDict
+from typing import Optional, tuple, TypedDict
 
 import numpy as np
 from numpy.typing import NDArray
 
-from voxel.utils.geometry.vec import Vec2D
-from voxel.instrument.drivers.camera import ROI
-from voxel.instrument.drivers.camera.simulated.definitions import (
+from voxel.core.utils.geometry.vec import Vec2D
+from voxel.core.instrument.drivers.camera import ROI
+from voxel.core.instrument.drivers.camera.simulated.definitions import (
     TriggerMode,
     TriggerSource,
     TriggerPolarity,
     PixelType,
 )
-from voxel.instrument.drivers.camera.simulated.image_model import ImageModel
+from voxel.core.instrument.drivers.camera.simulated.image_model import ImageModel
 
 # Constants
 BUFFER_SIZE_FRAMES = 8

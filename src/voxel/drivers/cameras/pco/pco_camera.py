@@ -1,18 +1,23 @@
 import time
-from typing import Dict, Union, Literal, Tuple
+from typing import Union, Literal, tuple
 
-from voxel.utils.descriptors.deliminated_property import deliminated_property
-from voxel.utils.descriptors.enumerated_property import enumerated_property
-from voxel.utils.geometry.vec import Vec2D
-from voxel.instrument.device import VoxelDeviceConnectionError
-from voxel.instrument.device.camera import VoxelCamera, AcquisitionState, PixelType, Binning
-from voxel.instrument.drivers.camera.pco.definitions import pixel_type_lut, binning_lut, TriggerMode, ReadoutMode, \
-    TriggerSettings, \
-    TriggerSource
-from voxel.instrument.drivers.camera.pco.sdk import Camera
+from voxel.core.utils.descriptors.deliminated_property import deliminated_property
+from voxel.core.utils.descriptors.enumerated_property import enumerated_property
+from voxel.core.utils.geometry.vec import Vec2D
+from voxel.core.instrument.device import VoxelDeviceConnectionError
+from voxel.core.instrument.device.camera import VoxelCamera, AcquisitionState, PixelType, Binning
+from voxel.core.instrument.drivers.camera.pco.definitions import (
+    pixel_type_lut,
+    binning_lut,
+    TriggerMode,
+    ReadoutMode,
+    TriggerSettings,
+    TriggerSource,
+)
+from voxel.core.instrument.drivers.camera.pco.sdk import Camera
 
 type EnumeratedProp = Union[TriggerMode, TriggerSource, ReadoutMode]
-type LimitType = Literal['min', 'max', 'step']
+type LimitType = Literal["min", "max", "step"]
 
 
 class PCOCamera(VoxelCamera):
@@ -25,7 +30,12 @@ class PCOCamera(VoxelCamera):
 
     BUFFER_SIZE_MB = 2400
 
-    def __init__(self, conn: str, pixel_size_um: Tuple[float, float], name: str = "", ):
+    def __init__(
+        self,
+        conn: str,
+        pixel_size_um: tuple[float, float],
+        name: str = "",
+    ):
         super().__init__(name, pixel_size_um)
         self._conn = conn
         # note self._conn here is the interface, not a unique camera name
@@ -42,9 +52,9 @@ class PCOCamera(VoxelCamera):
         # LUTs
         self._pixel_type_lut = pixel_type_lut
         self._binning_lut = binning_lut
-        self._trigger_mode_lut: Dict[TriggerMode, str] = self._get_lut(TriggerMode)
-        self._trigger_source_lut: Dict[TriggerSource, str] = self._get_lut(TriggerSource)
-        self._readout_mode_lut: Dict[ReadoutMode, str] = self._get_lut(ReadoutMode)
+        self._trigger_mode_lut: dict[TriggerMode, str] = self._get_lut(TriggerMode)
+        self._trigger_source_lut: dict[TriggerSource, str] = self._get_lut(TriggerSource)
+        self._readout_mode_lut: dict[ReadoutMode, str] = self._get_lut(ReadoutMode)
 
         # private props
         self._pixel_type = list(self._pixel_type_lut)[0]
@@ -58,7 +68,7 @@ class PCOCamera(VoxelCamera):
 
     @property
     def sensor_size_px(self) -> Vec2D:
-        return Vec2D(self._delimination_props['roi_width']['max'], self._delimination_props['roi_height']['max'])
+        return Vec2D(self._delimination_props["roi_width"]["max"], self._delimination_props["roi_height"]["max"])
 
     @property
     def sensor_width_px(self) -> int:
@@ -126,15 +136,15 @@ class PCOCamera(VoxelCamera):
         # pco api prepares buffer and autostarts. api call is in start()
         # pco only 16-bit A/D
         bit_to_byte = 2
-        return self.roi_width_px * self.roi_height_px / self.binning ** 2 * bit_to_byte / 1e6
+        return self.roi_width_px * self.roi_height_px / self.binning**2 * bit_to_byte / 1e6
 
     # ROI properties ___________________________________________________________________________________________________
 
     @deliminated_property(
-        minimum=lambda self: self._delimination_props['roi_width']['min'],
-        maximum=lambda self: self._delimination_props['roi_width']['max'],
-        step=lambda self: self._delimination_props['roi_width']['step'],
-        unit='px'
+        minimum=lambda self: self._delimination_props["roi_width"]["min"],
+        maximum=lambda self: self._delimination_props["roi_width"]["max"],
+        step=lambda self: self._delimination_props["roi_width"]["step"],
+        unit="px",
     )
     def roi_width_px(self):
         """
@@ -162,8 +172,8 @@ class PCOCamera(VoxelCamera):
     @deliminated_property(
         minimum=0,
         maximum=lambda self: self.sensor_size_px.x - self.roi_width_px,
-        step=lambda self: self._delimination_props['roi_width']['step'],
-        unit='px'
+        step=lambda self: self._delimination_props["roi_width"]["step"],
+        unit="px",
     )
     def roi_width_offset_px(self):
         """
@@ -187,10 +197,10 @@ class PCOCamera(VoxelCamera):
         self._camera.sdk.set_roi(x0=offset_px + 1, x1=roi["x1"] - roi["x0"] + offset_px + 1)
 
     @deliminated_property(
-        minimum=lambda self: self._delimination_props['roi_height']['min'],
-        maximum=lambda self: self._delimination_props['roi_height']['max'],
-        step=lambda self: self._delimination_props['roi_height']['step'],
-        unit='px'
+        minimum=lambda self: self._delimination_props["roi_height"]["min"],
+        maximum=lambda self: self._delimination_props["roi_height"]["max"],
+        step=lambda self: self._delimination_props["roi_height"]["step"],
+        unit="px",
     )
     def roi_height_px(self):
         """
@@ -205,8 +215,8 @@ class PCOCamera(VoxelCamera):
     @deliminated_property(
         minimum=0,
         maximum=lambda self: self.sensor_size_px.y - self.roi_height_px,
-        step=lambda self: self._delimination_props['roi_height']['step'],
-        unit='px'
+        step=lambda self: self._delimination_props["roi_height"]["step"],
+        unit="px",
     )
     def roi_height_offset_px(self):
         """
@@ -260,10 +270,10 @@ class PCOCamera(VoxelCamera):
             self.log.error(f"Invalid pixel type: {e}")
 
     @deliminated_property(
-        minimum=lambda self: self._delimination_props['exposure_time_ms']['min'],
-        maximum=lambda self: self._delimination_props['exposure_time_ms']['max'],
-        step=lambda self: self._delimination_props['exposure_time_ms']['step'],
-        unit='ms'
+        minimum=lambda self: self._delimination_props["exposure_time_ms"]["min"],
+        maximum=lambda self: self._delimination_props["exposure_time_ms"]["max"],
+        step=lambda self: self._delimination_props["exposure_time_ms"]["step"],
+        unit="ms",
     )
     def exposure_time_ms(self) -> float:
         """
@@ -278,11 +288,11 @@ class PCOCamera(VoxelCamera):
     @exposure_time_ms.setter
     def exposure_time_ms(self, exposure_time_ms: float):
         """
-         Set the exposure time of the camera in ms.
+        Set the exposure time of the camera in ms.
 
-         :param exposure_time_ms: The exposure time in ms
-         :type exposure_time_ms: float
-         """
+        :param exposure_time_ms: The exposure time in ms
+        :type exposure_time_ms: float
+        """
         # Note: convert from ms to s
         self._camera.exposure_time = exposure_time_ms / 1e3
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
@@ -290,10 +300,10 @@ class PCOCamera(VoxelCamera):
         self._fetch_delimination_props()
 
     @deliminated_property(
-        minimum=lambda self: self._delimination_props['line_interval_us']['min'],
-        maximum=lambda self: self._delimination_props['line_interval_us']['max'],
-        step=lambda self: self._delimination_props['line_interval_us']['step'],
-        unit='us'
+        minimum=lambda self: self._delimination_props["line_interval_us"]["min"],
+        maximum=lambda self: self._delimination_props["line_interval_us"]["max"],
+        step=lambda self: self._delimination_props["line_interval_us"]["step"],
+        unit="us",
     )
     def line_interval_us(self) -> float:
         """
@@ -402,7 +412,7 @@ class PCOCamera(VoxelCamera):
 
     @enumerated_property(TriggerMode, lambda self: list(self._trigger_mode_lut))
     def trigger_mode(self) -> TriggerMode:
-        mode = self._camera.sdk.get_trigger_mode()['trigger mode']
+        mode = self._camera.sdk.get_trigger_mode()["trigger mode"]
         try:
             return TriggerMode(mode)
         except ValueError:
@@ -461,7 +471,7 @@ class PCOCamera(VoxelCamera):
         in_buffer_size = self._buffer_size_frames - out_buffer_size
         dropped_frames = self._camera.rec.get_status()["bFIFOOverflow"]
         frame_rate = out_buffer_size / (self._current_frame_start_time - post_frame_time)
-        data_rate = frame_rate * float(self.roi_width_px * self.roi_height_px / self.binning ** 2) / 1e6
+        data_rate = frame_rate * float(self.roi_width_px * self.roi_height_px / self.binning**2) / 1e6
         self._current_frame_start_time = time.time()
         return AcquisitionState(frame_index, in_buffer_size, out_buffer_size, dropped_frames, data_rate, frame_rate)
 
@@ -526,7 +536,7 @@ class PCOCamera(VoxelCamera):
 
     # Private methods __________________________________________________________________________________________________
 
-    def _get_lut(self, str_enum_class) -> Dict[EnumeratedProp, str]:
+    def _get_lut(self, str_enum_class) -> dict[EnumeratedProp, str]:
         lut = {}
         options = list(str_enum_class)
         for option in options:
@@ -539,23 +549,23 @@ class PCOCamera(VoxelCamera):
                 self.log.error(f"Error setting trigger mode {option}: {e}")
         return lut
 
-    def _get_delimination_props(self) -> Dict[str, Dict[LimitType, int]]:
+    def _get_delimination_props(self) -> dict[str, dict[LimitType, int]]:
         return {
-            'line_interval_us': {'min': None, 'max': None, 'step': None},
-            'exposure_time_ms': {
-                'min': self._camera.description["min exposure time"] * 1e3,
-                'max': self._camera.description["max exposure time"] * 1e3,
-                'step': self._camera.description["exposure time increment"] * 1e3
+            "line_interval_us": {"min": None, "max": None, "step": None},
+            "exposure_time_ms": {
+                "min": self._camera.description["min exposure time"] * 1e3,
+                "max": self._camera.description["max exposure time"] * 1e3,
+                "step": self._camera.description["exposure time increment"] * 1e3,
             },
-            'roi_width_px': {
-                'min': self._camera.description["min width"],
-                'max': self._camera.description["max width"],
-                'step': self._camera.description["roi steps"][0]
+            "roi_width_px": {
+                "min": self._camera.description["min width"],
+                "max": self._camera.description["max width"],
+                "step": self._camera.description["roi steps"][0],
             },
-            'roi_height_px': {
-                'min': self._camera.description["min height"],
-                'max': self._camera.description["max height"],
-                'step': self._camera.description["roi steps"][1]
+            "roi_height_px": {
+                "min": self._camera.description["min height"],
+                "max": self._camera.description["max height"],
+                "step": self._camera.description["roi steps"][1],
             },
         }
 

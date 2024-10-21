@@ -1,10 +1,10 @@
 import time
-from typing import Dict, Optional
+from typing import Optional
 
 from tigerasi.tiger_controller import TigerController
 
-from voxel.instrument.device import VoxelDeviceError
-from voxel.instrument.device.filter import VoxelFilter, VoxelFilterWheel
+from voxel.core.instrument.device import VoxelDeviceError
+from voxel.core.instrument.device.filter import VoxelFilter, VoxelFilterWheel
 
 SWITCH_TIME_S = 0.1  # estimated timing
 
@@ -16,7 +16,7 @@ class ASIFilterWheel(VoxelFilterWheel):
         super().__init__(name)
         self.tigerbox = tigerbox
         self.wheel_id = wheel_id
-        self.filters: Dict[str, int] = {}
+        self.filters: dict[str, int] = {}
         self._current_filter: Optional[str] = None
         self._is_closed = False
 

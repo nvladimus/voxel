@@ -2,7 +2,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from tests.conftest import get_env
+from tests.drivers.conftest import get_env
 from voxel.instrument.drivers.camera.vieworks import VieworksCamera
 
 CAMERA_1_SN = get_env("VIEWORKS_CAMERA_1_SN")

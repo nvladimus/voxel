@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import IntEnum
 
-from voxel.instrument.drivers.cameras import Binning, PixelType
+from voxel.core.instrument.drivers.cameras import Binning, PixelType
 from .sdk.dcamapi4 import DCAMPROP
 
 # dcam properties dict for convenience in calls
@@ -85,6 +85,7 @@ TriggerPolarity = DCAMPROP.TRIGGERPOLARITY
 
 class TriggerActive(IntEnum):
     """The type of trigger event that will be used to trigger the camera."""
+
     EDGE = 1
     LEVEL = 2
     SYNCREADOUT = 3
@@ -96,15 +97,15 @@ class TriggerActive(IntEnum):
     def description(self):
         match self.value:
             case TriggerActive.EDGE:
-                return 'The camera will be triggered on the edge of the trigger signal'
+                return "The camera will be triggered on the edge of the trigger signal"
             case TriggerActive.LEVEL:
-                return 'The camera will be triggered on the level of the trigger signal'
+                return "The camera will be triggered on the level of the trigger signal"
             case TriggerActive.SYNCREADOUT:
-                return 'The camera will be triggered on the readout of the trigger signal'
+                return "The camera will be triggered on the readout of the trigger signal"
             case TriggerActive.POINT:
-                return 'The camera will be triggered on the point of the trigger signal'
+                return "The camera will be triggered on the point of the trigger signal"
             case _:
-                return 'Specifies the type of trigger event to be used'
+                return "Specifies the type of trigger event to be used"
 
 
 @dataclass
@@ -115,16 +116,12 @@ class TriggerSettings:
     active: TriggerActive
 
     def dict(self):
-        return {
-            'mode': self.mode,
-            'source': self.source,
-            'polarity': self.polarity,
-            'active': self.active
-        }
+        return {"mode": self.mode, "source": self.source, "polarity": self.polarity, "active": self.active}
 
 
 class HamamatsuSettings:
     """Enumerated Settings for Hamamatsu Cameras."""
+
     Binning = Binning
     PixelType = PixelType
     SensorMode = SensorMode

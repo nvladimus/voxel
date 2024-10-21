@@ -1,5 +1,5 @@
 import pytest
-from tests.conftest import get_env
+from tests.drivers.conftest import get_env
 from voxel.instrument.drivers.flip_mount.thorlabs_mff101 import ThorlabsFlipMount
 
 CONN = get_env("THORLABS_FLIPMOUNT_CONN")

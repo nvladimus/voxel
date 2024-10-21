@@ -626,7 +626,7 @@ class Recorder:
         Set auto exposure regions
 
         :param region_type: string
-        :param region_array: List of Tuples
+        :param region_array: list of Tuples
                             (only needed for region_type = custom)
         """
 

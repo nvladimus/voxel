@@ -2,12 +2,19 @@ from typing import Optional
 
 import numpy as np
 
-from voxel.instrument.device import VoxelDeviceConnectionError
-from voxel.instrument.device.camera import BYTES_PER_MB, AcquisitionState, Binning, PixelType, VoxelCamera, VoxelFrame
-from voxel.utils.descriptors.deliminated_property import deliminated_property
-from voxel.utils.descriptors.enumerated_property import enumerated_property
-from voxel.utils.geometry.vec import Vec2D
-from voxel.utils.singleton import thread_safe_singleton
+from voxel.core.instrument.device import VoxelDeviceConnectionError
+from voxel.core.instrument.device.camera import (
+    BYTES_PER_MB,
+    AcquisitionState,
+    Binning,
+    PixelType,
+    VoxelCamera,
+    VoxelFrame,
+)
+from voxel.core.utils.descriptors.deliminated_property import deliminated_property
+from voxel.core.utils.descriptors.enumerated_property import enumerated_property
+from voxel.core.utils.geometry.vec import Vec2D
+from voxel.core.utils.singleton import thread_safe_singleton
 
 from .definitions import BitPackingMode, TriggerMode, TriggerPolarity, TriggerSettings, TriggerSource
 from .sdk.egrabber import (
@@ -39,7 +46,10 @@ def get_egentl_singleton() -> EGenTL:
     return EGenTL()
 
 
-def _discover_grabber(serial_number: str, gentl_instance: Optional[EGenTL] = None, ) -> tuple[EGrabber, dict[str, int]]:
+def _discover_grabber(
+    serial_number: str,
+    gentl_instance: Optional[EGenTL] = None,
+) -> tuple[EGrabber, dict[str, int]]:
     """
     Discover the grabber for the given serial number.
     """
@@ -53,9 +63,7 @@ def _discover_grabber(serial_number: str, gentl_instance: Optional[EGenTL] = Non
         for interface_index in range(discovery.interface_count()):
             for device_index in range(discovery.device_count(interface_index)):
                 if discovery.device_info(interface_index, device_index).deviceVendorName:
-                    for stream_index in range(
-                            discovery.stream_count(interface_index, device_index)
-                    ):
+                    for stream_index in range(discovery.stream_count(interface_index, device_index)):
                         _egrabber_list["grabbers"].append(
                             {
                                 "interface": interface_index,
@@ -68,9 +76,7 @@ def _discover_grabber(serial_number: str, gentl_instance: Optional[EGenTL] = Non
     egrabber_list = discover_cameras()
 
     if not egrabber_list["grabbers"]:
-        raise VoxelDeviceConnectionError(
-            "No valid cameras found. Check connections and close any software."
-        )
+        raise VoxelDeviceConnectionError("No valid cameras found. Check connections and close any software.")
 
     for egrabber in egrabber_list["grabbers"]:
         grabber = EGrabber(
@@ -93,6 +99,7 @@ class VieworksCamera(VoxelCamera):
     :type name: str
     :type serial_number: str
     """
+
     BUFFER_SIZE_MB = 2400
 
     gentl = get_egentl_singleton()
@@ -114,7 +121,7 @@ class VieworksCamera(VoxelCamera):
         self._delimination_props = {
             "Width": {"Min": None, "Max": None, "Inc": None},
             "Height": {"Min": None, "Max": None, "Inc": None},
-            "ExposureTime": {"Min": None, "Max": None, "Inc": None}
+            "ExposureTime": {"Min": None, "Max": None, "Inc": None},
         }
 
         # LUTs
@@ -185,10 +192,7 @@ class VieworksCamera(VoxelCamera):
         """
         return self.frame_size_px.x * self.frame_size_px.y * self.pixel_type.bytes_per_pixel / BYTES_PER_MB
 
-    @enumerated_property(
-        enum_class=Binning,
-        options_getter=lambda self: list(self._binning_lut)
-    )
+    @enumerated_property(enum_class=Binning, options_getter=lambda self: list(self._binning_lut))
     def binning(self) -> Binning:
         """Get the binning setting.
         :return: The binning setting i.e Literal[1, 2, 4]
@@ -221,7 +225,7 @@ class VieworksCamera(VoxelCamera):
             self.grabber.remote.set("BinningVertical", self._binning_lut[binning])
             self.log.info(f"Set binning to {binning}")
         except GenTLException as e:
-            print('Error:', e)
+            print("Error:", e)
             self.log.error(f"Failed to set binning: {e}")
         finally:
             self._binning_cache = None
@@ -231,7 +235,7 @@ class VieworksCamera(VoxelCamera):
         minimum=lambda self: self._get_delimination_prop("Width", "Min") * self.binning,
         maximum=lambda self: self.sensor_size_px.x - self._get_delimination_prop("Width", "Inc") * (self.binning - 1),
         step=lambda self: self._get_delimination_prop("Width", "Inc") * self.binning,
-        unit='px'
+        unit="px",
     )
     def roi_width_px(self) -> int:
         """Get the width of the ROI in pixels.
@@ -267,7 +271,7 @@ class VieworksCamera(VoxelCamera):
         minimum=0,
         maximum=lambda self: self.sensor_size_px.x - self.roi_width_px,
         step=lambda self: self._get_delimination_prop("Width", "Inc") * self.binning,
-        unit='px'
+        unit="px",
     )
     def roi_width_offset_px(self) -> int:
         """Get the offset of the ROI width in pixels.
@@ -294,7 +298,7 @@ class VieworksCamera(VoxelCamera):
         minimum=lambda self: self._get_delimination_prop("Height", "Min"),
         maximum=lambda self: self.sensor_size_px.y,
         step=lambda self: self._get_delimination_prop("Height", "Inc"),
-        unit='px'
+        unit="px",
     )
     def roi_height_px(self) -> int:
         """Get the height of the ROI in pixels.
@@ -330,7 +334,7 @@ class VieworksCamera(VoxelCamera):
         minimum=0,
         maximum=lambda self: self.sensor_size_px.y - self.roi_height_px,
         step=lambda self: self._get_delimination_prop("Height", "Inc") * self.binning,
-        unit='px'
+        unit="px",
     )
     def roi_height_offset_px(self) -> int:
         """Get the offset of the ROI height in pixels.
@@ -353,10 +357,7 @@ class VieworksCamera(VoxelCamera):
         self.grabber.remote.set("OffsetY", value // self.binning)
         self.log.info(f"Set ROI height offset to {value} px")
 
-    @enumerated_property(
-        enum_class=PixelType,
-        options_getter=lambda self: list(self._pixel_type_lut)
-    )
+    @enumerated_property(enum_class=PixelType, options_getter=lambda self: list(self._pixel_type_lut))
     def pixel_type(self) -> PixelType:
         """Get the pixel type of the camera.
         :return: The pixel type.
@@ -386,10 +387,7 @@ class VieworksCamera(VoxelCamera):
             self.binning = Binning(1)
         self._regenerate_all_luts()
 
-    @enumerated_property(
-        enum_class=BitPackingMode,
-        options_getter=lambda self: list(self._bit_packing_mode_lut)
-    )
+    @enumerated_property(enum_class=BitPackingMode, options_getter=lambda self: list(self._bit_packing_mode_lut))
     def bit_packing_mode(self) -> BitPackingMode:
         """Get the bit packing mode of the camera.
         :return: The bit packing mode.
@@ -400,7 +398,8 @@ class VieworksCamera(VoxelCamera):
             return next(k for k, v in self._bit_packing_mode_lut.items() if v == grabber_bit_packing)
         except StopIteration:
             self.log.error(
-                f"Grabber bit packing mode ({grabber_bit_packing}) not found in LUT({self._bit_packing_mode_lut})")
+                f"Grabber bit packing mode ({grabber_bit_packing}) not found in LUT({self._bit_packing_mode_lut})"
+            )
             return BitPackingMode.NONE
 
     @bit_packing_mode.setter
@@ -467,11 +466,7 @@ class VieworksCamera(VoxelCamera):
         :return: The trigger settings.
         :rtype: TriggerSettings
         """
-        return TriggerSettings(
-            mode=self.trigger_mode,
-            source=self.trigger_source,
-            polarity=self.trigger_polarity
-        )
+        return TriggerSettings(mode=self.trigger_mode, source=self.trigger_source, polarity=self.trigger_polarity)
 
     @trigger_settings.setter
     def trigger_settings(self, trigger_settings: TriggerSettings) -> None:
@@ -484,10 +479,7 @@ class VieworksCamera(VoxelCamera):
         self.trigger_source = trigger_settings.source
         self.trigger_polarity = trigger_settings.polarity
 
-    @enumerated_property(
-        enum_class=TriggerMode,
-        options_getter=lambda self: list(self._trigger_mode_lut)
-    )
+    @enumerated_property(enum_class=TriggerMode, options_getter=lambda self: list(self._trigger_mode_lut))
     def trigger_mode(self) -> TriggerMode:
         """
         Get the trigger mode of the camera.
@@ -515,10 +507,7 @@ class VieworksCamera(VoxelCamera):
         self._trigger_setting_cache.mode = None
         self._regenerate_trigger_luts()
 
-    @enumerated_property(
-        enum_class=TriggerSource,
-        options_getter=lambda self: list(self._trigger_source_lut)
-    )
+    @enumerated_property(enum_class=TriggerSource, options_getter=lambda self: list(self._trigger_source_lut))
     def trigger_source(self) -> TriggerSource:
         """
         Get the trigger source of the camera.
@@ -546,10 +535,7 @@ class VieworksCamera(VoxelCamera):
         self._trigger_setting_cache.source = None
         self._regenerate_trigger_luts()
 
-    @enumerated_property(
-        enum_class=TriggerPolarity,
-        options_getter=lambda self: list(self._trigger_polarity_lut)
-    )
+    @enumerated_property(enum_class=TriggerPolarity, options_getter=lambda self: list(self._trigger_polarity_lut))
     def trigger_polarity(self) -> TriggerPolarity:
         """
         Get the trigger polarity of the camera.
@@ -558,8 +544,11 @@ class VieworksCamera(VoxelCamera):
         """
         if not self._trigger_setting_cache.polarity:
             try:
-                self._trigger_setting_cache.polarity = next(k for k, v in self._trigger_polarity_lut.items()
-                                                            if v == self.grabber.remote.get("TriggerActivation"))
+                self._trigger_setting_cache.polarity = next(
+                    k
+                    for k, v in self._trigger_polarity_lut.items()
+                    if v == self.grabber.remote.get("TriggerActivation")
+                )
             except StopIteration as e:
                 self.log.error(f"Error getting trigger polarity: {str(e)}")
         return self._trigger_setting_cache.polarity
@@ -662,8 +651,9 @@ class VieworksCamera(VoxelCamera):
     def reset(self):
         """Reset the camera to default settings."""
         del self.grabber
-        self.grabber = EGrabber(self.gentl, self.egrabber["interface"], self.egrabber["device"],
-                                self.egrabber["stream"])
+        self.grabber = EGrabber(
+            self.gentl, self.egrabber["interface"], self.egrabber["device"], self.egrabber["stream"]
+        )
         self._invalidate_all_delimination_props()
         self._regenerate_all_luts()
         self._buffer_allocated = False
@@ -685,13 +675,13 @@ class VieworksCamera(VoxelCamera):
         column_count = self.grabber.remote.get("Width")
         row_count = self.grabber.remote.get("Height")
         timeout_ms = 1000
-        with (Buffer(self.grabber, timeout=timeout_ms) as buffer):
+        with Buffer(self.grabber, timeout=timeout_ms) as buffer:
             ptr = buffer.get_info(BUFFER_INFO_BASE, INFO_DATATYPE_PTR)  # pointer to new frame
             data = ct.cast(ptr, ct.POINTER(ct.c_ubyte * column_count * row_count * 2)).contents
             # TODO: Check if the frame is 8 or 16 bit ???
-            frame = np.frombuffer(
-                data, count=int(column_count * row_count), dtype=np.uint16
-            ).reshape((row_count, column_count))
+            frame = np.frombuffer(data, count=int(column_count * row_count), dtype=np.uint16).reshape(
+                (row_count, column_count)
+            )
             return frame
 
     @property
@@ -713,7 +703,7 @@ class VieworksCamera(VoxelCamera):
         namespace_gen_t_l.html#a6b498d9a4c08dea2c44566722699706e
         """
 
-        def get_acquisition_stream_info(info_cmd: int | str, default = None, is_metric: bool = False) -> int:
+        def get_acquisition_stream_info(info_cmd: int | str, default=None, is_metric: bool = False) -> int:
             try:
                 if is_metric:
                     return self.grabber.stream.get(info_cmd)
@@ -729,7 +719,7 @@ class VieworksCamera(VoxelCamera):
             output_buffer_size=get_acquisition_stream_info(STREAM_INFO_NUM_AWAIT_DELIVERY),
             dropped_frames=get_acquisition_stream_info(STREAM_INFO_NUM_UNDERRUN),
             data_rate_mbs=get_acquisition_stream_info("StatisticsDataRate", is_metric=True),
-            frame_rate_fps=get_acquisition_stream_info("StatisticsFrameRate", is_metric=True)
+            frame_rate_fps=get_acquisition_stream_info("StatisticsFrameRate", is_metric=True),
         )
 
     def log_metadata(self):
@@ -745,9 +735,11 @@ class VieworksCamera(VoxelCamera):
             for category in categories:
                 features = comp.get(query.features_of(category))
                 for feature in features:
-                    if (comp.get(query.available(feature)) and
-                            comp.get(query.readable(feature)) and
-                            not comp.get(query.command(feature))):
+                    if (
+                        comp.get(query.available(feature))
+                        and comp.get(query.readable(feature))
+                        and not comp.get(query.command(feature))
+                    ):
 
                         if comp_name == "remote" and feature in ["BalanceRatioSelector", "BalanceWhiteAuto"]:
                             continue
@@ -760,7 +752,7 @@ class VieworksCamera(VoxelCamera):
             ("remote", self.grabber.remote),
             ("stream", self.grabber.stream),
             ("interface", self.grabber.interface),
-            ("system", self.grabber.system)
+            ("system", self.grabber.system),
         ]
 
         for component_name, component in components:
@@ -803,7 +795,7 @@ class VieworksCamera(VoxelCamera):
         init_binning = None
         skipped_options = []
         try:
-            self.log.debug('Querying binning options...')
+            self.log.debug("Querying binning options...")
             init_binning = self.grabber.remote.get("BinningHorizontal")
             default_key = Binning(int(init_binning[1:]))
             lut[default_key] = init_binning
@@ -817,7 +809,7 @@ class VieworksCamera(VoxelCamera):
                     self.log.debug(f"Binning setting {binning} skipped. Not allowed in voxel.")
                 except GenTLException as e:
                     skipped_options.append(binning)
-                    self.log.debug(f'Binning option: {binning} skipped. Not settable on this device. Error: {str(e)}')
+                    self.log.debug(f"Binning option: {binning} skipped. Not settable on this device. Error: {str(e)}")
                 except Exception as e:
                     skipped_options.append(binning)
                     self.log.debug(f"Unexpected error processing binning option: {binning}. Error: {str(e)}")
@@ -831,7 +823,7 @@ class VieworksCamera(VoxelCamera):
                     self.grabber.remote.set("BinningHorizontal", init_binning)
                 except Exception as e:
                     self.log.error(f"Failed to restore initial binning setting {init_binning}: {str(e)}")
-            self.log.debug(f'Completed querying binning options: {lut}')
+            self.log.debug(f"Completed querying binning options: {lut}")
         return lut
 
     def _get_pixel_type_lut(self) -> PixelTypeLUT:
@@ -846,7 +838,7 @@ class VieworksCamera(VoxelCamera):
         init_pixel_type = None
         skipped_options = []
         try:
-            self.log.debug('Querying pixel type options...')
+            self.log.debug("Querying pixel type options...")
             pixel_type_options = self.grabber.remote.get("@ee PixelFormat", dtype=list)
             init_pixel_type = self.grabber.remote.get("PixelFormat")
             for pixel_type in pixel_type_options:
@@ -859,7 +851,7 @@ class VieworksCamera(VoxelCamera):
                     self.log.debug(f"Pixel Type: {pixel_type} skipped. Not allowed in voxel.")
                 except GenTLException as e:
                     skipped_options.append(pixel_type)
-                    self.log.debug(f'Pixel Type: {pixel_type} skipped. Not settable on this device. Error: {str(e)}')
+                    self.log.debug(f"Pixel Type: {pixel_type} skipped. Not settable on this device. Error: {str(e)}")
                 except Exception as e:
                     skipped_options.append(pixel_type)
                     self.log.debug(f"Unexpected error processing pixel type: {pixel_type}. Error: {str(e)}")
@@ -873,7 +865,7 @@ class VieworksCamera(VoxelCamera):
                     self.grabber.remote.set("PixelFormat", init_pixel_type)
                 except Exception as e:
                     self.log.error(f"Failed to restore initial pixel type {init_pixel_type}: {str(e)}")
-            self.log.debug(f'Completed querying pixel type options: {lut}')
+            self.log.debug(f"Completed querying pixel type options: {lut}")
         return lut
 
     def _get_bit_packing_mode_lut(self) -> BitPackingModeLUT:
@@ -887,7 +879,7 @@ class VieworksCamera(VoxelCamera):
         init_bit_packing = None
         skipped_options = []
         try:
-            self.log.debug('Querying bit packing mode options...')
+            self.log.debug("Querying bit packing mode options...")
             bit_packing_options = self.grabber.stream.get("@ee UnpackingMode", dtype=list)
             init_bit_packing = self.grabber.stream.get("UnpackingMode")
             for bit_packing_mode in bit_packing_options:
@@ -896,8 +888,10 @@ class VieworksCamera(VoxelCamera):
                     lut_key = BitPackingMode[bit_packing_mode.upper()]
                     lut[lut_key] = bit_packing_mode
                 except GenTLException as e:
-                    self.log.debug(f'Bit Packing Mode: {bit_packing_mode} skipped. '
-                                   f'Not settable on this device. Error: {str(e)}')
+                    self.log.debug(
+                        f"Bit Packing Mode: {bit_packing_mode} skipped. "
+                        f"Not settable on this device. Error: {str(e)}"
+                    )
                     skipped_options.append(bit_packing_mode)
                 except KeyError:
                     self.log.debug(f"Bit Packing Mode: {bit_packing_mode} skipped. Not allowed in voxel.")
@@ -915,7 +909,7 @@ class VieworksCamera(VoxelCamera):
                     self.grabber.stream.set("UnpackingMode", init_bit_packing)
                 except Exception as e:
                     self.log.error(f"Failed to restore initial bit packing mode setting: {str(e)}")
-            self.log.debug(f'Completed querying bit packing mode options: {lut}')
+            self.log.debug(f"Completed querying bit packing mode options: {lut}")
         return lut
 
     def _get_line_interval_us_lut(self) -> PixelTypeLUT:
@@ -928,7 +922,7 @@ class VieworksCamera(VoxelCamera):
         lut: PixelTypeLUT = {}
         initial_pixel_type = None
         try:
-            self.log.debug('Querying line interval options...')
+            self.log.debug("Querying line interval options...")
             initial_pixel_type = self.pixel_type
             pixel_type_options = iter(self._pixel_type_lut.items())
             for pixel_type in pixel_type_options:
@@ -947,7 +941,7 @@ class VieworksCamera(VoxelCamera):
                         line_interval_s = (1 / max_frame_rate) / self.sensor_height_px
                     lut[pixel_type[0]] = line_interval_s * 1e6
                 except GenTLException as e:
-                    self.log.debug(f'Line Interval: {pixel_type} skipped. Not settable on this device. Error: {str(e)}')
+                    self.log.debug(f"Line Interval: {pixel_type} skipped. Not settable on this device. Error: {str(e)}")
                 except Exception as e:
                     self.log.debug(f"Unexpected error processing line interval: {pixel_type}. Error: {str(e)}")
         except Exception as e:
@@ -958,7 +952,7 @@ class VieworksCamera(VoxelCamera):
                     self.grabber.remote.set("PixelFormat", self._pixel_type_lut[initial_pixel_type])
                 except Exception as e:
                     self.log.error(f"Failed to restore initial pixel type setting: {str(e)}")
-            self.log.debug(f'Completed querying line interval options: {lut}')
+            self.log.debug(f"Completed querying line interval options: {lut}")
         return lut
 
     def _get_trigger_setting_lut(self, setting: str) -> dict[TriggerSetting, str]:
@@ -970,11 +964,11 @@ class VieworksCamera(VoxelCamera):
                 - TriggerSource: 'Internal', 'External'
                 - TriggerActivation: 'Rising', 'Falling'
         """
-        lut: dict[TriggerMode | TriggerSource |TriggerPolarity, str] = {}
+        lut: dict[TriggerMode | TriggerSource | TriggerPolarity, str] = {}
         init_trigger_setting = None
         skipped_options = []
         try:
-            self.log.debug(f'Querying {setting} options...')
+            self.log.debug(f"Querying {setting} options...")
             trigger_setting_options = self.grabber.remote.get(f"@ee {setting}", dtype=list)
             init_trigger_setting = self.grabber.remote.get(setting)
             for trigger_setting in trigger_setting_options:
@@ -994,7 +988,8 @@ class VieworksCamera(VoxelCamera):
                         lut[lut_key] = trigger_setting
                 except GenTLException as e:
                     self.log.debug(
-                        f'{setting}: {trigger_setting} skipped. Not settable on this device. Error: {str(e)}')
+                        f"{setting}: {trigger_setting} skipped. Not settable on this device. Error: {str(e)}"
+                    )
                     skipped_options.append(trigger_setting)
                 except KeyError:
                     self.log.debug(f"{setting}: {trigger_setting} skipped. Not allowed in voxel.")
@@ -1012,13 +1007,13 @@ class VieworksCamera(VoxelCamera):
                     self.grabber.remote.set(setting, init_trigger_setting)
                 except Exception as e:
                     self.log.error(f"Failed to restore initial {setting} setting: {str(e)}")
-            self.log.debug(f'Completed querying {setting} options: {lut}')
+            self.log.debug(f"Completed querying {setting} options: {lut}")
         return lut
 
     def _get_delimination_prop(self, prop_name: str, limit_type: str) -> Optional[int | float]:
         if self._delimination_props[prop_name][limit_type] is None:
             try:
-                value = self.grabber.remote.get(f'{prop_name}.{limit_type.capitalize()}')
+                value = self.grabber.remote.get(f"{prop_name}.{limit_type.capitalize()}")
                 self._delimination_props[prop_name][limit_type] = value
             except TypeError:
                 self.log.error(f"Failed to get delimination prop {prop_name}.{limit_type.capitalize()}")

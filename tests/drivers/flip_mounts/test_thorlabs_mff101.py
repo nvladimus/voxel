@@ -2,7 +2,7 @@ import time
 
 import pytest
 
-from tests.conftest import get_env
+from tests.drivers.conftest import get_env
 from voxel.instrument.drivers.flip_mount.thorlabs_mff101 import FLIP_TIME_RANGE_MS, ThorlabsFlipMount
 
 CONN = get_env("THORLABS_FLIPMOUNT_CONN")

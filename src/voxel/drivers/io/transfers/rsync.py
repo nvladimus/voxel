@@ -4,7 +4,7 @@ import sys
 import time
 from pathlib import Path
 from subprocess import Popen
-from typing import Any, Iterable, List
+from typing import Any, Iterable, list
 
 from instrument.file_transfers.base import VoxelFileTransfer
 
@@ -221,7 +221,7 @@ class RsyncFileTransfer(VoxelFileTransfer):
                 subprocess.kill()
                 retry_num += 1
 
-    def _flatten(self, lst: List[Any]) -> Iterable[Any]:
+    def _flatten(self, lst: list[Any]) -> Iterable[Any]:
         """Flatten a list using generators comprehensions.
         Returns a flattened version of list lst.
         """

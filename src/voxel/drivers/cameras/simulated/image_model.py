@@ -1,7 +1,7 @@
 import numpy as np
 import tifffile
 
-from voxel.instrument.drivers.camera import ROI
+from voxel.core.instrument.drivers.camera import ROI
 
 
 class ImageModel:

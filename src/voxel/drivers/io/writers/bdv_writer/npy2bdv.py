@@ -12,7 +12,7 @@ import skimage.transform
 from tqdm import trange
 
 from voxel.processing.downsample.gpu.gputools.downsample_3d import GPUToolsDownSample3D
-from voxel.utils.logging import get_logger
+from voxel.core.utils.logging import get_logger
 
 
 class BdvBase:
@@ -384,7 +384,7 @@ class BdvWriter(BdvBase):
                 One of the view attributes: 'illumination', 'channel', 'angle', 'tile'.
 
             labels: array-like
-                Tuple of labels, e.g. for illumination, ('left', 'right'); for channel, ('488', '561').
+                tuple of labels, e.g. for illumination, ('left', 'right'); for channel, ('488', '561').
         """
 
         assert attribute in self.attribute_counts.keys(), f"Attribute must be one of {self.attribute_counts.keys()}"

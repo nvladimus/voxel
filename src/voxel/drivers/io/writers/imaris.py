@@ -15,7 +15,7 @@ import numpy as np
 from PyImarisWriter import PyImarisWriter as pw
 from matplotlib.colors import hex2color
 
-from voxel.instrument.io.writer import VoxelWriter
+from voxel.core.instrument.io.writer import VoxelWriter
 
 CHUNK_COUNT_PX = 64
 DIVISIBLE_FRAME_COUNT_PX = 64

@@ -1,16 +1,29 @@
 [project]
 name = "voxel"
-version = "0.1.0"
 description = "Python Library for building SPIM software"
-readme = "README.md"
-license = { text = "MIT" }
 authors = [
     { name = "Micah Woodard", email = "micah.woodard@alleninstitute.org" },
     { name = "Adam Glaser", email = "adam.glaser@alleninstitute.org" },
     { name = "Walter Mwaniki", email = "walter.mwaniki@alleninstitute.org" },
 ]
-classifiers = ["Programming Language :: Python :: 3"]
+readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+keywords = [
+    "microscopy",
+    "light-sheet",
+    "lightsheet",
+    "microscope",
+    "imaging",
+]
+dynamic = ["version"]
 dependencies = [
     # core
     "numpy>=2.1.2",
@@ -38,22 +51,22 @@ bdv = ["h5py>=3.12.1", "tqdm>=4.66.5"]
 imaris = ["pyimariswriter>=0.7.0"]
 aaopto = ["aaopto-aotf>=0.0.11"]
 thorlabs = ["pylablib>=1.4.2"]
-cobolt_laser = ["pycobolt @ git+https://github.com/cobolt-lasers/pycobolt.git"]
-coherent_laser = ["coherent_lasers @ git+https://github.com/AllenNeuralDynamics/coherent_lasers.git"]
-vortran_laser = ["vortran_laser @ git+https://github.com/AllenNeuralDynamics/vortran_laser.git"]
-oxxius_laser = ["oxxius_laser @ git+https://github.com/AllenNeuralDynamics/oxxius_laser.git"]
-# obis_laser = ["obis_laser @ git+https://github.com/AllenNeuralDynamics/obis-laser.git"]
+cobolt = ["pycobolt @ git+https://github.com/cobolt-lasers/pycobolt.git"]
+coherent = ["coherent_lasers @ git+https://github.com/AllenNeuralDynamics/coherent_lasers.git"]
+vortran = ["vortran_laser @ git+https://github.com/AllenNeuralDynamics/vortran_laser.git"]
+oxxius = ["oxxius_laser @ git+https://github.com/AllenNeuralDynamics/oxxius_laser.git"]
+# obis = ["obis_laser @ git+https://github.com/AllenNeuralDynamics/obis-laser.git"]
 
 lasers = [
     "pycobolt @ git+https://github.com/cobolt-lasers/pycobolt.git",
-    "coherent_lasers @ git+https://github.com/AllenNeuralDynamics/coherent_lasers.git",
-    "vortran_laser @ git+https://github.com/AllenNeuralDynamics/vortran_laser.git",
-    "oxxius_laser @ git+https://github.com/AllenNeuralDynamics/oxxius_laser.git",
-    # "obis_laser @ git+https://github.com/AllenNeuralDynamics/obis-laser.git"
+    "coherent-lasers @ git+https://github.com/AllenNeuralDynamics/coherent_lasers.git",
+    "vortran-laser @ git+https://github.com/AllenNeuralDynamics/vortran_laser.git",
+    "oxxius-laser @ git+https://github.com/AllenNeuralDynamics/oxxius_laser.git",
+    # "obis-laser @ git+https://github.com/AllenNeuralDynamics/obis-laser.git"
 ]
 
 dev = [
-    "pytest>=8.1.1,<9",
+    "pytest<9",
     "black",
     "coverage",
     "flake8",
@@ -67,10 +80,17 @@ dev = [
 requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+package-dir = { "" = "src" }
+packages = ["voxel"]
+
+[tool.setuptools.dynamic]
+version = { attr = "voxel.__version__" }
+
 [tool.black]
 src = "voxel"
 line-length = 120
-target_version = ["py36"]
+target-version = ["py311"]
 exclude = '''
 
 (

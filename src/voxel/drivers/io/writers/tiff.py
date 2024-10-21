@@ -11,7 +11,7 @@ from time import perf_counter, sleep
 import numpy as np
 import tifffile
 
-from voxel.instrument.io.writer import VoxelWriter
+from voxel.core.instrument.io.writer import VoxelWriter
 
 CHUNK_COUNT_PX = 64
 

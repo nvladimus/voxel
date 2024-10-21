@@ -1,13 +1,18 @@
 from tigerasi.device_codes import *
 from tigerasi.tiger_controller import TigerController
 
-from voxel.instrument.hubs.tigerbox import ASITigerBox
-from voxel.instrument.drivers.tunable_lenses.base import VoxelTunableLens, TunableLensControlMode
+from voxel.core.instrument.hubs.tigerbox import ASITigerBox
+from voxel.core.instrument.drivers.tunable_lenses.base import VoxelTunableLens, TunableLensControlMode
 
 
 class ASITunableLens(VoxelTunableLens):
 
-    def __init__(self, name: str, hardware_axis: str, tigerbox: ASITigerBox, ):
+    def __init__(
+        self,
+        name: str,
+        hardware_axis: str,
+        tigerbox: ASITigerBox,
+    ):
         """Connect to ASI tunable lens.
         :param name: unique voxel name for this device.
         :param tigerbox: TigerController instance.
@@ -44,22 +49,24 @@ class ASITunableLens(VoxelTunableLens):
         """Set the tiger axis control mode."""
         match mode:
             case TunableLensControlMode.EXTERNAL:
-                self._tigerbox.set_axis_control_mode(self.name,
-                                                     TunableLensControlMode.EXTERNAL_INPUT_NO_TEMP_COMPENSATION)
+                self._tigerbox.set_axis_control_mode(
+                    self.name, TunableLensControlMode.EXTERNAL_INPUT_NO_TEMP_COMPENSATION
+                )
             case TunableLensControlMode.INTERNAL:
-                self._tigerbox.set_axis_control_mode(self.name,
-                                                     TunableLensControlMode.TG1000_INPUT_NO_TEMP_COMPENSATION)
+                self._tigerbox.set_axis_control_mode(
+                    self.name, TunableLensControlMode.TG1000_INPUT_NO_TEMP_COMPENSATION
+                )
             case _:
                 raise ValueError("mode must be one of %r." % TunableLensControlMode)
 
     def log_metadata(self):
-        self.log.info('tiger hardware axis parameters')
+        self.log.info("tiger hardware axis parameters")
         build_config = self._tigerbox.build_config
-        self.log.debug(f'{build_config}')
+        self.log.debug(f"{build_config}")
         axis_settings = self._tigerbox.get_axis_info(self.name)
-        self.log.info(f'{self.name} axis settings')
+        self.log.info(f"{self.name} axis settings")
         for setting in axis_settings:
-            self.log.info(f'{self.name} axis, {setting}, {axis_settings[setting]}')
+            self.log.info(f"{self.name} axis, {setting}, {axis_settings[setting]}")
 
     def close(self):
         self._tigerbox.deregister_device(self.name)

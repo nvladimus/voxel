@@ -1,12 +1,19 @@
 import time
 from typing import Callable, Literal, Optional, Union
 
-from voxel.instrument.device import VoxelDeviceConnectionError
-from voxel.instrument.device.camera import BYTES_PER_MB, AcquisitionState, VoxelCamera, VoxelFrame, Binning, PixelType
-from voxel.utils.descriptors.deliminated_property import deliminated_property
-from voxel.utils.descriptors.enumerated_property import enumerated_property
-from voxel.utils.geometry.vec import Vec2D
-from voxel.utils.singleton import Singleton
+from voxel.core.instrument.device import VoxelDeviceConnectionError
+from voxel.core.instrument.device.camera import (
+    BYTES_PER_MB,
+    AcquisitionState,
+    VoxelCamera,
+    VoxelFrame,
+    Binning,
+    PixelType,
+)
+from voxel.core.utils.descriptors.deliminated_property import deliminated_property
+from voxel.core.utils.descriptors.enumerated_property import enumerated_property
+from voxel.core.utils.geometry.vec import Vec2D
+from voxel.core.utils.singleton import Singleton
 
 from .definitions import (
     DELIMINATED_PROPERTIES,
@@ -24,7 +31,7 @@ from .sdk.dcam import DCAM_IDSTR, DCAMCAP_TRANSFERINFO, DCAMERR, Dcam, Dcamapi, 
 from .sdk.dcamapi4 import DCAMPROP_ATTR
 
 
-type LimitType = Literal['min', 'max', 'step']
+type LimitType = Literal["min", "max", "step"]
 type PixelTypeLUT = dict[PixelType, int]
 type BinningLUT = dict[Binning, int]
 type SensorModeLUT = dict[SensorMode, int]
@@ -66,8 +73,7 @@ def discover_dcam(provider: Dcamapi, serial_number: str) -> tuple[Dcam, int]:
                 dcam.dev_close()  # make sure camera is closed before returning
                 return dcam, cam_num
         raise VoxelDeviceConnectionError(
-            f"Camera with serial number {serial_number} not found."
-            f" Found cameras: {serial_numbers}"
+            f"Camera with serial number {serial_number} not found." f" Found cameras: {serial_numbers}"
         )
     except Exception as e:
         raise VoxelDeviceConnectionError(
@@ -92,9 +98,8 @@ def reset_dcam(provider: Dcamapi, dcam_idx: int) -> Dcam:
         return dcam
     except Exception as e:
         raise VoxelDeviceConnectionError(
-            "Failed to reset camera. "
-            "DcamapiSingleton.init() fails with error {}"
-            .format(DCAMERR(provider.lasterr()))) from e
+            "Failed to reset camera. " "DcamapiSingleton.init() fails with error {}".format(DCAMERR(provider.lasterr()))
+        ) from e
 
 
 class HamamatsuCamera(VoxelCamera):
@@ -115,7 +120,7 @@ class HamamatsuCamera(VoxelCamera):
     except Exception as e:
         raise VoxelDeviceConnectionError("Failed to initialize DCAM API") from e
 
-    def __init__(self, serial_number: str, pixel_size_um: tuple[float, float], name: str = '') -> None:
+    def __init__(self, serial_number: str, pixel_size_um: tuple[float, float], name: str = "") -> None:
         """Voxel driver for Hamamatsu cameras.
 
         :param name: Unique voxel identifier for the camera. Empty string by default.
@@ -163,24 +168,19 @@ class HamamatsuCamera(VoxelCamera):
 
         # LUTs
         self._binning_lut: BinningLUT = self._get_enumerated_prop_lut(
-            prop_name="binning",
-            enum_class=Binning,
-            key_parser=lambda r: r.upper()[1:]
+            prop_name="binning", enum_class=Binning, key_parser=lambda r: r.upper()[1:]
         )
-        self._pixel_type_lut: PixelTypeLUT = self._get_enumerated_prop_lut(
-            "pixel_type", PixelType)
-        self._sensor_mode_lut: SensorModeLUT = self._get_enumerated_prop_lut(
-            "sensor_mode", SensorMode)
+        self._pixel_type_lut: PixelTypeLUT = self._get_enumerated_prop_lut("pixel_type", PixelType)
+        self._sensor_mode_lut: SensorModeLUT = self._get_enumerated_prop_lut("sensor_mode", SensorMode)
         self._readout_direction_lut: ReadoutDirectionLUT = self._get_enumerated_prop_lut(
-            "readout_direction", ReadoutDirection)
-        self._trigger_mode_lut: TriggerModeLUT = self._get_enumerated_prop_lut(
-            "trigger_mode", TriggerMode)
-        self._trigger_source_lut: TriggerSourceLUT = self._get_enumerated_prop_lut(
-            "trigger_source", TriggerSource)
+            "readout_direction", ReadoutDirection
+        )
+        self._trigger_mode_lut: TriggerModeLUT = self._get_enumerated_prop_lut("trigger_mode", TriggerMode)
+        self._trigger_source_lut: TriggerSourceLUT = self._get_enumerated_prop_lut("trigger_source", TriggerSource)
         self._trigger_polarity_lut: TriggerPolarityLUT = self._get_enumerated_prop_lut(
-            "trigger_polarity", TriggerPolarity)
-        self._trigger_active_lut: TriggerActiveLUT = self._get_enumerated_prop_lut(
-            "trigger_active", TriggerActive)
+            "trigger_polarity", TriggerPolarity
+        )
+        self._trigger_active_lut: TriggerActiveLUT = self._get_enumerated_prop_lut("trigger_active", TriggerActive)
         self.log.info("Completed initialization of Hamamatsu camera with name: {self.name}")
 
     def __repr__(self):
@@ -225,7 +225,7 @@ class HamamatsuCamera(VoxelCamera):
         if self._sensor_size_px is None:
             self._sensor_size_px = Vec2D(
                 int(self._get_delimination_prop_value("image_width_px")),
-                int(self._get_delimination_prop_value("image_height_px"))
+                int(self._get_delimination_prop_value("image_height_px")),
             )
         return self._sensor_size_px
 
@@ -247,10 +247,7 @@ class HamamatsuCamera(VoxelCamera):
 
     # Image properties _________________________________________________________________________________________________
 
-    @enumerated_property(
-        enum_class=Binning,
-        options_getter=lambda self: list(self._binning_lut)
-    )
+    @enumerated_property(enum_class=Binning, options_getter=lambda self: list(self._binning_lut))
     def binning(self) -> Binning:
         """Get the binning value.
         :return: The binning value.
@@ -277,10 +274,7 @@ class HamamatsuCamera(VoxelCamera):
         :return: The image size in pixels.
         :rtype: Vec2D
         """
-        return Vec2D(
-            self.roi_width_px,
-            self.roi_height_px
-        )
+        return Vec2D(self.roi_width_px, self.roi_height_px)
 
     @property
     def frame_width_px(self) -> int:
@@ -305,7 +299,7 @@ class HamamatsuCamera(VoxelCamera):
         minimum=lambda self: self._get_delimination_prop_limit("roi_width_px", "min"),
         maximum=lambda self: self._get_delimination_prop_limit("roi_width_px", "max"),
         step=lambda self: self._get_delimination_prop_limit("roi_width_px", "step"),
-        unit="px"
+        unit="px",
     )
     def roi_width_px(self) -> int:
         """Get the region of interest width in pixels.
@@ -333,7 +327,7 @@ class HamamatsuCamera(VoxelCamera):
         minimum=0,
         maximum=lambda self: self.sensor_size_px.x - self.roi_width_px,
         step=lambda self: self._get_delimination_prop_limit("roi_width_offset_px", "step"),
-        unit="px"
+        unit="px",
     )
     def roi_width_offset_px(self) -> int:
         """Get the region of interest width offset in pixels.
@@ -356,7 +350,7 @@ class HamamatsuCamera(VoxelCamera):
         minimum=lambda self: self._get_delimination_prop_limit("roi_height_px", "min"),
         maximum=lambda self: self._get_delimination_prop_limit("roi_height_px", "max"),
         step=lambda self: self._get_delimination_prop_limit("roi_height_px", "step"),
-        unit="px"
+        unit="px",
     )
     def roi_height_px(self) -> int:
         """Get the region of interest height in pixels.
@@ -385,7 +379,7 @@ class HamamatsuCamera(VoxelCamera):
         minimum=0,
         maximum=lambda self: self.sensor_size_px.y - self.roi_height_px,
         step=lambda self: self._get_delimination_prop_limit("roi_height_px", "step"),
-        unit="px"
+        unit="px",
     )
     def roi_height_offset_px(self) -> int:
         """Get the region of interest height offset in pixels.
@@ -410,7 +404,7 @@ class HamamatsuCamera(VoxelCamera):
         minimum=lambda self: self._get_delimination_prop_limit("exposure_time_s", "min") * 1e3,
         maximum=lambda self: self._get_delimination_prop_limit("exposure_time_s", "max") * 1e3,
         step=lambda self: self._get_delimination_prop_limit("exposure_time_s", "step") * 1e3,
-        unit="ms"
+        unit="ms",
     )
     def exposure_time_ms(self) -> int:
         """Get the exposure time in milliseconds.
@@ -433,7 +427,7 @@ class HamamatsuCamera(VoxelCamera):
         minimum=lambda self: self._get_delimination_prop_limit("line_interval_s", "min") * 1e6,
         maximum=lambda self: self._get_delimination_prop_limit("line_interval_s", "max") * 1e6,
         step=lambda self: self._get_delimination_prop_limit("line_interval_s", "step") * 1e6,
-        unit="us"
+        unit="us",
     )
     def line_interval_us(self) -> int:
         """Get the line interval in microseconds.
@@ -465,10 +459,7 @@ class HamamatsuCamera(VoxelCamera):
             case _:
                 return frame_time_ms
 
-    @enumerated_property(
-        enum_class=PixelType,
-        options_getter=lambda self: list(self._pixel_type_lut)
-    )
+    @enumerated_property(enum_class=PixelType, options_getter=lambda self: list(self._pixel_type_lut))
     def pixel_type(self) -> PixelType:
         """Get the pixel type.
         :return: The pixel type.
@@ -486,10 +477,7 @@ class HamamatsuCamera(VoxelCamera):
         self._regenerate_pixel_type_lut()
         self._invalidate_delimination_props()
 
-    @enumerated_property(
-        enum_class=SensorMode,
-        options_getter=lambda self: list(self._sensor_mode_lut)
-    )
+    @enumerated_property(enum_class=SensorMode, options_getter=lambda self: list(self._sensor_mode_lut))
     def sensor_mode(self) -> SensorMode:
         """Get the sensor mode.
         :return: The sensor mode.
@@ -507,10 +495,7 @@ class HamamatsuCamera(VoxelCamera):
         self._regenerate_sensor_mode_lut()
         self._invalidate_delimination_props()
 
-    @enumerated_property(
-        enum_class=ReadoutDirection,
-        options_getter=lambda self: list(self._readout_direction_lut)
-    )
+    @enumerated_property(enum_class=ReadoutDirection, options_getter=lambda self: list(self._readout_direction_lut))
     def readout_direction(self) -> ReadoutDirection:
         """Get the readout direction.
         :return: The readout direction.
@@ -528,10 +513,7 @@ class HamamatsuCamera(VoxelCamera):
         self._regenerate_readout_direction_lut()
         self._invalidate_delimination_props()
 
-    @enumerated_property(
-        enum_class=TriggerMode,
-        options_getter=lambda self: list(self._trigger_mode_lut)
-    )
+    @enumerated_property(enum_class=TriggerMode, options_getter=lambda self: list(self._trigger_mode_lut))
     def trigger_mode(self) -> TriggerMode:
         """Get the trigger mode.
         :return: The trigger mode.
@@ -550,10 +532,7 @@ class HamamatsuCamera(VoxelCamera):
         # self._regenerate_trigger_mode_lut()
         self._invalidate_delimination_props()
 
-    @enumerated_property(
-        enum_class=TriggerSource,
-        options_getter=lambda self: list(self._trigger_source_lut)
-    )
+    @enumerated_property(enum_class=TriggerSource, options_getter=lambda self: list(self._trigger_source_lut))
     def trigger_source(self) -> TriggerSource:
         """Get the trigger source.
         :return: The trigger source.
@@ -572,10 +551,7 @@ class HamamatsuCamera(VoxelCamera):
         # self._regenerate_trigger_source_lut()
         self._invalidate_delimination_props()
 
-    @enumerated_property(
-        enum_class=TriggerPolarity,
-        options_getter=lambda self: list(self._trigger_polarity_lut)
-    )
+    @enumerated_property(enum_class=TriggerPolarity, options_getter=lambda self: list(self._trigger_polarity_lut))
     def trigger_polarity(self) -> TriggerPolarity:
         """Get the trigger polarity.
         :return: The trigger polarity.
@@ -594,10 +570,7 @@ class HamamatsuCamera(VoxelCamera):
         # self._regenerate_trigger_polarity_lut()
         self._invalidate_delimination_props()
 
-    @enumerated_property(
-        enum_class=TriggerActive,
-        options_getter=lambda self: list(self._trigger_active_lut)
-    )
+    @enumerated_property(enum_class=TriggerActive, options_getter=lambda self: list(self._trigger_active_lut))
     def trigger_active(self) -> TriggerActive:
         """Get the trigger active.
         :return: The trigger active.
@@ -626,7 +599,7 @@ class HamamatsuCamera(VoxelCamera):
             mode=self.trigger_mode,
             source=self.trigger_source,
             polarity=self.trigger_polarity,
-            active=self.trigger_active
+            active=self.trigger_active,
         )
 
     @property
@@ -657,7 +630,7 @@ class HamamatsuCamera(VoxelCamera):
         self._buffer_allocated = True
         self.log.info(f"Allocated buffer for {self._buffer_size_frames} frames")
 
-    def start(self, frame_count: float = float('inf')) -> None:
+    def start(self, frame_count: float = float("inf")) -> None:
         """Start the camera."""
         self._dropped_frames = 0
         self._current_frame = 0
@@ -732,7 +705,7 @@ class HamamatsuCamera(VoxelCamera):
             output_buffer_size=out_buffer_size,
             dropped_frames=self._dropped_frames,
             frame_rate_fps=frame_rate_fps,
-            data_rate_mbs=data_rate_mbs
+            data_rate_mbs=data_rate_mbs,
         )
         # TODO: Check if this is the correct way to update the current frame start time
         # Does this need to be updated every time the frame is grabbed?
@@ -778,12 +751,13 @@ class HamamatsuCamera(VoxelCamera):
 
             res = self._dcam.prop_getattr(DELIMINATED_PROPERTIES[name])
             if type(res) is not DCAMPROP_ATTR:
-                self.log.error(f"Failed to fetch delimination prop: {name}. "
-                               f"Error: {DCAMERR(self._dcam_provider.lasterr())}")
+                self.log.error(
+                    f"Failed to fetch delimination prop: {name}. " f"Error: {DCAMERR(self._dcam_provider.lasterr())}"
+                )
                 return None
             return res
 
-        if prop_name is None or prop_name == [] or prop_name == ['all']:
+        if prop_name is None or prop_name == [] or prop_name == ["all"]:
             prop_name = self._delimination_props.keys()
         for prop in prop_name:
             self._delimination_props[prop] = get_delimination_prop_attr(prop)
@@ -795,7 +769,7 @@ class HamamatsuCamera(VoxelCamera):
         :param prop_names: The property names. Default is all properties.
         :type prop_names: Optional[list[str]]
         """
-        if prop_names is None or prop_names == [] or prop_names == ['all']:
+        if prop_names is None or prop_names == [] or prop_names == ["all"]:
             prop_names = self._delimination_props.keys()
         for prop_name in prop_names:
             self._delimination_props[prop_name] = None
@@ -816,11 +790,11 @@ class HamamatsuCamera(VoxelCamera):
         delimination_prop = self._delimination_props[prop_name]
         try:
             match limit_type:
-                case 'min':
+                case "min":
                     return delimination_prop.valuemin
-                case 'max':
+                case "max":
                     return delimination_prop.valuemax
-                case 'step':
+                case "step":
                     return delimination_prop.valuestep
                 case _:
                     self.log.error(f"Invalid limit type: {limit_type}")
@@ -887,8 +861,9 @@ class HamamatsuCamera(VoxelCamera):
         self._dcam.prop_setvalue(ENUMERATED_PROPERTIES[prop_name], value)
         self.log.debug(f"Set camera property: {prop_name} to {value}")
 
-    def _get_enumerated_prop_lut(self, prop_name: str, enum_class,
-                                 key_parser: Callable = lambda r: r.upper().replace(" ", "")) -> dict:
+    def _get_enumerated_prop_lut(
+        self, prop_name: str, enum_class, key_parser: Callable = lambda r: r.upper().replace(" ", "")
+    ) -> dict:
         """Get the look-up table for an enumerated property.
 
         :param prop_name: The property name.

@@ -1,15 +1,21 @@
-from typing import Dict, Optional, Literal
+from typing import Optional, Literal
 
-from tigerasi.device_codes import TTLIn0Mode, TTLOut0Mode, ScanPattern, JoystickPolarity, JoystickInput, \
-    TunableLensControlMode
+from tigerasi.device_codes import (
+    TTLIn0Mode,
+    TTLOut0Mode,
+    ScanPattern,
+    JoystickPolarity,
+    JoystickInput,
+    TunableLensControlMode,
+)
 from tigerasi.tiger_controller import TigerController
 
-from voxel.instrument.device import VoxelDevice, VoxelDeviceConnectionError
-from voxel.instrument.device.linear_axis import LinearAxisDimension, ScanState
+from voxel.core.instrument.device import VoxelDevice, VoxelDeviceConnectionError
+from voxel.core.instrument.device.linear_axis import LinearAxisDimension, ScanState
 
-type AxisMap = Dict[str, str]  # axis name -> hardware_axis
-type JoystickMap = Dict[str, str]  # axis name -> joystick axis
-type DimensionsMap = Dict[LinearAxisDimension, str]  # LinearAxisDimension -> axis name
+type AxisMap = dict[str, str]  # axis name -> hardware_axis
+type JoystickMap = dict[str, str]  # axis name -> joystick axis
+type DimensionsMap = dict[LinearAxisDimension, str]  # LinearAxisDimension -> axis name
 
 STEPS_PER_UM = 10
 
@@ -48,7 +54,7 @@ class ASITigerBox(VoxelDevice):
         return self.box.get_build_config()
 
     @property
-    def joystick_mapping(self) -> Dict[str, str]:
+    def joystick_mapping(self) -> dict[str, str]:
         hardware_mapping = self.box.get_joystick_axis_mapping()
         return {axis_name: hardware_mapping[hardware_axis] for axis_name, hardware_axis in self.axis_map.items()}
 
@@ -60,8 +66,10 @@ class ASITigerBox(VoxelDevice):
         or if the axis ID is already registered
         """
         if hardware_axis not in self.hardware_axes:
-            raise VoxelDeviceConnectionError(f"Hardware axis {hardware_axis} not found in the connected tigerbox. "
-                                        f"Available axes: {self.hardware_axes}")
+            raise VoxelDeviceConnectionError(
+                f"Hardware axis {hardware_axis} not found in the connected tigerbox. "
+                f"Available axes: {self.hardware_axes}"
+            )
 
         for axis, hw_axis in self.axis_map.items():
             if hw_axis == hardware_axis:
@@ -71,13 +79,14 @@ class ASITigerBox(VoxelDevice):
 
         self.axis_map[axis_name] = hardware_axis
 
-    def register_linear_axis(self,
-                             axis_name: str,
-                             hardware_axis: str,
-                             dimension: LinearAxisDimension,
-                             joystick_polarity: Literal[-1, 1] = 1,
-                             joystick_input: Optional[JoystickInput] = None,
-                             ):
+    def register_linear_axis(
+        self,
+        axis_name: str,
+        hardware_axis: str,
+        dimension: LinearAxisDimension,
+        joystick_polarity: Literal[-1, 1] = 1,
+        joystick_input: Optional[JoystickInput] = None,
+    ):
         """Register a linear axis with the TigerBox controller.
         :param axis_name: unique axis identifier
         :param hardware_axis: hardware axis name, must be one of the available axes on the connected TigerBox
@@ -108,10 +117,7 @@ class ASITigerBox(VoxelDevice):
             self.axis_map.pop(axis_name)
 
         # Create a list of dimensions to remove
-        dimensions_to_remove = [
-            dimension for dimension, axis in self.dimensions_map.items()
-            if axis == axis_name
-        ]
+        dimensions_to_remove = [dimension for dimension, axis in self.dimensions_map.items() if axis == axis_name]
 
         # Remove the dimensions outside the loop
         for dimension in dimensions_to_remove:
@@ -129,7 +135,7 @@ class ASITigerBox(VoxelDevice):
         return steps / (STEPS_PER_UM * 1000)  # convert to mm
 
     def move_absolute_mm(self, axis_name: str, position_mm: float) -> None:
-        self.box.move_absolute(**{self.axis_map[axis_name]: round(position_mm * 1000 * STEPS_PER_UM, 1), 'wait': True})
+        self.box.move_absolute(**{self.axis_map[axis_name]: round(position_mm * 1000 * STEPS_PER_UM, 1), "wait": True})
 
     def await_movement(self) -> None:
         self.box.wait()
@@ -153,10 +159,10 @@ class ASITigerBox(VoxelDevice):
         self.box.set_lower_travel_limit(self.axis_map[axis_name])
 
     def set_upper_travel_limit(self, axis_name: str, limit: float):
-        self.box.set_upper_travel_limit(**{self.axis_map[axis_name]: limit, 'wait': True})
+        self.box.set_upper_travel_limit(**{self.axis_map[axis_name]: limit, "wait": True})
 
     def set_lower_travel_limit(self, axis_name: str, limit: float):
-        self.box.set_lower_travel_limit(**{self.axis_map[axis_name]: limit, 'wait': True})
+        self.box.set_lower_travel_limit(**{self.axis_map[axis_name]: limit, "wait": True})
 
     def set_axis_limits(self, axis_name: str, lower_limit: float, upper_limit: float) -> None:
         self.set_upper_travel_limit(axis_name, upper_limit)
@@ -168,7 +174,7 @@ class ASITigerBox(VoxelDevice):
 
     def set_axis_speed(self, axis_name: str, speed_mm_s: float) -> None:
         box_axis = self.axis_map[axis_name]
-        self.box.set_speed(**{box_axis: speed_mm_s, 'wait': True})
+        self.box.set_speed(**{box_axis: speed_mm_s, "wait": True})
 
     def get_axis_acceleration(self, axis_name: str) -> float:
         box_axis = self.axis_map[axis_name]
@@ -176,7 +182,7 @@ class ASITigerBox(VoxelDevice):
 
     def set_axis_acceleration(self, axis_name: str, acceleration_ms: float) -> None:
         box_axis = self.axis_map[axis_name]
-        self.box.set_acceleration(**{box_axis: acceleration_ms, 'wait': True})
+        self.box.set_acceleration(**{box_axis: acceleration_ms, "wait": True})
 
     def zero_in_place(self, axis_name: str) -> None:
         self.box.zero_in_place(self.axis_map[axis_name])
@@ -186,7 +192,7 @@ class ASITigerBox(VoxelDevice):
 
     def set_axis_home_position(self, axis_name: str, position_mm: float = None) -> None:
         position_mm = position_mm or self.get_axis_position(axis_name)
-        self.box.set_home(**{self.axis_map[axis_name]: position_mm, 'wait': True})
+        self.box.set_home(**{self.axis_map[axis_name]: position_mm, "wait": True})
 
     def home(self, axis_name: str) -> None:
         self.box.home(self.axis_map[axis_name])
@@ -200,7 +206,7 @@ class ASITigerBox(VoxelDevice):
 
     def set_axis_backlash(self, axis_name: str, backlash_mm: float) -> None:
         box_axis = self.axis_map[axis_name]
-        self.box.set_axis_backlash(**{box_axis: backlash_mm, 'wait': True})
+        self.box.set_axis_backlash(**{box_axis: backlash_mm, "wait": True})
 
     def setup_step_shoot_scan(self, axis_name: str, step_size_um: float) -> bool:
         """Queue a single-axis relative move of the specified amount."""
@@ -214,10 +220,13 @@ class ASITigerBox(VoxelDevice):
             self.box.setup_ring_buffer(self.axis_map[axis_name])
             self.box.queue_buffered_move(**{self.axis_map[axis_name]: step_size_steps})
             # TTL mode dictates whether ring buffer move is relative or absolute.
-            self.box.set_ttl_pin_modes(TTLIn0Mode.MOVE_TO_NEXT_REL_POSITION,
-                                       TTLOut0Mode.PULSE_AFTER_MOVING,
-                                       aux_io_mode=0, aux_io_mask=0,
-                                       aux_io_state=0)
+            self.box.set_ttl_pin_modes(
+                TTLIn0Mode.MOVE_TO_NEXT_REL_POSITION,
+                TTLOut0Mode.PULSE_AFTER_MOVING,
+                aux_io_mode=0,
+                aux_io_mask=0,
+                aux_io_state=0,
+            )
             self.scan_state = ScanState.CONFIGURED
             return True
         except Exception as e:
@@ -225,14 +234,17 @@ class ASITigerBox(VoxelDevice):
             return False
 
     # TODO Unfinished implementation of stage scan.
-    def setup_stage_scan(self, fast_axis_start_position: float,
-                         slow_axis_start_position: float,
-                         slow_axis_stop_position: float,
-                         frame_count: int, frame_interval_um: float,
-                         strip_count: int,
-                         retrace_speed_percent: int,
-                         pattern: ScanPattern = ScanPattern.SERPENTINE
-                         ):
+    def setup_stage_scan(
+        self,
+        fast_axis_start_position: float,
+        slow_axis_start_position: float,
+        slow_axis_stop_position: float,
+        frame_count: int,
+        frame_interval_um: float,
+        strip_count: int,
+        retrace_speed_percent: int,
+        pattern: ScanPattern = ScanPattern.SERPENTINE,
+    ):
         """Configure a stage scan orchestrated by the device hardware.
 
         This function sets up the outputting of <tile_count> output pulses
@@ -258,17 +270,18 @@ class ASITigerBox(VoxelDevice):
         slow_axis = self.axis_map[LinearAxisDimension.Y]
 
         # Stop any existing scan. Apply machine coordinate frame scan params.
-        self.log.debug(f"fast axis start: {fast_axis_start_position},"
-                       f"slow axis start: {slow_axis_start_position}")
+        self.log.debug(f"fast axis start: {fast_axis_start_position}," f"slow axis start: {slow_axis_start_position}")
 
         self.box.setup_scan(fast_axis, slow_axis, pattern)
-        self.box.scanr(scan_start_mm=fast_axis_start_position,
-                       pulse_interval_um=frame_interval_um,
-                       num_pixels=frame_count,
-                       retrace_speed_percent=retrace_speed_percent)
-        self.box.scanv(scan_start_mm=slow_axis_start_position,
-                       scan_stop_mm=slow_axis_stop_position,
-                       line_count=strip_count)
+        self.box.scanr(
+            scan_start_mm=fast_axis_start_position,
+            pulse_interval_um=frame_interval_um,
+            num_pixels=frame_count,
+            retrace_speed_percent=retrace_speed_percent,
+        )
+        self.box.scanv(
+            scan_start_mm=slow_axis_start_position, scan_stop_mm=slow_axis_stop_position, line_count=strip_count
+        )
 
     def start_scan(self, wait: bool = True) -> None:
         if self.scan_state == ScanState.CONFIGURED:
