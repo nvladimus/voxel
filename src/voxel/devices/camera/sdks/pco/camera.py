@@ -27,23 +27,13 @@ logger.addHandler(logging.NullHandler())
 
 BUFFER_SIZE_MB = 2400
 
-BINNING = {
-    1: 1,
-    2: 2,
-    4: 4
-}
+BINNING = {1: 1, 2: 2, 4: 4}
 
 # generate modes by querying pco sdk
-TRIGGERS = {
-    "modes": dict(),
-    "sources": {
-        "internal": "auto",
-        "external": "external"
-    },
-    "polarity": None
-}
+TRIGGERS = {"modes": dict(), "sources": {"internal": "auto", "external": "external"}, "polarity": None}
 
 READOUT_MODES = dict()
+
 
 class exception(Exception):
     def __str__(self):
@@ -89,7 +79,14 @@ class Camera:
                 if _scanner(self.sdk, [interface], id) != 0:
                     raise ValueError
             else:
-                if (_scanner(self.sdk, ["USB 3.0", "CLHS", "Camera Link Silicon Software", "GenICam", "GigE", "USB 2.0", "FireWire"], id) != 0):
+                if (
+                    _scanner(
+                        self.sdk,
+                        ["USB 3.0", "CLHS", "Camera Link Silicon Software", "GenICam", "GigE", "USB 2.0", "FireWire"],
+                        id,
+                    )
+                    != 0
+                ):
                     raise ValueError
 
         except ValueError:
@@ -113,21 +110,35 @@ class Camera:
 
         if self.colorflag:
             self.conv = {
-                "Mono8": Convert(self.sdk.get_camera_handle(), self.sdk, "bw", self._camera_description["bit resolution"]),
-                "BGR8": Convert(self.sdk.get_camera_handle(), self.sdk, "color", self._camera_description["bit resolution"]),
-                "BGR16": Convert(self.sdk.get_camera_handle(), self.sdk, "color16", self._camera_description["bit resolution"]),
+                "Mono8": Convert(
+                    self.sdk.get_camera_handle(), self.sdk, "bw", self._camera_description["bit resolution"]
+                ),
+                "BGR8": Convert(
+                    self.sdk.get_camera_handle(), self.sdk, "color", self._camera_description["bit resolution"]
+                ),
+                "BGR16": Convert(
+                    self.sdk.get_camera_handle(), self.sdk, "color16", self._camera_description["bit resolution"]
+                ),
             }
         else:
             self.conv = {
-                "Mono8": Convert(self.sdk.get_camera_handle(), self.sdk, "bw", self._camera_description["bit resolution"]),
-                "BGR8": Convert(self.sdk.get_camera_handle(), self.sdk, "pseudo", self._camera_description["bit resolution"]),
+                "Mono8": Convert(
+                    self.sdk.get_camera_handle(), self.sdk, "bw", self._camera_description["bit resolution"]
+                ),
+                "BGR8": Convert(
+                    self.sdk.get_camera_handle(), self.sdk, "pseudo", self._camera_description["bit resolution"]
+                ),
             }
 
         # get required infos for convert creation
         sensor_info = self.__get_sensor_info()
         for key in self.conv:
-            self.conv[key].create(sensor_info["data_bits"], sensor_info["dark_offset"],
-                                  sensor_info["ccm"], sensor_info["sensor_info_bits"])
+            self.conv[key].create(
+                sensor_info["data_bits"],
+                sensor_info["dark_offset"],
+                sensor_info["ccm"],
+                sensor_info["sensor_info_bits"],
+            )
 
         # grab min/max parameter values
         self._get_min_max_step_values()
@@ -141,20 +152,23 @@ class Camera:
     @property
     def exposure_time_ms(self):
         # convert from s units to ms
-        return self.exposure_time*1000
+        return self.exposure_time * 1000
 
     @exposure_time_ms.setter
     def exposure_time_ms(self, exposure_time_ms: float):
 
-        if exposure_time_ms < self.min_exposure_time_ms or \
-                exposure_time_ms > self.max_exposure_time_ms:
-            logger.error(f"exposure time must be >{self.min_exposure_time_ms} ms \
-                             and <{self.max_exposure_time_ms} ms")
-            raise ValueError(f"exposure time must be >{self.min_exposure_time_ms} ms \
-                             and <{self.max_exposure_time_ms} ms")
+        if exposure_time_ms < self.min_exposure_time_ms or exposure_time_ms > self.max_exposure_time_ms:
+            logger.error(
+                f"exposure time must be >{self.min_exposure_time_ms} ms \
+                             and <{self.max_exposure_time_ms} ms"
+            )
+            raise ValueError(
+                f"exposure time must be >{self.min_exposure_time_ms} ms \
+                             and <{self.max_exposure_time_ms} ms"
+            )
 
         # Note: convert from ms to s
-        self.exposure_time = exposure_time_ms/1e3
+        self.exposure_time = exposure_time_ms / 1e3
         logger.info(f"exposure time set to: {exposure_time_ms} ms")
         # refresh parameter values
         self._get_min_max_step_values()
@@ -163,18 +177,20 @@ class Camera:
     def roi(self):
         # roi {'x0', 'y0', 'x1', 'y1'}
         roi = self.sdk.get_roi()
-        width_px = roi['x1']-roi['x0']+1
-        height_px = roi['y1']-roi['y0']+1
-        return {'width_px': width_px,
-                'height_px': height_px,
-                'width_offset_px': roi['x0']-1,
-                'height_offest_px': roi['y0']-1}
+        width_px = roi["x1"] - roi["x0"] + 1
+        height_px = roi["y1"] - roi["y0"] + 1
+        return {
+            "width_px": width_px,
+            "height_px": height_px,
+            "width_offset_px": roi["x0"] - 1,
+            "height_offest_px": roi["y0"] - 1,
+        }
 
     @roi.setter
     def roi(self, roi: dict):
 
-        width_px = roi['width_px']
-        height_px = roi['height_px']
+        width_px = roi["width_px"]
+        height_px = roi["height_px"]
 
         sensor_height_px = self.max_height_px
         sensor_width_px = self.max_width_px
@@ -182,34 +198,44 @@ class Camera:
         # set roi to origin {'x0', 'y0', 'x1', 'y1'}
         self.sdk.set_roi(1, 1, sensor_width_px, sensor_height_px)
 
-        if height_px < self.min_height_px or \
-                (height_px % self.step_height_px) != 0 or \
-                height_px > self.max_height_px:
-            logger.error(f"Height must be >{self.min_height_px} px, \
+        if height_px < self.min_height_px or (height_px % self.step_height_px) != 0 or height_px > self.max_height_px:
+            logger.error(
+                f"Height must be >{self.min_height_px} px, \
                              <{self.max_height_px} px, \
-                             and a multiple of {self.step_height_px} px!")
-            raise ValueError(f"Height must be >{self.min_height_px} px, \
+                             and a multiple of {self.step_height_px} px!"
+            )
+            raise ValueError(
+                f"Height must be >{self.min_height_px} px, \
                              <{self.max_height_px} px, \
-                             and a multiple of {self.step_height_px} px!")
+                             and a multiple of {self.step_height_px} px!"
+            )
 
-        if width_px < self.min_width_px or \
-                (width_px % self.step_width_px) != 0 or \
-                width_px > self.max_width_px:
-            logger.error(f"Width must be >{self.min_width_px} px, \
+        if width_px < self.min_width_px or (width_px % self.step_width_px) != 0 or width_px > self.max_width_px:
+            logger.error(
+                f"Width must be >{self.min_width_px} px, \
                              <{self.max_width_px}, \
-                            and a multiple of {self.step_width_px} px!")
-            raise ValueError(f"Width must be >{self.min_width_px} px, \
+                            and a multiple of {self.step_width_px} px!"
+            )
+            raise ValueError(
+                f"Width must be >{self.min_width_px} px, \
                              <{self.max_width_px}, \
-                            and a multiple of {self.step_width_px} px!")
+                            and a multiple of {self.step_width_px} px!"
+            )
         self.sdk.set_roi(1, 1, width_px, sensor_height_px)
         # width offset must be a multiple of the divisible width in px
         centered_width_offset_px = round((sensor_width_px / 2 - width_px / 2) / self.step_width_px) * self.step_width_px
-        self.sdk.set_roi(centered_width_offset_px+1, 1, centered_width_offset_px+width_px, sensor_height_px)
-        self.sdk.set_roi(centered_width_offset_px+1, 1, centered_width_offset_px+width_px, sensor_height_px)
+        self.sdk.set_roi(centered_width_offset_px + 1, 1, centered_width_offset_px + width_px, sensor_height_px)
+        self.sdk.set_roi(centered_width_offset_px + 1, 1, centered_width_offset_px + width_px, sensor_height_px)
         # Height offset must be a multiple of the divisible height in px
-        centered_height_offset_px = round(
-            (sensor_height_px / 2 - height_px / 2) / self.step_height_px) * self.step_height_px
-        self.sdk.set_roi(centered_width_offset_px+1, centered_height_offset_px+1, centered_width_offset_px+width_px, centered_height_offset_px+height_px)
+        centered_height_offset_px = (
+            round((sensor_height_px / 2 - height_px / 2) / self.step_height_px) * self.step_height_px
+        )
+        self.sdk.set_roi(
+            centered_width_offset_px + 1,
+            centered_height_offset_px + 1,
+            centered_width_offset_px + width_px,
+            centered_height_offset_px + height_px,
+        )
         logger.info(f"roi set to: {width_px} x {height_px} [width x height]")
         logger.info(f"roi offset set to: {centered_width_offset_px} x {centered_height_offset_px} [width x height]")
         # refresh parameter values
@@ -217,52 +243,57 @@ class Camera:
 
     @property
     def line_interval_us(self):
-        line_interval_s = self.sdk.get_cmos_line_timing()['line time']
+        line_interval_s = self.sdk.get_cmos_line_timing()["line time"]
         # returned value is in s, convert to us
-        return line_interval_s*1e6
+        return line_interval_s * 1e6
 
     @line_interval_us.setter
     def line_interval_us(self, line_interval_us: float):
-        if line_interval_us < self.min_line_interval_us or \
-                line_interval_us > self.max_line_interval_us:
-            logger.error(f"line interval must be >{self.min_line_interval_us} us \
-                             and <{self.max_line_interval_us} us")
-            raise ValueError(f"line interval must be >{self.min_line_interval_us} us \
-                             and <{self.max_line_interval_us} us")
+        if line_interval_us < self.min_line_interval_us or line_interval_us > self.max_line_interval_us:
+            logger.error(
+                f"line interval must be >{self.min_line_interval_us} us \
+                             and <{self.max_line_interval_us} us"
+            )
+            raise ValueError(
+                f"line interval must be >{self.min_line_interval_us} us \
+                             and <{self.max_line_interval_us} us"
+            )
         # timebase is us if interval > 4 us
-        self.sdk.set_cmos_line_timing("on", line_interval_us/1e6)
+        self.sdk.set_cmos_line_timing("on", line_interval_us / 1e6)
         logger.info(f"line interval set to: {line_interval_us} us")
         # refresh parameter values
         self._get_min_max_step_values()
 
     @property
     def trigger(self):
-        mode = self.sdk.get_trigger_mode()['trigger mode']
-        source = self.sdk.get_acquire_mode()['acquire mode']
+        mode = self.sdk.get_trigger_mode()["trigger mode"]
+        source = self.sdk.get_acquire_mode()["acquire mode"]
         polarity = None
-        return {"mode": next(key for key, value in TRIGGERS['modes'].items() if value == mode),
-                "source": next(key for key, value in TRIGGERS['sources'].items() if value == source),
-                "polarity": None}
+        return {
+            "mode": next(key for key, value in TRIGGERS["modes"].items() if value == mode),
+            "source": next(key for key, value in TRIGGERS["sources"].items() if value == source),
+            "polarity": None,
+        }
 
     @trigger.setter
     def trigger(self, trigger: dict):
 
         # skip source and polarity, not used in PCO API
-        mode = trigger['mode']
-        source = trigger['source']
-        polarity = trigger['polarity']
+        mode = trigger["mode"]
+        source = trigger["source"]
+        polarity = trigger["polarity"]
 
-        valid_mode = list(TRIGGERS['modes'].keys())
+        valid_mode = list(TRIGGERS["modes"].keys())
         if mode not in valid_mode:
             raise ValueError("mode must be one of %r." % valid_mode)
-        valid_source = list(TRIGGERS['sources'].keys())
+        valid_source = list(TRIGGERS["sources"].keys())
         if source not in valid_source:
             raise ValueError("source must be one of %r." % valid_source)
         if polarity != None:
             raise ValueError("polarity must be one of %r." % valid_polarity)
 
-        self.sdk.set_trigger_mode(mode=TRIGGERS['modes'][mode])
-        self.sdk.set_acquire_mode(mode=TRIGGERS['sources'][source])
+        self.sdk.set_trigger_mode(mode=TRIGGERS["modes"][mode])
+        self.sdk.set_acquire_mode(mode=TRIGGERS["sources"][source])
         logger.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
         # refresh parameter values
         self._get_min_max_step_values()
@@ -270,7 +301,7 @@ class Camera:
     @property
     def binning(self):
         # pco binning can be different in x, y. take x value.
-        binning = self.sdk.get_binning()['binning x']
+        binning = self.sdk.get_binning()["binning x"]
         return next(key for key, value in BINNING.items() if value == binning)
 
     @binning.setter
@@ -293,14 +324,14 @@ class Camera:
     def signal_mainboard_temperature_c(self):
         """get the mainboard temperature in degrees C."""
         state = {}
-        state['Mainboard Temperature [C]'] = self.sdk.get_temperature()['camera temperature']
+        state["Mainboard Temperature [C]"] = self.sdk.get_temperature()["camera temperature"]
         return state
 
     @property
     def signal_sensor_temperature_c(self):
         """get the sensor temperature in degrees C."""
         state = {}
-        state['Sensor Temperature [C]'] = self.sdk.get_temperature()['sensor temperature']
+        state["Sensor Temperature [C]"] = self.sdk.get_temperature()["sensor temperature"]
         return state
 
     @property
@@ -310,12 +341,12 @@ class Camera:
         # readout mode does not return string but int, need to parse this separately
         # from READOUT_MODES
         READOUT_OUTPUT = {
-            'light sheet forward': 0,
-            'rolling in': 256,
-            'rolling out': 512,
-            'rolling up': 768,
-            'rolling down': 1024,
-            'light sheet backward': 1280,
+            "light sheet forward": 0,
+            "rolling in": 256,
+            "rolling out": 512,
+            "rolling up": 768,
+            "rolling down": 1024,
+            "light sheet backward": 1280,
         }
         return next(key for key, value in READOUT_OUTPUT.items() if value == readout_mode)
 
@@ -325,7 +356,7 @@ class Camera:
         valid_mode = list(READOUT_MODES.keys())
         if readout_mode not in valid_mode:
             raise ValueError("mode must be one of %r." % valid_mode)
-        self.sdk.set_interface_output_format(interface='edge', format=READOUT_MODES[readout_mode])
+        self.sdk.set_interface_output_format(interface="edge", format=READOUT_MODES[readout_mode])
         logger.info(f"readout mode set to: {readout_mode}")
         # refresh parameter values
         self._get_min_max_step_values()
@@ -334,10 +365,10 @@ class Camera:
         # pco api prepares buffer and autostarts. api call is in start()
         # pco only 16-bit A/D
         bit_to_byte = 2
-        frame_size_mb = self.roi['width_px']*self.roi['height_px']/BINNING[self.binning]**2*bit_to_byte/1e6
+        frame_size_mb = self.roi["width_px"] * self.roi["height_px"] / BINNING[self.binning] ** 2 * bit_to_byte / 1e6
         self.buffer_size_frames = round(BUFFER_SIZE_MB / frame_size_mb)
         logger.info(f"buffer set to: {self.buffer_size_frames} frames")
-        self.record(number_of_images=100, mode='fifo')
+        self.record(number_of_images=100, mode="fifo")
 
     def grab_frame(self):
         """Retrieve a frame as a 2D numpy array with shape (rows, cols)."""
@@ -351,15 +382,15 @@ class Camera:
     def _get_min_max_step_values(self):
         # gather min max values
         # convert from s to ms
-        self.min_exposure_time_ms = self.description['min exposure time']*1e3
-        self.max_exposure_time_ms = self.description['max exposure time']*1e3
-        self.step_exposure_time_ms = self.description['min exposure step']*1e3
-        self.min_width_px = self.description['min width']
-        self.max_width_px = self.description['max width']
-        self.min_height_px = self.description['min height']
-        self.max_height_px = self.description['max height']
-        self.step_width_px = self.description['roi steps'][0]
-        self.step_height_px = self.description['roi steps'][1]
+        self.min_exposure_time_ms = self.description["min exposure time"] * 1e3
+        self.max_exposure_time_ms = self.description["max exposure time"] * 1e3
+        self.step_exposure_time_ms = self.description["min exposure step"] * 1e3
+        self.min_width_px = self.description["min width"]
+        self.max_width_px = self.description["max width"]
+        self.min_height_px = self.description["min height"]
+        self.max_height_px = self.description["max height"]
+        self.step_width_px = self.description["roi steps"][0]
+        self.step_height_px = self.description["roi steps"][1]
         self.min_line_interval_us = 20.0
         self.max_line_interval_us = 100.0
         self.step_ine_interval_us = 1.0
@@ -420,45 +451,45 @@ class Camera:
     def _query_trigger_modes(self):
 
         trigger_mode_options = {
-            'off': 'auto sequence',
-            'software': 'software trigger',
-            'external start & software trigger': "external exposure start & software trigger",
-            'external exposure control': 'external exposure control',
-            'external synchronized': 'external synchronized',
-            'fast external exposure control': 'fast external exposure control',
-            'external cds control': 'external CDS control',
-            'slow external exposure control': 'slow external exposure control',
-            'external synchronized hdsdi': 'external synchronized HDSDI'
+            "off": "auto sequence",
+            "software": "software trigger",
+            "external start & software trigger": "external exposure start & software trigger",
+            "external exposure control": "external exposure control",
+            "external synchronized": "external synchronized",
+            "fast external exposure control": "fast external exposure control",
+            "external cds control": "external CDS control",
+            "slow external exposure control": "slow external exposure control",
+            "external synchronized hdsdi": "external synchronized HDSDI",
         }
 
         for key in trigger_mode_options:
             try:
                 self.sdk.set_trigger_mode(mode=trigger_mode_options[key])
-                TRIGGERS['modes'][key] = trigger_mode_options[key]
+                TRIGGERS["modes"][key] = trigger_mode_options[key]
             except:
                 logger.debug(f"{key} not avaiable on this camera")
         # initialize as off
-        self.sdk.set_trigger_mode(mode=trigger_mode_options['off'])
+        self.sdk.set_trigger_mode(mode=trigger_mode_options["off"])
 
     def _query_readout_modes(self):
 
         readout_mode_options = {
-            'light sheet forward': 'top bottom',
-            'rolling in': 'top center bottom center',
-            'rolling out': "center top center bottom",
-            'rolling up': 'center top center bottom',
-            'rolling down': 'top center center bottom',
-            'light sheet backward': 'inverse',
+            "light sheet forward": "top bottom",
+            "rolling in": "top center bottom center",
+            "rolling out": "center top center bottom",
+            "rolling up": "center top center bottom",
+            "rolling down": "top center center bottom",
+            "light sheet backward": "inverse",
         }
 
         for key in readout_mode_options:
             try:
-                self.sdk.set_interface_output_format(interface='edge', format=readout_mode_options[key])
+                self.sdk.set_interface_output_format(interface="edge", format=readout_mode_options[key])
                 READOUT_MODES[key] = readout_mode_options[key]
             except:
                 logger.debug(f"{key} not avaiable on this camera")
         # initialize as rolling in shutter
-        self.sdk.set_interface_output_format(interface='edge', format=readout_mode_options['rolling in'])
+        self.sdk.set_interface_output_format(interface="edge", format=readout_mode_options["rolling in"])
 
     # -------------------------------------------------------------------------
 
@@ -620,10 +651,10 @@ class Camera:
 
         if "timestamp" in arg:
             if self._camera_description["dwGeneralCapsDESC1"] & 0x00000100:  # GENERALCAPS1_NO_TIMESTAMP
-                if arg["timestamp"] != 'off':
+                if arg["timestamp"] != "off":
                     raise ValueError("Camera does not support configured timestamp mode")
             else:
-                if arg["timestamp"] == 'ascii':
+                if arg["timestamp"] == "ascii":
                     # GENERALCAPS1_TIMESTAMP_ASCII_ONLY
                     if not (self._camera_description["dwGeneralCapsDESC1"] & 0x00000008):
                         raise ValueError("Camera does not support ascii-only timestamp mode")
@@ -644,9 +675,7 @@ class Camera:
 
         if "binning" in arg:
             if "roi" not in arg:
-                print(
-                    'ROI must be adjusted if binning is used. Please set a valid ROI by the "roi" parameter.'
-                )
+                print('ROI must be adjusted if binning is used. Please set a valid ROI by the "roi" parameter.')
             self.sdk.set_binning(*arg["binning"])
 
         self.sdk.arm_camera()
@@ -697,9 +726,7 @@ class Camera:
         if "line time" in arg:
             self.sdk.set_cmos_line_timing("on", arg["line time"])
             if "exposure time" in arg:
-                print(
-                    '!!! Exposure time might change: "line time" * "lines exposure" !!!'
-                )
+                print('!!! Exposure time might change: "line time" * "lines exposure" !!!')
 
         if "lines exposure" in arg:
             self.sdk.set_cmos_line_exposure_delay(arg["lines exposure"], 0)
@@ -820,9 +847,7 @@ class Camera:
 
         self.sdk.set_flim_master_modulation_frequency(frequency)
 
-        self.sdk.set_flim_phase_sequence_parameter(
-            phase_number, phase_symmetry, phase_order, tap_select
-        )
+        self.sdk.set_flim_phase_sequence_parameter(phase_number, phase_symmetry, phase_order, tap_select)
 
         self.sdk.set_flim_image_processing_flow(asymmetry_correction, output_mode)
 
@@ -1007,7 +1032,7 @@ class Camera:
 
         current_binning_x = 1
         binning_horz = []
-        while (current_binning_x <= cam_desc["max. binning horizontal"]):
+        while current_binning_x <= cam_desc["max. binning horizontal"]:
             binning_horz.append(current_binning_x)
             if cam_desc["binning horizontal stepping"] == 1:
                 current_binning_x = current_binning_x + 1
@@ -1017,7 +1042,7 @@ class Camera:
 
         current_binning_y = 1
         binning_vert = []
-        while (current_binning_y <= cam_desc["max. binning vert"]):
+        while current_binning_y <= cam_desc["max. binning vert"]:
             binning_vert.append(current_binning_y)
             if cam_desc["binning vert stepping"] == 1:
                 current_binning_y = current_binning_y + 1
@@ -1089,7 +1114,6 @@ class Camera:
 
         self.sdk.set_delay_exposure_time(delay, delay_timebase, time, timebase)
 
-
     # -------------------------------------------------------------------------
     @property
     def delay_time(self):
@@ -1129,7 +1153,7 @@ class Camera:
         if type(arg) is not int and type(arg) is not float:
             print("Argument is not an int or float")
             raise TypeError
-        
+
         _delay_time = arg
 
         if _delay_time <= 4e-3:
@@ -1153,7 +1177,6 @@ class Camera:
         exposure_timebase = de["exposure timebase"]
 
         self.sdk.set_delay_exposure_time(time, timebase, exposure, exposure_timebase)
-
 
     # -------------------------------------------------------------------------
     def get_convert_control(self, data_format):
@@ -1194,7 +1217,9 @@ class Camera:
         self.conv[_data_format].set_control_properties(convert_ctrl)
 
     # -------------------------------------------------------------------------
-    def record(self, number_of_images=1, mode="sequence", file_path=None):  # file_type=None   mode=file & file non blocking
+    def record(
+        self, number_of_images=1, mode="sequence", file_path=None
+    ):  # file_type=None   mode=file & file non blocking
         """
         Generates and configures a new Recorder instance.
 
@@ -1252,8 +1277,12 @@ class Camera:
         # internal values for convert
         sensor_info = self.__get_sensor_info()
         for key in self.conv:
-            self.conv[key].set_sensor_info(sensor_info["data_bits"], sensor_info["dark_offset"],
-                                           sensor_info["ccm"], sensor_info["sensor_info_bits"])
+            self.conv[key].set_sensor_info(
+                sensor_info["data_bits"],
+                sensor_info["dark_offset"],
+                sensor_info["ccm"],
+                sensor_info["sensor_info_bits"],
+            )
 
         if self.rec.recorder_handle.value is not None:
             self.rec.stop_record()
@@ -1340,12 +1369,13 @@ class Camera:
 
         #######################################################################
         elif (
-                mode == "tif"
-                or mode == "multitif"
-                or mode == "pcoraw"
-                or mode == "b16"
-                or mode == "dicom"
-                or mode == 'multidicom'):
+            mode == "tif"
+            or mode == "multitif"
+            or mode == "pcoraw"
+            or mode == "b16"
+            or mode == "dicom"
+            or mode == "multidicom"
+        ):
             blocking = "off"
             if file_path is None:
                 raise ValueError
@@ -1512,8 +1542,8 @@ class Camera:
         """
         Returns an image from the recorder.
 
-        :param image_index:  Index of the image that should be queried, 
-                             use PCO_RECORDER_LATEST_IMAGE for latest image 
+        :param image_index:  Index of the image that should be queried,
+                             use PCO_RECORDER_LATEST_IMAGE for latest image
                              (for recorder modes fifo/fifo_dpcore always use 0)
         :type image_index: int
         :param roi: Region of interest. Only this region is returned.
@@ -1551,10 +1581,10 @@ class Camera:
         _data_format = self.__get_standard_dataformat(data_format)
 
         channel_order_rgb = True
-        if data_format.lower().startswith('bgr'):
+        if data_format.lower().startswith("bgr"):
             channel_order_rgb = False
 
-        if (_data_format == "CompressedMono8"):
+        if _data_format == "CompressedMono8":
             if comp_params == None:
                 raise ValueError("Compression parameters are required for CompressedMono8 format")
             self.rec.set_compression_params(comp_params)
@@ -1562,12 +1592,15 @@ class Camera:
         if roi is None:
             if _data_format == "CompressedMono8":
                 image = self.rec.copy_image_compressed(
-                    image_index, 1, 1, (self._roi["x1"] - self._roi["x0"] + 1), (self._roi["y1"] - self._roi["y0"] + 1))
+                    image_index, 1, 1, (self._roi["x1"] - self._roi["x0"] + 1), (self._roi["y1"] - self._roi["y0"] + 1)
+                )
             else:
                 image = self.rec.copy_image(
-                    image_index, 1, 1, (self._roi["x1"] - self._roi["x0"] + 1), (self._roi["y1"] - self._roi["y0"] + 1))
+                    image_index, 1, 1, (self._roi["x1"] - self._roi["x0"] + 1), (self._roi["y1"] - self._roi["y0"] + 1)
+                )
             np_image = np.asarray(image["image"]).reshape(
-                (self._roi["y1"] - self._roi["y0"] + 1), (self._roi["x1"] - self._roi["x0"] + 1))
+                (self._roi["y1"] - self._roi["y0"] + 1), (self._roi["x1"] - self._roi["x0"] + 1)
+            )
         else:
             if _data_format == "CompressedMono8":
                 image = self.rec.copy_image_compressed(image_index, roi[0], roi[1], roi[2], roi[3])
@@ -1635,14 +1668,7 @@ class Camera:
 
     # -------------------------------------------------------------------------
 
-    def images(
-        self,
-        roi=None,
-        start_idx=0,
-        blocksize=None,
-        data_format="Mono16",
-        comp_params=None
-    ):
+    def images(self, roi=None, start_idx=0, blocksize=None, data_format="Mono16", comp_params=None):
         """
         Returns all recorded images from the recorder.
 
@@ -1686,7 +1712,7 @@ class Camera:
         # wait for images to be recorded
         while True:
             status = self.rec.get_status()
-            if (status["dwProcImgCount"] >= (blocksize + start_idx)):
+            if status["dwProcImgCount"] >= (blocksize + start_idx):
                 break
 
         for index in range(start_idx, (start_idx + blocksize)):
@@ -1721,15 +1747,13 @@ class Camera:
         """
 
         logger.info(
-            "[---.- s] [cam] {}: roi: {}, data_format: {}".format(
-                sys._getframe().f_code.co_name, roi, data_format
-            )
+            "[---.- s] [cam] {}: roi: {}, data_format: {}".format(sys._getframe().f_code.co_name, roi, data_format)
         )
 
         _data_format = self.__get_standard_dataformat(data_format)
 
         channel_order_rgb = True
-        if data_format.lower().startswith('bgr'):
+        if data_format.lower().startswith("bgr"):
             channel_order_rgb = False
 
         if _data_format == "CompressedMono8":
@@ -1740,9 +1764,16 @@ class Camera:
         stop_idx = min(status["dwProcImgCount"], status["dwReqImgCount"]) - 1
         if roi is None:
             image = self.rec.copy_average_image(
-                start_idx, stop_idx, 1, 1, (self._roi["x1"] - self._roi["x0"] + 1), (self._roi["y1"] - self._roi["y0"] + 1))
+                start_idx,
+                stop_idx,
+                1,
+                1,
+                (self._roi["x1"] - self._roi["x0"] + 1),
+                (self._roi["y1"] - self._roi["y0"] + 1),
+            )
             np_image = np.asarray(image["average image"]).reshape(
-                (self._roi["y1"] - self._roi["y0"] + 1), (self._roi["x1"] - self._roi["x0"] + 1))
+                (self._roi["y1"] - self._roi["y0"] + 1), (self._roi["x1"] - self._roi["x0"] + 1)
+            )
         else:
             image = self.rec.copy_average_image(start_idx, stop_idx, roi[0], roi[1], roi[2], roi[3])
             np_image = np.asarray(image["average image"]).reshape((roi[3] - roi[1] + 1), (roi[2] - roi[0] + 1))
@@ -1869,8 +1900,7 @@ class Camera:
             if timeout is not None and duration > timeout:
                 raise TimeoutError("Timeout ({} s) reached, no new image acquired".format(timeout))
 
-
-######################### private functions #########################
+    ######################### private functions #########################
 
     def __get_sensor_info(self):
         """
@@ -1896,7 +1926,7 @@ class Camera:
             "sensor_info_bits": sensor_info_bits,
             "ccm": ccm,
             "data_bits": data_bits,
-            "dark_offset": dark_offset
+            "dark_offset": dark_offset,
         }
 
         return sensor_info
@@ -1905,8 +1935,9 @@ class Camera:
 
         df_dict = dict.fromkeys(["Mono8", "mono8"], "Mono8")
         df_dict.update(dict.fromkeys(["Mono16", "mono16", "raw16", "bw16"], "Mono16"))
-        df_dict.update(dict.fromkeys(["rgb", "bgr", "RGB8", "BGR8", "RGBA8",
-                       "BGRA8", "rgba8", "bgra8", "rgba", "bgra"], "BGR8"))
+        df_dict.update(
+            dict.fromkeys(["rgb", "bgr", "RGB8", "BGR8", "RGBA8", "BGRA8", "rgba8", "bgra8", "rgba", "bgra"], "BGR8")
+        )
         df_dict.update(dict.fromkeys(["RGB16", "BGR16", "rgb16", "bgr16"], "BGR16"))
         df_dict.update(dict.fromkeys(["CompressedMono8", "compressed"], "CompressedMono8"))
 

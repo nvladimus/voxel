@@ -66,9 +66,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                 for name in files:
                     # check and only add if filename matches tranfer's filename
                     if self.filename in name and name != log_path:
-                        file_list[os.path.join(path, name)] = (
-                            os.path.getsize(os.path.join(path, name)) / 1024**2
-                        )
+                        file_list[os.path.join(path, name)] = os.path.getsize(os.path.join(path, name)) / 1024**2
             total_size_mb = sum(file_list.values())
             # sort the file list based on the file sizes and create a list for transfers
             sorted_file_list = dict(sorted(file_list.items(), key=lambda item: item[1]))
@@ -78,27 +76,21 @@ class RsyncFileTransfer(BaseFileTransfer):
                 transfer_complete = True
             # if not, try to initiate transfer again
             else:
-                self.log.info(
-                    f"starting file transfer attempt {retry_num+1}/{self._max_retry}"
-                )
+                self.log.info(f"starting file transfer attempt {retry_num+1}/{self._max_retry}")
                 for file_path, file_size_mb in sorted_file_list.items():
                     # transfer just one file and iterate
                     # split filename and path
                     [local_dir, filename] = os.path.split(file_path)
-                    self.log.info(f'transfering {filename}')
+                    self.log.info(f"transfering {filename}")
                     # specify external directory
                     # need to change directories to str because they are Path objects
-                    external_dir = local_dir.replace(
-                        str(local_directory), str(external_directory)
-                    )
+                    external_dir = local_dir.replace(str(local_directory), str(external_directory))
                     # make external directory tree if needed
                     if not os.path.isdir(external_dir):
                         os.makedirs(external_dir)
                     # setup log file
                     self._log_file = open(log_path, "w")
-                    self.log.info(
-                        f"transferring {file_path} from {local_directory} to {external_directory}"
-                    )
+                    self.log.info(f"transferring {file_path} from {local_directory} to {external_directory}")
                     # generate rsync command with args
                     if sys.platform == "win32":
                         # if windows, rsync expects absolute paths with driver letters to use
@@ -108,9 +100,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                         file_path = "/cygdrive/" + file_path
                         external_dir = external_dir.replace("\\", "/").replace(":", "")
                         external_dir = "/cygdrive/" + external_dir + "/" + filename
-                        cmd_with_args = self._flatten(
-                            [self._protocol, self._flags, file_path, external_dir]
-                        )
+                        cmd_with_args = self._flatten([self._protocol, self._flags, file_path, external_dir])
                     elif sys.platform == "darwin" or "linux" or "linux2":
                         # linux or darwin, paths defined as below
                         cmd_with_args = self._flatten(
@@ -126,7 +116,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                     time.sleep(1.0)
                     # lets monitor the progress of the individual file if size > 1 GB
                     if file_size_mb > 1024:
-                        self.log.info(f'{filename} is > 1 GB')
+                        self.log.info(f"{filename} is > 1 GB")
                         # wait for subprocess to start otherwise log file won't exist yet
                         time.sleep(10.0)
                         file_progress = 0
@@ -145,7 +135,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                                 # a location with % has been found
                                 if index != -1:
                                     # grab the string of the % progress
-                                    value = line[index - 4: index]
+                                    value = line[index - 4 : index]
                                     # strip and convert to float
                                     file_progress = float(value.rstrip())
                                 # we must be at the last line of the file
@@ -157,7 +147,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                                     # grab the index of the % symbol
                                     index = line.find("%")
                                     # grab the string of the % progress
-                                    value = line[index - 4: index]
+                                    value = line[index - 4 : index]
                                     # strip and convert to float
                                     file_progress = float(value.rstrip())
                             # no lines in the file yet
@@ -165,12 +155,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                                 file_progress = 0
                             # sum to transferred amount to track progress
                             self.progress = (
-                                (
-                                    total_transferred_mb
-                                    + file_size_mb * file_progress / 100
-                                )
-                                / total_size_mb
-                                * 100
+                                (total_transferred_mb + file_size_mb * file_progress / 100) / total_size_mb * 100
                             )
                             end_time_s = time.time()
                             # keep track of how long stuck at same progress
@@ -181,7 +166,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                                     break
                             previous_progress = self.progress
                             self.log.info(
-                                self.log.info(f'{self.filename} transfer is {self.progress:.2f} [%] complete.')
+                                self.log.info(f"{self.filename} transfer is {self.progress:.2f} [%] complete.")
                             )
                             # close temporary stdout file handle
                             f.close()
@@ -189,13 +174,9 @@ class RsyncFileTransfer(BaseFileTransfer):
                             time.sleep(10.0)
                     else:
                         subprocess.wait()
-                        self.progress = (
-                            (total_transferred_mb + file_size_mb) / total_size_mb * 100
-                        )
-                        self.log.info(
-                            self.log.info(f'{self.filename} transfer is {self.progress:.2f} [%] complete.')
-                        )
-                    self.log.info(f'{filename} transfer complete')
+                        self.progress = (total_transferred_mb + file_size_mb) / total_size_mb * 100
+                        self.log.info(self.log.info(f"{self.filename} transfer is {self.progress:.2f} [%] complete."))
+                    self.log.info(f"{filename} transfer complete")
                     # wait for process to finish before cleaning log file
                     time.sleep(10.0)
                     # clean up and remove the temporary log file
@@ -206,9 +187,7 @@ class RsyncFileTransfer(BaseFileTransfer):
                 for file in delete_list:
                     # f is a relative path, convert to absolute
                     local_file_path = os.path.join(local_directory.absolute(), file)
-                    external_file_path = os.path.join(
-                        external_directory.absolute(), file
-                    )
+                    external_file_path = os.path.join(external_directory.absolute(), file)
                     # .zarr is directory but os.path.isdir will return False
                     if os.path.isdir(local_file_path) or ".zarr" in local_dir:
                         # TODO how to hash check zarr -> directory instead of file?
@@ -219,35 +198,27 @@ class RsyncFileTransfer(BaseFileTransfer):
                             # put in try except in case no external file found
                             try:
                                 # if hash is verified delete file
-                                if self._verify_file(
-                                    local_file_path, external_file_path
-                                ):
+                                if self._verify_file(local_file_path, external_file_path):
                                     # remove local file
                                     self.log.info(f"deleting {local_file_path}")
                                     os.remove(local_file_path)
                                 # if has fails, external file is corrupt
                                 else:
                                     # remove external file, try again
-                                    self.log.info(
-                                        f"hashes did not match, deleting {external_file_path}"
-                                    )
+                                    self.log.info(f"hashes did not match, deleting {external_file_path}")
                                     os.remove(external_file_path)
                                     pass
                             except external_file_path.DoesNotExist:
-                                self.log.warning(
-                                    f"no external file exists at {external_file_path}"
-                                )
+                                self.log.warning(f"no external file exists at {external_file_path}")
                         else:
                             # remove local file
                             self.log.info(f"deleting {local_file_path}")
                             os.remove(local_file_path)
                     else:
-                        self.log.warning(
-                            f"{local_file_path} is not a file or directory."
-                        )
+                        self.log.warning(f"{local_file_path} is not a file or directory.")
                 end_time = time.time()
                 total_time = end_time - start_time
-                self.log.info(f'{self.filename} transfer complete, total time: {total_time:.2f} [s]')
+                self.log.info(f"{self.filename} transfer complete, total time: {total_time:.2f} [s]")
                 subprocess.kill()
                 retry_num += 1
 

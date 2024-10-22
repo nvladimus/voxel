@@ -1,6 +1,8 @@
 import logging
+
 import optoICC
 from optoKummenberg.tools.definitions import UnitType
+
 from voxel.devices.tunable_lens.base import BaseTunableLens
 
 # input constants for Optotune ICC-4C controller
@@ -20,16 +22,12 @@ INPUTS = {
     "undefined": UnitType.UNDEFINED,
 }
 
-MODES = [
-    "internal",  # static input mode
-    "external"  # analog input mode
-]
+MODES = ["internal", "external"]  # static input mode  # analog input mode
 
 
 class TunableLens(BaseTunableLens):
     def __init__(self, port: str, channel: int):
-        """Connect to hardware.
-        """
+        """Connect to hardware."""
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.icc4c = optoICC.connect(port=port)
         self.icc4c.reset(force=True)
@@ -64,7 +62,7 @@ class TunableLens(BaseTunableLens):
     def signal_temperature_c(self):
         """Get the tunable lens temperature in deg C."""
         state = {}
-        state['Temperature [C]'] = self.tunable_lens.TemperatureManager.GetDeviceTemperature()
+        state["Temperature [C]"] = self.tunable_lens.TemperatureManager.GetDeviceTemperature()
         return state
 
     def close(self):

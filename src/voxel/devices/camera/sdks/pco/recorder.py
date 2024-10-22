@@ -91,9 +91,7 @@ class PCO_RECORDER_COMPRESSION_PARAMETER(C.Structure):
 class Recorder:
     class exception(Exception):
         def __str__(self):
-            return "Exception: {0} {1:08x}".format(
-                self.args[0], self.args[1] & (2**32 - 1)
-            )
+            return "Exception: {0} {1:08x}".format(self.args[0], self.args[1] & (2**32 - 1))
 
     def __bcd_to_decimal(self, byte_value):
         """
@@ -107,9 +105,9 @@ class Recorder:
             print("Python Interpreter not x64")
             raise OSError
 
-        if sys.platform.startswith('win32'):
+        if sys.platform.startswith("win32"):
             self.__dll_name = "PCO_Recorder.dll"
-        elif sys.platform.startswith('linux'):
+        elif sys.platform.startswith("linux"):
             self.__dll_name = "libpco_recorder.so.3"
         else:
             print("Package not supported on platform " + sys.platform)
@@ -123,19 +121,12 @@ class Recorder:
         os.chdir(dll_path)
 
         try:
-            if sys.platform.startswith('win32'):
+            if sys.platform.startswith("win32"):
                 self.PCO_Recorder = C.windll.LoadLibrary(dll_path + "/" + self.__dll_name)
             else:  # if sys.platform.startswith('linux'):
                 self.PCO_Recorder = C.cdll.LoadLibrary(dll_path + "/" + self.__dll_name)
         except OSError:
-            print(
-                "Error: "
-                + '"'
-                + self.__dll_name
-                + '" not found in directory "'
-                + dll_path
-                + '".'
-            )
+            print("Error: " + '"' + self.__dll_name + '" not found in directory "' + dll_path + '".')
             os.chdir(current_working_directory)
             raise
 
@@ -491,9 +482,7 @@ class Recorder:
         """"""
 
         time_start = time.perf_counter()
-        error = self.PCO_Recorder.PCO_RecorderInit(
-            self.recorder_handle, self.camera_handle
-        )
+        error = self.PCO_Recorder.PCO_RecorderInit(self.recorder_handle, self.camera_handle)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -553,9 +542,7 @@ class Recorder:
         """"""
 
         time_start = time.perf_counter()
-        error = self.PCO_Recorder.PCO_RecorderStartRecord(
-            self.recorder_handle, self.camera_handle
-        )
+        error = self.PCO_Recorder.PCO_RecorderStartRecord(self.recorder_handle, self.camera_handle)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -571,9 +558,7 @@ class Recorder:
         """"""
 
         time_start = time.perf_counter()
-        error = self.PCO_Recorder.PCO_RecorderStopRecord(
-            self.recorder_handle, self.camera_handle
-        )
+        error = self.PCO_Recorder.PCO_RecorderStopRecord(self.recorder_handle, self.camera_handle)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -585,9 +570,7 @@ class Recorder:
     # -------------------------------------------------------------------------
     # 2.12 PCO_RecorderSetAutoExposure
     # -------------------------------------------------------------------------
-    def set_auto_exposure(
-        self, mode, smoothness=2, min_exposure_time=1e-3, max_exposure_time=100e-3
-    ):
+    def set_auto_exposure(self, mode, smoothness=2, min_exposure_time=1e-3, max_exposure_time=100e-3):
         """
         Set auto exposure
 
@@ -683,9 +666,7 @@ class Recorder:
     # -------------------------------------------------------------------------
     # 2.14 PCO_RecorderSetCompressionParams
     # -------------------------------------------------------------------------
-    def set_compression_params(
-        self, compr_param
-    ):
+    def set_compression_params(self, compr_param):
         """
         Set parameter for compression mode
 
@@ -694,16 +675,14 @@ class Recorder:
 
         parameter = PCO_RECORDER_COMPRESSION_PARAMETER()
 
-        parameter.dGainK = C.c_double(compr_param['gain'])
-        parameter.dDarkNoise_e = C.c_double(compr_param['dark noise'])
-        parameter.dDSNU_e = C.c_double(compr_param['dsnu'])
-        parameter.dPRNU_pct = C.c_double(compr_param['prnu'])
-        parameter.dLightSourceNoise_pct = C.c_double(compr_param['light noise'])
+        parameter.dGainK = C.c_double(compr_param["gain"])
+        parameter.dDarkNoise_e = C.c_double(compr_param["dark noise"])
+        parameter.dDSNU_e = C.c_double(compr_param["dsnu"])
+        parameter.dPRNU_pct = C.c_double(compr_param["prnu"])
+        parameter.dLightSourceNoise_pct = C.c_double(compr_param["light noise"])
 
         time_start = time.perf_counter()
-        error = self.PCO_Recorder.PCO_RecorderSetCompressionParams(
-            self.recorder_handle, self.camera_handle, parameter
-        )
+        error = self.PCO_Recorder.PCO_RecorderSetCompressionParams(self.recorder_handle, self.camera_handle, parameter)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -821,7 +800,7 @@ class Recorder:
                 "hour": timestamp.wHour,
                 "minute": timestamp.wMinute,
                 "second": (timestamp.wSecond + (timestamp.dwMicroSeconds / 1e6)),
-                "status": 0
+                "status": 0,
             }
 
             if any(timestamp_dict.values()):
@@ -852,33 +831,40 @@ class Recorder:
 
             # to preserve any() to indicate meta data
             if any(meta_dict.values()):
-                meta_dict.update({
-                    "image size": (metadata.wIMAGE_SIZE_X, metadata.wIMAGE_SIZE_Y),
-                    "binning": (metadata.bBINNING_X, metadata.bBINNING_Y)
-                })
+                meta_dict.update(
+                    {
+                        "image size": (metadata.wIMAGE_SIZE_X, metadata.wIMAGE_SIZE_Y),
+                        "binning": (metadata.bBINNING_X, metadata.bBINNING_Y),
+                    }
+                )
 
                 if metadata.wVersion > 1:
                     meta_dict.update({"camera subtype": metadata.wCAMERA_SUBTYPE})
                     meta_dict.update({"event number": metadata.dwEVENT_NUMBER})
-                    meta_dict.update({"image size offset": (
-                        metadata.wIMAGE_SIZE_X_Offset, metadata.wIMAGE_SIZE_Y_Offset)})
+                    meta_dict.update(
+                        {"image size offset": (metadata.wIMAGE_SIZE_X_Offset, metadata.wIMAGE_SIZE_Y_Offset)}
+                    )
 
-                meta_dict.update({"timestamp bcd": {
-                    "image counter": 1e6 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[0]) +
-                    1e4 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[1]) +
-                    1e2 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[2]) +
-                    1e0 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[3]),
-                    "seconds": self.__bcd_to_decimal(metadata.bIMAGE_TIME_SEC_BCD) +
-                    1e-2 * self.__bcd_to_decimal(metadata.bIMAGE_TIME_US_BCD[0]) +
-                    1e-4 * self.__bcd_to_decimal(metadata.bIMAGE_TIME_US_BCD[1]) +
-                    1e-6 * self.__bcd_to_decimal(metadata.bIMAGE_TIME_US_BCD[2]),
-                    "minute": self.__bcd_to_decimal(metadata.bIMAGE_TIME_MIN_BCD),
-                    "hour": self.__bcd_to_decimal(metadata.bIMAGE_TIME_HOUR_BCD),
-                    "day": self.__bcd_to_decimal(metadata.bIMAGE_TIME_DAY_BCD),
-                    "month": self.__bcd_to_decimal(metadata.bIMAGE_TIME_MON_BCD),
-                    "year": self.__bcd_to_decimal(metadata.bIMAGE_TIME_YEAR_BCD) + 2000,
-                    "status": self.__bcd_to_decimal(metadata.bIMAGE_TIME_STATUS)
-                }})
+                meta_dict.update(
+                    {
+                        "timestamp bcd": {
+                            "image counter": 1e6 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[0])
+                            + 1e4 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[1])
+                            + 1e2 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[2])
+                            + 1e0 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[3]),
+                            "seconds": self.__bcd_to_decimal(metadata.bIMAGE_TIME_SEC_BCD)
+                            + 1e-2 * self.__bcd_to_decimal(metadata.bIMAGE_TIME_US_BCD[0])
+                            + 1e-4 * self.__bcd_to_decimal(metadata.bIMAGE_TIME_US_BCD[1])
+                            + 1e-6 * self.__bcd_to_decimal(metadata.bIMAGE_TIME_US_BCD[2]),
+                            "minute": self.__bcd_to_decimal(metadata.bIMAGE_TIME_MIN_BCD),
+                            "hour": self.__bcd_to_decimal(metadata.bIMAGE_TIME_HOUR_BCD),
+                            "day": self.__bcd_to_decimal(metadata.bIMAGE_TIME_DAY_BCD),
+                            "month": self.__bcd_to_decimal(metadata.bIMAGE_TIME_MON_BCD),
+                            "year": self.__bcd_to_decimal(metadata.bIMAGE_TIME_YEAR_BCD) + 2000,
+                            "status": self.__bcd_to_decimal(metadata.bIMAGE_TIME_STATUS),
+                        }
+                    }
+                )
 
             else:
                 meta_dict.clear()
@@ -994,7 +980,7 @@ class Recorder:
                 "day": timestamp.wDay,
                 "hour": timestamp.wHour,
                 "minute": timestamp.wMinute,
-                "second": (timestamp.wSecond + (timestamp.dwMicroSeconds / 1e6))
+                "second": (timestamp.wSecond + (timestamp.dwMicroSeconds / 1e6)),
             }
 
             if any(timestamp_dict.values()):
@@ -1025,33 +1011,40 @@ class Recorder:
 
             # to preserve any() to indicate meta data
             if any(meta_dict.values()):
-                meta_dict.update({
-                    "image size": (metadata.wIMAGE_SIZE_X, metadata.wIMAGE_SIZE_Y),
-                    "binning": (metadata.bBINNING_X, metadata.bBINNING_Y)
-                })
+                meta_dict.update(
+                    {
+                        "image size": (metadata.wIMAGE_SIZE_X, metadata.wIMAGE_SIZE_Y),
+                        "binning": (metadata.bBINNING_X, metadata.bBINNING_Y),
+                    }
+                )
 
                 if metadata.wVersion > 1:
                     meta_dict.update({"camera subtype": metadata.wCAMERA_SUBTYPE})
                     meta_dict.update({"event number": metadata.dwEVENT_NUMBER})
-                    meta_dict.update({"image size offset": (
-                        metadata.wIMAGE_SIZE_X_Offset, metadata.wIMAGE_SIZE_Y_Offset)})
+                    meta_dict.update(
+                        {"image size offset": (metadata.wIMAGE_SIZE_X_Offset, metadata.wIMAGE_SIZE_Y_Offset)}
+                    )
 
-                meta_dict.update({"timestamp bcd": {
-                    "image counter": 1e6 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[0]) +
-                    1e4 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[1]) +
-                    1e2 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[2]) +
-                    1e0 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[3]),
-                    "seconds": self.__bcd_to_decimal(metadata.bIMAGE_TIME_SEC_BCD) +
-                    1e-2 * self.__bcd_to_decimal(metadata.bIMAGE_TIME_US_BCD[0]) +
-                    1e-4 * self.__bcd_to_decimal(metadata.bIMAGE_TIME_US_BCD[1]) +
-                    1e-6 * self.__bcd_to_decimal(metadata.bIMAGE_TIME_US_BCD[2]),
-                    "minute": self.__bcd_to_decimal(metadata.bIMAGE_TIME_MIN_BCD),
-                    "hour": self.__bcd_to_decimal(metadata.bIMAGE_TIME_HOUR_BCD),
-                    "day": self.__bcd_to_decimal(metadata.bIMAGE_TIME_DAY_BCD),
-                    "month": self.__bcd_to_decimal(metadata.bIMAGE_TIME_MON_BCD),
-                    "year": self.__bcd_to_decimal(metadata.bIMAGE_TIME_YEAR_BCD) + 2000,
-                    "status": self.__bcd_to_decimal(metadata.bIMAGE_TIME_STATUS)
-                }})
+                meta_dict.update(
+                    {
+                        "timestamp bcd": {
+                            "image counter": 1e6 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[0])
+                            + 1e4 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[1])
+                            + 1e2 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[2])
+                            + 1e0 * self.__bcd_to_decimal(metadata.bIMAGE_COUNTER_BCD[3]),
+                            "seconds": self.__bcd_to_decimal(metadata.bIMAGE_TIME_SEC_BCD)
+                            + 1e-2 * self.__bcd_to_decimal(metadata.bIMAGE_TIME_US_BCD[0])
+                            + 1e-4 * self.__bcd_to_decimal(metadata.bIMAGE_TIME_US_BCD[1])
+                            + 1e-6 * self.__bcd_to_decimal(metadata.bIMAGE_TIME_US_BCD[2]),
+                            "minute": self.__bcd_to_decimal(metadata.bIMAGE_TIME_MIN_BCD),
+                            "hour": self.__bcd_to_decimal(metadata.bIMAGE_TIME_HOUR_BCD),
+                            "day": self.__bcd_to_decimal(metadata.bIMAGE_TIME_DAY_BCD),
+                            "month": self.__bcd_to_decimal(metadata.bIMAGE_TIME_MON_BCD),
+                            "year": self.__bcd_to_decimal(metadata.bIMAGE_TIME_YEAR_BCD) + 2000,
+                            "status": self.__bcd_to_decimal(metadata.bIMAGE_TIME_STATUS),
+                        }
+                    }
+                )
 
             else:
                 meta_dict.clear()

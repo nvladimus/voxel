@@ -1,6 +1,6 @@
-from ..base import VoxelDevice
-
 from abc import abstractmethod
+
+from ..base import VoxelDevice
 
 
 class BasePowerMeter(VoxelDevice):

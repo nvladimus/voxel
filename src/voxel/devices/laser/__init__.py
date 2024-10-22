@@ -17,4 +17,4 @@ Available laser devices:
 
 from .base import BaseLaser
 
-__all__ = ['BaseLaser']
+__all__ = ["BaseLaser"]

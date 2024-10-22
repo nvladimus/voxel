@@ -6,12 +6,9 @@ Available max projection processes:
     - GPUMaxProjection
 """
 
-from .base import BaseMaxProjection
 from voxel.processes.max_projection.cpu.numpy import CPUMaxProjection
 from voxel.processes.max_projection.gpu.pyclesperanto import GPUMaxProjection
 
-__all__ = [
-    "BaseMaxProjection",
-    "CPUMaxProjection",
-    "GPUMaxProjection"
-]
+from .base import BaseMaxProjection
+
+__all__ = ["BaseMaxProjection", "CPUMaxProjection", "GPUMaxProjection"]

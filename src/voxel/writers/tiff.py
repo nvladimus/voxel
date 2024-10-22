@@ -71,11 +71,7 @@ class TiffWriter(BaseWriter):
         :rtype: str
         """
 
-        return next(
-            key
-            for key, value in COMPRESSION_TYPES.items()
-            if value == self._compression
-        )
+        return next(key for key, value in COMPRESSION_TYPES.items() if value == self._compression)
 
     @compression.setter
     def compression(self, compression: str):
@@ -132,9 +128,7 @@ class TiffWriter(BaseWriter):
             "z": CHUNK_COUNT_PX,
         }
         shm_shape = [chunk_shape_map[x] for x in chunk_dim_order]
-        shm_nbytes = int(
-            np.prod(shm_shape, dtype=np.int64) * np.dtype(self._data_type).itemsize
-        )
+        shm_nbytes = int(np.prod(shm_shape, dtype=np.int64) * np.dtype(self._data_type).itemsize)
         self._process = Process(
             target=self._run,
             args=(shm_shape, shm_nbytes, self._progress, self._log_queue),
@@ -193,23 +187,17 @@ class TiffWriter(BaseWriter):
             shm = SharedMemory(self.shm_name, create=False, size=shm_nbytes)
             frames = np.ndarray(shm_shape, self._data_type, buffer=shm.buf)
             shared_log_queue.put(
-                f"{self._filename}: writing chunk "
-                f"{chunk_num + 1}/{chunk_total} of size {frames.shape}."
+                f"{self._filename}: writing chunk " f"{chunk_num + 1}/{chunk_total} of size {frames.shape}."
             )
             start_time = perf_counter()
             writer.write(data=frames, metadata=metadata, compression=self._compression)
             frames = None
-            shared_log_queue.put(
-                f"{self._filename}: writing chunk took "
-                f"{perf_counter() - start_time:.2f} [s]"
-            )
+            shared_log_queue.put(f"{self._filename}: writing chunk took " f"{perf_counter() - start_time:.2f} [s]")
             shm.close()
             self.done_reading.set()
             shared_progress.value = (chunk_num + 1) / chunk_total
 
-            shared_log_queue.put(
-                f"{self._filename}: {self._progress.value * 100:.2f} [%] complete."
-            )
+            shared_log_queue.put(f"{self._filename}: {self._progress.value * 100:.2f} [%] complete.")
 
         # wait for file writing to finish.
         while shared_progress.value < 1.0:

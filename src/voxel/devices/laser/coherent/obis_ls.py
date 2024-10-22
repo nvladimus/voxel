@@ -1,15 +1,12 @@
-from obis_laser import ObisLS, OperationalQuery, OperationalCmd
-from ..base import BaseLaser
-from .obis_lx import obis_modulation_getter, obis_modulation_setter
+from obis_laser import ObisLS, OperationalCmd, OperationalQuery
 from serial import Serial
+
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 
-MODULATION_MODES = {
-    'off': 'CWP',
-    'analog': 'ANALOG',
-    'digital': 'DIGITAL',
-    'mixed': 'MIXED'
-}
+from ..base import BaseLaser
+from .obis_lx import obis_modulation_getter, obis_modulation_setter
+
+MODULATION_MODES = {"off": "CWP", "analog": "ANALOG", "digital": "DIGITAL", "mixed": "MIXED"}
 
 
 class ObisLSLaser(BaseLaser):

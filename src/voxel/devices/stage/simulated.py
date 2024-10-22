@@ -1,23 +1,19 @@
 import logging
-import time
 import random
-from voxel.devices.stage.base import BaseStage
-from voxel.devices.joystick.base import BaseJoystick
+import time
+
 from voxel.devices.joystick.axes_mapping import AxesMapping
+from voxel.devices.joystick.base import BaseJoystick
+from voxel.devices.stage.base import BaseStage
 from voxel.devices.utils.singleton import Singleton
 
-JOYSTICK_AXES = {
-    "joystick_x": 0,
-    "joystick_y": 1,
-    "wheel_z": 2,
-    "wheel_f": 3,
-    "None": 4
-}
+JOYSTICK_AXES = {"joystick_x": 0, "joystick_y": 1, "wheel_z": 2, "wheel_f": 3, "None": 4}
 
 POLARITY = {
     "inverted": 0,
     "default": 1,
 }
+
 
 # singleton wrapper around AxesMapping
 # TODO: this seems like a roundabout way of getting this to work...
@@ -60,12 +56,17 @@ class Stage(BaseStage):
             while time.time() < self.move_end_time_s:
                 time.sleep(0.01)
 
-    def setup_stage_scan(self, fast_axis_start_position: float,
-                         slow_axis_start_position: float,
-                         slow_axis_stop_position: float,
-                         frame_count: int, frame_interval_um: float,
-                         strip_count: int, pattern: str,
-                         retrace_speed_percent: int):
+    def setup_stage_scan(
+        self,
+        fast_axis_start_position: float,
+        slow_axis_start_position: float,
+        slow_axis_stop_position: float,
+        frame_count: int,
+        frame_interval_um: float,
+        strip_count: int,
+        pattern: str,
+        retrace_speed_percent: int,
+    ):
 
         self._position_mm = fast_axis_start_position
 
@@ -75,7 +76,7 @@ class Stage(BaseStage):
 
     @property
     def limits_mm(self):
-        """ Get the travel limits for the specified axes.
+        """Get the travel limits for the specified axes.
 
         :return: a dict of 2-value lists, where the first element is the lower
             travel limit and the second element is the upper travel limit.
@@ -104,7 +105,9 @@ class Stage(BaseStage):
         return self._hardware_axis
 
     @property
-    def instrument_axis(self, ):
+    def instrument_axis(
+        self,
+    ):
         return self._instrument_axis
 
     def is_axis_moving(self):
@@ -124,13 +127,17 @@ class Joystick(BaseJoystick):
 
     def __init__(self, joystick_mapping: dict = None):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self._joystick_mapping = joystick_mapping if joystick_mapping is not None else \
-            {"joystick_x": {"instrument_axis": "x", "polarity": "default"},
-             "joystick_y": {"instrument_axis": "y", "polarity": "default"},
-             "wheel_z": {"instrument_axis": "z", "polarity": "default"},
-             "wheel_f": {"instrument_axis": "w", "polarity": "default"},
-             }
-        self._stage_axes = ['x', 'y', 'z', 'w', 'm']
+        self._joystick_mapping = (
+            joystick_mapping
+            if joystick_mapping is not None
+            else {
+                "joystick_x": {"instrument_axis": "x", "polarity": "default"},
+                "joystick_y": {"instrument_axis": "y", "polarity": "default"},
+                "wheel_z": {"instrument_axis": "z", "polarity": "default"},
+                "wheel_f": {"instrument_axis": "w", "polarity": "default"},
+            }
+        )
+        self._stage_axes = ["x", "y", "z", "w", "m"]
         self.axes_mapping = AxesMappingSingleton().axis_map
         for axis in self._stage_axes:
             if axis not in self.axes_mapping.keys():
@@ -149,7 +156,8 @@ class Joystick(BaseJoystick):
             # check that the axes are valid
             if hardware_axis not in self._stage_axes:
                 raise ValueError(
-                    f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis.")
+                    f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis."
+                )
 
     @property
     def stage_axes(self):
@@ -174,7 +182,8 @@ class Joystick(BaseJoystick):
             # check that the axes are valid
             if hardware_axis not in self._stage_axes:
                 raise ValueError(
-                    f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis.")
+                    f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis."
+                )
 
         self._joystick_mapping = joystick_mapping
 

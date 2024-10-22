@@ -1,15 +1,11 @@
-from obis_laser import ObisLX, OperationalQuery, OperationalCmd
+from obis_laser import ObisLX, OperationalCmd, OperationalQuery
 from serial import Serial
 
 from voxel.descriptors.deliminated_property import DeliminatedProperty
+
 from ..base import BaseLaser
 
-MODULATION_MODES: dict[str, str] = {
-    'off': 'CWP',
-    'analog': 'ANALOG',
-    'digital': 'DIGITAL',
-    'mixed': 'MIXED'
-}
+MODULATION_MODES: dict[str, str] = {"off": "CWP", "analog": "ANALOG", "digital": "DIGITAL", "mixed": "MIXED"}
 
 
 def obis_modulation_getter(instance, logger, modes=None):
@@ -19,7 +15,7 @@ def obis_modulation_getter(instance, logger, modes=None):
     for key, value in modes.items():
         if mode == value:
             return key
-    return logger.error(f'Returned {mode}')
+    return logger.error(f"Returned {mode}")
 
 
 def obis_modulation_setter(instance, value: str, modes=None):
@@ -27,7 +23,7 @@ def obis_modulation_setter(instance, value: str, modes=None):
         modes = MODULATION_MODES
     if value not in modes.keys():
         raise ValueError("mode must be one of %r." % modes.keys())
-    if modes[value] == 'CWP':
+    if modes[value] == "CWP":
         instance.set_operational_setting(OperationalCmd.MODE_INTERNAL_CW, modes[value])
     else:
         instance.set_operational_setting(OperationalCmd.MODE_EXTERNAL, modes[value])
@@ -102,8 +98,8 @@ class ObisLXLaser(BaseLaser):
         return self._inst.get_system_status()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from serial import Serial
 
-    laser_port = Serial('COM1')
-    laser = ObisLXLaser('test_laser', laser_port)
+    laser_port = Serial("COM1")
+    laser = ObisLXLaser("test_laser", laser_port)

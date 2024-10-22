@@ -4,7 +4,7 @@ from abc import abstractmethod
 import numpy
 
 
-class BaseDownSample():
+class BaseDownSample:
     """
     Base class for image downsampling.
 

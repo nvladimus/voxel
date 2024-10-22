@@ -1,6 +1,6 @@
-from oxxius_laser import BoolVal, LBX
+from oxxius_laser import LBX, BoolVal
 from serial import Serial
-from sympy import symbols, solve, Expr
+from sympy import Expr, solve, symbols
 
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 from voxel.devices.laser.base import BaseLaser

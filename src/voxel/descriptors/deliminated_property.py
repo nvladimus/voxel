@@ -1,9 +1,11 @@
+# TODO: Add in log and warn when value has been changed?
 
-#TODO: Add in log and warn when value has been changed?
 
 class _DeliminatedProperty(property):
 
-    def __init__(self, fget, fset=None, fdel=None, minimum=float('-inf'), maximum=float('inf'), step=None, unit: str =None):
+    def __init__(
+        self, fget, fset=None, fdel=None, minimum=float("-inf"), maximum=float("inf"), step=None, unit: str = None
+    ):
 
         super().__init__()
 
@@ -37,7 +39,7 @@ class _DeliminatedProperty(property):
         self._fdel(instance)
 
     def __set_name__(self, owner, name):
-        self._name = f'_{name}'
+        self._name = f"_{name}"
 
     def __call__(self, func):
         self._fget = func
@@ -53,11 +55,13 @@ class _DeliminatedProperty(property):
     def fset(self):
         return self._fset
 
+
 # wrap _DeliminatedProperty to allow for deferred calling
 def DeliminatedProperty(fget=None, *args, **kwargs):
     if fget:
         return _DeliminatedProperty(fget, *args, **kwargs)
     else:
+
         def wrapper(fget):
             return _DeliminatedProperty(fget, *args, **kwargs)
 

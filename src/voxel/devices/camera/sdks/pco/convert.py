@@ -120,9 +120,9 @@ class PCO_Convert(C.Structure):
 
 class Convert:
     def __init__(self, camera_handle, sdk, convert_type, bit_resolution):
-        if sys.platform.startswith('win32'):
+        if sys.platform.startswith("win32"):
             self.__dll_name = "pco_conv.dll"
-        elif sys.platform.startswith('linux'):
+        elif sys.platform.startswith("linux"):
             self.__dll_name = "libpco_convert.so.1"
         else:
             print("Package not supported on platform " + sys.platform)
@@ -136,19 +136,12 @@ class Convert:
         os.chdir(dll_path)
 
         try:
-            if sys.platform.startswith('win32'):
+            if sys.platform.startswith("win32"):
                 self.PCO_Convert = C.windll.LoadLibrary(dll_path + "/" + self.__dll_name)
             else:  # if sys.platform.startswith('linux'):
                 self.PCO_Convert = C.cdll.LoadLibrary(dll_path + "/" + self.__dll_name)
         except OSError:
-            print(
-                "Error: "
-                + '"'
-                + self.__dll_name
-                + '" not found in directory "'
-                + dll_path
-                + '".'
-            )
+            print("Error: " + '"' + self.__dll_name + '" not found in directory "' + dll_path + '".')
             os.chdir(current_working_directory)
             raise ValueError
 
@@ -158,12 +151,7 @@ class Convert:
         self.camera_handle = camera_handle
         self.sdk = sdk
 
-        self.convert_types = {
-            "bw": 1,
-            "color": 2,
-            "pseudo": 3,
-            "color16": 4
-        }
+        self.convert_types = {"bw": 1, "color": 2, "pseudo": 3, "color16": 4}
 
         self.convert_type = convert_type
         self.bit_resolution = bit_resolution
@@ -181,29 +169,27 @@ class Convert:
             "min_limit": 0,
             "max_limit": 20000,
             "gamma": 1.0,
-            "contrast": 0
+            "contrast": 0,
         }
-        if self.convert_type == 'color' or self.convert_type == 'color16':
-            self.convert_ctrl.update({
-                "pco_debayer_algorithm": False,
-                "color_temperature": 6500,
-                "color_saturation": 0,
-                "color_vibrance": 0,
-                "color_tint": 0
-            })
-            if self.convert_type == 'color':
+        if self.convert_type == "color" or self.convert_type == "color16":
+            self.convert_ctrl.update(
+                {
+                    "pco_debayer_algorithm": False,
+                    "color_temperature": 6500,
+                    "color_saturation": 0,
+                    "color_vibrance": 0,
+                    "color_tint": 0,
+                }
+            )
+            if self.convert_type == "color":
                 self._conv_maxmax = 0
                 self._conv_maxmin = 0
                 self._conv_minmax = 0
 
-        if self.convert_type == 'pseudo':
-            self.convert_ctrl.update({
-                "color_temperature": 6500,
-                "color_saturation": 0,
-                "color_vibrance": 0,
-                "color_tint": 0,
-                "lut_file": ""
-            })
+        if self.convert_type == "pseudo":
+            self.convert_ctrl.update(
+                {"color_temperature": 6500, "color_saturation": 0, "color_vibrance": 0, "color_tint": 0, "lut_file": ""}
+            )
 
         self.do_auto_minmax = True
 
@@ -446,18 +432,17 @@ class Convert:
 
         time_start = time.perf_counter()
         error = self.PCO_Convert.PCO_ConvertCreate(
-            self.convert_handle,
-            strSensorInfo,
-            C.c_int(self.convert_types[self.convert_type])
+            self.convert_handle, strSensorInfo, C.c_int(self.convert_types[self.convert_type])
         )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
-        if self.convert_type == 'color':
-          self.__check_minmax_scale()
+        if self.convert_type == "color":
+            self.__check_minmax_scale()
         self.__update_display_settings()
 
         if error:
@@ -480,8 +465,9 @@ class Convert:
 
         self.convert_handle = C.c_void_p(0)
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -533,27 +519,30 @@ class Convert:
                 }
             )
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
 
         return ret
 
-    def set_display(self,
-                    scale_min,
-                    scale_max,
-                    color_temp=6500,
-                    color_tint=0,
-                    color_saturation=0,
-                    color_vibrance=0,
-                    contrast=0,
-                    gamma=1,
-                    is_rgb=0,
-                    processing_flags=0,
-                    proz_value_4_min=0,
-                    proz_value_4_max=100):
+    def set_display(
+        self,
+        scale_min,
+        scale_max,
+        color_temp=6500,
+        color_tint=0,
+        color_saturation=0,
+        color_vibrance=0,
+        contrast=0,
+        gamma=1,
+        is_rgb=0,
+        processing_flags=0,
+        proz_value_4_min=0,
+        proz_value_4_max=100,
+    ):
         """
         Set display structure
         """
@@ -579,8 +568,9 @@ class Convert:
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -600,7 +590,7 @@ class Convert:
                     "gamma": display["gamma"],
                     "contrast": display["contrast"],
                     "min_limit": display["scale_min"],
-                    "max_limit": display["scale_max"]
+                    "max_limit": display["scale_max"],
                 }
             )
         else:
@@ -639,7 +629,7 @@ class Convert:
 
         self.convert_ctrl = convert_ctrl
 
-        if self.convert_type == 'color':
+        if self.convert_type == "color":
             self.__check_minmax_scale()
         self.__update_display_settings()
 
@@ -663,8 +653,9 @@ class Convert:
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -689,8 +680,9 @@ class Convert:
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -729,8 +721,9 @@ class Convert:
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -754,8 +747,9 @@ class Convert:
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -779,16 +773,13 @@ class Convert:
         path = C.c_char_p(file_path.encode("utf-8"))
 
         time_start = time.perf_counter()
-        error = self.PCO_Convert.PCO_LoadPseudoLut(
-            self.convert_handle,
-            C.c_int(format),
-            path
-        )
+        error = self.PCO_Convert.PCO_LoadPseudoLut(self.convert_handle, C.c_int(format), path)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -817,7 +808,7 @@ class Convert:
 
         even_padded_width = width
         if (width % 4) > 0:
-            even_padded_width += (4 - (width % 4))
+            even_padded_width += 4 - (width % 4)
         image_output = (C.c_uint8 * (even_padded_width * height))(0)
         p_image_output = C.cast(image_output, C.POINTER(C.c_uint8))
 
@@ -834,10 +825,14 @@ class Convert:
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name,
-                                                         f'{iwidth.value}{"x"}{iheight.value}'))
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(
+                duration, str(self), sys._getframe().f_code.co_name, f'{iwidth.value}{"x"}{iheight.value}'
+            )
+        )
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -862,8 +857,8 @@ class Convert:
             if self.do_auto_minmax:
                 self.__set_auto_minmax(image)
                 self.do_auto_minmax = False
-        
-        if self.convert_type == 'color':
+
+        if self.convert_type == "color":
             if self.__check_minmax_scale():
                 self.__update_display_settings()
 
@@ -882,7 +877,7 @@ class Convert:
             width = even_padded_width
         else:
             if (width % 4) > 0:
-                even_padded_width += (4 - (width % 4))
+                even_padded_width += 4 - (width % 4)
 
         image_output = (C.c_uint8 * (even_padded_width * height * channels))()
         p_image_output = C.cast(image_output, C.POINTER(C.c_uint8))
@@ -900,10 +895,14 @@ class Convert:
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name,
-                                                         f'{width}{"x"}{height}{"x"}{channels}'))
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(
+                duration, str(self), sys._getframe().f_code.co_name, f'{width}{"x"}{height}{"x"}{channels}'
+            )
+        )
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -938,7 +937,7 @@ class Convert:
             width = even_padded_width
         else:
             if (width % 4) > 0:
-                even_padded_width += (4 - (width % 4))
+                even_padded_width += 4 - (width % 4)
 
         image_output = (C.c_uint8 * (even_padded_width * height * channels))()
         p_image_output = C.cast(image_output, C.POINTER(C.c_uint8))
@@ -956,10 +955,14 @@ class Convert:
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name,
-                                                         f'{width}{"x"}{height}{"x"}{channels}'))
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(
+                duration, str(self), sys._getframe().f_code.co_name, f'{width}{"x"}{height}{"x"}{channels}'
+            )
+        )
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -1005,10 +1008,14 @@ class Convert:
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name,
-                                                         f'{width}{"x"}{height}{"x"}{3}'))
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(
+                duration, str(self), sys._getframe().f_code.co_name, f'{width}{"x"}{height}{"x"}{3}'
+            )
+        )
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -1038,7 +1045,7 @@ class Convert:
         if roi is None:
             roi = (1, 1, image_width, image_height)
 
-        if (roi[2] - roi[0] + 1 > image_width or roi[3] - roi[1] + 1 > image_height):
+        if roi[2] - roi[0] + 1 > image_width or roi[3] - roi[1] + 1 > image_height:
             raise ValueError("Roi is too large")
 
         color_temp = C.c_int()
@@ -1054,7 +1061,8 @@ class Convert:
 
         time_start = time.perf_counter()
         error = self.PCO_Convert.PCO_GetWhiteBalance(
-            self.convert_handle, color_temp, tint, mode, width, height, p_image_input, x_min, y_min, x_max, y_max)
+            self.convert_handle, color_temp, tint, mode, width, height, p_image_input, x_min, y_min, x_max, y_max
+        )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -1067,8 +1075,9 @@ class Convert:
                 }
             )
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -1099,7 +1108,7 @@ class Convert:
         color_tint: tint value to be used for calculation
         bit_range: bit range of raw data
         """
-        if self.convert_type != 'color':
+        if self.convert_type != "color":
             raise ValueError("Max Limits only exists for color types")
 
         r_max = C.c_float()
@@ -1125,8 +1134,9 @@ class Convert:
                 }
             )
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -1162,8 +1172,9 @@ class Convert:
                 }
             )
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -1193,9 +1204,8 @@ class Convert:
         if roi is None:
             roi = (1, 1, image_width, image_height)
 
-        if (roi[2] - roi[0] + 1 > image_width or roi[3] - roi[1] + 1 > image_height):
+        if roi[2] - roi[0] + 1 > image_width or roi[3] - roi[1] + 1 > image_height:
             raise ValueError("Roi is too large")
-
 
         pstrDisplay = PCO_Display()
         pstrDisplay.wSize = C.sizeof(PCO_Display)
@@ -1210,7 +1220,8 @@ class Convert:
 
         time_start = time.perf_counter()
         error = self.PCO_Convert.PCO_WhiteBalanceToDisplayStruct(
-            self.convert_handle, pstrDisplay, mode, width, height, p_image_input, x_min, y_min, x_max, y_max)
+            self.convert_handle, pstrDisplay, mode, width, height, p_image_input, x_min, y_min, x_max, y_max
+        )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -1236,8 +1247,9 @@ class Convert:
                 }
             )
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -1265,7 +1277,8 @@ class Convert:
 
         time_start = time.perf_counter()
         error = self.PCO_Convert.PCO_GetVersionInfoPCO_CONV(
-            pszName, iNameLength, pszPath, iPathLength, iMajor, iMinor, iBuild)
+            pszName, iNameLength, pszPath, iPathLength, iMajor, iMinor, iBuild
+        )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -1282,8 +1295,9 @@ class Convert:
                 }
             )
 
-        logger.info("[{:5.3f} s] [cnv:{}] {}: {}".format(
-            duration, str(self), sys._getframe().f_code.co_name, error_msg))
+        logger.info(
+            "[{:5.3f} s] [cnv:{}] {}: {}".format(duration, str(self), sys._getframe().f_code.co_name, error_msg)
+        )
 
         if error:
             raise ValueError("{}: {}".format(error, error_msg))
@@ -1295,7 +1309,7 @@ class Convert:
         Sets limit values for color channels. "BGR8" and colored cameras only.
 
         """
-        
+
         rgb_max = self.get_max_limit(self.bit_resolution)
         col_max = max(rgb_max.values())
         col_min = min(rgb_max.values())
@@ -1307,7 +1321,6 @@ class Convert:
         self._conv_maxmin = self.convert_ctrl["max_limit"] - self._conv_maxmin + self.convert_ctrl["min_limit"]
         if self._conv_minmax < self.convert_ctrl["min_limit"]:
             self._conv_minmax = self.convert_ctrl["min_limit"] + 1
-        
 
         needs_update = False
         if self.convert_ctrl["max_limit"] > self._conv_maxmax:
@@ -1319,7 +1332,7 @@ class Convert:
         if self.convert_ctrl["min_limit"] > self._conv_minmax:
             self.convert_ctrl["min_limit"] = self._conv_minmax
             needs_update = True
-        
+
         return needs_update
 
     def __update_display_settings(self):
@@ -1357,7 +1370,7 @@ class Convert:
             display_dict["is_rgb"],
             display_dict["processing_flags"],
             display_dict["proz_value_4_min"],
-            display_dict["proz_value_4_max"]
+            display_dict["proz_value_4_max"],
         )
 
     def __set_auto_minmax(self, np_image):
@@ -1365,7 +1378,7 @@ class Convert:
         iMax = np_image.max()
         iMin = np_image.min()
 
-        if (iMin == iMax and iMin != 0):
+        if iMin == iMax and iMin != 0:
             iMin -= 1
         display_dict["scale_max"] = iMax
         display_dict["scale_min"] = iMin
@@ -1382,5 +1395,5 @@ class Convert:
             display_dict["is_rgb"],
             display_dict["processing_flags"],
             display_dict["proz_value_4_min"],
-            display_dict["proz_value_4_max"]
+            display_dict["proz_value_4_max"],
         )

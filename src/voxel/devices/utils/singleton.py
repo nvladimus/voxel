@@ -1,5 +1,5 @@
-from threading import Lock, Thread
 from functools import wraps
+from threading import Lock, Thread
 
 
 def thread_safe_singleton(func):
