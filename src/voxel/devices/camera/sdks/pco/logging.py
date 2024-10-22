@@ -7,9 +7,9 @@ Copyright @ Excelitas PCO GmbH 2005-2023
 Set your logging handler to pco.stream_handler
 """
 
-import sys
 import logging
 import logging.handlers
+import sys
 
 
 class CustomFormatterStream(logging.Formatter):

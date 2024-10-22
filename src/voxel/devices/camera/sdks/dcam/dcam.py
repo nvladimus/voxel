@@ -4,9 +4,9 @@
 #
 # The declarations of classes and functions in this file are subject to change without notice.
 
-from .dcamapi4 import *
 import numpy as np
 
+from .dcamapi4 import *
 
 # ==== DCAMAPI helper functions ====
 

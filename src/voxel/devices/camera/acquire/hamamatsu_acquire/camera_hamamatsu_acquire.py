@@ -1,5 +1,7 @@
 import logging
-from acquire import DeviceKind, SampleType, Trigger, Direction, Runtime
+
+from acquire import DeviceKind, Direction, Runtime, SampleType, Trigger
+
 from voxel.devices.camera.base import BaseCamera
 
 # constants for Hamamatsu C15440-20UP camera

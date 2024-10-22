@@ -1,11 +1,13 @@
 import logging
-import numpy
 import time
-from multiprocessing import Process, Queue, Event
+from multiprocessing import Event, Process, Queue
+from threading import Thread
+
+import numpy
+
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 from voxel.devices.camera.base import BaseCamera
 from voxel.processes.downsample.gpu.gputools.downsample_2d import GPUToolsDownSample2D
-from voxel.descriptors.deliminated_property import DeliminatedProperty
-from threading import Thread
 
 BUFFER_SIZE_FRAMES = 8
 MIN_WIDTH_PX = 64

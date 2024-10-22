@@ -7,16 +7,16 @@ Copyright @ Excelitas PCO GmbH 2005-2023
 
 The a instance of the Sdk class is part of pco.Camera
 """
-import logging
-import warnings
 import ctypes as C
-import sys
-import os
+import logging
 import math
+import os
 import platform
+import sys
 import time
-import numpy as np
+import warnings
 
+import numpy as np
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())

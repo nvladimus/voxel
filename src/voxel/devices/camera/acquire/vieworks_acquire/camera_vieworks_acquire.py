@@ -1,8 +1,10 @@
 import logging
+
 import acquire
-from voxel.devices.camera.base import BaseCamera
 from acquire import DeviceKind, SampleType
 from acquire.acquire import Trigger
+
+from voxel.devices.camera.base import BaseCamera
 
 # constants for VP-151MX camera
 

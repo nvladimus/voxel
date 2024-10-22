@@ -1,10 +1,12 @@
 import logging
-import numpy
 import time
-from voxel.devices.utils.singleton import Singleton
-from voxel.devices.camera.base import BaseCamera
+
+import numpy
 from sdks import pco
+
 from voxel.descriptors.deliminated_property import DeliminatedProperty
+from voxel.devices.camera.base import BaseCamera
+from voxel.devices.utils.singleton import Singleton
 
 BUFFER_SIZE_MB = 2400
 

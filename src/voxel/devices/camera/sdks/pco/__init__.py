@@ -16,5 +16,4 @@ Submodules are:
 
 from pco.camera import Camera
 from pco.flim import Flim
-
 from pco.logging import stream_handler

@@ -7,13 +7,14 @@ Copyright @ Excelitas PCO GmbH 2005-2023
 Instances of the Convert class are part of pco.Camera
 """
 
-import sys
-import os
 import ctypes as C
 import logging
+import os
+import sys
 import time
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
