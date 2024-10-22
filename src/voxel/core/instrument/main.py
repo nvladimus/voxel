@@ -9,10 +9,11 @@ from voxel.core.instrument.device.linear_axis import LinearAxisDimension, VoxelL
 from voxel.core.instrument.io.transfer import VoxelFileTransfer
 from voxel.core.instrument.io.writer import VoxelWriter
 from voxel.core.instrument.stage import VoxelStage
-from voxel.core.utils.logging import get_logger
+
+from .component import VoxelComponent
 
 
-class VoxelInstrument:
+class VoxelInstrument(VoxelComponent):
 
     def __init__(
         self,
@@ -20,12 +21,11 @@ class VoxelInstrument:
         channels: dict[str, VoxelChannel] | None = None,
         writers: dict[str, VoxelWriter] | None = None,
         file_transfers: dict[str, VoxelFileTransfer] | None = None,
-        name: str | None = None,
+        name: str = "Instrument",
         build_settings=None,
         daq: VoxelNIDAQ | None = None,
     ) -> None:
-        self.log = get_logger(self.__class__.__name__)
-        self.name = name
+        super().__init__(name)
         self.build_settings = build_settings
         self.devices = devices
         self.writers = writers

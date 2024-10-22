@@ -1,9 +1,10 @@
 """Voxel Compatible Devices."""
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from enum import StrEnum
 from typing import Any, Optional
 
+from ..component import VoxelComponent
 from voxel.core.utils.logging import get_logger
 
 
@@ -34,19 +35,18 @@ class VoxelDeviceConnectionError(VoxelDeviceError):
     pass
 
 
-class VoxelDevice(ABC):
+class VoxelDevice(VoxelComponent):
     """Base class for all voxel devices."""
 
-    def __init__(self, device_type: VoxelDeviceType, name: Optional[str] = None):
+    def __init__(self, device_type: VoxelDeviceType, name: str = "Device"):
         """Initialize the device.
         :param name: The unique identifier of the device.
         :type name: str
         """
-        self.name = name
+        super().__init__(name)
         self.daq_task = None
         self.daq_channel = None
         self.device_type: VoxelDeviceType = device_type
-        self.log = get_logger(f"{self.__class__.__name__}[{self.name}]")
 
     def apply_settings(self, settings: dict):
         """Apply settings to the device."""

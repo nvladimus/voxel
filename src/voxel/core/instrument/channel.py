@@ -1,29 +1,38 @@
-from dataclasses import dataclass
 from typing import Any
 
-from voxel.core.instrument.device.camera import VoxelCamera
-from voxel.core.instrument.device.filter import VoxelFilter
-from voxel.core.instrument.device.laser import VoxelLaser
-from voxel.core.instrument.device.lens import VoxelLens
-from voxel.core.instrument.io.transfer import VoxelFileTransfer
-from voxel.core.instrument.io.writer import VoxelWriter
 from voxel.core.utils.geometry.vec import Vec2D
 
+from .component import VoxelComponent
+from .device.camera import VoxelCamera
+from .device.filter import VoxelFilter
+from .device.laser import VoxelLaser
+from .device.lens import VoxelLens
+from .io.transfer import VoxelFileTransfer
+from .io.writer import VoxelWriter
 
-@dataclass
-class VoxelChannel:
+
+class VoxelChannel(VoxelComponent):
     """A channel in a voxel instrument."""
 
-    name: str
-    camera: VoxelCamera
-    lens: VoxelLens
-    laser: VoxelLaser
-    emmision_filter: VoxelFilter
-    is_active: bool = False
-    writer: VoxelWriter = None
-    file_transfer: VoxelFileTransfer = None
-
-    def __post_init__(self) -> None:
+    def __init__(
+        self,
+        name: str,
+        camera: VoxelCamera,
+        lens: VoxelLens,
+        laser: VoxelLaser,
+        emmision_filter: VoxelFilter,
+        is_active: bool = False,
+        writer: VoxelWriter = None,
+        file_transfer: VoxelFileTransfer = None,
+    ) -> None:
+        super().__init__(name)
+        self.camera = camera
+        self.lens = lens
+        self.laser = laser
+        self.emmision_filter = emmision_filter
+        self.is_active = is_active
+        self.writer = writer
+        self.file_transfer = file_transfer
         self._fov_um = self.camera.sensor_size_um / self.lens.magnification
         self.devices = {device.name: device for device in [self.camera, self.lens, self.laser, self.emmision_filter]}
 
