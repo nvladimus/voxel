@@ -52,6 +52,7 @@ dependencies = [
     "fast_histogram>=0.14",
     "sympy>=1.12.1",
     "numpy>2.0.0",
+    "siphash24>=1.7",
 ]
 
 
