@@ -49,6 +49,6 @@ class SimulatedFlipMount(BaseFlipMount):
 
     @flip_time_ms.setter
     def flip_time_ms(self, time_ms: float):
-        print(f"Setting flip_time_ms to {time_ms}")
-        print(f"FLIP_TIME_RANGE_MS is {FLIP_TIME_RANGE_MS}")
+        self.log.info(f"Setting flip_time_ms to {time_ms}")
+        self.log.info(f"FLIP_TIME_RANGE_MS is {FLIP_TIME_RANGE_MS}")
         self._flip_time_ms = time_ms

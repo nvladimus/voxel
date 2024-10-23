@@ -54,5 +54,4 @@ class GPUToolsDownSample2D(BaseDownSample):
             "downsample2d", y_g.shape[::-1], None, x_g.data, y_g.data
         )
         end_time = time.time()
-        print(end_time - start_time)
         return y_g.get()

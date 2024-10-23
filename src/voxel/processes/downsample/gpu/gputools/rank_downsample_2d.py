@@ -7,9 +7,9 @@ from gputools.convolve._abspath import abspath
 from voxel.processes.downsample.base import BaseDownSample
 
 
-class GPUToolsDownSample3D(BaseDownSample):
+class GPUToolsRankDownSample2D(BaseDownSample):
     """
-    Voxel 3D rank order downsampling with gputools.
+    Voxel rank order downsampling with gputools.
 
     :param binning: Binning factor
     :type binning: int
@@ -46,9 +46,11 @@ class GPUToolsDownSample3D(BaseDownSample):
         with open(abspath("kernels/rank_downscale.cl"), "r") as f:
             tpl = Template(f.read())
 
-        rendered = tpl.render(
-            DTYPE=DTYPE, FSIZE_X=self._binning[2], FSIZE_Y=self._binning[1], FSIZE_Z=self._binning[0], CVAL=0
-        )  # constant value
+        rendered = tpl.render(DTYPE = DTYPE,
+                              FSIZE_Z=0,
+                              FSIZE_X=self._binning[1],
+                              FSIZE_Y=self._binning[0],
+                              CVAL = 0)  # constant value
 
         self._prog = OCLProgram(src_str=rendered)
 
