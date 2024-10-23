@@ -1,4 +1,5 @@
 from typing import Optional
+
 import pyvisa as visa
 
 from . import BasePowerMeter
@@ -38,7 +39,7 @@ class ThorlabsPowerMeter(BasePowerMeter):
     @property
     def wavelength_nm(self) -> float:
         self._check_connection()
-        return float(self._inst.query('SENS:CORR:WAV?'))  # type: ignore
+        return float(self._inst.query("SENS:CORR:WAV?"))  # type: ignore
 
     @wavelength_nm.setter
     def wavelength_nm(self, wavelength: float) -> None:

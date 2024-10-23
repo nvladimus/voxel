@@ -2,7 +2,7 @@ import sys
 from enum import Enum
 
 from pycobolt import CoboltLaser
-from sympy import symbols, solve, Expr
+from sympy import Expr, solve, symbols
 
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 from voxel.devices.laser.base import BaseLaser

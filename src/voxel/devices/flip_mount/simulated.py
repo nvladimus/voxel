@@ -4,7 +4,8 @@ from typing import Literal
 from ...descriptors.deliminated_property import DeliminatedProperty
 from . import BaseFlipMount
 
-FLIP_TIME_RANGE_MS: tuple[float, float] = (500.0, 2800.0, 100.0) # min, max, step
+FLIP_TIME_RANGE_MS: tuple[float, float] = (500.0, 2800.0, 100.0)  # min, max, step
+
 
 class SimulatedFlipMount(BaseFlipMount):
     def __init__(self, id, conn, positions):
@@ -15,8 +16,8 @@ class SimulatedFlipMount(BaseFlipMount):
         self._connect()
 
     def _connect(self):
-        self.position = next(iter(self._positions)) # set to first position
-        self.flip_time_ms: float = FLIP_TIME_RANGE_MS[0] # min flip time
+        self.position = next(iter(self._positions))  # set to first position
+        self.flip_time_ms: float = FLIP_TIME_RANGE_MS[0]  # min flip time
 
     def close(self):
         self._inst = None
@@ -32,14 +33,14 @@ class SimulatedFlipMount(BaseFlipMount):
 
     @property
     def position(self) -> str:
-        return next((key for key, value in self._positions.items() if value == self._inst), 'Unknown')
+        return next((key for key, value in self._positions.items() if value == self._inst), "Unknown")
 
     @position.setter
     def position(self, new_position):
         try:
             self._inst = self._positions[new_position]
         except KeyError:
-            raise ValueError(f'Invalid position {new_position}. Valid positions are {list(self._positions.keys())}')
+            raise ValueError(f"Invalid position {new_position}. Valid positions are {list(self._positions.keys())}")
         except Exception as e:
             raise e
 

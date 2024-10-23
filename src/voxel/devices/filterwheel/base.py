@@ -1,5 +1,6 @@
 import inspect
 
+
 class BaseFilterWheel:
 
     def __init__(self):

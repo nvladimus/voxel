@@ -7,9 +7,9 @@ Copyright @ Excelitas PCO GmbH 2005-2023
 Set your logging handler to pco.stream_handler
 """
 
-import sys
 import logging
 import logging.handlers
+import sys
 
 
 class CustomFormatterStream(logging.Formatter):
@@ -21,21 +21,9 @@ class CustomFormatterStream(logging.Formatter):
     FORMATS = {
         logging.DEBUG: "[%(asctime)s] %(message)s",
         logging.INFO: "[%(asctime)s] %(message)s",
-        logging.WARNING: "[%(asctime)s] "
-        + yellow
-        + "%(message)s"
-        + reset
-        + " (%(filename)s:%(lineno)d)",
-        logging.ERROR: "[%(asctime)s] "
-        + red
-        + "%(message)s"
-        + reset
-        + " (%(filename)s:%(lineno)d)",
-        logging.CRITICAL: "[%(asctime)s] "
-        + red
-        + "%(message)s"
-        + reset
-        + " (%(filename)s:%(lineno)d)",
+        logging.WARNING: "[%(asctime)s] " + yellow + "%(message)s" + reset + " (%(filename)s:%(lineno)d)",
+        logging.ERROR: "[%(asctime)s] " + red + "%(message)s" + reset + " (%(filename)s:%(lineno)d)",
+        logging.CRITICAL: "[%(asctime)s] " + red + "%(message)s" + reset + " (%(filename)s:%(lineno)d)",
     }
 
     def format(self, record):

@@ -1,8 +1,10 @@
 import logging
 import time
+
 from voxel.devices.filterwheel.base import BaseFilterWheel
 
-SWITCH_TIME_S = 0.1 # estimated timing
+SWITCH_TIME_S = 0.1  # estimated timing
+
 
 class FilterWheel(BaseFilterWheel):
 
@@ -22,6 +24,6 @@ class FilterWheel(BaseFilterWheel):
     @filter.setter
     def filter(self, filter_name: str):
         """Set the filterwheel index."""
-        self.log.info(f'setting filter to {filter_name}')
+        self.log.info(f"setting filter to {filter_name}")
         self._filter = self.filters[filter_name]
         time.sleep(SWITCH_TIME_S)

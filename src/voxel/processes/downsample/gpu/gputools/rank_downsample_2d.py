@@ -1,9 +1,11 @@
-import numpy
-from mako.template import Template
 from numbers import Number
+
+import numpy
 from gputools import OCLArray, OCLProgram
-from gputools.core.ocltypes import cl_buffer_datatype_dict
 from gputools.convolve._abspath import abspath
+from gputools.core.ocltypes import cl_buffer_datatype_dict
+from mako.template import Template
+
 from voxel.processes.downsample.base import BaseDownSample
 
 

@@ -4,11 +4,12 @@
 #
 # The declarations of classes and functions in this file are subject to change without notice.
 
-from .dcamapi4 import *
 import numpy as np
 
+from .dcamapi4 import *
 
 # ==== DCAMAPI helper functions ====
+
 
 def dcammisc_setupframe(hdcam, bufframe: DCAMBUF_FRAME):
     """
@@ -46,10 +47,10 @@ def dcammisc_alloc_ndarray(frame: DCAMBUF_FRAME):
     """
 
     if frame.type == DCAM_PIXELTYPE.MONO16:
-        return np.zeros((frame.height, frame.width), dtype='uint16')
+        return np.zeros((frame.height, frame.width), dtype="uint16")
 
     if frame.type == DCAM_PIXELTYPE.MONO8:
-        return np.zeros((frame.height, frame.width), dtype='uint8')
+        return np.zeros((frame.height, frame.width), dtype="uint8")
 
     return False
 
@@ -135,6 +136,7 @@ class Dcamapi:
 
         return cls.__devicecount
 
+
 # ==== Dcam class ====
 
 
@@ -147,7 +149,7 @@ class Dcam:
         self.__bufframe = DCAMBUF_FRAME()
 
     def __repr__(self):
-        return 'Dcam()'
+        return "Dcam()"
 
     def __result(self, errvalue):
         """
@@ -630,7 +632,6 @@ class Dcam:
 
         return True
 
-
     # dcamwait functions
 
     def __open_hdcamwait(self):
@@ -710,5 +711,3 @@ class Dcam:
         # ret is DCAMWAIT_CAPEVENT.FRAMEREADY
 
         return True
-
-

@@ -1,4 +1,5 @@
 import logging
+
 from voxel.devices.filter.base import BaseFilter
 from voxel.devices.filterwheel.asi import FilterWheel
 

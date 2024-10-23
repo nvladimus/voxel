@@ -3,6 +3,7 @@ import logging
 from voxel.devices.filter.base import BaseFilter
 from voxel.devices.filterwheel.simulated import FilterWheel
 
+
 class Filter(BaseFilter):
 
     def __init__(self, wheel: FilterWheel, id: str):

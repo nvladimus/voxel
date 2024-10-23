@@ -3,7 +3,9 @@ from abc import abstractmethod
 from multiprocessing import Event, Queue, Value
 from pathlib import Path
 from typing import Optional
+
 import numpy
+
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 
@@ -26,7 +28,7 @@ class BaseWriter:
         self._row_count_px = None
         self._column_count_px = None
         self._frame_count_px_px = None
-        self._shm_name = ''
+        self._shm_name = ""
         self._frame_count_px = None
         self._x_voxel_size_um = None
         self._y_voxel_size_um = None
@@ -463,7 +465,7 @@ class BaseWriter:
         self._shm_name[len(name)] = "\x00"  # Null terminate the string.
         self.log.info(f"setting shared memory to: {name}")
 
-    @DeliminatedProperty(minimum=0, maximum=100, unit='%')
+    @DeliminatedProperty(minimum=0, maximum=100, unit="%")
     @abstractmethod
     def progress(self) -> float:
         """Get the progress of the writer.
@@ -473,7 +475,7 @@ class BaseWriter:
         """
 
         # convert to %
-        return self._progress.value*100
+        return self._progress.value * 100
 
     @abstractmethod
     def get_logs(self):

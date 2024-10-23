@@ -7,16 +7,16 @@ Copyright @ Excelitas PCO GmbH 2005-2023
 
 The a instance of the Sdk class is part of pco.Camera
 """
-import logging
-import warnings
 import ctypes as C
-import sys
-import os
+import logging
 import math
+import os
 import platform
+import sys
 import time
-import numpy as np
+import warnings
 
+import numpy as np
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -541,9 +541,7 @@ class Sdk:
     # -------------------------------------------------------------------------
     class exception(Exception):
         def __str__(self):
-            return "Exception: {0} {1:08x}".format(
-                self.args[0], self.args[1] & (2**32 - 1)
-            )
+            return "Exception: {0} {1:08x}".format(self.args[0], self.args[1] & (2**32 - 1))
 
     # -------------------------------------------------------------------------
     def __init__(self, name=""):
@@ -552,9 +550,9 @@ class Sdk:
             logger.error("Python Interpreter not x64")
             raise OSError
 
-        if sys.platform.startswith('win32'):
+        if sys.platform.startswith("win32"):
             self.__dll_name = "sc2_cam.dll"
-        elif sys.platform.startswith('linux'):
+        elif sys.platform.startswith("linux"):
             self.__dll_name = "libpco_sc2cam.so.1"
         else:
             print("Package not supported on platform " + sys.platform)
@@ -563,18 +561,12 @@ class Sdk:
         dll_path = os.path.dirname(__file__).replace("\\", "/")
 
         try:
-            if sys.platform.startswith('win32'):
+            if sys.platform.startswith("win32"):
                 self.SC2_Cam = C.windll.LoadLibrary(dll_path + "/" + self.__dll_name)
             else:  # if sys.platform.startswith('linux'):
                 self.SC2_Cam = C.cdll.LoadLibrary(dll_path + "/" + self.__dll_name)
         except OSError:
-            logger.error(
-                'Error: "'
-                + self.__dll_name
-                + '" not found in directory "'
-                + dll_path
-                + '".'
-            )
+            logger.error('Error: "' + self.__dll_name + '" not found in directory "' + dll_path + '".')
             raise
 
         self.camera_handle = C.c_void_p(0)
@@ -583,7 +575,7 @@ class Sdk:
         self.name = name
 
         ########################### win32 only functions ############################
-        if sys.platform.startswith('win32'):
+        if sys.platform.startswith("win32"):
             self.SC2_Cam.PCO_GetVersionInfoSC2_Cam.argtypes = [
                 C.c_char_p,
                 C.c_int,
@@ -597,7 +589,7 @@ class Sdk:
         ##############################################################################
 
         ########################### linux only functions ############################
-        if sys.platform.startswith('linux'):
+        if sys.platform.startswith("linux"):
             self.SC2_Cam.PCO_ScanCameras.argtypes = [
                 C.c_uint16,
                 C.POINTER(PCO_Device),
@@ -1397,15 +1389,10 @@ class Sdk:
             C.c_void_p,
             C.POINTER(C.c_uint16),
             C.POINTER(C.c_uint32),
-            C.c_uint16
+            C.c_uint16,
         ]
 
-        self.SC2_Cam.PCO_SetCompressionMode.argtypes = [
-            C.c_void_p,
-            C.c_uint16,
-            C.POINTER(C.c_uint32),
-            C.c_uint16
-        ]
+        self.SC2_Cam.PCO_SetCompressionMode.argtypes = [C.c_void_p, C.c_uint16, C.POINTER(C.c_uint32), C.c_uint16]
 
         self.SC2_Cam.PCO_GetMaxNumberOfImagesInSegment.argtypes = [
             C.c_void_p,
@@ -1655,8 +1642,7 @@ class Sdk:
             C.POINTER(C.c_void_p),
         ]
 
-        self.SC2_Cam.PCO_CleanupLensControl.argtypes = [
-        ]
+        self.SC2_Cam.PCO_CleanupLensControl.argtypes = []
 
         self.SC2_Cam.PCO_CloseLensControl.argtypes = [
             C.c_void_p,
@@ -1810,7 +1796,7 @@ class Sdk:
         """
         Scan any or explicit interface for any or unused cameras
         """
-        if not sys.platform.startswith('linux'):
+        if not sys.platform.startswith("linux"):
             raise NotImplementedError
 
         wIfType = C.c_uint16(if_type)
@@ -1829,7 +1815,7 @@ class Sdk:
 
         # Now get devices
         device_arr = (PCO_Device * wDeviceCount.value)()
-        array_size = C.sizeof(PCO_Device)*wDeviceCount.value
+        array_size = C.sizeof(PCO_Device) * wDeviceCount.value
 
         error = self.SC2_Cam.PCO_ScanCameras(wIfType, wDeviceCount, device_arr, array_size)
         error_msg = self.get_error_text(error)
@@ -1872,9 +1858,9 @@ class Sdk:
 
     def get_camera_device_struct(self, id):
         """
-        get PCO_Device structure with id 
+        get PCO_Device structure with id
         """
-        if not sys.platform.startswith('linux'):
+        if not sys.platform.startswith("linux"):
             raise NotImplementedError
 
         # function definition changed to pointer
@@ -1924,7 +1910,7 @@ class Sdk:
         - camhandle must be NULL on input to open next vacant camera
         - if camhandle is a valid handle reinitialize this camera
         """
-        if not sys.platform.startswith('linux'):
+        if not sys.platform.startswith("linux"):
             raise NotImplementedError
 
         error = self.SC2_Cam.PCO_OpenNextCamera(self.camera_handle)
@@ -1948,7 +1934,7 @@ class Sdk:
         - camhandle must be NULL on input to open next vacant camera
         - if camhandle is a valid handle reinitialize this camera
         """
-        if not sys.platform.startswith('linux'):
+        if not sys.platform.startswith("linux"):
             raise NotImplementedError
 
         wId = C.c_uint16(id)
@@ -1965,6 +1951,7 @@ class Sdk:
             raise ValueError("{}: {}".format(error, error_msg))
 
         return ret
+
     #############################################################################
 
     # ---------------------------------------------------------------------
@@ -2006,10 +1993,10 @@ class Sdk:
             "USB 3.0": 8,
             "CLHS": 11,
         }
-        w_flags = [0]*10
-        dw_flags = [0]*5
-        void_ptr = [0]*6
-        w_dummy = [0]*8
+        w_flags = [0] * 10
+        dw_flags = [0] * 5
+        void_ptr = [0] * 6
+        w_dummy = [0] * 8
 
         strOpenStruct = PCO_OpenStruct()
         strOpenStruct.wSize = C.c_uint16(C.sizeof(PCO_OpenStruct))
@@ -2088,9 +2075,7 @@ class Sdk:
         wNum = C.c_uint16(device_number)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_CheckDeviceAvailability(
-            self.camera_handle, wNum
-        )
+        error = self.SC2_Cam.PCO_CheckDeviceAvailability(self.camera_handle, wNum)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -2107,9 +2092,7 @@ class Sdk:
         wStatusLen = C.c_uint16(1)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetDeviceStatus(
-            self.camera_handle, wNum, dwStatus, wStatusLen
-        )
+        error = self.SC2_Cam.PCO_GetDeviceStatus(self.camera_handle, wNum, dwStatus, wStatusLen)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -2124,6 +2107,7 @@ class Sdk:
             raise ValueError("{}: {}".format(error, error_msg))
 
         return ret
+
     # -------------------------------------------------------------------------
     # 2.2.1 PCO_GetCameraDescription(Ex)
     # -------------------------------------------------------------------------
@@ -2140,9 +2124,7 @@ class Sdk:
         strDescription.wSize = C.sizeof(PCO_Description)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetCameraDescription(
-            self.camera_handle, strDescription
-        )
+        error = self.SC2_Cam.PCO_GetCameraDescription(self.camera_handle, strDescription)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -2256,9 +2238,7 @@ class Sdk:
         strDescEx.wSize = C.sizeof(PCO_Description2)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetCameraDescriptionEx(
-            self.camera_handle, strDescEx, wType
-        )
+        error = self.SC2_Cam.PCO_GetCameraDescriptionEx(self.camera_handle, strDescEx, wType)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -2300,9 +2280,7 @@ class Sdk:
         strDescEx.wSize = C.sizeof(PCO_Description_Intensified)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetCameraDescriptionEx(
-            self.camera_handle, strDescEx, wType
-        )
+        error = self.SC2_Cam.PCO_GetCameraDescriptionEx(self.camera_handle, strDescEx, wType)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -2343,9 +2321,7 @@ class Sdk:
         strDescEx.wSize = C.sizeof(PCO_Description3)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetCameraDescriptionEx(
-            self.camera_handle, strDescEx, wType
-        )
+        error = self.SC2_Cam.PCO_GetCameraDescriptionEx(self.camera_handle, strDescEx, wType)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -2453,13 +2429,7 @@ class Sdk:
                 0x0009: "USB 3.1 Gen 1",
             }
 
-            ret.update(
-                {
-                    "camera type": camera_type.get(
-                        strGeneral.strCamType.wCamType, strGeneral.strCamType.wCamType
-                    )
-                }
-            )
+            ret.update({"camera type": camera_type.get(strGeneral.strCamType.wCamType, strGeneral.strCamType.wCamType)})
             ret.update({"camera subtype": strGeneral.strCamType.wCamSubType})
             ret.update({"serial number": strGeneral.strCamType.dwSerialNumber})
             ret.update(
@@ -2541,22 +2511,10 @@ class Sdk:
                 0x0009: "USB 3.1 Gen 1",
             }
 
-            ret.update(
-                {
-                    "camera type": camera_type.get(
-                        strCamType.wCamType, strCamType.wCamType
-                    )
-                }
-            )
+            ret.update({"camera type": camera_type.get(strCamType.wCamType, strCamType.wCamType)})
             ret.update({"camera subtype": strCamType.wCamSubType})
             ret.update({"serial number": strCamType.dwSerialNumber})
-            ret.update(
-                {
-                    "interface type": interface_type.get(
-                        strCamType.wInterfaceType, strCamType.wInterfaceType
-                    )
-                }
-            )
+            ret.update({"interface type": interface_type.get(strCamType.wInterfaceType, strCamType.wInterfaceType)})
 
         logger.info("[{:5.3f} s] [sdk] {}: {}".format(duration, sys._getframe().f_code.co_name, error_msg))
 
@@ -2586,9 +2544,7 @@ class Sdk:
         dwStatus = C.c_uint32()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetCameraHealthStatus(
-            self.camera_handle, dwWarning, dwError, dwStatus
-        )
+        error = self.SC2_Cam.PCO_GetCameraHealthStatus(self.camera_handle, dwWarning, dwError, dwStatus)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -2629,9 +2585,7 @@ class Sdk:
         sPowTemp = C.c_short()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetTemperature(
-            self.camera_handle, sCCDTemp, sCamTemp, sPowTemp
-        )
+        error = self.SC2_Cam.PCO_GetTemperature(self.camera_handle, sCCDTemp, sCamTemp, sPowTemp)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -2694,9 +2648,7 @@ class Sdk:
         p_buffer = C.cast(buffer, C.POINTER(C.c_char))
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetInfoString(
-            self.camera_handle, info[info_type], p_buffer, 500
-        )
+        error = self.SC2_Cam.PCO_GetInfoString(self.camera_handle, info[info_type], p_buffer, 500)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -2766,16 +2718,12 @@ class Sdk:
         """
 
         if device is not None:
-            warnings.warn(
-                'sdk.get_firmware_info: "device" parameter is deprecated and will be removed.'
-            )
+            warnings.warn('sdk.get_firmware_info: "device" parameter is deprecated and will be removed.')
 
         pstrFirmWareVersion = PCO_FW_Vers()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetFirmwareInfo(
-            self.camera_handle, 0, pstrFirmWareVersion
-        )
+        error = self.SC2_Cam.PCO_GetFirmwareInfo(self.camera_handle, 0, pstrFirmWareVersion)
         error_msg = self.get_error_text(error)
 
         num = pstrFirmWareVersion.DeviceNum
@@ -2784,9 +2732,7 @@ class Sdk:
         infos = []
         for i in range(blocks):
 
-            error = self.SC2_Cam.PCO_GetFirmwareInfo(
-                self.camera_handle, i, pstrFirmWareVersion
-            )
+            error = self.SC2_Cam.PCO_GetFirmwareInfo(self.camera_handle, i, pstrFirmWareVersion)
             error_msg = self.get_error_text(error)
             if num >= ((i + 1) * 10):
                 length = 10
@@ -2962,9 +2908,7 @@ class Sdk:
         wyres = C.c_uint16(image_height)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_CamLinkSetImageParameters(
-            self.camera_handle, wxres, wyres
-        )
+        error = self.SC2_Cam.PCO_CamLinkSetImageParameters(self.camera_handle, wxres, wyres)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -2990,9 +2934,7 @@ class Sdk:
         ilen = C.c_int(0)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetImageParameters(
-            self.camera_handle, wxres, wyres, dwFlags, param, ilen
-        )
+        error = self.SC2_Cam.PCO_SetImageParameters(self.camera_handle, wxres, wyres, dwFlags, param, ilen)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -3044,8 +2986,8 @@ class Sdk:
         Specifies the time to hold transfer resources. While image
         sequences are running transfer resources are allocated in some of
         the driver layer. To enable faster start time for the next image
-        sequence these resources are held the set ‘transfer  timeout’ 
-        time, after the last image of the sequence is transferred. 
+        sequence these resources are held the set ‘transfer  timeout’
+        time, after the last image of the sequence is transferred.
         PCO_CancelImages always deallocates the hold resources.
 
         >>> set_timeouts()  # sets default values
@@ -3061,10 +3003,7 @@ class Sdk:
         p_buf_in = C.cast(buffer, C.POINTER(C.c_void_p))
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetTimeouts(
-            self.camera_handle,
-            p_buf_in,
-            12)
+        error = self.SC2_Cam.PCO_SetTimeouts(self.camera_handle, p_buf_in, 12)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -3118,9 +3057,7 @@ class Sdk:
         dwSetup[3] = 99
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetCameraSetup(
-            self.camera_handle, wType, pdwSetup, wLen
-        )
+        error = self.SC2_Cam.PCO_GetCameraSetup(self.camera_handle, wType, pdwSetup, wLen)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -3172,9 +3109,7 @@ class Sdk:
         wLen = C.c_uint16(4)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetCameraSetup(
-            self.camera_handle, wType, dwSetup, wLen
-        )
+        error = self.SC2_Cam.PCO_SetCameraSetup(self.camera_handle, wType, dwSetup, wLen)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -3205,9 +3140,7 @@ class Sdk:
         p_data_out = C.cast(data_out, C.POINTER(C.c_void_p))
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_ControlCommandCall(
-            self.camera_handle, p_data_in, size_in, p_data_out, size_out
-        )
+        error = self.SC2_Cam.PCO_ControlCommandCall(self.camera_handle, p_data_in, size_in, p_data_out, size_out)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -3234,9 +3167,7 @@ class Sdk:
         wNumReserved = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetFanControlParameters(
-            self.camera_handle, wMode, wValue, wReserved, wNumReserved
-        )
+        error = self.SC2_Cam.PCO_GetFanControlParameters(self.camera_handle, wMode, wValue, wReserved, wNumReserved)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -3272,9 +3203,7 @@ class Sdk:
         wNumReserved = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetFanControlParameters(
-            self.camera_handle, wMode, wValue, wReserved, wNumReserved
-        )
+        error = self.SC2_Cam.PCO_SetFanControlParameters(self.camera_handle, wMode, wValue, wReserved, wNumReserved)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -3288,6 +3217,7 @@ class Sdk:
     # -------------------------------------------------------------------------
     def get_sensor_struct(self):
         raise NotImplementedError
+
     # -------------------------------------------------------------------------
     # 2.5.2 PCO_SetSensorStruct (for the moment intentionally not implemented)
     # -------------------------------------------------------------------------
@@ -3319,9 +3249,7 @@ class Sdk:
         wYResMax = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetSizes(
-            self.camera_handle, wXResAct, wYResAct, wXResMax, wYResMax
-        )
+        error = self.SC2_Cam.PCO_GetSizes(self.camera_handle, wXResAct, wYResAct, wXResMax, wYResMax)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -3441,9 +3369,7 @@ class Sdk:
         wRoiY1 = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetROI(
-            self.camera_handle, wRoiX0, wRoiY0, wRoiX1, wRoiY1
-        )
+        error = self.SC2_Cam.PCO_GetROI(self.camera_handle, wRoiX0, wRoiY0, wRoiX1, wRoiY1)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -3485,9 +3411,7 @@ class Sdk:
         wRoiY1 = C.c_uint16(y1)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetROI(
-            self.camera_handle, wRoiX0, wRoiY0, wRoiX1, wRoiY1
-        )
+        error = self.SC2_Cam.PCO_SetROI(self.camera_handle, wRoiX0, wRoiY0, wRoiX1, wRoiY1)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -3731,9 +3655,7 @@ class Sdk:
         double_image_mode = {"off": 0, "on": 1}
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetDoubleImageMode(
-            self.camera_handle, double_image_mode[mode]
-        )
+        error = self.SC2_Cam.PCO_SetDoubleImageMode(self.camera_handle, double_image_mode[mode])
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -3876,9 +3798,7 @@ class Sdk:
         sCoolSet = C.c_short()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetCoolingSetpointTemperature(
-            self.camera_handle, sCoolSet
-        )
+        error = self.SC2_Cam.PCO_GetCoolingSetpointTemperature(self.camera_handle, sCoolSet)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -3903,9 +3823,7 @@ class Sdk:
         sCoolSet = C.c_short(int(cooling_setpoint))
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetCoolingSetpointTemperature(
-            self.camera_handle, sCoolSet
-        )
+        error = self.SC2_Cam.PCO_SetCoolingSetpointTemperature(self.camera_handle, sCoolSet)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -3930,9 +3848,7 @@ class Sdk:
         cooling_setpoints_list = []
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetCoolingSetpoints(
-            self.camera_handle, 0, wNumSetPoints, psCoolSetpoints
-        )
+        error = self.SC2_Cam.PCO_GetCoolingSetpoints(self.camera_handle, 0, wNumSetPoints, psCoolSetpoints)
         error_msg = self.get_error_text(error)
 
         if error == 0:
@@ -3940,9 +3856,7 @@ class Sdk:
 
         for i in range(1, wNumSetPoints.value):
 
-            error = self.SC2_Cam.PCO_GetCoolingSetpoints(
-                self.camera_handle, i, wNumSetPoints, psCoolSetpoints
-            )
+            error = self.SC2_Cam.PCO_GetCoolingSetpoints(self.camera_handle, i, wNumSetPoints, psCoolSetpoints)
             error_msg = self.get_error_text(error)
             if error == 0:
                 cooling_setpoints_list.append(sCoolSetpoints[i])
@@ -4017,9 +3931,7 @@ class Sdk:
         offset_regulation = {"auto": 0, "off": 1}
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetOffsetMode(
-            self.camera_handle, offset_regulation[mode]
-        )
+        error = self.SC2_Cam.PCO_SetOffsetMode(self.camera_handle, offset_regulation[mode])
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -4045,9 +3957,7 @@ class Sdk:
         wNoiseFilterMode = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetNoiseFilterMode(
-            self.camera_handle, wNoiseFilterMode
-        )
+        error = self.SC2_Cam.PCO_GetNoiseFilterMode(self.camera_handle, wNoiseFilterMode)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -4081,9 +3991,7 @@ class Sdk:
         noise_filter_mode = {"off": 0, "on": 1, "on & hot pixel correction": 5}
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetNoiseFilterMode(
-            self.camera_handle, noise_filter_mode[mode]
-        )
+        error = self.SC2_Cam.PCO_SetNoiseFilterMode(self.camera_handle, noise_filter_mode[mode])
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -4111,7 +4019,15 @@ class Sdk:
 
         time_start = time.perf_counter()
         error = self.SC2_Cam.PCO_GetLookupTableInfo(
-            self.camera_handle, wLUTNum, wNumberOfLuts, cDescription, wDescLen, wIdentifier, bInputWidth, bOutputWidth, wFormat
+            self.camera_handle,
+            wLUTNum,
+            wNumberOfLuts,
+            cDescription,
+            wDescLen,
+            wIdentifier,
+            bInputWidth,
+            bOutputWidth,
+            wFormat,
         )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
@@ -4142,9 +4058,7 @@ class Sdk:
         wParameter = C.c_uint16(0)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetActiveLookupTable(
-            self.camera_handle, wIdentifier, wParameter
-        )
+        error = self.SC2_Cam.PCO_GetActiveLookupTable(self.camera_handle, wIdentifier, wParameter)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -4170,9 +4084,7 @@ class Sdk:
         wParameter = C.c_uint16(0)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetActiveLookupTable(
-            self.camera_handle, wIdentifier, wParameter
-        )
+        error = self.SC2_Cam.PCO_SetActiveLookupTable(self.camera_handle, wIdentifier, wParameter)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -4186,16 +4098,12 @@ class Sdk:
     # -------------------------------------------------------------------------
 
     def get_sensor_dark_offset(self):
-        """
-        """
+        """ """
 
         wDarkOffset = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetSensorDarkOffset(
-            self.camera_handle,
-            wDarkOffset
-        )
+        error = self.SC2_Cam.PCO_GetSensorDarkOffset(self.camera_handle, wDarkOffset)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -4210,6 +4118,7 @@ class Sdk:
             raise ValueError("{}: {}".format(error, error_msg))
 
         return ret
+
     # -------------------------------------------------------------------------
     # 2.6.1 PCO_GetTimingStruct (for the moment intentionally not implemented)
     # -------------------------------------------------------------------------
@@ -4284,11 +4193,7 @@ class Sdk:
 
         time_start = time.perf_counter()
         error = self.SC2_Cam.PCO_GetDelayExposureTime(
-            self.camera_handle,
-            dwDelay,
-            dwExposure,
-            wTimeBaseDelay,
-            wTimeBaseExposure
+            self.camera_handle, dwDelay, dwExposure, wTimeBaseDelay, wTimeBaseExposure
         )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
@@ -4360,7 +4265,7 @@ class Sdk:
         time table values and the associated time base values.
         Maximum size of each array is 16 DWORD entries. Returned values are
         only valid if the last timing command was
-        PCO_SetDelayExposureTimeTable. 
+        PCO_SetDelayExposureTimeTable.
         See PCO_SetDelayExposureTimeTable for a more detailed description of
         the delay / exposure time table usage.
         """
@@ -4376,19 +4281,15 @@ class Sdk:
 
         time_start = time.perf_counter()
         error = self.SC2_Cam.PCO_GetDelayExposureTimeTable(
-            self.camera_handle,
-            p_delay,
-            p_exposure,
-            wTimeBaseDelay,
-            wTimeBaseExposure,
-            wCount)
+            self.camera_handle, p_delay, p_exposure, wTimeBaseDelay, wTimeBaseExposure, wCount
+        )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
         ret = {}
 
         if error == 0:
-            timebase = {0: 'ns', 1: 'us', 2: 'ms'}
+            timebase = {0: "ns", 1: "us", 2: "ms"}
 
             count2 = wCount.value
             delays = []
@@ -4397,10 +4298,10 @@ class Sdk:
                 delays.append(dwDelay[i])
                 exposures.append(dwExposure[i])
 
-            ret.update({'delay': delays})
-            ret.update({'exposure': exposures})
-            ret.update({'delay timebase': timebase[wTimeBaseDelay.value]})
-            ret.update({'exposure timebase': timebase[wTimeBaseExposure.value]})
+            ret.update({"delay": delays})
+            ret.update({"exposure": exposures})
+            ret.update({"delay timebase": timebase[wTimeBaseDelay.value]})
+            ret.update({"exposure timebase": timebase[wTimeBaseExposure.value]})
 
         logger.info("[{:5.3f} s] [sdk] {}: {}".format(duration, sys._getframe().f_code.co_name, error_msg))
 
@@ -4433,13 +4334,13 @@ class Sdk:
         effect as using the PCO_SetDelayExposureTimeTable command and
         setting all but the first delay / exposure entry to zero.
 
-        Restrictions for the parameter values are defined through the 
+        Restrictions for the parameter values are defined through the
         following values in the camera description PCO_Description structure:
         dwMinDelayDESC, dwMaxDelayDESC, dwMinDelayStepDESC, dwMinExposDESC,
         dwMaxExposDESC, dwMinExposStepDESC
         """
 
-        timebase = {'ns': 0, 'us': 1, 'ms': 2}
+        timebase = {"ns": 0, "us": 1, "ms": 2}
 
         dwDelay = (C.c_uint32 * 16)()
         dwExposure = (C.c_uint32 * 16)()
@@ -4456,21 +4357,21 @@ class Sdk:
 
         time_start = time.perf_counter()
         error = self.SC2_Cam.PCO_SetDelayExposureTimeTable(
-            self.camera_handle,
-            p_delay,
-            p_exposure,
-            wTimeBaseDelay,
-            wTimeBaseExposure,
-            wCount)
+            self.camera_handle, p_delay, p_exposure, wTimeBaseDelay, wTimeBaseExposure, wCount
+        )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
         inp = {}
-        inp.update({'delay': delay,
-                    'timebase_delay': timebase_delay,
-                    'exposure': exposure,
-                    'timebase_exposure ': timebase_exposure,
-                    'count': count})
+        inp.update(
+            {
+                "delay": delay,
+                "timebase_delay": timebase_delay,
+                "exposure": exposure,
+                "timebase_exposure ": timebase_exposure,
+                "count": count,
+            }
+        )
 
         logger.info("[{:5.3f} s] [sdk] {}: {}".format(duration, sys._getframe().f_code.co_name, error_msg))
 
@@ -4495,9 +4396,7 @@ class Sdk:
         dwFrameRateExposure = C.c_uint32()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetFrameRate(
-            self.camera_handle, wFrameRateStatus, dwFrameRate, dwFrameRateExposure
-        )
+        error = self.SC2_Cam.PCO_GetFrameRate(self.camera_handle, wFrameRateStatus, dwFrameRate, dwFrameRateExposure)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -4573,9 +4472,7 @@ class Sdk:
         dwFPSExposureTime = C.c_uint32()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetFPSExposureMode(
-            self.camera_handle, wFPSExposureMode, dwFPSExposureTime
-        )
+        error = self.SC2_Cam.PCO_GetFPSExposureMode(self.camera_handle, wFPSExposureMode, dwFPSExposureTime)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -4613,9 +4510,7 @@ class Sdk:
         dwFPSExposureTime = C.c_uint32()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetFPSExposureMode(
-            self.camera_handle, wFPSExposureMode, dwFPSExposureTime
-        )
+        error = self.SC2_Cam.PCO_SetFPSExposureMode(self.camera_handle, wFPSExposureMode, dwFPSExposureTime)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -4772,9 +4667,7 @@ class Sdk:
         wCameraBusyState = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetCameraBusyStatus(
-            self.camera_handle, wCameraBusyState
-        )
+        error = self.SC2_Cam.PCO_GetCameraBusyStatus(self.camera_handle, wCameraBusyState)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -4901,7 +4794,13 @@ class Sdk:
 
         time_start = time.perf_counter()
         error = self.SC2_Cam.PCO_GetModulationMode(
-            self.camera_handle, wModulationMode, dwPeriodicalTime, wTimebasePeriodical, dwNumberOfExposures, lMonitorOffset)
+            self.camera_handle,
+            wModulationMode,
+            dwPeriodicalTime,
+            wTimebasePeriodical,
+            dwNumberOfExposures,
+            lMonitorOffset,
+        )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -4924,7 +4823,9 @@ class Sdk:
     # -------------------------------------------------------------------------
     # 2.6.21 PCO_SetModulationMode (for the moment intentionally not implemented)
     # -------------------------------------------------------------------------
-    def set_modulation_mode(self, modulation_mode, periodical_time, periodical_timebase, number_of_exposures, monitor_offset):
+    def set_modulation_mode(
+        self, modulation_mode, periodical_time, periodical_timebase, number_of_exposures, monitor_offset
+    ):
         """
         Gets the modulation mode and necessary parameters
         """
@@ -4937,7 +4838,13 @@ class Sdk:
 
         time_start = time.perf_counter()
         error = self.SC2_Cam.PCO_SetModulationMode(
-            self.camera_handle, wModulationMode, dwPeriodicalTime, wTimebasePeriodical, dwNumberOfExposures, lMonitorOffset)
+            self.camera_handle,
+            wModulationMode,
+            dwPeriodicalTime,
+            wTimebasePeriodical,
+            dwNumberOfExposures,
+            lMonitorOffset,
+        )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -4989,9 +4896,7 @@ class Sdk:
         pstrSignal.wSize = C.sizeof(PCO_Single_Signal_Desc)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetHWIOSignalDescriptor(
-            self.camera_handle, wSignalNum, pstrSignal
-        )
+        error = self.SC2_Cam.PCO_GetHWIOSignalDescriptor(self.camera_handle, wSignalNum, pstrSignal)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -5041,9 +4946,7 @@ class Sdk:
         strHWIOSignal.wSize = C.sizeof(PCO_Signal)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetHWIOSignal(
-            self.camera_handle, wSignalNum, strHWIOSignal
-        )
+        error = self.SC2_Cam.PCO_GetHWIOSignal(self.camera_handle, wSignalNum, strHWIOSignal)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -5106,9 +5009,7 @@ class Sdk:
     # -------------------------------------------------------------------------
     # 2.6.25 PCO_SetHWIOSignal
     # -------------------------------------------------------------------------
-    def set_hwio_signal(
-        self, index, enabled, signal_type, polarity, filter_type, selected, parameter
-    ):
+    def set_hwio_signal(self, index, enabled, signal_type, polarity, filter_type, selected, parameter):
         """
         This function does select the settings of a distinct hardware IO signal line.
         """
@@ -5149,9 +5050,7 @@ class Sdk:
         strHWIOSignal.dwParameter[3] = parameter[3]
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetHWIOSignal(
-            self.camera_handle, wSignalNum, strHWIOSignal
-        )
+        error = self.SC2_Cam.PCO_SetHWIOSignal(self.camera_handle, wSignalNum, strHWIOSignal)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -5271,9 +5170,7 @@ class Sdk:
         wCameraSynchMode = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetCameraSynchMode(
-            self.camera_handle, wCameraSynchMode
-        )
+        error = self.SC2_Cam.PCO_GetCameraSynchMode(self.camera_handle, wCameraSynchMode)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -5300,9 +5197,7 @@ class Sdk:
         wCameraSynchMode = C.c_uint16(mode[synch_mode])
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetCameraSynchMode(
-            self.camera_handle, wCameraSynchMode
-        )
+        error = self.SC2_Cam.PCO_SetCameraSynchMode(self.camera_handle, wCameraSynchMode)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -5328,9 +5223,7 @@ class Sdk:
         wExposureTriggerSignalStatus = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetExpTrigSignalStatus(
-            self.camera_handle, wExposureTriggerSignalStatus
-        )
+        error = self.SC2_Cam.PCO_GetExpTrigSignalStatus(self.camera_handle, wExposureTriggerSignalStatus)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -5338,13 +5231,7 @@ class Sdk:
 
         if error == 0:
             status = {0: "off", 1: "on"}
-            ret.update(
-                {
-                    "exposure trigger signal status": status[
-                        wExposureTriggerSignalStatus.value
-                    ]
-                }
-            )
+            ret.update({"exposure trigger signal status": status[wExposureTriggerSignalStatus.value]})
 
         logger.info("[{:5.3f} s] [sdk] {}: {}".format(duration, sys._getframe().f_code.co_name, error_msg))
 
@@ -5413,9 +5300,7 @@ class Sdk:
         strRecording.wSize = C.sizeof(PCO_Recording)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetRecordingStruct(
-            self.camera_handle, strRecording
-        )
+        error = self.SC2_Cam.PCO_GetRecordingStruct(self.camera_handle, strRecording)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -5518,9 +5403,7 @@ class Sdk:
         recording_state = {"off": 0, "on": 1}
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetRecordingState(
-            self.camera_handle, recording_state[state]
-        )
+        error = self.SC2_Cam.PCO_SetRecordingState(self.camera_handle, recording_state[state])
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -5740,9 +5623,7 @@ class Sdk:
         dwReserved = C.c_uint32()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetAcquireModeEx(
-            self.camera_handle, wAcquMode, dwNumberImages, dwReserved
-        )
+        error = self.SC2_Cam.PCO_GetAcquireModeEx(self.camera_handle, wAcquMode, dwNumberImages, dwReserved)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -5799,9 +5680,7 @@ class Sdk:
         dwReserved = C.c_uint32()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetAcquireModeEx(
-            self.camera_handle, wAcquMode, dwNumberImages, dwReserved
-        )
+        error = self.SC2_Cam.PCO_SetAcquireModeEx(self.camera_handle, wAcquMode, dwNumberImages, dwReserved)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -5827,9 +5706,7 @@ class Sdk:
         wAcquireEnableSignalStatus = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetAcqEnblSignalStatus(
-            self.camera_handle, wAcquireEnableSignalStatus
-        )
+        error = self.SC2_Cam.PCO_GetAcqEnblSignalStatus(self.camera_handle, wAcquireEnableSignalStatus)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -5837,13 +5714,7 @@ class Sdk:
 
         if error == 0:
             acquire_enable_signal_status = {0: "false", 1: "true"}
-            ret.update(
-                {
-                    "acquire enable signal status": acquire_enable_signal_status[
-                        wAcquireEnableSignalStatus.value
-                    ]
-                }
-            )
+            ret.update({"acquire enable signal status": acquire_enable_signal_status[wAcquireEnableSignalStatus.value]})
 
         logger.info("[{:5.3f} s] [sdk] {}: {}".format(duration, sys._getframe().f_code.co_name, error_msg))
 
@@ -5865,9 +5736,7 @@ class Sdk:
         wNumReserved = C.c_uint16(0)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetAcquireControl(
-            self.camera_handle, dwAcquCtrlFlags, dwReserved, wNumReserved
-        )
+        error = self.SC2_Cam.PCO_GetAcquireControl(self.camera_handle, dwAcquCtrlFlags, dwReserved, wNumReserved)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -5896,9 +5765,7 @@ class Sdk:
         wNumReserved = C.c_uint16(0)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetAcquireControl(
-            self.camera_handle, dwAcquCtrlFlags, dwReserved, wNumReserved
-        )
+        error = self.SC2_Cam.PCO_SetAcquireControl(self.camera_handle, dwAcquCtrlFlags, dwReserved, wNumReserved)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -5923,9 +5790,7 @@ class Sdk:
         wMetaDataVersion = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetMetaDataMode(
-            self.camera_handle, wMetaDataMode, wMetaDataSize, wMetaDataVersion
-        )
+        error = self.SC2_Cam.PCO_GetMetaDataMode(self.camera_handle, wMetaDataMode, wMetaDataSize, wMetaDataVersion)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -5987,9 +5852,7 @@ class Sdk:
         dwRecordStopDelayImages = C.c_uint32()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetRecordStopEvent(
-            self.camera_handle, wRecordStopEventMode, dwRecordStopDelayImages
-        )
+        error = self.SC2_Cam.PCO_GetRecordStopEvent(self.camera_handle, wRecordStopEventMode, dwRecordStopDelayImages)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -6018,9 +5881,7 @@ class Sdk:
         dwRecordStopDelayImages = C.c_uint32(record_stop_delay_images)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetRecordStopEvent(
-            self.camera_handle, wRecordStopEventMode, dwRecordStopDelayImages
-        )
+        error = self.SC2_Cam.PCO_SetRecordStopEvent(self.camera_handle, wRecordStopEventMode, dwRecordStopDelayImages)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -6066,9 +5927,7 @@ class Sdk:
         ucSec = C.c_uint8(second)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetDateTime(
-            self.camera_handle, ucDay, ucMonth, wYear, wHour, ucMin, ucSec
-        )
+        error = self.SC2_Cam.PCO_SetDateTime(self.camera_handle, ucDay, ucMonth, wYear, wHour, ucMin, ucSec)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -6152,9 +6011,7 @@ class Sdk:
         timestamp_mode = {"off": 0, "binary": 1, "binary & ascii": 2, "ascii": 3}
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetTimestampMode(
-            self.camera_handle, timestamp_mode[mode]
-        )
+        error = self.SC2_Cam.PCO_SetTimestampMode(self.camera_handle, timestamp_mode[mode])
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -6215,7 +6072,7 @@ class Sdk:
         """
         Gets the ram segment sizes of the camera.
         """
-        ramSegSize = (C.c_uint32*4)()
+        ramSegSize = (C.c_uint32 * 4)()
         dwRamSegSize = C.cast(ramSegSize, C.POINTER(C.c_uint16))
 
         time_start = time.perf_counter()
@@ -6417,9 +6274,7 @@ class Sdk:
         strSegment.wSize = C.sizeof(PCO_Segment)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetSegmentStruct(
-            self.camera_handle, wSegment, strSegment
-        )
+        error = self.SC2_Cam.PCO_GetSegmentStruct(self.camera_handle, wSegment, strSegment)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -6586,9 +6441,7 @@ class Sdk:
         bit_alignment = {"MSB": 0, "LSB": 1}
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetBitAlignment(
-            self.camera_handle, bit_alignment[alignment]
-        )
+        error = self.SC2_Cam.PCO_SetBitAlignment(self.camera_handle, bit_alignment[alignment])
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -6621,9 +6474,7 @@ class Sdk:
         wHotPixelCorrectionMode = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetHotPixelCorrectionMode(
-            self.camera_handle, wHotPixelCorrectionMode
-        )
+        error = self.SC2_Cam.PCO_GetHotPixelCorrectionMode(self.camera_handle, wHotPixelCorrectionMode)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -6631,13 +6482,7 @@ class Sdk:
 
         if error == 0:
             hot_pixel_correction_mode = {0: "off", 1: "on"}
-            ret.update(
-                {
-                    "hot pixel correction mode": hot_pixel_correction_mode[
-                        wHotPixelCorrectionMode.value
-                    ]
-                }
-            )
+            ret.update({"hot pixel correction mode": hot_pixel_correction_mode[wHotPixelCorrectionMode.value]})
 
         logger.info("[{:5.3f} s] [sdk] {}: {}".format(duration, sys._getframe().f_code.co_name, error_msg))
 
@@ -6666,9 +6511,7 @@ class Sdk:
         hot_pixel_correction_mode = {"off": 0, "on": 1}
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetHotPixelCorrectionMode(
-            self.camera_handle, hot_pixel_correction_mode[mode]
-        )
+        error = self.SC2_Cam.PCO_SetHotPixelCorrectionMode(self.camera_handle, hot_pixel_correction_mode[mode])
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -6712,9 +6555,7 @@ class Sdk:
         ilen = C.c_int(len(buffer))
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetTransferParameter(
-            self.camera_handle, p_buffer, ilen
-        )
+        error = self.SC2_Cam.PCO_GetTransferParameter(self.camera_handle, p_buffer, ilen)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -6900,11 +6741,7 @@ class Sdk:
 
         time_start = time.perf_counter()
         error = self.SC2_Cam.PCO_SetCmosLineExposureDelay(
-            self.camera_handle,
-            dwExposureLines,
-            dwDelayLines,
-            dwReserved,
-            wReservedLen
+            self.camera_handle, dwExposureLines, dwDelayLines, dwReserved, wReservedLen
         )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
@@ -6928,11 +6765,7 @@ class Sdk:
         ilen = C.c_int(len(buffer))
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetTransferParametersAuto(
-            self.camera_handle,
-            p_buffer,
-            ilen
-        )
+        error = self.SC2_Cam.PCO_SetTransferParametersAuto(self.camera_handle, p_buffer, ilen)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -6962,11 +6795,7 @@ class Sdk:
 
         time_start = time.perf_counter()
         error = self.SC2_Cam.PCO_GetInterfaceOutputFormat(
-            self.camera_handle,
-            wDestInterface,
-            wFormat,
-            wReserved1,
-            wReserved2
+            self.camera_handle, wDestInterface, wFormat, wReserved1, wReserved2
         )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
@@ -7144,12 +6973,7 @@ class Sdk:
 
         time_start = time.perf_counter()
         error = self.SC2_Cam.PCO_GetBatteryStatus(
-            self.camera_handle,
-            wBatteryType,
-            wBatteryLevel,
-            wPowerStatus,
-            wReserved,
-            wNumReserved
+            self.camera_handle, wBatteryType, wBatteryLevel, wPowerStatus, wReserved, wNumReserved
         )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
@@ -7157,8 +6981,13 @@ class Sdk:
         ret = {}
 
         if error == 0:
-            battery_types = {0: "none", 1: "nickel metal hydride", 2: "lithium ion",
-                             3: "lithium iron phosphate", 65535: "unknown battery"}
+            battery_types = {
+                0: "none",
+                1: "nickel metal hydride",
+                2: "lithium ion",
+                3: "lithium iron phosphate",
+                65535: "unknown battery",
+            }
             ret.update({"battery type": battery_types[wBatteryType.value]})
             ret.update({"battery level": wBatteryLevel.value})
             ret.update({"power status": wPowerStatus.value})
@@ -7169,12 +6998,15 @@ class Sdk:
             raise ValueError("{}: {}".format(error, error_msg))
 
         return ret
+
     # -------------------------------------------------------------------------
     # 2.15.1 PCO_GetInterfaceOutputFormat                (pco.dimax with HDSDI)
     # 2.15.2 PCO_SetInterfaceOutputFormat                (pco.dimax with HDSDI)
     # 2.15.3 PCO_PlayImagesFromSegmentHDSDI              (pco.dimax with HDSDI)
 
-    def play_images_from_segment_hdsdi(self, segment_index, interface, mode, speed, range_low, range_high, start_pos=-1, repeat_last_image=True):
+    def play_images_from_segment_hdsdi(
+        self, segment_index, interface, mode, speed, range_low, range_high, start_pos=-1, repeat_last_image=True
+    ):
         """
         Sets the actual play conditions for the HDSDI interface.
         """
@@ -7194,14 +7026,7 @@ class Sdk:
 
         time_start = time.perf_counter()
         error = self.SC2_Cam.PCO_PlayImagesFromSegmentHDSDI(
-            self.camera_handle,
-            wSegment,
-            wInterface,
-            wMode,
-            wSpeed,
-            dwRangeLow,
-            dwRangeHigh,
-            dwStartPos
+            self.camera_handle, wSegment, wInterface, wMode, wSpeed, dwRangeLow, dwRangeHigh, dwStartPos
         )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
@@ -7222,11 +7047,7 @@ class Sdk:
         dwPlayPosition = C.c_uint32()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetPlayPositionHDSDI(
-            self.camera_handle,
-            wStatus,
-            dwPlayPosition
-        )
+        error = self.SC2_Cam.PCO_GetPlayPositionHDSDI(self.camera_handle, wStatus, dwPlayPosition)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -7255,10 +7076,7 @@ class Sdk:
         strColorSet.wSize = C.sizeof(PCO_Image_ColorSet)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetColorSettings(
-            self.camera_handle,
-            strColorSet
-        )
+        error = self.SC2_Cam.PCO_GetColorSettings(self.camera_handle, strColorSet)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -7286,7 +7104,23 @@ class Sdk:
         return ret
 
     # 2.15.6 PCO_SetColorSettings                        (pco.dimax with HDSDI)
-    def set_color_settings(self, saturation=0, vibrance=0, color_temp=6500, tint=0, contrast=0, gamma=1, mult_norm_red=0, mult_norm_green=0, mult_norm_blue=0, fixed_sharpen=0, adaptiv_sharpen=0, scale_min=0, scale_max=65535, proc_options=0):
+    def set_color_settings(
+        self,
+        saturation=0,
+        vibrance=0,
+        color_temp=6500,
+        tint=0,
+        contrast=0,
+        gamma=1,
+        mult_norm_red=0,
+        mult_norm_green=0,
+        mult_norm_blue=0,
+        fixed_sharpen=0,
+        adaptiv_sharpen=0,
+        scale_min=0,
+        scale_max=65535,
+        proc_options=0,
+    ):
         """
         Sets the color convert settings inside the camera.
         """
@@ -7307,10 +7141,7 @@ class Sdk:
         strColorSet.wProcOptions = proc_options
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetColorSettings(
-            self.camera_handle,
-            strColorSet
-        )
+        error = self.SC2_Cam.PCO_SetColorSettings(self.camera_handle, strColorSet)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -7331,10 +7162,7 @@ class Sdk:
         wParamLen = C.c_uint16(4)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_DoWhiteBalance(
-            self.camera_handle,
-            wMode, pwParam, wParamLen
-        )
+        error = self.SC2_Cam.PCO_DoWhiteBalance(self.camera_handle, wMode, pwParam, wParamLen)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -7365,11 +7193,7 @@ class Sdk:
 
         time_start = time.perf_counter()
         error = self.SC2_Cam.PCO_GetFlimModulationParameter(
-            self.camera_handle,
-            wSourceSelect,
-            wOutputWaveform,
-            wReserved1,
-            wReserved2
+            self.camera_handle, wSourceSelect, wOutputWaveform, wReserved1, wReserved2
         )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
@@ -7443,10 +7267,7 @@ class Sdk:
         dwFrequency = C.c_uint32()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetFlimMasterModulationFrequency(
-            self.camera_handle,
-            dwFrequency
-        )
+        error = self.SC2_Cam.PCO_GetFlimMasterModulationFrequency(self.camera_handle, dwFrequency)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -7474,9 +7295,7 @@ class Sdk:
         dwFrequency = C.c_uint32(frequency)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetFlimMasterModulationFrequency(
-            self.camera_handle, dwFrequency
-        )
+        error = self.SC2_Cam.PCO_SetFlimMasterModulationFrequency(self.camera_handle, dwFrequency)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -7599,10 +7418,7 @@ class Sdk:
         dwPhaseMilliDeg = C.c_uint32()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetFlimRelativePhase(
-            self.camera_handle,
-            dwPhaseMilliDeg
-        )
+        error = self.SC2_Cam.PCO_GetFlimRelativePhase(self.camera_handle, dwPhaseMilliDeg)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -7627,10 +7443,7 @@ class Sdk:
         dwPhaseMilliDeg = C.c_uint32(phase_millidegrees)
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetFlimRelativePhase(
-            self.camera_handle,
-            dwPhaseMilliDeg
-        )
+        error = self.SC2_Cam.PCO_SetFlimRelativePhase(self.camera_handle, dwPhaseMilliDeg)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -7680,13 +7493,7 @@ class Sdk:
         if error == 0:
             asymmetry_correction = {0: "off", 1: "average"}
             output_mode = {0: "default", 1: "multiply x2"}
-            ret.update(
-                {
-                    "asymmetry correction": asymmetry_correction[
-                        wAsymmetryCorrection.value
-                    ]
-                }
-            )
+            ret.update({"asymmetry correction": asymmetry_correction[wAsymmetryCorrection.value]})
             ret.update({"output mode": output_mode[wOutputMode.value]})
 
         logger.info("[{:5.3f} s] [sdk] {}: {}".format(duration, sys._getframe().f_code.co_name, error_msg))
@@ -7826,12 +7633,7 @@ class Sdk:
         dwflagsout = C.c_uint32()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetLensFocus(
-            self.lens_control,
-            lFocusPos,
-            dwflagsin,
-            dwflagsout
-        )
+        error = self.SC2_Cam.PCO_SetLensFocus(self.lens_control, lFocusPos, dwflagsin, dwflagsout)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -7883,12 +7685,7 @@ class Sdk:
         dwflagsout = C.c_uint32()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetAperture(
-            self.lens_control,
-            wAperturePos,
-            dwflagsin,
-            dwflagsout
-        )
+        error = self.SC2_Cam.PCO_SetAperture(self.lens_control, wAperturePos, dwflagsin, dwflagsout)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -7913,9 +7710,7 @@ class Sdk:
         dwflags = C.c_uint32()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetApertureF(
-            self.lens_control, dwAperturePos, wAperturePos, dwflags
-        )
+        error = self.SC2_Cam.PCO_GetApertureF(self.lens_control, dwAperturePos, wAperturePos, dwflags)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -7946,12 +7741,7 @@ class Sdk:
         dwflagsout = C.c_uint32()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetApertureF(
-            self.lens_control,
-            dwAperturePos,
-            dwflagsin,
-            dwflagsout
-        )
+        error = self.SC2_Cam.PCO_SetApertureF(self.lens_control, dwAperturePos, dwflagsin, dwflagsout)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
@@ -7968,6 +7758,7 @@ class Sdk:
     # -------------------------------------------------------------------------
     def send_birger_command(self):
         raise NotImplementedError
+
     # -------------------------------------------------------------------------
     # 2.18.1 PCO_GetIntensifiedGatingMode
     # -------------------------------------------------------------------------
@@ -7988,19 +7779,15 @@ class Sdk:
         wReserved = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetIntensifiedGatingMode(
-            self.camera_handle,
-            wIntensifiedGatingMode,
-            wReserved
-        )
+        error = self.SC2_Cam.PCO_GetIntensifiedGatingMode(self.camera_handle, wIntensifiedGatingMode, wReserved)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
         ret = {}
 
         if error == 0:
-            modes = {0: 'off', 1: 'on'}
-            ret.update({'mode': modes[wIntensifiedGatingMode.value]})
+            modes = {0: "off", 1: "on"}
+            ret.update({"mode": modes[wIntensifiedGatingMode.value]})
 
         logger.info("[{:5.3f} s] [sdk] {}: {}".format(duration, sys._getframe().f_code.co_name, error_msg))
 
@@ -8050,16 +7837,12 @@ class Sdk:
         wReserved = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetIntensifiedGatingMode(
-            self.camera_handle,
-            wIntensifiedGatingMode,
-            wReserved
-        )
+        error = self.SC2_Cam.PCO_SetIntensifiedGatingMode(self.camera_handle, wIntensifiedGatingMode, wReserved)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
         inp = {}
-        inp.update({'mode': mode})
+        inp.update({"mode": mode})
 
         logger.info("[{:5.3f} s] [sdk] {}: {}".format(duration, sys._getframe().f_code.co_name, error_msg))
 
@@ -8086,12 +7869,7 @@ class Sdk:
 
         time_start = time.perf_counter()
         error = self.SC2_Cam.PCO_GetIntensifiedMCP(
-            self.camera_handle,
-            wIntensifiedVoltage,
-            wReserved,
-            dwIntensifiedPhosphorDecay_us,
-            dwReserved1,
-            dwReserved2
+            self.camera_handle, wIntensifiedVoltage, wReserved, dwIntensifiedPhosphorDecay_us, dwReserved1, dwReserved2
         )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
@@ -8099,8 +7877,8 @@ class Sdk:
         ret = {}
 
         if error == 0:
-            ret.update({'intensified voltage': wIntensifiedVoltage.value})
-            ret.update({'intensified phosphor decay us': dwIntensifiedPhosphorDecay_us.value})
+            ret.update({"intensified voltage": wIntensifiedVoltage.value})
+            ret.update({"intensified phosphor decay us": dwIntensifiedPhosphorDecay_us.value})
 
         logger.info("[{:5.3f} s] [sdk] {}: {}".format(duration, sys._getframe().f_code.co_name, error_msg))
 
@@ -8120,12 +7898,12 @@ class Sdk:
         Adjustable is the  voltage applied  to the MCP (micro channel plate)
         in the range of 750 V to 1100 V for S20 image intensifiers and 750 V
         to 900 V for GaAs(P) intensifiers. The other two intensifier voltages
-        for photocathode and phosphor screen are fixed. 
+        for photocathode and phosphor screen are fixed.
 
         Note that there is no linear correspondence between the MCP voltage
         and the amount of Gain. The Gain is exponential and typically doubles
         every 50 V.
-        Note: start with maximum Intensifier Voltage, closed aperture 
+        Note: start with maximum Intensifier Voltage, closed aperture
         and very short exposure times at each experimental setup to protect the
         image intensifier.
 
@@ -8148,13 +7926,14 @@ class Sdk:
             wReserved,
             dwIntensifiedPhosphorDecay_us,
             dwReserved1,
-            dwReserved2)
+            dwReserved2,
+        )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
         inp = {}
-        inp.update({'intensified_voltage': intensified_voltage})
-        inp.update({'intensified_phosphor_decay_us': intensified_phosphor_decay_us})
+        inp.update({"intensified_voltage": intensified_voltage})
+        inp.update({"intensified_phosphor_decay_us": intensified_phosphor_decay_us})
 
         logger.info("[{:5.3f} s] [sdk] {}: {}".format(duration, sys._getframe().f_code.co_name, error_msg))
 
@@ -8177,16 +7956,13 @@ class Sdk:
         wReserved = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_GetIntensifiedLoopCount(
-            self.camera_handle,
-            wIntensifiedLoopCount,
-            wReserved)
+        error = self.SC2_Cam.PCO_GetIntensifiedLoopCount(self.camera_handle, wIntensifiedLoopCount, wReserved)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
         ret = {}
         if error == 0:
-            ret.update({'loop count': wIntensifiedLoopCount.value})
+            ret.update({"loop count": wIntensifiedLoopCount.value})
 
         logger.info("[{:5.3f} s] [sdk] {}: {}".format(duration, sys._getframe().f_code.co_name, error_msg))
 
@@ -8211,15 +7987,12 @@ class Sdk:
         wReserved = C.c_uint16()
 
         time_start = time.perf_counter()
-        error = self.SC2_Cam.PCO_SetIntensifiedLoopCount(
-            self.camera_handle,
-            wIntensifiedLoopCount,
-            wReserved)
+        error = self.SC2_Cam.PCO_SetIntensifiedLoopCount(self.camera_handle, wIntensifiedLoopCount, wReserved)
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 
         inp = {}
-        inp.update({'loop_count': loop_count})
+        inp.update({"loop_count": loop_count})
 
         logger.info("[{:5.3f} s] [sdk] {}: {}".format(duration, sys._getframe().f_code.co_name, error_msg))
 
@@ -8246,9 +8019,10 @@ class Sdk:
 
         time_start = time.perf_counter()
 
-        if sys.platform.startswith('win32'):
+        if sys.platform.startswith("win32"):
             error = self.SC2_Cam.PCO_GetVersionInfoSC2_Cam(
-                pszName, iNameLength, pszPath, iPathLength, iMajor, iMinor, iBuild)
+                pszName, iNameLength, pszPath, iPathLength, iMajor, iMinor, iBuild
+            )
         duration = time.perf_counter() - time_start
         error_msg = self.get_error_text(error)
 

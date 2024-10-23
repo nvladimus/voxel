@@ -1,5 +1,7 @@
 from abc import abstractmethod
+
 from ..base import VoxelDevice
+
 
 class BaseFlipMount(VoxelDevice):
     def __init__(self, id: str):
@@ -19,7 +21,7 @@ class BaseFlipMount(VoxelDevice):
 
     @abstractmethod
     def toggle(self):
-        """Toggle the flip mount position """
+        """Toggle the flip mount position"""
         pass
 
     @abstractmethod

@@ -1,5 +1,6 @@
 import inspect
 
+
 class BaseAOTF:
 
     def enable_all(self):

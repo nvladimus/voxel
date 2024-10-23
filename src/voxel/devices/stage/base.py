@@ -22,13 +22,18 @@ class BaseStage:
     def setup_step_shoot_scan(self, step_size_um: float):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
-    
-    def setup_stage_scan(self, fast_axis_start_position: float,
-                         slow_axis_start_position: float,
-                         slow_axis_stop_position: float,
-                         frame_count: int, frame_interval_um: float,
-                         strip_count: int, pattern: str,
-                         retrace_speed_percent: int):
+
+    def setup_stage_scan(
+        self,
+        fast_axis_start_position: float,
+        slow_axis_start_position: float,
+        slow_axis_stop_position: float,
+        frame_count: int,
+        frame_interval_um: float,
+        strip_count: int,
+        pattern: str,
+        retrace_speed_percent: int,
+    ):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 

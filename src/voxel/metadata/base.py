@@ -1,4 +1,3 @@
-
 class BaseMetadata:
 
     @property

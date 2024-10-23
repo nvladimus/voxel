@@ -1,14 +1,16 @@
 import logging
+
 import acquire
-from voxel.devices.camera.base import BaseCamera
 from acquire import DeviceKind, SampleType
 from acquire.acquire import Trigger
+
+from voxel.devices.camera.base import BaseCamera
 
 # constants for VP-151MX camera
 
 MIN_BUFFER_SIZE = 1
 MAX_BUFFER_SIZE = 8
-MIN_WIDTH_PX = 64    
+MIN_WIDTH_PX = 64
 MAX_WIDTH_PX = 14192
 DIVISIBLE_WIDTH_PX = 16
 MIN_HEIGHT_PX = 2
@@ -18,41 +20,36 @@ MIN_EXPOSURE_TIME_MS = 0.001
 MAX_EXPOSURE_TIME_MS = 6e4
 
 PIXEL_TYPES = {
-    "mono8":  SampleType.U8,
+    "mono8": SampleType.U8,
     "mono10": SampleType.U10,
     "mono12": SampleType.U12,
     "mono14": SampleType.U14,
-    "mono16": SampleType.U16
-    }
+    "mono16": SampleType.U16,
+}
 
-LINE_INTERVALS_US = {
-    "mono8":  15.00,
-    "mono10": 15.00,
-    "mono12": 15.00,
-    "mono14": 20.21,
-    "mono16": 45.44
-    }
+LINE_INTERVALS_US = {"mono8": 15.00, "mono10": 15.00, "mono12": 15.00, "mono14": 20.21, "mono16": 45.44}
 
 TRIGGERS = {
-    "modes":{
-    "on":  True,
-    "off": False,
+    "modes": {
+        "on": True,
+        "off": False,
     },
     "sources": {
-    "internal":  None,
-    "external": 0,
+        "internal": None,
+        "external": 0,
     },
     "polarity": {
-    "rising":  "Rising",
-    "falling": "Falling",
-    }
+        "rising": "Rising",
+        "falling": "Falling",
+    },
 }
+
 
 class Camera(BaseCamera):
 
     def __init__(self, camera_cfg, runtime: acquire.Runtime()):
         """Connect to hardware.
-        
+
         :param camera_cfg: cfg for camera.
         :param runtime: ACQUIRE runtime. must be passed into camera and filewriting class.
         """
@@ -60,7 +57,7 @@ class Camera(BaseCamera):
         # TODO: how to handle multiple cameras?
         # We should pass in directly a "camera cfg, i.e. cfg["camera0"] or cfg["camera1"]"
         self.camera_cfg = camera_cfg
-        self.camera_id = camera_cfg['ID']
+        self.camera_id = camera_cfg["ID"]
         # instantiate acquire runtime
         self.runtime = runtime
         # instantiate acquire device manager
@@ -74,31 +71,36 @@ class Camera(BaseCamera):
     @property
     def exposure_time_ms(self):
         # Note: convert from ms to us units
-        return self.p.video[0].camera.settings.exposure_time_us*1e3
+        return self.p.video[0].camera.settings.exposure_time_us * 1e3
 
     @exposure_time_ms.setter
     def exposure_time_ms(self, exposure_time_ms: float):
 
-        if exposure_time_ms < MIN_EXPOSURE_TIME_MS or \
-           exposure_time_ms > MAX_EXPOSURE_TIME_MS:
-            self.log.error(f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
-                             and <{MAX_EXPOSURE_TIME_MS} ms")
-            raise ValueError(f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
-                             and <{MAX_EXPOSURE_TIME_MS} ms")
+        if exposure_time_ms < MIN_EXPOSURE_TIME_MS or exposure_time_ms > MAX_EXPOSURE_TIME_MS:
+            self.log.error(
+                f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
+                             and <{MAX_EXPOSURE_TIME_MS} ms"
+            )
+            raise ValueError(
+                f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
+                             and <{MAX_EXPOSURE_TIME_MS} ms"
+            )
 
         # Note: round ms to nearest us
         self.p.video[0].camera.settings.exposure_time_us = round(exposure_time_ms * 1e3, 1)
         self.p = self.runtime.set_configuration(self.p)
-        self.camera_cfg['timing']['exposure_time_ms'] = exposure_time_ms
+        self.camera_cfg["timing"]["exposure_time_ms"] = exposure_time_ms
 
         self.log.info(f"exposure time set to: {exposure_time_ms} ms")
 
     @property
     def roi(self):
-        return {'width_px': self.p.video[0].camera.settings.shape[0],
-                'height_px': self.p.video[0].camera.settings.shape[1],
-                'width_offset_px': self.p.video[0].camera.settings.offset[0],
-                'height_offest_px': self.p.video[0].camera.settings.offset[1]}
+        return {
+            "width_px": self.p.video[0].camera.settings.shape[0],
+            "height_px": self.p.video[0].camera.settings.shape[1],
+            "width_offset_px": self.p.video[0].camera.settings.offset[0],
+            "height_offest_px": self.p.video[0].camera.settings.offset[1],
+        }
 
     @roi.setter
     def roi(self, height_px: int, width_px: int):
@@ -106,44 +108,50 @@ class Camera(BaseCamera):
         sensor_height_px = MAX_HEIGHT_PX
         sensor_width_px = MAX_WIDTH_PX
 
-        if height_px < MIN_WIDTH_PX or \
-           (height_px % DIVISIBLE_HEIGHT_PX) != 0 or \
-           height_px > MAX_HEIGHT_PX:
-            self.log.error(f"Height must be >{MIN_HEIGHT_PX} px, \
+        if height_px < MIN_WIDTH_PX or (height_px % DIVISIBLE_HEIGHT_PX) != 0 or height_px > MAX_HEIGHT_PX:
+            self.log.error(
+                f"Height must be >{MIN_HEIGHT_PX} px, \
                              <{MAX_HEIGHT_PX} px, \
-                             and a multiple of {DIVISIBLE_HEIGHT_PX} px!")
-            raise ValueError((f"Height must be >{MIN_HEIGHT_PX} px, \
+                             and a multiple of {DIVISIBLE_HEIGHT_PX} px!"
+            )
+            raise ValueError(
+                (
+                    f"Height must be >{MIN_HEIGHT_PX} px, \
                              <{MAX_HEIGHT_PX} px, \
-                             and a multiple of {DIVISIBLE_HEIGHT_PX} px!"))
+                             and a multiple of {DIVISIBLE_HEIGHT_PX} px!"
+                )
+            )
 
-        if width_px < MIN_WIDTH_PX or \
-           (width_px % DIVISIBLE_WIDTH_PX) != 0 or \
-           width_px > MAX_WIDTH_PX:
-            self.log.error(f"Width must be >{MIN_WIDTH_PX} px, \
+        if width_px < MIN_WIDTH_PX or (width_px % DIVISIBLE_WIDTH_PX) != 0 or width_px > MAX_WIDTH_PX:
+            self.log.error(
+                f"Width must be >{MIN_WIDTH_PX} px, \
                              <{MAX_WIDTH_PX}, \
-                            and a multiple of {DIVISIBLE_WIDTH_PX} px!")
-            raise ValueError(f"Width must be >{MIN_WIDTH_PX} px, \
+                            and a multiple of {DIVISIBLE_WIDTH_PX} px!"
+            )
+            raise ValueError(
+                f"Width must be >{MIN_WIDTH_PX} px, \
                              <{MAX_WIDTH_PX}, \
-                            and a multiple of {DIVISIBLE_WIDTH_PX} px!")
+                            and a multiple of {DIVISIBLE_WIDTH_PX} px!"
+            )
 
         self.p.video[0].camera.settings.offset[0] = 0
         self.p = self.runtime.set_configuration(self.p)
         self.p.video[0].camera.settings.shape[0] = width_px
-        centered_width_offset_px = round((sensor_width_px/2 - width_px/2))
+        centered_width_offset_px = round((sensor_width_px / 2 - width_px / 2))
         self.p.video[0].camera.settings.offset[0] = centered_width_offset_px
         self.p = self.runtime.set_configuration(self.p)
 
         self.p.video[0].camera.settings.offset[1] = 0
         self.p = self.runtime.set_configuration(self.p)
         self.p.video[0].camera.settings.shape[1] = height_px
-        centered_height_offset_px = round((sensor_height_px/2 - height_px/2))
+        centered_height_offset_px = round((sensor_height_px / 2 - height_px / 2))
         self.p.video[0].camera.settings.offset[1] = centered_height_offset_px
         self.p = self.runtime.set_configuration(self.p)
 
-        self.camera_cfg['region of interest']['width_px'] = width_px
-        self.camera_cfg['region of interest']['height_px'] = height_px
-        self.camera_cfg['region of interest']['width_offset_px'] = centered_width_offset_px
-        self.camera_cfg['region of interest']['height_offset_px'] = centered_height_offset_px
+        self.camera_cfg["region of interest"]["width_px"] = width_px
+        self.camera_cfg["region of interest"]["height_px"] = height_px
+        self.camera_cfg["region of interest"]["width_offset_px"] = centered_width_offset_px
+        self.camera_cfg["region of interest"]["height_offset_px"] = centered_height_offset_px
 
         self.log.info(f"roi set to: {width_px} x {height_px} [width x height]")
         self.log.info(f"roi offset set to: {centered_offset_x_px} x {centered_offset_y_px} [width x height]")
@@ -160,13 +168,13 @@ class Camera(BaseCamera):
         valid = list(PIXEL_TYPES.keys())
         if pixel_type_bits not in valid:
             raise ValueError("pixel_type_bits must be one of %r." % valid)
-        
+
         # Note: for the Vieworks VP-151MX camera, the pixel type also controls line interval
         self.p.video[0].camera.settings.pixel_type = PIXEL_TYPES[pixel_type_bits]
         self.p = self.runtime.set_configuration(self.p)
-        self.camera_cfg['timing']['line_interval_us'] = LINE_INTERVALS_US[pixel_type_bits]
+        self.camera_cfg["timing"]["line_interval_us"] = LINE_INTERVALS_US[pixel_type_bits]
 
-        self.camera_cfg['image format']['bit_depth'] = pixel_type_bits
+        self.camera_cfg["image format"]["bit_depth"] = pixel_type_bits
 
         self.log.info(f"pixel type set_to: {pixel_type_bits}")
 
@@ -181,7 +189,7 @@ class Camera(BaseCamera):
 
     @property
     def line_interval_us(self):
-        return self.camera_cfg['timing']['line_interval_us']
+        return self.camera_cfg["timing"]["line_interval_us"]
 
     @line_interval_us.setter
     def line_interval_us(self):
@@ -191,7 +199,7 @@ class Camera(BaseCamera):
     @property
     def readout_mode(self):
         self.log.warning(f"readout mode cannot be set for the VP-151MX camera!")
-        #return self.camera_cfg['readout']['mode'] = None
+        # return self.camera_cfg['readout']['mode'] = None
 
     @readout_mode.setter
     def readout_mode(self):
@@ -207,43 +215,43 @@ class Camera(BaseCamera):
             mode = "Off"
             source = "Internal"
 
-        return {"mode": mode,
-                "source": source,
-                "polarity": self.p.video[0].camera.settings.input_triggers.frame_start.edge}
+        return {
+            "mode": mode,
+            "source": source,
+            "polarity": self.p.video[0].camera.settings.input_triggers.frame_start.edge,
+        }
 
     @trigger.setter
     def trigger(self, trigger: dict):
 
-        mode = trigger['mode']
-        source = trigger['source']
-        polarity = trigger['polarity']
+        mode = trigger["mode"]
+        source = trigger["source"]
+        polarity = trigger["polarity"]
 
-        valid_mode = list(TRIGGERS['modes'].keys())
+        valid_mode = list(TRIGGERS["modes"].keys())
         if mode not in valid_mode:
             raise ValueError("mode must be one of %r." % valid_mode)
-        valid_source = list(TRIGGERS['sources'].keys())
+        valid_source = list(TRIGGERS["sources"].keys())
         if source not in valid_source:
             raise ValueError("source must be one of %r." % valid_source)
-        valid_polarity = list(TRIGGERS['polarity'].keys())
+        valid_polarity = list(TRIGGERS["polarity"].keys())
         if polarity not in valid_polarity:
             raise ValueError("polarity must be one of %r." % valid_polarity)
         # Note: Setting TriggerMode if it's already correct will throw an error
         if mode == "On":
-            self.p.video[0].camera.settings.input_triggers.frame_start = Trigger(
-                enable=True, line=0, edge=polarity)
+            self.p.video[0].camera.settings.input_triggers.frame_start = Trigger(enable=True, line=0, edge=polarity)
         if mode == "Off":
-            self.p.video[0].camera.settings.input_triggers.frame_start = Trigger(
-                enable=False, line=0, edge=polarity)
+            self.p.video[0].camera.settings.input_triggers.frame_start = Trigger(enable=False, line=0, edge=polarity)
 
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
 
     @property
-    def binning(self): 
+    def binning(self):
         self.log.warning(f"binning is not available on the VP-151MX")
-        return self.camera_cfg['image']['binning']
+        return self.camera_cfg["image"]["binning"]
 
     @binning.setter
-    def binning(self, binning: int): 
+    def binning(self, binning: int):
         self.log.warning(f"binning is not available on the VP-151MX")
         pass
 
@@ -271,7 +279,7 @@ class Camera(BaseCamera):
         # enforce that runtime is updated
         self.log.warning(f"buffer size not used in ACQUIRE!")
         self.p = self.runtime.set_configuration(self.p)
-        
+
     def start(self, frame_count: int, live: bool = False):
         if live:
             # TODO: check if this is correct for continous streaming?

@@ -1,26 +1,29 @@
 import logging
 import time
-from voxel.devices.utils.singleton import Singleton
+
 from tigerasi.tiger_controller import TigerController
+
 from voxel.devices.filterwheel.base import BaseFilterWheel
+from voxel.devices.utils.singleton import Singleton
 
 # constants for the ASI filter wheel
 
-SWITCH_TIME_S = 0.1 # estimated timing
+SWITCH_TIME_S = 0.1  # estimated timing
 
-#TODO: I can't get this working?
+
+# TODO: I can't get this working?
 # singleton wrapper around TigerController
 class TigerControllerSingleton(TigerController, metaclass=Singleton):
     def __init__(self, com_port):
         super(TigerControllerSingleton, self).__init__(com_port)
-        
-class FilterWheel(BaseFilterWheel):
 
+
+class FilterWheel(BaseFilterWheel):
     """Filter Wheel Abstraction from an ASI Tiger Controller."""
 
     def __init__(self, tigerbox: TigerController, id, filters: dict):
         """Connect to hardware.
-      
+
         :param filterwheel_cfg: cfg for filterwheel
         :param tigerbox: TigerController instance.
         """
@@ -42,7 +45,7 @@ class FilterWheel(BaseFilterWheel):
         """Set the filterwheel index."""
         self._filter = filter_name
         cmd_str = f"MP {self.filters[filter_name]}\r\n"
-        self.log.info(f'setting filter to {filter_name}')
+        self.log.info(f"setting filter to {filter_name}")
         # Note: the filter wheel has slightly different reply line termination.
         self.tigerbox.send(f"FW {self.id}\r\n", read_until=f"\n\r{self.id}>")
         self.tigerbox.send(cmd_str, read_until=f"\n\r{self.id}>")

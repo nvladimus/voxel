@@ -1,5 +1,6 @@
 import inspect
 
+
 class BaseFilter:
 
     def enable(self):

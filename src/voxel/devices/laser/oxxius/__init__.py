@@ -6,7 +6,4 @@ Oxxius: https://www.oxxius.com/
 from .oxxius_lbx import OxxiusLBXLaser
 from .oxxius_lcx import OxxiusLCXLaser
 
-__all__ = [
-    'OxxiusLBXLaser',
-    'OxxiusLCXLaser'
-]
+__all__ = ["OxxiusLBXLaser", "OxxiusLCXLaser"]

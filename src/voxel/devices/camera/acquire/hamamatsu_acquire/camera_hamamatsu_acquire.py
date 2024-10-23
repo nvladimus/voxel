@@ -1,5 +1,7 @@
 import logging
-from acquire import DeviceKind, SampleType, Trigger, Direction, Runtime
+
+from acquire import DeviceKind, Direction, Runtime, SampleType, Trigger
+
 from voxel.devices.camera.base import BaseCamera
 
 # constants for Hamamatsu C15440-20UP camera
@@ -15,7 +17,7 @@ DIVISIBLE_HEIGHT_PX = 1
 MIN_EXPOSURE_TIME_MS = 0.001
 MAX_EXPOSURE_TIME_MS = 6e4
 MIN_LINE_INTERVALS_US = 0
-MAX_LINE_INTERVALS_US = 100   #TODO: I don't know what these values are
+MAX_LINE_INTERVALS_US = 100  # TODO: I don't know what these values are
 
 
 PIXEL_TYPES = {
@@ -23,22 +25,22 @@ PIXEL_TYPES = {
     "Mono10": SampleType.U10,
     "Mono12": SampleType.U12,
     "Mono14": SampleType.U14,
-    "Mono16": SampleType.U16
+    "Mono16": SampleType.U16,
 }
 
 TRIGGERS = {
-    "modes":{
-    "on":  True,
-    "off": False,
+    "modes": {
+        "on": True,
+        "off": False,
     },
     "sources": {
-    "internal":  None,
-    "external": 0,
+        "internal": None,
+        "external": 0,
     },
     "polarity": {
-    "rising":  "Rising",
-    "falling": "Falling",
-    }
+        "rising": "Rising",
+        "falling": "Falling",
+    },
 }
 
 
@@ -77,12 +79,15 @@ class CameraHamamatsuAcquire(BaseCamera):
     @exposure_time_ms.setter
     def exposure_time_ms(self, exposure_time_ms: float):
 
-        if exposure_time_ms < MIN_EXPOSURE_TIME_MS or \
-                exposure_time_ms > MAX_EXPOSURE_TIME_MS:
-            self.log.error(f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
-                             and <{MAX_EXPOSURE_TIME_MS} ms")
-            raise ValueError(f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
-                             and <{MAX_EXPOSURE_TIME_MS} ms")
+        if exposure_time_ms < MIN_EXPOSURE_TIME_MS or exposure_time_ms > MAX_EXPOSURE_TIME_MS:
+            self.log.error(
+                f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
+                             and <{MAX_EXPOSURE_TIME_MS} ms"
+            )
+            raise ValueError(
+                f"exposure time must be >{MIN_EXPOSURE_TIME_MS} ms \
+                             and <{MAX_EXPOSURE_TIME_MS} ms"
+            )
 
         # Note: round ms to nearest us
         self.p.video[0].camera.settings.exposure_time_us = round(exposure_time_ms * 1e3, 1)
@@ -90,36 +95,44 @@ class CameraHamamatsuAcquire(BaseCamera):
 
     @property
     def roi(self):
-        return {'width_px': self.p.video[0].camera.settings.shape[0],
-                'height_px': self.p.video[0].camera.settings.shape[1],
-                'width_offset_px': self.p.video[0].camera.settings.offset[0],
-                'height_offest_px': self.p.video[0].camera.settings.offset[1]}
+        return {
+            "width_px": self.p.video[0].camera.settings.shape[0],
+            "height_px": self.p.video[0].camera.settings.shape[1],
+            "width_offset_px": self.p.video[0].camera.settings.offset[0],
+            "height_offest_px": self.p.video[0].camera.settings.offset[1],
+        }
 
     @roi.setter
-    def roi(self, value : (int, int)):
+    def roi(self, value: (int, int)):
 
         (width_px, height_px) = value
         sensor_height_px = MAX_HEIGHT_PX
         sensor_width_px = MAX_WIDTH_PX
-        if height_px < MIN_WIDTH_PX or \
-                (height_px % DIVISIBLE_HEIGHT_PX) != 0 or \
-                height_px > MAX_HEIGHT_PX:
-            self.log.error(f"Height must be >{MIN_HEIGHT_PX} px, \
+        if height_px < MIN_WIDTH_PX or (height_px % DIVISIBLE_HEIGHT_PX) != 0 or height_px > MAX_HEIGHT_PX:
+            self.log.error(
+                f"Height must be >{MIN_HEIGHT_PX} px, \
                              <{MAX_HEIGHT_PX} px, \
-                             and a multiple of {DIVISIBLE_HEIGHT_PX} px!")
-            raise ValueError((f"Height must be >{MIN_HEIGHT_PX} px, \
+                             and a multiple of {DIVISIBLE_HEIGHT_PX} px!"
+            )
+            raise ValueError(
+                (
+                    f"Height must be >{MIN_HEIGHT_PX} px, \
                              <{MAX_HEIGHT_PX} px, \
-                             and a multiple of {DIVISIBLE_HEIGHT_PX} px!"))
+                             and a multiple of {DIVISIBLE_HEIGHT_PX} px!"
+                )
+            )
 
-        if width_px < MIN_WIDTH_PX or \
-                (width_px % DIVISIBLE_WIDTH_PX) != 0 or \
-                width_px > MAX_WIDTH_PX:
-            self.log.error(f"Width must be >{MIN_WIDTH_PX} px, \
+        if width_px < MIN_WIDTH_PX or (width_px % DIVISIBLE_WIDTH_PX) != 0 or width_px > MAX_WIDTH_PX:
+            self.log.error(
+                f"Width must be >{MIN_WIDTH_PX} px, \
                              <{MAX_WIDTH_PX}, \
-                            and a multiple of {DIVISIBLE_WIDTH_PX} px!")
-            raise ValueError(f"Width must be >{MIN_WIDTH_PX} px, \
+                            and a multiple of {DIVISIBLE_WIDTH_PX} px!"
+            )
+            raise ValueError(
+                f"Width must be >{MIN_WIDTH_PX} px, \
                              <{MAX_WIDTH_PX}, \
-                            and a multiple of {DIVISIBLE_WIDTH_PX} px!")
+                            and a multiple of {DIVISIBLE_WIDTH_PX} px!"
+            )
 
         # Set shape first so with offset it won't exceed chip size
         self.p.video[0].camera.settings.shape = (width_px, height_px)
@@ -163,11 +176,14 @@ class CameraHamamatsuAcquire(BaseCamera):
         return self.p.video[0].camera.settings.line_interval_us
 
     @line_interval_us.setter
-    def line_interval_us(self, time:float):
+    def line_interval_us(self, time: float):
         """Set line interval of the camera"""
-        if MIN_LINE_INTERVALS_US>time>MAX_LINE_INTERVALS_US:
-            reason = f"exceeds maximum line interval time {MAX_LINE_INTERVALS_US}us" if time > MAX_LINE_INTERVALS_US\
+        if MIN_LINE_INTERVALS_US > time > MAX_LINE_INTERVALS_US:
+            reason = (
+                f"exceeds maximum line interval time {MAX_LINE_INTERVALS_US}us"
+                if time > MAX_LINE_INTERVALS_US
                 else f"is below minimum line interval time {MIN_LINE_INTERVALS_US}us"
+            )
             self.log.error(f"Cannot set camera to {time}ul because it {reason}")
             return
         self.p.video[0].camera.settings.line_interval_us = time
@@ -187,14 +203,14 @@ class CameraHamamatsuAcquire(BaseCamera):
         return self.p.video[0].camera.settings.readout_direction
 
     @readout_direction.setter
-    def readout_direction(self, direction:str):
-        if direction.upper() != 'FOWARD' or direction.upper() != 'BACKWARD':
-            self.log.warning(f'{direction} does not correlate to readout_direction. '
-                             f'Set to FOWARD or BACKWARD')
+    def readout_direction(self, direction: str):
+        if direction.upper() != "FOWARD" or direction.upper() != "BACKWARD":
+            self.log.warning(f"{direction} does not correlate to readout_direction. " f"Set to FOWARD or BACKWARD")
             return
-        scan_direction = Direction.Forward if direction == 'FORWARD' else Direction.Backward
+        scan_direction = Direction.Forward if direction == "FORWARD" else Direction.Backward
         self.p.video[0].camera.settings.readout_direction = scan_direction
         self.runtime.set_configuration(self.p)
+
     @property
     def trigger(self):
         if self.p.video[0].camera.settings.input_triggers.frame_start.enable == True:
@@ -204,33 +220,33 @@ class CameraHamamatsuAcquire(BaseCamera):
             mode = "Off"
             source = "Internal"
 
-        return {"mode": mode,
-                "source": source,
-                "polarity": self.p.video[0].camera.settings.input_triggers.frame_start.edge}
+        return {
+            "mode": mode,
+            "source": source,
+            "polarity": self.p.video[0].camera.settings.input_triggers.frame_start.edge,
+        }
 
     @trigger.setter
     def trigger(self, trigger: dict):
 
-        mode = trigger['mode']
-        source = trigger['source']
-        polarity = trigger['polarity']
+        mode = trigger["mode"]
+        source = trigger["source"]
+        polarity = trigger["polarity"]
 
-        valid_mode = list(TRIGGERS['modes'].keys())
+        valid_mode = list(TRIGGERS["modes"].keys())
         if mode not in valid_mode:
             raise ValueError("mode must be one of %r." % valid_mode)
-        valid_source = list(TRIGGERS['sources'].keys())
+        valid_source = list(TRIGGERS["sources"].keys())
         if source not in valid_source:
             raise ValueError("source must be one of %r." % valid_source)
-        valid_polarity = list(TRIGGERS['polarity'].keys())
+        valid_polarity = list(TRIGGERS["polarity"].keys())
         if polarity not in valid_polarity:
             raise ValueError("polarity must be one of %r." % valid_polarity)
         # Note: Setting TriggerMode if it's already correct will throw an error
         if mode == "On":
-            self.p.video[0].camera.settings.input_triggers.frame_start = Trigger(
-                enable=True, line=0, edge=polarity)
+            self.p.video[0].camera.settings.input_triggers.frame_start = Trigger(enable=True, line=0, edge=polarity)
         if mode == "Off":
-            self.p.video[0].camera.settings.input_triggers.frame_start = Trigger(
-                enable=False, line=0, edge=polarity)
+            self.p.video[0].camera.settings.input_triggers.frame_start = Trigger(enable=False, line=0, edge=polarity)
 
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
 
@@ -240,7 +256,7 @@ class CameraHamamatsuAcquire(BaseCamera):
 
     @binning.setter
     def binning(self, binning: int):
-        #TODO: precheck value before setting
+        # TODO: precheck value before setting
         self.p.video[0].camera.settings.binning = binning
         self.runtime.set_configuration(self.p)
 
@@ -286,7 +302,7 @@ class CameraHamamatsuAcquire(BaseCamera):
             return next(self.runtime.get_available_data(0).frames()).data().squeeze().copy()
 
         else:
-            self.log.info('No frame in buffer')
+            self.log.info("No frame in buffer")
 
     def grab_frame_count_px(self):
         """Grab frame count off camera. Returns none if no frames taken"""

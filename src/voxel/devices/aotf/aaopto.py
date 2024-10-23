@@ -1,7 +1,9 @@
 import logging
-from voxel.devices.utils.singleton import Singleton
+
 from aaopto_aotf import MPDS
 from aaopto_aotf.device_codes import *
+
+from voxel.devices.utils.singleton import Singleton
 
 BLANKING_MODES = {
     "external": BlankingMode.EXTERNAL,
@@ -13,17 +15,19 @@ INPUT_MODES = {
     "internal": InputMode.INTERNAL,
 }
 
+
 # singleton wrapper around MPDS
 class MPDSSingleton(MPDS, metaclass=Singleton):
     def __init__(self, com_port):
         super(MPDSSingleton, self).__init__(com_port)
 
+
 class AOTF(BaseAOTF):
 
     def __init__(self, port: str):
- 
+
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.aotf = MPDSSingleton(com_port = port)
+        self.aotf = MPDSSingleton(com_port=port)
         self.id = self.aotf.get_product_id()
 
     # def enable_all(self):

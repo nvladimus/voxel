@@ -1,14 +1,16 @@
-from voxel.devices.joystick.base import BaseJoystick
-from tigerasi.tiger_controller import TigerController
-from tigerasi.device_codes import *
 import logging
+
+from tigerasi.device_codes import *
+from tigerasi.tiger_controller import TigerController
+
+from voxel.devices.joystick.base import BaseJoystick
 
 JOYSTICK_AXES = {
     "joystick_x": JoystickInput.JOYSTICK_X,
     "joystick_y": JoystickInput.JOYSTICK_Y,
     "wheel_z": JoystickInput.Z_WHEEL,
     "wheel_f": JoystickInput.F_WHEEL,
-    "None": JoystickInput.NONE
+    "None": JoystickInput.NONE,
 }
 
 POLARITIES = {
@@ -16,21 +18,27 @@ POLARITIES = {
     "default": JoystickPolarity.DEFAULT,
 }
 
+
 class Joystick(BaseJoystick):
 
-    def __init__(self, tigerbox: TigerController, axis_mapping:dict, joystick_mapping: dict = None):
+    def __init__(self, tigerbox: TigerController, axis_mapping: dict, joystick_mapping: dict = None):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
-
         self.tigerbox = tigerbox
-        self._joystick_mapping = joystick_mapping if joystick_mapping is not None else \
-            {"joystick_x": {"instrument_axis": "x", "polarity": "default"},
-             "joystick_y": {"instrument_axis": "y", "polarity": "default"},
-             "wheel_z": {"instrument_axis": "z", "polarity": "default"},
-             "wheel_f": {"instrument_axis": "w", "polarity": "default"},
-             }
+        self._joystick_mapping = (
+            joystick_mapping
+            if joystick_mapping is not None
+            else {
+                "joystick_x": {"instrument_axis": "x", "polarity": "default"},
+                "joystick_y": {"instrument_axis": "y", "polarity": "default"},
+                "wheel_z": {"instrument_axis": "z", "polarity": "default"},
+                "wheel_f": {"instrument_axis": "w", "polarity": "default"},
+            }
+        )
         self.axes_mapping = axis_mapping
-        self._stage_axes = {v:k for k,v in axis_mapping.items() if k.upper() in self.tigerbox.axes and v.upper() in self.tigerbox.axes}
+        self._stage_axes = {
+            v: k for k, v in axis_mapping.items() if k.upper() in self.tigerbox.axes and v.upper() in self.tigerbox.axes
+        }
         for axis in self.tigerbox.axes:
             if axis.lower() not in self._stage_axes.keys():
                 self._stage_axes[axis.lower()] = axis.lower()
@@ -49,7 +57,8 @@ class Joystick(BaseJoystick):
             # check that the axes are valid
             if hardware_axis not in self._stage_axes.keys():
                 raise ValueError(
-                    f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis.")
+                    f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis."
+                )
 
     @property
     def stage_axes(self):
@@ -76,5 +85,6 @@ class Joystick(BaseJoystick):
             # check that the axes are valid
             if hardware_axis not in self._stage_axes:
                 raise ValueError(
-                    f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis.")
+                    f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis."
+                )
         self._joystick_mapping = joystick_mapping

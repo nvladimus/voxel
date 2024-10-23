@@ -10,9 +10,9 @@ from time import perf_counter, sleep
 
 import numpy as np
 
+from voxel.descriptors.deliminated_property import DeliminatedProperty
 from voxel.writers.base import BaseWriter
 from voxel.writers.bdv_writer import npy2bdv
-from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 CHUNK_COUNT_PX = 64
 DIVISIBLE_FRAME_COUNT_PX = 64
@@ -95,10 +95,7 @@ class BDVWriter(BaseWriter):
 
         self.log.info(f"setting frame count to: {frame_count_px} [px]")
         if frame_count_px % DIVISIBLE_FRAME_COUNT_PX != 0:
-            frame_count_px = (
-                    ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX)
-                    * DIVISIBLE_FRAME_COUNT_PX
-            )
+            frame_count_px = ceil(frame_count_px / DIVISIBLE_FRAME_COUNT_PX) * DIVISIBLE_FRAME_COUNT_PX
             self.log.info(f"adjusting frame count to: {frame_count_px} [px]")
         self._frame_count_px_px = frame_count_px
 
@@ -143,11 +140,7 @@ class BDVWriter(BaseWriter):
         :rtype: str
         """
 
-        return next(
-            key
-            for key, value in COMPRESSION_TYPES.items()
-            if value == self._compression
-        )
+        return next(key for key, value in COMPRESSION_TYPES.items() if value == self._compression)
 
     @compression.setter
     def compression(self, compression: str):
@@ -208,9 +201,7 @@ class BDVWriter(BaseWriter):
             "z": CHUNK_COUNT_PX,
         }
         shm_shape = [chunk_shape_map[x] for x in chunk_dim_order]
-        shm_nbytes = int(
-            np.prod(shm_shape, dtype=np.int64) * np.dtype(self._data_type).itemsize
-        )
+        shm_nbytes = int(np.prod(shm_shape, dtype=np.int64) * np.dtype(self._data_type).itemsize)
 
         # Check if tile position already exists
         tile_position = (self._x_position_mm, self._y_position_mm, self._z_position_mm)
@@ -229,9 +220,7 @@ class BDVWriter(BaseWriter):
             self._row_count_px,
             self._column_count_px,
         )
-        self.dataset_dict[(self.current_tile_num, self.current_channel_num)] = (
-            tile_dimensions
-        )
+        self.dataset_dict[(self.current_tile_num, self.current_channel_num)] = tile_dimensions
 
         # Add voxel size to dictionary with key (tile#, channel#)
         # effective voxel size in x direction
@@ -241,9 +230,7 @@ class BDVWriter(BaseWriter):
         # effective voxel size in z direction (scan)
         size_z = self._z_voxel_size_um
         voxel_sizes = (size_z, size_y, size_x)
-        self.voxel_size_dict[(self.current_tile_num, self.current_channel_num)] = (
-            voxel_sizes
-        )
+        self.voxel_size_dict[(self.current_tile_num, self.current_channel_num)] = voxel_sizes
 
         # Create affine matrix dictionary with key (tile#, channel#)
         # normalized scaling in x
@@ -261,9 +248,7 @@ class BDVWriter(BaseWriter):
         # shift tile in y, unit pixels
         shift_z = scale_z * (self._z_position_mm * 1000 / size_z)
 
-        affine_deskew = np.array(
-            ([1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, shear, 1.0, 0.0])
-        )
+        affine_deskew = np.array(([1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, shear, 1.0, 0.0]))
 
         affine_scale = np.array(
             (
@@ -281,15 +266,9 @@ class BDVWriter(BaseWriter):
             )
         )
 
-        self.affine_deskew_dict[(self.current_tile_num, self.current_channel_num)] = (
-            affine_deskew
-        )
-        self.affine_scale_dict[(self.current_tile_num, self.current_channel_num)] = (
-            affine_scale
-        )
-        self.affine_shift_dict[(self.current_tile_num, self.current_channel_num)] = (
-            affine_shift
-        )
+        self.affine_deskew_dict[(self.current_tile_num, self.current_channel_num)] = affine_deskew
+        self.affine_scale_dict[(self.current_tile_num, self.current_channel_num)] = affine_scale
+        self.affine_shift_dict[(self.current_tile_num, self.current_channel_num)] = affine_shift
         self._process = Process(
             target=self._run,
             args=(shm_shape, shm_nbytes, self._progress, self._log_queue),
@@ -342,9 +321,7 @@ class BDVWriter(BaseWriter):
             (4, 256, 256),
         )
         # bdv requires input string not Path
-        filepath = str(
-            Path(self._path, self._acquisition_name, self._filename).absolute()
-        )
+        filepath = str(Path(self._path, self._acquisition_name, self._filename).absolute())
         # re-initialize bdv writer for tile/channel list
         # required to dump all datasets in a single bdv file
         bdv_writer = npy2bdv.BdvWriter(
@@ -379,9 +356,7 @@ class BDVWriter(BaseWriter):
         # append all views based to bdv writer
         # this is necessary for bdv writer to have the metadata to write the xml at the end
         # if a view already exists in the bdv file, it will be skipped and not overwritten
-        image_size_z = int(
-            ceil(self._frame_count_px_px / CHUNK_COUNT_PX) * CHUNK_COUNT_PX
-        )
+        image_size_z = int(ceil(self._frame_count_px_px / CHUNK_COUNT_PX) * CHUNK_COUNT_PX)
         for append_tile, append_channel in self.dataset_dict:
             bdv_writer.append_view(
                 stack=None,
@@ -405,8 +380,7 @@ class BDVWriter(BaseWriter):
             shm = SharedMemory(self.shm_name, create=False, size=shm_nbytes)
             frames = np.ndarray(shm_shape, self._data_type, buffer=shm.buf)
             shared_log_queue.put(
-                f"{self._filename}: writing chunk "
-                f"{chunk_num + 1}/{chunk_total} of size {frames.shape}."
+                f"{self._filename}: writing chunk " f"{chunk_num + 1}/{chunk_total} of size {frames.shape}."
             )
             start_time = perf_counter()
             # write substack of data to BDV file at correct z position
@@ -418,18 +392,13 @@ class BDVWriter(BaseWriter):
                 channel=self.current_channel_num,
             )
             frames = None
-            shared_log_queue.put(
-                f"{self._filename}: writing chunk took "
-                f"{perf_counter() - start_time:.2f} [s]"
-            )
+            shared_log_queue.put(f"{self._filename}: writing chunk took " f"{perf_counter() - start_time:.2f} [s]")
             shm.close()
             self.done_reading.set()
             # update shared progress value
             shared_progress.value = (chunk_num + 1) / chunk_total
 
-            shared_log_queue.put(
-                f"{self._filename}: {self._progress.value * 100:.2f} [%] complete."
-            )
+            shared_log_queue.put(f"{self._filename}: {self._progress.value * 100:.2f} [%] complete.")
 
         # wait for file writing to finish.
         while shared_progress.value < 1.0:
@@ -474,10 +443,6 @@ class BDVWriter(BaseWriter):
 
     def delete_files(self):
         filepath = Path(self._path, self._acquisition_name, self._filename).absolute()
-        xmlpath = (
-            Path(self._path, self._acquisition_name, self._filename)
-            .absolute()
-            .replace("h5", "xml")
-        )
+        xmlpath = Path(self._path, self._acquisition_name, self._filename).absolute().replace("h5", "xml")
         os.remove(filepath)
         os.remove(xmlpath)
