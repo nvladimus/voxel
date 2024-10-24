@@ -1,3 +1,4 @@
+import time
 from typing import Self
 
 import numpy as np
@@ -17,7 +18,9 @@ from voxel.core.utils.logging import get_component_logger
 class Daq:
     def __init__(self, name: str) -> None:
         self.name = name
+        self.log = get_component_logger(self)
         self.system = System.local()
+        self.log.info(f"Tasks in system: {self.system.tasks}")
         self.inst = self._connect(name)
         self.used_ports = set()
 
@@ -134,13 +137,20 @@ class DaqAOTask:
         inst_names = self.inst.channels.channel_names
         expected_samples = len(inst_names) * self.timing.samples_per_period
         self.regenerate_waveforms()
-        data = np.concatenate([self.channels[name].wave.data for name in inst_names])
-        if data.size != expected_samples:
-            self.log.warning(f"Only wrote {data.size} samples out of {expected_samples} requested.")
+        # data = np.concatenate([self.channels[name].wave.data for name in inst_names])
+        # data needs to be a 2D array with shape (channels, samples)
+        data = np.array([self.channels[name].wave.data for name in inst_names])
+        self.log.info(f"writing {data.shape} data to {self.inst.name}")
         written_samples = self.inst.write(data)
         if written_samples != expected_samples:
             self.log.warning(f"Only wrote {written_samples} samples out of {expected_samples} requested.")
         return data
+
+    def start(self) -> None:
+        self.inst.start()
+
+    def stop(self) -> None:
+        self.inst.stop()
 
     def release_ports(self) -> None:
         for channel in self.channels.values():
@@ -180,15 +190,29 @@ class DaqAOTask:
 if __name__ == "__main__":
     from pprint import pprint as print
 
+    # channels
+    # test1 -> ao20 (oscilloscope 1)
+    # galvo -> ao0 (oscilloscope 2)
+    # test2 -> ao4 (ad2 1)
+    # clk   -> pf10 (ad2 2)
+
     daq = Daq("Dev1")
-    task = DaqAOTask(name="TestTask1", daq=daq, sampling_rate_hz=1e6, period_ms=100)
-    test_channel = task.add_channel(name="TestChannel", port="ao0", apply_filter=True)
-    test_channel.wave.apply_filter = True
-    print(daq)
+    daq.clean_up()
+    task = DaqAOTask(name="TestTask", daq=daq, sampling_rate_hz=1e6, period_ms=100)
+    test1 = task.add_channel(name="test1-ao20-ch1", port="ao20", apply_filter=True)
+    galvo = task.add_channel(name="galvo-ch2", port="ao0", apply_filter=True)
+    test2 = task.add_channel(name="test2-ad2-1", port="ao4", apply_filter=True)
     print(task)
-    with task:
-        for _, channel in task.channels.items():
-            print(channel.wave)
-            channel.wave.plot()
+
+    task.write()
+    for _, channel in task.channels.items():
+        print(channel.wave)
+        channel.wave.plot()
+    task.start()
+
+    time.sleep(120)
+
+    task.stop()
+    task.close()
 
     daq.clean_up()
