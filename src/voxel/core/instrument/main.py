@@ -9,11 +9,10 @@ from voxel.core.instrument.device.linear_axis import LinearAxisDimension, VoxelL
 from voxel.core.instrument.io.transfer import VoxelFileTransfer
 from voxel.core.instrument.io.writer import VoxelWriter
 from voxel.core.instrument.stage import VoxelStage
+from voxel.core.utils.logging import get_component_logger
 
-from .component import VoxelComponent
 
-
-class VoxelInstrument(VoxelComponent):
+class VoxelInstrument:
 
     def __init__(
         self,
@@ -25,7 +24,8 @@ class VoxelInstrument(VoxelComponent):
         build_settings=None,
         daq: VoxelNIDAQ | None = None,
     ) -> None:
-        super().__init__(name)
+        self.name = name
+        self.log = get_component_logger(self)
         self.build_settings = build_settings
         self.devices = devices
         self.writers = writers

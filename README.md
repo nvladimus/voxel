@@ -86,7 +86,7 @@ list of supported writers and file transfer methods and the
   [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
 - For control of some specific devices, you will need the appropriate SDK
   installed:
-  - [Cameras](./voxel/devices/camera/README.md):
+  - [Cameras]:
     - eGrabber (Windows and Linux)
     - DCAM (Windows only)
   - [Lasers]:

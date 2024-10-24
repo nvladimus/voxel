@@ -95,9 +95,11 @@ def deliminated_property(
     minimum: DynamicDeliminatedNumber = float("-inf"),
     maximum: DynamicDeliminatedNumber = float("inf"),
     step: DynamicDeliminatedNumber | None = None,
-    info: PropertyInfo | None = None,
+    unit: str | None = None,
+    description: str | None = None,
 ) -> Callable[..., DeliminatedProperty]:
     def decorator(func) -> DeliminatedProperty:
+        info = PropertyInfo(unit=unit, description=description)
         return DeliminatedProperty(fget=func, minimum=minimum, maximum=maximum, step=step, info=info)
 
     return decorator

@@ -5,8 +5,8 @@ from matplotlib import pyplot as plt
 import numpy as np
 from scipy import signal
 
-from voxel.core.instrument.component import VoxelComponent
-from voxel.core.utils.descriptors.deliminated_property import deliminated_property
+from voxel.core.utils.descriptors.new import deliminated_property
+from voxel.core.utils.logging import get_component_logger
 
 type Waveform = np.ndarray[float]
 
@@ -21,19 +21,16 @@ class DAQPortType(StrEnum):
 type DAQPortIds = dict[DAQPortType, list[str]]
 
 
-class VoxelDAQ(VoxelComponent):
+class VoxelDAQ:
 
     def __init__(self, name: str) -> None:
-        super().__init__(name)
-        self.tasks: dict[str, "DAQTask"] = {}
+        self.name = name
+        self.log = get_component_logger(self)
+        self.tasks: dict[str, "VoxelDAQTask"] = {}
 
     @property
     @abstractmethod
-    def ports(self) -> DAQPortIds:
-        pass
-
-    @abstractmethod
-    def is_port_valid(self, port_id: str, port_type: DAQPortType) -> bool:
+    def ao_ports(self) -> list[str]:
         pass
 
     @abstractmethod
@@ -41,7 +38,7 @@ class VoxelDAQ(VoxelComponent):
         pass
 
     @abstractmethod
-    def register_task(self, task: "DAQTask") -> None:
+    def register_task(self, task: "VoxelDAQTask") -> None:
         if task.name in self.tasks:
             raise ValueError(f"Task {task.name} already exists.")
 
@@ -61,7 +58,7 @@ class DAQTaskSampleMode(StrEnum):
     FINITE = "finite"
 
 
-class DAQTask(VoxelComponent):
+class VoxelDAQTask:
     """A collection of DAQ ports with shared timing parameters. A task can be started and stopped.
     :param name: The name of the task.
     :param daq: The DAQ device the task is associated with.
@@ -70,7 +67,8 @@ class DAQTask(VoxelComponent):
     """
 
     def __init__(self, name: str, daq: VoxelDAQ, sampling_frequency_hz: float, period_ms: float) -> None:
-        super().__init__(name)
+        self.name = name
+        self.log = get_component_logger(self)
         self.daq = daq
         self._sampling_frequency_hz = sampling_frequency_hz
         self._period_ms = period_ms
@@ -175,7 +173,7 @@ class DAQTask(VoxelComponent):
         return fig
 
 
-class DAQPort(VoxelComponent):
+class DAQPort:
     """
     A DAQ port.
     :param name: The name of the port.
@@ -195,7 +193,7 @@ class DAQPort(VoxelComponent):
     def __init__(
         self,
         name: str,
-        task: DAQTask,
+        task: VoxelDAQTask,
         port_type: DAQPortType,
         port_id: str,
         max_volts: float,
@@ -210,6 +208,7 @@ class DAQPort(VoxelComponent):
         end: float = 0.5,
     ) -> None:
         self.name = name
+        self.log = get_component_logger(self)
         self.task = task
         self.port_type = port_type
         self.port_id = port_id
@@ -240,7 +239,6 @@ class DAQPort(VoxelComponent):
     @deliminated_property(
         minimum=0,
         maximum=lambda self: self._get_max_amplitude(),
-        unit="V",
     )
     def amplitude_volts(self) -> float:
         return self._amplitude_volts
@@ -254,8 +252,7 @@ class DAQPort(VoxelComponent):
 
     @deliminated_property(
         minimum=0,
-        maximum=lambda self: self.timing.sampling_frequency_hz / 2,
-        unit="Hz",
+        maximum=lambda self: self.task.timing.sampling_frequency_hz / 2,
     )
     def cut_off_frequency_hz(self) -> float:
         return self._cut_off_frequency_hz
@@ -331,7 +328,8 @@ class DAQPort(VoxelComponent):
     @property
     def waveform(self) -> Waveform:
         """The waveform of the port.
-        Note: The waveform is regenerated when the port is created and when the start, high, fall, or end properties are set.
+        Note: The waveform is regenerated when the port is created and
+        when the start, high, fall, or end properties are set.
         """
         return self._waveform
 
@@ -369,7 +367,8 @@ class DAQPort(VoxelComponent):
         sos = signal.bessel(order, normalized_cutoff_frequency, output="sos")
         extended_waveform = np.tile(waveform, 3)
         filtered_waveform = signal.sosfiltfilt(sos, extended_waveform)
-        return filtered_waveform[samples : 2 * samples]
+        middle_range_end = samples * 2
+        return filtered_waveform[samples:middle_range_end]
 
     def plot_waveform(self, ax: plt.Axes, color, periods: int = 2) -> plt.Axes:
         # Plot period and rest time backgrounds

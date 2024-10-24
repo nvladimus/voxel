@@ -66,9 +66,12 @@ class EnumeratedProperty[T: str | int | float]:
 
 
 def enumerated_property(
-    options: DynamicOptions | StrEnum | IntEnum, info: PropertyInfo
+    options: DynamicOptions | StrEnum | IntEnum,
+    unit: str | None = None,
+    description: str | None = None,
 ) -> Callable[..., EnumeratedProperty]:
     def decorator(func) -> EnumeratedProperty:
+        info = PropertyInfo(unit=unit, description=description)
         return EnumeratedProperty(options, fget=func, info=info)
 
     return decorator

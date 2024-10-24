@@ -1,8 +1,8 @@
 from typing import Any
 
 from voxel.core.utils.geometry.vec import Vec2D
+from ..utils.logging import get_component_logger
 
-from .component import VoxelComponent
 from .device.camera import VoxelCamera
 from .device.filter import VoxelFilter
 from .device.laser import VoxelLaser
@@ -11,7 +11,7 @@ from .io.transfer import VoxelFileTransfer
 from .io.writer import VoxelWriter
 
 
-class VoxelChannel(VoxelComponent):
+class VoxelChannel:
     """A channel in a voxel instrument."""
 
     def __init__(
@@ -26,6 +26,8 @@ class VoxelChannel(VoxelComponent):
         file_transfer: VoxelFileTransfer = None,
     ) -> None:
         super().__init__(name)
+        self.name = name
+        self.log = get_component_logger(self)
         self.camera = camera
         self.lens = lens
         self.laser = laser

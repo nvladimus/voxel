@@ -65,7 +65,7 @@ class VoxelNIDAQ(VoxelDAQ):
 
     @property
     def dio_ports(self) -> list[str]:
-        return [channel.replace(f"port", "PFI") for channel in self.device.do_ports.channel_names]
+        return [channel.replace("port", "PFI") for channel in self.device.do_ports.channel_names]
 
     @property
     def dio_lines(self) -> list[str]:
