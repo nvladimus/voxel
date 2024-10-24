@@ -1,20 +1,32 @@
-from re import T
+from dataclasses import dataclass
 from matplotlib import pyplot as plt
 import numpy as np
 from scipy import signal
-from voxel.core.instrument.daq.new.custom import DaqTiming
 from voxel.core.utils.descriptors.new.deliminated import deliminated_property
 
 type WaveformData = np.ndarray[float]
 
 
-class WaveformGenerator:
+@dataclass
+class DaqTiming:
+    """Timing parameters for a DAQ task."""
+
+    sampling_rate: float
+    period_ms: float
+
+    @property
+    def samples_per_period(self) -> int:
+        """The number of samples per period. Determines the buffer size created for continuous tasks."""
+        return int(self.sampling_rate * self.period_ms / 1000)
+
+
+class Waveform:
     """A class to generate waveforms for the DAQ."""
 
     def __init__(
         self,
         name: str,
-        timing: DaqTiming,
+        timing: "DaqTiming",
         min_voltage_limit: float = -10.0,
         max_voltage_limit: float = 10.0,
         min_voltage: float = -5.0,
@@ -23,15 +35,12 @@ class WaveformGenerator:
         high_point: float = 0.5,
         fall_point: float = 0.5,
         low_point: float = 1.5,
-        lowpass_cutoff: float = 0.0,
+        apply_filter: bool = False,
     ) -> None:
         self.name = name
         self.timing = timing
         self.min_voltage_limit = min_voltage_limit
         self.max_voltage_limit = max_voltage_limit
-
-        self._filter = True
-        self._filter_order = 6
 
         self._max_voltage = max_voltage
         self._min_voltage = min_voltage
@@ -39,7 +48,10 @@ class WaveformGenerator:
         self._high_point = high_point
         self._fall_point = fall_point
         self._low_point = low_point
-        self._lowpass_cutoff = lowpass_cutoff
+
+        self._filter = apply_filter
+        self._filter_order = 3
+        self._lowpass_cutoff = self.timing.sampling_rate / 10
 
         self.rise_point = self.rise_point  # trigger validation
         self.data = self._generate()
@@ -182,7 +194,7 @@ class WaveformGenerator:
         if not self.apply_filter:
             return waveform
         return self._apply_lowpass_filter(
-            waveform, self.lowpass_cutoff, self.timing.sample_rate, self.lowpass_filter_order
+            waveform, self.lowpass_cutoff, self.timing.sampling_rate, self.lowpass_filter_order
         )
 
     @staticmethod
@@ -223,7 +235,7 @@ class WaveformGenerator:
 
 # Example usage
 if __name__ == "__main__":
-    timing = DaqTiming(sample_mode="finite", sample_rate=1e6, period_ms=500)
-    wv = WaveformGenerator("TestGenerator", timing, lowpass_cutoff=10)
+    timing = DaqTiming(sampling_rate=1e6, period_ms=500)
+    wv = Waveform("TestGenerator", timing, lowpass_cutoff=10)
     print(wv)
     wv.plot()
