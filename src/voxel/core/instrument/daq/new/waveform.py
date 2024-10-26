@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import StrEnum
 from matplotlib import pyplot as plt
 import numpy as np
 from scipy import signal
@@ -36,18 +37,20 @@ class Waveform:
         fall_point: float = 0.5,
         low_point: float = 1.5,
         apply_filter: bool = False,
+        is_digital: bool = False,
     ) -> None:
         self.name = name
         self.timing = timing
         self.min_voltage_limit = min_voltage_limit
         self.max_voltage_limit = max_voltage_limit
+        self.is_digital = is_digital
 
         self._max_voltage = max_voltage
         self._min_voltage = min_voltage
         self._rise_point = rise_point
-        self._high_point = high_point
+        self._high_point = high_point if not is_digital else rise_point
         self._fall_point = fall_point
-        self._low_point = low_point
+        self._low_point = low_point if not is_digital else fall_point
 
         self._filter = apply_filter
         self._filter_order = 3
@@ -161,21 +164,29 @@ class Waveform:
     @rise_point.setter
     def rise_point(self, point: float) -> None:
         self._rise_point = point
+        if self.is_digital and self.rise_point != self.high_point:
+            self.high_point = self.rise_point
         self.high_point = self.high_point
 
     @high_point.setter
     def high_point(self, point: float) -> None:
         self._high_point = point
+        if self.is_digital and self.high_point != self.rise_point:
+            self.rise_point = self.high_point
         self.fall_point = self.fall_point
 
     @fall_point.setter
     def fall_point(self, point: float) -> None:
         self._fall_point = point
+        if self.is_digital and self.fall_point != self.low_point:
+            self.low_point = self.fall_point
         self.low_point = self.low_point
 
     @low_point.setter
     def low_point(self, point: float) -> None:
         self._low_point = point
+        if self.is_digital and self.low_point != self.fall_point:
+            self.fall_point = self.low_point
         self.regenerate()
 
     def regenerate(self) -> None:
@@ -210,7 +221,49 @@ class Waveform:
         middle_range_end = samples * 2
         return filtered_waveform[samples:middle_range_end]
 
-    def plot(self, ax: plt.Axes | None = None, color="blue", *, periods: int = 2) -> plt.Axes | None:
+    def plot(self, ax: plt.Axes | None = None, color="blue", *, periods: int = 2) -> plt.Axes:
+        """
+        Plot the waveform either on a new figure or an existing axes.
+
+        :param ax: Optional matplotlib axes to plot on. If None, creates new figure
+        :param color: Color of the waveform
+        :param periods: Number of periods to display
+        :return: The matplotlib axes object containing the plot
+        """
+        # Create new figure if no axes provided
+        created_new_figure = False
+        if ax is None:
+            _, ax = plt.subplots()
+            created_new_figure = True
+
+        period_ms = self.timing.period_ms
+
+        # Plot period markers
+        for i in range(periods + 1):
+            ax.axvline(i * period_ms, color="gray", linestyle="--", alpha=0.5)
+
+        # Plot waveform
+        full_waveform = np.tile(self.data, periods)
+        time = np.linspace(0, periods * period_ms, len(full_waveform))
+        ax.plot(time, full_waveform, color=color, label=self.name, alpha=0.5)
+
+        # Plot voltage reference lines
+        voltages = [self.max_voltage, self.min_voltage, (self.max_voltage + self.min_voltage) / 2]
+        for voltage in voltages:
+            ax.axhline(voltage, color="teal", linestyle="--", alpha=0.5)
+
+        # Add legend if there are labeled plots
+        if ax.get_legend_handles_labels()[0]:
+            ax.legend()
+
+        # Show only if we created a new figure
+        if created_new_figure:
+            plt.show(block=False)
+            plt.pause(0.1)  # Allow the plot to render
+
+        return ax
+
+    def plot2(self, ax: plt.Axes | None = None, color="blue", *, periods: int = 2) -> plt.Axes | None:
         show = True if ax is None else False
         if show:
             plt.figure()
