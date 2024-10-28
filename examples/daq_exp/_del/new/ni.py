@@ -2,7 +2,7 @@ from functools import lru_cache
 
 import nidaqmx
 
-from voxel.core.instrument.daq.new.base import VoxelDAQ, VoxelDAQTask
+from voxel.core.instrument.daq._del.new.base import VoxelDAQ, VoxelDAQTask
 
 
 class VoxelNiDAQTask(VoxelDAQTask):

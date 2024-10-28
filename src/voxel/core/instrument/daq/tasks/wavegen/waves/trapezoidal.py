@@ -1,37 +1,23 @@
-from dataclasses import dataclass
-from enum import StrEnum
-from matplotlib import pyplot as plt
 import numpy as np
+from matplotlib import pyplot as plt
 from scipy import signal
+
 from voxel.core.utils.descriptors.new.deliminated import deliminated_property
 
-type WaveformData = np.ndarray[float]
+from .base import WaveformData, WaveGenTiming
 
 
-@dataclass
-class DaqTiming:
-    """Timing parameters for a DAQ task."""
-
-    sampling_rate: float
-    period_ms: float
-
-    @property
-    def samples_per_period(self) -> int:
-        """The number of samples per period. Determines the buffer size created for continuous tasks."""
-        return int(self.sampling_rate * self.period_ms / 1000)
-
-
-class Waveform:
+class TrapezoidalWave:
     """A class to generate waveforms for the DAQ."""
 
     def __init__(
         self,
         name: str,
-        timing: "DaqTiming",
-        min_voltage_limit: float = -10.0,
-        max_voltage_limit: float = 10.0,
-        min_voltage: float = -5.0,
-        max_voltage: float = 5.0,
+        timing: "WaveGenTiming",
+        min_voltage_limit: float,
+        max_voltage_limit: float,
+        min_voltage: float | None = None,
+        max_voltage: float | None = None,
         rise_point: float = 0.0,
         high_point: float = 0.5,
         fall_point: float = 0.5,
@@ -45,8 +31,8 @@ class Waveform:
         self.max_voltage_limit = max_voltage_limit
         self.is_digital = is_digital
 
-        self._max_voltage = max_voltage
-        self._min_voltage = min_voltage
+        self._max_voltage = max_voltage if max_voltage else self.max_voltage_limit
+        self._min_voltage = min_voltage if min_voltage else self.min_voltage_limit
         self._rise_point = rise_point
         self._high_point = high_point if not is_digital else rise_point
         self._fall_point = fall_point
@@ -288,7 +274,7 @@ class Waveform:
 
 # Example usage
 if __name__ == "__main__":
-    timing = DaqTiming(sampling_rate=1e6, period_ms=500)
-    wv = Waveform("TestGenerator", timing, lowpass_cutoff=10)
+    timing = WaveGenTiming(sampling_rate=1e6, period_ms=500)
+    wv = TrapezoidalWave("TestGenerator", timing, lowpass_cutoff=10)
     print(wv)
     wv.plot()

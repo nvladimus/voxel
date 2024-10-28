@@ -1,5 +1,5 @@
 from voxel.core.instrument.channel import VoxelChannel
-from voxel.core.instrument.daq import DAQTaskType, VoxelDAQ, VoxelDAQTask, VoxelNIDAQ
+from voxel.core.instrument.daq import VoxelDaq
 from voxel.core.instrument.device import VoxelDevice, VoxelDeviceType
 from voxel.core.instrument.device.camera import VoxelCamera
 from voxel.core.instrument.device.filter import VoxelFilter, VoxelFilterWheel
@@ -22,7 +22,7 @@ class VoxelInstrument:
         file_transfers: dict[str, VoxelFileTransfer] | None = None,
         name: str = "Instrument",
         build_settings=None,
-        daq: VoxelNIDAQ | None = None,
+        daq: VoxelDaq | None = None,
     ) -> None:
         self.name = name
         self.log = get_component_logger(self)
@@ -123,7 +123,7 @@ class VoxelInstrument:
     def close(self):
         for device in self.devices.values():
             device.close()
-        self.daq.close()
+        self.daq.clean_up()
 
 
 __all__ = [
@@ -140,7 +140,4 @@ __all__ = [
     "VoxelStage",
     "VoxelWriter",
     "VoxelFileTransfer",
-    "VoxelDAQ",
-    "VoxelDAQTask",
-    "DAQTaskType",
 ]

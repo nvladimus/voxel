@@ -79,6 +79,7 @@ def get_component_logger(obj: object) -> logging.Logger:
     :param obj: The component object for which to get the logger.
     :return: A Logger instance.
     """
-    if isinstance(obj.name, str) and obj.name != "":
-        return get_logger(f"{obj.__class__.__name__}[{obj.name}]")
+    if hasattr(obj, "name"):
+        if isinstance(obj.name, str) and obj.name != "":
+            return get_logger(f"{obj.__class__.__name__}[{obj.name}]")
     return get_logger(obj.__class__.__name__)

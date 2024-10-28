@@ -1,10 +1,7 @@
 from .main import (
-    DAQTaskType,
     LinearAxisDimension,
     VoxelCamera,
     VoxelChannel,
-    VoxelDAQ,
-    VoxelDAQTask,
     VoxelDevice,
     VoxelDeviceType,
     VoxelFileTransfer,
@@ -31,7 +28,4 @@ __all__ = [
     "VoxelStage",
     "VoxelWriter",
     "VoxelFileTransfer",
-    "VoxelDAQ",
-    "VoxelDAQTask",
-    "DAQTaskType",
 ]

@@ -1,4 +1,4 @@
-from voxel.core.instrument.daq import DAQTaskType, VoxelDAQTask
+from voxel.core.instrument.daq.del import DAQTaskType, VoxelDAQTask
 from voxel.core.instrument.daq.base import VoxelDAQ
 
 
