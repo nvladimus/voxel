@@ -34,7 +34,7 @@ BUFFER_SIZE_MB = 2400
 #  "3": "X3",
 #  "4": "X4"...
 # }
-BINNING = dict()
+BINNINGS = dict()
 
 # generate valid pixel types by querying egrabber
 # should be of the form
@@ -69,7 +69,9 @@ BIT_PACKING_MODES = dict()
 #  "polarity": {"risingedge": "RisingEdge",
 #               "fallingedge": "FallingEdge"}
 # }
-TRIGGERS = {"mode": dict(), "source": dict(), "polarity": dict()}
+MODES = dict()
+SOURCES = dict()
+POLARITIES = dict()
 
 
 @thread_safe_singleton
@@ -230,9 +232,9 @@ class Camera(BaseCamera):
         source = self.grabber.remote.get("TriggerSource")
         polarity = self.grabber.remote.get("TriggerActivation")
         return {
-            "mode": next(key for key, value in TRIGGERS["mode"].items() if value == mode),
-            "source": next(key for key, value in TRIGGERS["source"].items() if value == source),
-            "polarity": next(key for key, value in TRIGGERS["polarity"].items() if value == polarity),
+            "mode": next(key for key, value in MODES.items() if value == mode),
+            "source": next(key for key, value in SOURCES.items() if value == source),
+            "polarity": next(key for key, value in POLARITIES.items() if value == polarity),
         }
 
     @trigger.setter
@@ -240,20 +242,20 @@ class Camera(BaseCamera):
         mode = trigger["mode"]
         source = trigger["source"]
         polarity = trigger["polarity"]
-        valid_mode = list(TRIGGERS["mode"].keys())
+        valid_mode = list(MODES.keys())
         if mode not in valid_mode:
             raise ValueError("mode must be one of %r." % valid_mode)
-        valid_source = list(TRIGGERS["source"].keys())
+        valid_source = list(SOURCES.keys())
         if source not in valid_source:
             raise ValueError("source must be one of %r." % valid_source)
-        valid_polarity = list(TRIGGERS["polarity"].keys())
+        valid_polarity = list(POLARITIES.keys())
         if polarity not in valid_polarity:
             raise ValueError("polarity must be one of %r." % valid_polarity)
         # note: Setting TriggerMode if it's already correct will throw an error
         if self.grabber.remote.get("TriggerMode") != mode:  # set camera to external trigger mode
-            self.grabber.remote.set("TriggerMode", TRIGGERS["mode"][mode])
-        self.grabber.remote.set("TriggerSource", TRIGGERS["source"][source])
-        self.grabber.remote.set("TriggerActivation", TRIGGERS["polarity"][polarity])
+            self.grabber.remote.set("TriggerMode", MODES[mode])
+        self.grabber.remote.set("TriggerSource", SOURCES[source])
+        self.grabber.remote.set("TriggerActivation", POLARITIES[polarity])
         self.log.info(f"trigger set to, mode: {mode}, source: {source}, polarity: {polarity}")
         # refresh parameter values
         self._get_min_max_step_values()
@@ -264,14 +266,14 @@ class Camera(BaseCamera):
 
     @binning.setter
     def binning(self, binning: int):
-        valid_binning = list(BINNING.keys())
+        valid_binning = list(BINNINGS.keys())
         if binning not in valid_binning:
             raise ValueError("binning must be one of %r." % valid_binning)
         self._binning = binning
         # if binning is not an integer, do it in hardware
-        if not isinstance(BINNING[binning], int):
-            self.grabber.remote.set("BinningHorizontal", BINNING[binning])
-            self.grabber.remote.set("BinningVertical", BINNING[binning])
+        if not isinstance(BINNINGS[binning], int):
+            self.grabber.remote.set("BinningHorizontal", BINNINGS[binning])
+            self.grabber.remote.set("BinningVertical", BINNINGS[binning])
         # initialize the opencl binning program
         else:
             self.gpu_binning = GPUToolsDownSample2D(binning=int(self._binning))
@@ -573,14 +575,14 @@ class Camera(BaseCamera):
                 self.grabber.remote.set("BinningHorizontal", binning)
                 # generate integer key
                 key = int(binning.replace("X", ""))
-                BINNING[key] = binning
+                BINNINGS[key] = binning
             except:
                 self.log.debug(f"{binning} not avaiable on this camera")
                 # only implement software binning for even numbers
                 if int(binning.replace("X", "")) % 2 == 0:
                     self.log.debug(f"{binning} will be implemented through software")
                     key = int(binning.replace("X", ""))
-                    BINNING[key] = key
+                    BINNINGS[key] = key
         # reset to initial value
         self.grabber.remote.set("BinningHorizontal", init_binning)
 
@@ -644,13 +646,13 @@ class Camera(BaseCamera):
                     self.grabber.remote.set("TriggerMode", trigger_mode)
                     # generate lowercase string key
                     key = trigger_mode.lower()
-                    TRIGGERS["mode"][key] = trigger_mode
+                    MODES[key] = trigger_mode
                 except:
                     self.log.debug(f"{trigger_mode} not avaiable on this camera")
             # if it is already set to this value, we know that it is a valid setting
             else:
                 key = trigger_mode.lower()
-                TRIGGERS["mode"][key] = trigger_mode
+                MODES[key] = trigger_mode
         # reset to initial value
         self.grabber.remote.set("TriggerMode", init_trigger_mode)
 
@@ -662,7 +664,7 @@ class Camera(BaseCamera):
                 self.grabber.remote.set("TriggerSource", trigger_source)
                 # generate lowercase string key
                 key = trigger_source.lower()
-                TRIGGERS["source"][key] = trigger_source
+                SOURCES[key] = trigger_source
             except:
                 self.log.debug(f"{trigger_source} not avaiable on this camera")
         # reset to initial value
@@ -676,7 +678,7 @@ class Camera(BaseCamera):
                 self.grabber.remote.set("TriggerActivation", trigger_polarity)
                 # generate lowercase string key
                 key = trigger_polarity.lower()
-                TRIGGERS["polarity"][key] = trigger_polarity
+                POLARITIES[key] = trigger_polarity
             except:
                 self.log.debug(f"{trigger_polarity} not avaiable on this camera")
         # reset to initial value
