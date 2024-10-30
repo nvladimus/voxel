@@ -29,7 +29,6 @@ class ThorlabsFlipMount(BaseFlipMount):
     def _connect(self):
         try:
             self._inst = Thorlabs.MFF(conn=self._conn)
-            self.position = next(iter(self._positions.keys()))  # set to first position
             self.flip_time_ms = FLIP_TIME_RANGE_MS[0]  # min flip time
         except Exception as e:
             self.log.error(f"Could not connect to flip mount {self.id}: {e}")
