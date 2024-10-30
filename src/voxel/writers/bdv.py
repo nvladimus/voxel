@@ -22,7 +22,7 @@ B3D_BACKGROUND_OFFSET = 0  # ADU
 B3D_GAIN = 2.1845  # ADU/e-
 B3D_READ_NOISE = 1.5  # e-
 
-COMPRESSION_TYPES = {"none": None, "gzip": "gzip", "lzf": "lzf", "b3d": "b3d"}
+COMPRESSIONS = {"none": None, "gzip": "gzip", "lzf": "lzf", "b3d": "b3d"}
 
 
 # TODO ADD DOWNSAMPLE METHOD TO GET PASSED INTO NPY2BDV
@@ -140,7 +140,7 @@ class BDVWriter(BaseWriter):
         :rtype: str
         """
 
-        return next(key for key, value in COMPRESSION_TYPES.items() if value == self._compression)
+        return next(key for key, value in COMPRESSIONS.items() if value == self._compression)
 
     @compression.setter
     def compression(self, compression: str):
@@ -158,11 +158,11 @@ class BDVWriter(BaseWriter):
         :raises ValueError: HDF5 version is >1.8.xx
         """
 
-        valid = list(COMPRESSION_TYPES.keys())
+        valid = list(COMPRESSIONS.keys())
         if compression not in valid:
             raise ValueError("compression type must be one of %r." % valid)
         self.log.info(f"setting compression mode to: {compression}")
-        self._compression = COMPRESSION_TYPES[compression]
+        self._compression = COMPRESSIONS[compression]
         # handle compresion opts for b3d
         if compression == "b3d":
             # check for windows os

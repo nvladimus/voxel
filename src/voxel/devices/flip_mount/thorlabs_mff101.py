@@ -8,6 +8,7 @@ from voxel.descriptors.deliminated_property import DeliminatedProperty
 from . import BaseFlipMount
 
 VALID_POSITIONS = [0, 1]
+POSITIONS = dict()
 FLIP_TIME_RANGE_MS = (500, 2800, 100)
 
 
@@ -22,9 +23,15 @@ class ThorlabsFlipMount(BaseFlipMount):
         """
         super().__init__(id)
         self._conn = conn
-        self._positions = positions
         self._inst: Optional[Thorlabs.MFF] = None
         self._connect()
+        for key, value in positions.items():
+            if value not in VALID_POSITIONS:
+                raise ValueError(
+                    f"Invalid position {key} for Thorlabs flip mount.\
+                    Valid positions are {VALID_POSITIONS}"
+                )
+            POSITIONS[key] = value
 
     def _connect(self):
         try:
@@ -56,15 +63,15 @@ class ThorlabsFlipMount(BaseFlipMount):
         if self._inst is None:
             raise ValueError(f"Position not found for {self.id} Flip mount not connected")
         pos_idx = self._inst.get_state()
-        return next((key for key, value in self._positions.items() if value == pos_idx), "Unknown")
+        return next((key for key, value in POSITIONS.items() if value == pos_idx), "Unknown")
 
     @position.setter
     def position(self, position_name: str):
         if self._inst is None:
             raise ValueError("Flip mount not connected")
-        if position_name not in self._positions:
-            raise ValueError(f"Invalid position {position_name}. Valid positions are {list(self._positions.keys())}")
-        self._inst.move_to_state(self._positions[position_name])
+        if position_name not in POSITIONS:
+            raise ValueError(f"Invalid position {position_name}. Valid positions are {list(POSITIONS.keys())}")
+        self._inst.move_to_state(POSITIONS[position_name])
         self.log.info(f"Flip mount {self.id} moved to position {position_name}")
 
     @DeliminatedProperty(minimum=FLIP_TIME_RANGE_MS[0], maximum=FLIP_TIME_RANGE_MS[1], step=FLIP_TIME_RANGE_MS[2])

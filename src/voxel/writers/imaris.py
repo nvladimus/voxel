@@ -20,7 +20,7 @@ from voxel.writers.base import BaseWriter
 CHUNK_COUNT_PX = 64
 DIVISIBLE_FRAME_COUNT_PX = 64
 
-COMPRESSION_TYPES = {
+COMPRESSIONS = {
     "lz4shuffle": pw.eCompressionAlgorithmShuffleLZ4,
     "none": pw.eCompressionAlgorithmNone,
 }
@@ -98,7 +98,7 @@ class ImarisWriter(BaseWriter):
         :rtype: str
         """
 
-        return next(key for key, value in COMPRESSION_TYPES.items() if value == self._compression)
+        return next(key for key, value in COMPRESSIONS.items() if value == self._compression)
 
     @compression.setter
     def compression(self, compression: str):
@@ -110,11 +110,11 @@ class ImarisWriter(BaseWriter):
         :type value: str
         """
 
-        valid = list(COMPRESSION_TYPES.keys())
+        valid = list(COMPRESSIONS.keys())
         if compression not in valid:
             raise ValueError("compression type must be one of %r." % valid)
         self.log.info(f"setting compression mode to: {compression}")
-        self._compression = COMPRESSION_TYPES[compression]
+        self._compression = COMPRESSIONS[compression]
 
     @property
     def filename(self):
