@@ -292,17 +292,15 @@ class Camera(BaseCamera):
     def signal_mainboard_temperature_c(self):
         """get the mainboard temperature in degrees C."""
         self.grabber.remote.set("DeviceTemperatureSelector", "Mainboard")
-        state = {}
-        state["Sensor Temperature [C]"] = self.grabber.remote.get("DeviceTemperature")
-        return state
+        temperature = self.grabber.remote.get("DeviceTemperature")
+        return temperature
 
     @property
     def signal_sensor_temperature_c(self):
         """get the sensor temperature in degrees C."""
         self.grabber.remote.set("DeviceTemperatureSelector", "Sensor")
-        state = {}
-        state["Sensor Temperature [C]"] = self.grabber.remote.get("DeviceTemperature")
-        return state
+        temperature = self.grabber.remote.get("DeviceTemperature")
+        return temperature
 
     def prepare(self):
         # determine bits to bytes

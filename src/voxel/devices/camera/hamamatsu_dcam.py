@@ -310,9 +310,8 @@ class Camera(BaseCamera):
     @property
     def signal_sensor_temperature_c(self):
         """get the sensor temperature in degrees C."""
-        state = {}
-        state["Sensor Temperature [C]"] = self.dcam.prop_getvalue(PROPERTIES["sensor_temperature"])
-        return state
+        temperature = self.dcam.prop_getvalue(PROPERTIES["sensor_temperature"])
+        return temperature
 
     @property
     def sensor_mode(self):

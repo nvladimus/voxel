@@ -367,9 +367,9 @@ class ImarisWriter(BaseWriter):
             shared_log_queue.put(
                 f"waiting for data writing to complete for "
                 f"{self._filename}: "
-                f"{self.progress.value * 100:.2f}% [%] complete."
+                f"{self._progress.value * 100:.2f}% [%] complete."
             )
-        f"{self.progress.value * 100:.2f}% [%] complete."
+        f"{self._progress.value * 100:.2f}% [%] complete."
 
         # check and empty queue to avoid code hanging in process
         if not shared_log_queue.empty:
