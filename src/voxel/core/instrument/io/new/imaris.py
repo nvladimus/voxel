@@ -63,9 +63,9 @@ class ImarisWriter(VoxelWriter):
 
         # Initialize image sizes
         image_size = pw.ImageSize(
-            x=self._props.width,
-            y=self._props.height,
-            z=self._props.depth,
+            x=self.metadata.width,
+            y=self.metadata.height,
+            z=self.metadata.depth,
             c=1,  # Single channel for now
             t=1,  # Single timepoint for now
         )
@@ -78,7 +78,7 @@ class ImarisWriter(VoxelWriter):
         dimension_sequence = pw.DimensionSequence("z", "y", "x", "c", "t")
 
         # Create the converter
-        output_path = str(Path(self.dir) / f"{self._props.filename}.ims")
+        output_path = str(Path(self.dir) / f"{self.metadata.filename}.ims")
 
         self._converter = pw.ImageConverter(
             datatype=np.dtype(self.data_type).name,

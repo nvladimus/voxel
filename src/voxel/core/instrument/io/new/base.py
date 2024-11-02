@@ -3,16 +3,18 @@ from dataclasses import dataclass
 from multiprocessing import Event
 from pathlib import Path
 from time import sleep
-from cycler import V
 import numpy as np
+from typing import Literal
 
 from voxel.core.instrument.io.data_structures.shared_double_buffer import SharedDoubleBuffer
 from voxel.core.utils.geometry.vec import Vec2D, Vec3D
 from voxel.core.utils.logging import LoggingSubprocess
 
+type WriterDType = Literal["uint8", "uint16"]
+
 
 @dataclass
-class WriterProps:
+class WriterMetadata:
     """Configuration properties for a frame stack writer."""
 
     frame_count: int
@@ -20,6 +22,14 @@ class WriterProps:
 
     position: Vec3D
     file_name: str
+
+    # OME Metadata properties
+    voxel_size: Vec3D = Vec3D(1.0, 1.0, 1.0)  # Physical size of a voxel in micrometers
+    voxel_size_unit: str = "µm"  # Unit of measurement
+    channel_names: list = None  # List of channel names
+    pixel_type: str = None  # Data type for the pixels (e.g., 'uint16')
+    dimension_order: str = "XYZCT"  # Dimension order
+    # Add other OME metadata properties as needed
 
 
 class VoxelWriter(LoggingSubprocess):
@@ -39,6 +49,8 @@ class VoxelWriter(LoggingSubprocess):
         if not self.dir.exists():
             self.dir.mkdir(parents=True, exist_ok=True)
 
+        self.axes_order = "ZYX"
+
         # Synchronization primitives
         self.running_flag = Event()
         self.needs_processing = Event()
@@ -46,7 +58,7 @@ class VoxelWriter(LoggingSubprocess):
 
         self.dbl_buf = None
 
-        self._props = None
+        self.metadata = None
         self._frame_shape: Vec2D | None = None
         self._frame_count = 0
         self._batch_count = 0
@@ -63,7 +75,7 @@ class VoxelWriter(LoggingSubprocess):
 
     @property
     @abstractmethod
-    def data_type(self) -> np.dtype:
+    def data_type(self) -> WriterDType:
         """Data type for the written data.
 
         :return: Data type
@@ -93,16 +105,16 @@ class VoxelWriter(LoggingSubprocess):
         pass
 
     @abstractmethod
-    def configure(self, props: WriterProps) -> None:
+    def configure(self, props: WriterMetadata) -> None:
         """Configure the writer with the given properties.
         Ensure that self._props is assigned in this method.
         :param props: Configuration properties
         :type props: WriterProps
         """
-        self._props = props
+        self.metadata = props
         try:
-            batch_shape = (self.batch_size_px, self._props.frame_shape.y, self._props.frame_shape.x)
-            self.dbl_buf = SharedDoubleBuffer(batch_shape, self.data_type_str)
+            batch_shape = (self.batch_size_px, self.metadata.frame_shape.y, self.metadata.frame_shape.x)
+            self.dbl_buf = SharedDoubleBuffer(batch_shape, self.data_type)
             self.log.info(f"Configured writer with buffer shape: {batch_shape}")
         except Exception as e:
             if self.dbl_buf:
@@ -116,7 +128,7 @@ class VoxelWriter(LoggingSubprocess):
         :type props: WriterProps
         :raises RuntimeError: If writer fails to start
         """
-        if not self._props:
+        if not self.metadata:
             raise RuntimeError("Writer properties not set. Call configure() before starting the writer.")
         try:
             self.running_flag.set()
@@ -203,31 +215,27 @@ class VoxelWriter(LoggingSubprocess):
 
         self._batch_count += 1
 
-    @property
-    def data_type_str(self) -> str:
-        return np.dtype(self.data_type).name
-
 
 class SimpleWriter(VoxelWriter):
     """Simple writer class for testing purposes"""
 
     @property
-    def data_type(self) -> np.dtype:
-        return np.uint16
+    def data_type(self) -> WriterDType:
+        return "uint16"
 
     @property
     def batch_size_px(self) -> int:
         return 64
 
-    def configure(self, props: WriterProps) -> None:
+    def configure(self, props: WriterMetadata) -> None:
         super().configure(props)
         self.log.info(
-            f"Configured writer with {self._props.frame_count} frames "
-            f"of shape: {self._props.frame_shape.x}x{self._props.frame_shape.y}"
+            f"Configured writer with {self.metadata.frame_count} frames "
+            f"of shape: {self.metadata.frame_shape.x}x{self.metadata.frame_shape.y}"
         )
 
     def _initialize(self) -> None:
-        self.log.info(f"Initialized. Expecting {self._props.frame_count} frames in {self.batch_size_px} px batches")
+        self.log.info(f"Initialized. Expecting {self.metadata.frame_count} frames in {self.batch_size_px} px batches")
 
     def _process_batch(self, batch_data, batch_count) -> None:
         num_frames = batch_data.shape[0]
@@ -280,6 +288,60 @@ def generate_frames(frame_count, frame_shape, batch_size_px, data_type):
         yield frame
 
 
+def generate_checkered_frames(frame_count, frame_shape, data_type):
+    """Generate test frames with checkerboard patterns."""
+    min_tile_size = 4
+    max_tile_size = min(frame_shape.x, frame_shape.y) // 4
+
+    tile_sizes = np.linspace(min_tile_size, max_tile_size, num=frame_count, dtype=int)
+
+    for frame_z in range(frame_count):
+        tile_size = tile_sizes[frame_z]
+
+        # Calculate number of tiles using ceiling division to ensure full coverage
+        num_tiles_x = -(-frame_shape.x // tile_size)
+        num_tiles_y = -(-frame_shape.y // tile_size)
+
+        # Create a checkerboard pattern
+        checkerboard = np.indices((num_tiles_y, num_tiles_x)).sum(axis=0) % 2
+        checkerboard = np.kron(checkerboard, np.ones((tile_size, tile_size)))
+
+        # Crop to the desired frame shape
+        frame = checkerboard[: frame_shape.y, : frame_shape.x]
+
+        # Scale to full intensity range
+        frame = (frame * 255).astype(data_type)
+
+        yield frame
+
+
+def generate_spiral_frames(frame_count, frame_shape, data_type):
+    """Generate frames with spiral patterns."""
+    min_tile_size = 4
+    max_tile_size = min(frame_shape.x, frame_shape.y) // 2
+
+    tile_sizes = np.linspace(min_tile_size, max_tile_size, num=frame_count, dtype=int)
+
+    for frame_z in range(frame_count):
+        tile_size = tile_sizes[frame_z]
+
+        # Create indices centered on the frame
+        x = np.arange(frame_shape.x) - frame_shape.x // 2
+        y = np.arange(frame_shape.y) - frame_shape.y // 2
+        xv, yv = np.meshgrid(x, y)
+
+        # Calculate distance from center
+        distance = np.sqrt(xv**2 + yv**2)
+
+        # Create expanding pattern
+        pattern = ((distance // tile_size) % 2).astype(int)
+
+        # Scale to full intensity range
+        frame = (pattern * 255).astype(data_type)
+
+        yield frame
+
+
 def test_writer():
     """Test the writer with power of 2 dimensions"""
 
@@ -288,7 +350,7 @@ def test_writer():
     NUM_BATCHES = 10
     frame_shape = Vec2D(4096, 4096)
     frame_count = writer.batch_size_px * NUM_BATCHES
-    props = WriterProps(
+    props = WriterMetadata(
         frame_count=frame_count,
         frame_shape=frame_shape,
         position=Vec3D(0, 0, 0),

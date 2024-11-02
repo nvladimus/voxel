@@ -4,7 +4,7 @@ from typing import Iterator
 import time
 
 from voxel.core.utils.geometry.vec import Vec3D
-from voxel.core.instrument.io.new.base import WriterProps
+from voxel.core.instrument.io.new.base import WriterMetadata
 from voxel.core.instrument.io.new.imaris import ImarisWriter
 
 
@@ -88,7 +88,7 @@ def main():
         print(f"Pattern generation took {gen_time:.1f} seconds")
 
         # Configure the volume
-        config = WriterProps(
+        config = WriterMetadata(
             size=Vec3D(width, height, depth),
             position=Vec3D(0, 0, 0),
             filename="test_pattern",
