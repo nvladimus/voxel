@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Union
+from typing import Self, Union
 
 
 @dataclass
@@ -74,11 +74,20 @@ class Vec3D:
     def __hash__(self):
         return hash((self.x, self.y, self.z))
 
-    def __add__(self, other: "Vec3D") -> "Vec3D":
+    def __add__(self, other: Self) -> Self:
         return Vec3D(self.x + other.x, self.y + other.y, self.z + other.z)
 
-    def __sub__(self, other: "Vec3D") -> "Vec3D":
+    def __sub__(self, other: Self) -> Self:
         return Vec3D(self.x - other.x, self.y - other.y, self.z - other.z)
+
+    def __mul__(self, other: int | float | Self) -> float | Self:
+        if isinstance(other, Vec3D):
+            return self.x * other.x + self.y * other.y + self.z * other.z
+
+        if isinstance(other, (int, float)):
+            return Vec3D(self.x * other, self.y * other, self.z * other)
+
+        raise TypeError(f"Unsupported type for multiplication: {type(other)}")
 
 
 @dataclass
