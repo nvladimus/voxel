@@ -9,7 +9,7 @@ from voxel.core.instrument.daq.tasks.dc_control import DCControl
 from voxel.core.instrument.daq.tasks.wavegen import WaveGenTask
 from voxel.core.utils.logging import setup_logging
 
-setup_logging(log_level="INFO")
+setup_logging(level="INFO")
 
 
 def plot_waveforms(task: WaveGenTask):
