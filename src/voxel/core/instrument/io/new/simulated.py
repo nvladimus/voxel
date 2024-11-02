@@ -147,12 +147,6 @@ def test_simulated_writer():
 
 
 if __name__ == "__main__":
-    from voxel.core.utils.logging import initialize_subprocess_listener, setup_logging
+    from voxel.core.utils.logging import run_with_logging
 
-    setup_logging()
-
-    listener = initialize_subprocess_listener()
-    try:
-        test_simulated_writer()
-    finally:
-        listener.stop()
+    run_with_logging(test_simulated_writer, subprocess=True, log_level="DEBUG")

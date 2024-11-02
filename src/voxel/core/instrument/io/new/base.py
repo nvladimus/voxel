@@ -1,12 +1,13 @@
+from abc import abstractmethod
 from dataclasses import dataclass
-from multiprocessing import Event, Value
-from multiprocessing.shared_memory import SharedMemory
+from multiprocessing import Event
 from pathlib import Path
 from time import sleep
+from cycler import V
 import numpy as np
 
 from voxel.core.instrument.io.data_structures.shared_double_buffer import SharedDoubleBuffer
-from voxel.core.utils.geometry.vec import Vec3D
+from voxel.core.utils.geometry.vec import Vec2D, Vec3D
 from voxel.core.utils.logging import LoggingSubprocess
 
 
@@ -14,16 +15,11 @@ from voxel.core.utils.logging import LoggingSubprocess
 class WriterProps:
     """Configuration properties for a frame stack writer."""
 
-    size: Vec3D
+    frame_count: int
+    frame_shape: Vec2D
+
     position: Vec3D
     file_name: str
-
-    def pad(self, chunk_size: Vec3D, z_chunks_per_batch: int) -> None:
-        """Pad the dimensions to match the batch size."""
-        z_size = chunk_size.z * z_chunks_per_batch
-        self.size.x = (self.size.x + chunk_size.x - 1) // chunk_size.x * chunk_size.x
-        self.size.y = (self.size.y + chunk_size.y - 1) // chunk_size.y * chunk_size.y
-        self.size.z = (self.size.z + z_size - 1) // z_size * z_size
 
 
 class VoxelWriter(LoggingSubprocess):
@@ -43,52 +39,92 @@ class VoxelWriter(LoggingSubprocess):
         if not self.dir.exists():
             self.dir.mkdir(parents=True, exist_ok=True)
 
-        self.chunk_size = Vec3D(64, 64, 64)
-        self.z_chunks_per_batch = 1
-        self.data_type = np.dtype(np.uint16)
-
-        self.props = None
-        self.dbl_buf = None
-        self.subproc_mem = None
-        self.subproc_mem_name = None
-
-        self.subproc_mem_idx = Value("i", 1)
-
-        # Events for synchronization
-        self.needs_processing = Event()
+        # Synchronization primitives
         self.running_flag = Event()
-
-        self.frame_count = 0
-        self.batch_count = 0
+        self.needs_processing = Event()
         self.timeout = 5
 
+        self.dbl_buf = None
+
+        self._props = None
+        self._frame_shape: Vec2D | None = None
+        self._frame_count = 0
+        self._batch_count = 0
+
     @property
-    def batch_size_z(self) -> int:
-        """The number of z-chunks per batch
+    @abstractmethod
+    def batch_size_px(self) -> int:
+        """The number of pixels in the z dimension per batch. Determines the size of the buffer.
 
         :return: Size of batch in Z dimension
         :rtype: int
         """
-        return self.z_chunks_per_batch * self.chunk_size.z
+        pass
 
-    def start(self, props: WriterProps) -> None:
+    @property
+    @abstractmethod
+    def data_type(self) -> np.dtype:
+        """Data type for the written data.
+
+        :return: Data type
+        :rtype: np.dtype
+        """
+        pass
+
+    @abstractmethod
+    def _initialize(self) -> None:
+        """Initialize the writer. Called in subprocess after spawning."""
+        pass
+
+    @abstractmethod
+    def _process_batch(self, batch_data: np.ndarray, batch_count: int) -> None:
+        """Process a batch of data with validation and metrics
+
+        :param batch_data: The batch of frame data to process
+        :type batch_data: np.ndarray
+        :param batch_count: Current batch number (1-based)
+        :type batch_count: int
+        """
+        pass
+
+    @abstractmethod
+    def _finalize(self) -> None:
+        """Finalize the writer. Called before joining the writer subprocess."""
+        pass
+
+    @abstractmethod
+    def configure(self, props: WriterProps) -> None:
+        """Configure the writer with the given properties.
+        Ensure that self._props is assigned in this method.
+        :param props: Configuration properties
+        :type props: WriterProps
+        """
+        self._props = props
+        try:
+            batch_shape = (self.batch_size_px, self._props.frame_shape.y, self._props.frame_shape.x)
+            self.dbl_buf = SharedDoubleBuffer(batch_shape, self.data_type_str)
+            self.log.info(f"Configured writer with buffer shape: {batch_shape}")
+        except Exception as e:
+            if self.dbl_buf:
+                self.dbl_buf.close_and_unlink()
+            raise RuntimeError(f"Failed to configure writer: {e}")
+
+    def start(self) -> None:
         """Start the writer with the given configuration
 
         :param props: Configuration properties
         :type props: WriterProps
         :raises RuntimeError: If writer fails to start
         """
+        if not self._props:
+            raise RuntimeError("Writer properties not set. Call configure() before starting the writer.")
         try:
-            self.props = props
-            self.props.pad(self.chunk_size, self.z_chunks_per_batch)
-
-            batch_shape = (self.batch_size_z, self.props.size.y, self.props.size.x)
-            self.dbl_buf = SharedDoubleBuffer(batch_shape, self.data_type.str)
-
             self.running_flag.set()
             self.needs_processing.clear()
-            self.log.debug(f"Started writer with size: {self.props.size}")
+            self._frame_count = 0
+            self._batch_count = 0
             super().start()
+            self.log.debug("Writer started")
         except Exception as e:
             if self.dbl_buf:
                 self.dbl_buf.close_and_unlink()
@@ -97,46 +133,43 @@ class VoxelWriter(LoggingSubprocess):
     def stop(self) -> None:
         """Stop the writer and clean up resources"""
 
-        while self.needs_processing.is_set():
-            sleep(0.001)
-
         self._switch_buffers()
 
         # Wait for final processing to complete
         while self.needs_processing.is_set():
             sleep(0.001)
 
-        self.log.debug("Stopping writer")
+        self.log.info(f"Processed {self._frame_count} frames in {self._batch_count} batches")
+        self.log.info("Stopping writer")
         self.running_flag.clear()
+
         self.join()
 
         if self.dbl_buf:
             self.dbl_buf.close_and_unlink()
             self.dbl_buf = None
-        self.log.debug("Writer stopped")
+        self.log.info("Writer stopped")
 
     def _run(self) -> None:
         """Main writer loop"""
-
-        self.subproc_mem_blocks = [
-            SharedMemory(self.dbl_buf.mem_blocks[0].name),
-            SharedMemory(self.dbl_buf.mem_blocks[1].name),
-        ]
-
-        batch_count = 1
-        while self.running_flag.is_set():
-            if self.needs_processing.is_set():
-                try:
-                    self.log.info(f"Processing batch {batch_count} in memory block {self.subproc_mem_idx.value}")
-                    mem_block = self.subproc_mem_blocks[self.subproc_mem_idx.value]
-                    batch_data = np.ndarray(self.dbl_buf.shape, dtype=self.data_type, buffer=mem_block.buf)
-                    self._process_batch(batch_data, batch_count)
-                except Exception as e:
-                    self.log.error(f"Error processing batch: {e}")
-                finally:
-                    self.needs_processing.clear()
-                    batch_count += 1
-            sleep(0.1)
+        self._initialize()
+        try:
+            batch_count = 1
+            while self.running_flag.is_set() or self.needs_processing.is_set():
+                if self.needs_processing.is_set():
+                    try:
+                        mem_block = self.dbl_buf.mem_blocks[self.dbl_buf.read_mem_block_idx.value]
+                        batch_data = np.ndarray(self.dbl_buf.shape, dtype=self.data_type, buffer=mem_block.buf)
+                        self._process_batch(batch_data, batch_count)
+                    except Exception as e:
+                        self.log.error(f"Error processing batch: {e}")
+                    finally:
+                        self.needs_processing.clear()
+                        batch_count += 1
+                else:
+                    sleep(0.1)
+        finally:
+            self._finalize()
 
     def add_frame(self, frame: np.ndarray) -> None:
         """Add a frame to the writer
@@ -144,13 +177,13 @@ class VoxelWriter(LoggingSubprocess):
         :param frame: Frame data to add
         :type frame: np.ndarray
         """
-        buffer_full = self.frame_count > 0 and self.frame_count % self.batch_size_z == 0
+        buffer_full = self._frame_count > 0 and self._frame_count % self.batch_size_px == 0
 
         if buffer_full:
             self._switch_buffers()
 
         self.dbl_buf.add_frame(frame)
-        self.frame_count += 1
+        self._frame_count += 1
 
     def _switch_buffers(self) -> None:
         """Switch read and write buffers with proper synchronization"""
@@ -160,7 +193,6 @@ class VoxelWriter(LoggingSubprocess):
 
         # Toggle buffers
         self.dbl_buf.toggle_buffers()
-        self.subproc_mem_idx.value = 1 if self.subproc_mem_idx.value == 0 else 0
 
         # Signal that new data needs processing
         self.needs_processing.set()
@@ -169,18 +201,37 @@ class VoxelWriter(LoggingSubprocess):
         while not self.needs_processing.is_set():
             sleep(0.001)
 
-        self.batch_count += 1
+        self._batch_count += 1
 
-    def _process_batch(self, batch_data: np.ndarray, batch_count: int) -> None:
-        """Process a batch of data with validation and metrics
+    @property
+    def data_type_str(self) -> str:
+        return np.dtype(self.data_type).name
 
-        :param batch_data: The batch of frame data to process
-        :type batch_data: np.ndarray
-        :param batch_count: Current batch number (1-based)
-        :type batch_count: int
-        """
+
+class SimpleWriter(VoxelWriter):
+    """Simple writer class for testing purposes"""
+
+    @property
+    def data_type(self) -> np.dtype:
+        return np.uint16
+
+    @property
+    def batch_size_px(self) -> int:
+        return 64
+
+    def configure(self, props: WriterProps) -> None:
+        super().configure(props)
+        self.log.info(
+            f"Configured writer with {self._props.frame_count} frames "
+            f"of shape: {self._props.frame_shape.x}x{self._props.frame_shape.y}"
+        )
+
+    def _initialize(self) -> None:
+        self.log.info(f"Initialized. Expecting {self._props.frame_count} frames in {self.batch_size_px} px batches")
+
+    def _process_batch(self, batch_data, batch_count) -> None:
         num_frames = batch_data.shape[0]
-        start_frame = (batch_count - 1) * self.batch_size_z
+        start_frame = (batch_count - 1) * self.batch_size_px
         expected_frames = range(start_frame, start_frame + num_frames)
 
         frame_errors = []
@@ -203,33 +254,27 @@ class VoxelWriter(LoggingSubprocess):
 
         self.log.info(
             f"Batch {stats['batch_number']:2d} | "
-            f"Frames: {stats['frames_processed']:3d} ({stats['frame_range']}) | "
-            f"Values: min={stats['min_value']:3d}, max={stats['max_value']:3d}, "
-            f"mean={stats['mean_value']:.1f} | "
+            f"({stats['frame_range']}) {stats['frames_processed']:3d} frames | "
+            f"{stats['min_value']:3d} - {stats['mean_value']:.1f} - {stats['max_value']:3d} | "
             f"Errors: {stats['validation_errors']}"
         )
 
         if frame_errors:
             self.log.debug("Validation errors:\n" + "\n".join(frame_errors))
 
+    def _finalize(self) -> None:
+        self.log.info("Finalized...")
 
-def generate_frames(writer: VoxelWriter):
-    """Generate test frames with sequential values
 
-    :param writer: VoxelWriter instance to generate frames for
-    :type writer: VoxelWriter
-    :return: Generator yielding test frames
-    :rtype: Generator[np.ndarray, None, None]
-    """
-    size = writer.props.size
+def generate_frames(frame_count, frame_shape, batch_size_px, data_type):
+    """Generate test frames with sequential values"""
     batch_idx = 0
-
-    for frame_z in range(size.z):
+    for frame_z in range(frame_count):
         # Fill frame with the current frame index
-        frame = np.full((size.y, size.x), frame_z, dtype=writer.data_type)
+        frame = np.full((frame_shape.y, frame_shape.x), frame_z, dtype=data_type)
 
         # Log frame generation for debugging
-        if frame_z % writer.batch_size_z == 0:
+        if frame_z % batch_size_px == 0:
             batch_idx += 1
 
         yield frame
@@ -237,24 +282,25 @@ def generate_frames(writer: VoxelWriter):
 
 def test_writer():
     """Test the writer with power of 2 dimensions"""
-    writer = VoxelWriter("test", "test_writer")
 
-    # Configure for 64-frame batches
-    NUM_BATCHES = 4
-    writer.z_chunks_per_batch = 1
-    writer.chunk_size = Vec3D(64, 64, 64)
-    size = Vec3D(128, 128, 64 * NUM_BATCHES)
+    writer = SimpleWriter("test", "test_writer")
 
-    writer.log.info("\nRunning power of 2 test")
-    writer.log.info(f"Input dimensions: {size}")
+    NUM_BATCHES = 10
+    frame_shape = Vec2D(4096, 4096)
+    frame_count = writer.batch_size_px * NUM_BATCHES
+    props = WriterProps(
+        frame_count=frame_count,
+        frame_shape=frame_shape,
+        position=Vec3D(0, 0, 0),
+        file_name="test_file_power_of_2",
+    )
 
-    writer.log.info(f"Expected batches: {NUM_BATCHES}")
-
-    props = WriterProps(size, Vec3D(0, 0, 0), "test_file_power_of_2")
-    writer.start(props)
+    writer.configure(props)
+    writer.log.info(f"Expecting: {frame_count} frames of {frame_shape.x}x{frame_shape.y} in {NUM_BATCHES} batche(s)")
+    writer.start()
 
     try:
-        for frame in generate_frames(writer):
+        for frame in generate_frames(frame_count, frame_shape, writer.batch_size_px, writer.data_type):
             writer.add_frame(frame)
 
     except Exception as e:
@@ -264,12 +310,6 @@ def test_writer():
 
 
 if __name__ == "__main__":
-    from voxel.core.utils.logging import initialize_subprocess_listener, setup_logging
+    from voxel.core.utils.logging import run_with_logging
 
-    setup_logging(level="DEBUG")
-    listener = initialize_subprocess_listener()
-
-    try:
-        test_writer()
-    finally:
-        listener.stop()
+    run_with_logging(test_writer, level="DEBUG", subprocess=True)

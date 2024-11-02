@@ -1,4 +1,4 @@
-from multiprocessing import Event, Lock
+from multiprocessing import Value, Lock
 from multiprocessing.shared_memory import SharedMemory
 import numpy as np
 
@@ -27,8 +27,6 @@ class SharedDoubleBuffer:
         # Initialize synchronization primitives
         self.write_lock = Lock()
         self.read_lock = Lock()
-        self.buffer_ready = Event()
-        self.buffer_consumed = Event()
 
         try:
             self.mem_blocks = [
@@ -37,6 +35,9 @@ class SharedDoubleBuffer:
             ]
         except FileExistsError:
             raise MemoryError("Failed to create shared memory segments")
+
+        self.write_mem_block_idx = Value("i", 0)
+        self.read_mem_block_idx = Value("i", 1)
 
         # attach numpy array references to shared memory
         self.write_buf = np.ndarray(shape, dtype=dtype, buffer=self.mem_blocks[0].buf)
@@ -53,7 +54,6 @@ class SharedDoubleBuffer:
         self.frames_in_read_buffer = 0
 
         # Set initial state
-        self.buffer_consumed.set()
 
     def toggle_buffers(self):
         """
@@ -73,6 +73,10 @@ class SharedDoubleBuffer:
             # toggle buffers
             self.read_buf, self.write_buf = self.write_buf, self.read_buf
             self.read_buf_mem_name, self.write_buf_mem_name = self.write_buf_mem_name, self.read_buf_mem_name
+            self.read_mem_block_idx.value, self.write_mem_block_idx.value = (
+                self.write_mem_block_idx.value,
+                self.read_mem_block_idx.value,
+            )
 
     def add_frame(self, frame: np.ndarray):
         """

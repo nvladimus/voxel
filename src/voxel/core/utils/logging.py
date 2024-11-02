@@ -4,6 +4,7 @@ import logging
 import logging.config
 from logging.handlers import QueueListener
 from multiprocessing import Process, Queue
+from typing import Callable
 
 custom_date_format = "%Y-%m-%d %H:%M:%S"
 
@@ -126,19 +127,6 @@ def get_subprocess_log_queue() -> Queue:
     return log_queue
 
 
-def initialize_subprocess_listener() -> QueueListener:
-    """
-    Initialize a listener for logging in subprocesses.
-    """
-    # Get the handlers from the voxel logger
-    handlers = logging.getLogger("voxel").handlers
-
-    # Create listener with all handlers
-    listener = QueueListener(log_queue, *handlers, respect_handler_level=True)
-    listener.start()
-    return listener
-
-
 class LoggingSubprocess(Process, ABC):
     """
     Abstract base process class that handles logging setup for child processes.
@@ -178,3 +166,20 @@ class LoggingSubprocess(Process, ABC):
         Main process execution logic. Must be implemented by child classes.
         """
         pass
+
+
+def run_with_logging(func: Callable, level="INFO", subprocess: bool = False) -> None:
+    """
+    Run a function with logging setup.
+    """
+    setup_logging(level=level)
+    if subprocess:
+        handlers = logging.getLogger("voxel").handlers
+        listener = QueueListener(log_queue, *handlers, respect_handler_level=True)
+        listener.start()
+        try:
+            func()
+        finally:
+            listener.stop()
+    else:
+        func()

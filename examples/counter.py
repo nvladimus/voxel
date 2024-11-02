@@ -97,33 +97,27 @@ class Counter(LoggingSubprocess):
 
 
 def main() -> None:
-    from voxel.core.utils.logging import initialize_subprocess_listener, setup_logging
 
-    setup_logging()
-    listener = initialize_subprocess_listener()
+    # Create and start counter processes
+    counter_names = ["A", "B", "C"]
+    max_count = 5
+    counters = [Counter(name, max_count) for name in counter_names]
 
-    try:
-        # Create and start counter processes
-        counter_names = ["A", "B", "C"]
-        max_count = 5
-        counters = [Counter(name, max_count) for name in counter_names]
+    for counter in counters:
+        counter.start()
 
-        for counter in counters:
-            counter.start()
+    # Example of pausing/resuming the first counter
+    # time.sleep(2)
+    # counters[0].pause()
+    # time.sleep(2)
+    # counters[0].resume()
 
-        # Example of pausing/resuming the first counter
-        # time.sleep(2)
-        # counters[0].pause()
-        # time.sleep(2)
-        # counters[0].resume()
-
-        # Keep running until all counters are done
-        while any(not counter.is_finished() for counter in counters):
-            time.sleep(0.1)
-
-    finally:
-        listener.stop()
+    # Keep running until all counters are done
+    while any(not counter.is_finished() for counter in counters):
+        time.sleep(0.1)
 
 
 if __name__ == "__main__":
-    main()
+    from voxel.core.utils.logging import run_with_logging
+
+    run_with_logging(main, subprocess=True, log_level="DEBUG")
