@@ -1,5 +1,5 @@
 import logging
-
+import math
 import matplotlib.pyplot as plt
 import nidaqmx
 import numpy
@@ -320,6 +320,8 @@ class DAQ(BaseDAQ):
         cutoff_frequency_hz: float,
     ):
 
+        waveform_length_samples = int(((period_time_ms + rest_time_ms) / 1000) * sampling_frequency_hz)
+
         time_samples_ms = numpy.linspace(
             0, 2 * numpy.pi, int(((period_time_ms - start_time_ms) / 1000) * sampling_frequency_hz)
         )
@@ -349,7 +351,8 @@ class DAQ(BaseDAQ):
         b, a = signal.bessel(6, cutoff_frequency_hz / (sampling_frequency_hz / 2), btype="low")
 
         # pad before filtering with last value
-        padding = int(2 / (cutoff_frequency_hz / (sampling_frequency_hz)))
+        padding = math.ceil(2 / (cutoff_frequency_hz / (sampling_frequency_hz)))
+
         if padding > 0:
             # waveform = numpy.hstack([waveform[:padding], waveform, waveform[-padding:]])
             waveform = numpy.pad(
@@ -363,7 +366,7 @@ class DAQ(BaseDAQ):
         waveform = signal.lfilter(b, a, signal.lfilter(b, a, waveform)[::-1])[::-1]
 
         if padding > 0:
-            waveform = waveform[padding:-padding]
+            waveform = waveform[padding : padding + waveform_length_samples]
 
         return waveform
 
