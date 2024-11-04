@@ -1,4 +1,4 @@
 from .base import VoxelDevice
-from .laser import BaseLaser
+from .laser.base import BaseLaser
 
 __all__ = ["VoxelDevice", "BaseLaser"]
