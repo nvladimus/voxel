@@ -44,11 +44,6 @@ class BaseCamera:
         pass
 
     @property
-    def readout_mode(self):
-        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
-        pass
-
-    @property
     def trigger(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
@@ -74,12 +69,17 @@ class BaseCamera:
         pass
 
     @property
-    def signal_mainboard_temperature_c(self):
+    def mainboard_temperature_c(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 
     @property
-    def signal_sensor_temperature_c(self):
+    def sensor_temperature_c(self):
+        self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
+        pass
+
+    @property
+    def readout_mode(self):
         self.log.warning(f"WARNING: {inspect.stack()[0][3]} not implemented")
         pass
 

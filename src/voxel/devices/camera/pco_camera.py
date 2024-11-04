@@ -191,13 +191,13 @@ class Camera(BaseCamera):
         return self.max_height_px
 
     @property
-    def signal_mainboard_temperature_c(self):
+    def mainboard_temperature_c(self):
         """get the mainboard temperature in degrees C."""
         temperature = self.pco.sdk.get_temperature()["camera temperature"]
         return temperature
 
     @property
-    def signal_sensor_temperature_c(self):
+    def sensor_temperature_c(self):
         """get the sensor temperature in degrees C."""
         temperature = self.pco.sdk.get_temperature()["sensor temperature"]
         return temperature

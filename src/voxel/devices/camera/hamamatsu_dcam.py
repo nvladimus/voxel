@@ -308,7 +308,7 @@ class Camera(BaseCamera):
         return self.min_width_px
 
     @property
-    def signal_sensor_temperature_c(self):
+    def sensor_temperature_c(self):
         """get the sensor temperature in degrees C."""
         temperature = self.dcam.prop_getvalue(PROPERTIES["sensor_temperature"])
         return temperature

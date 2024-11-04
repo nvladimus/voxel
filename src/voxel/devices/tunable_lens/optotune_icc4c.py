@@ -35,7 +35,7 @@ class TunableLens(BaseTunableLens):
         self._channel = channel
         self.tunable_lens = self.icc4c.channel[self.channel]
         # start lens in analog mode
-        self._mode = "analog"
+        self._mode = "external"
         self.tunable_lens.Analog.SetAsInput()
 
     @property
@@ -59,11 +59,10 @@ class TunableLens(BaseTunableLens):
             raise ValueError(f"{mode} must be {MODES}")
 
     @property
-    def signal_temperature_c(self):
+    def temperature_c(self):
         """Get the tunable lens temperature in deg C."""
-        state = {}
-        state["Temperature [C]"] = self.tunable_lens.TemperatureManager.GetDeviceTemperature()
-        return state
+        temperature = self.tunable_lens.TemperatureManager.GetDeviceTemperature()
+        return temperature
 
     def close(self):
         """Close the tunable lens."""

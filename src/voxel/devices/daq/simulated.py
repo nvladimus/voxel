@@ -90,7 +90,6 @@ class DAQ(BaseDAQ):
         self.max_ao_volts = MAX_AO_VOLTS
         self.min_ao_volts = MIN_AO_VOLTS
         self.log.info("resetting nidaq")
-        self.tasks = list()
         self.task_time_s = dict()
         self.ao_waveforms = dict()
         self.do_waveforms = dict()

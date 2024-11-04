@@ -170,8 +170,6 @@ class RobocopyFileTransfer(BaseFileTransfer):
                             os.remove(local_file_path)
                     else:
                         raise ValueError(f"{local_file_path} is not a file or directory.")
-                    # TODO REMOVE
-                    os.remove(external_file_path)
                 end_time = time.time()
                 total_time = end_time - start_time
                 self.log.info(f"{self.filename} transfer complete, total time: {total_time:.2f} [s]")
