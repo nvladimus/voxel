@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from voxel.core.utils.geometry.vec import Vec2D
-from voxel.core.utils.logging import get_logger
+from voxel.core.utils.log_config import get_logger
 
 from ..instrument import VoxelInstrument
 from .model.frame_stack import FrameStack

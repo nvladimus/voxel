@@ -7,7 +7,7 @@ from voxel.core.instrument.daq.daq import VoxelDaq
 from voxel.core.instrument.daq.tasks.clockgen import ClkGenTask
 from voxel.core.instrument.daq.tasks.dc_control import DCControl
 from voxel.core.instrument.daq.tasks.wavegen import WaveGenTask
-from voxel.core.utils.logging import setup_logging
+from voxel.core.utils.log_config import setup_logging
 
 setup_logging(level="INFO")
 

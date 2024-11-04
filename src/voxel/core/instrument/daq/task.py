@@ -4,7 +4,7 @@ from typing import Self
 from nidaqmx.errors import DaqError, DaqResourceWarning
 from nidaqmx.task import Task as NiTask
 
-from voxel.core.utils.logging import get_component_logger
+from voxel.core.utils.log_config import get_component_logger
 from .daq import PinInfo, VoxelDaq
 
 

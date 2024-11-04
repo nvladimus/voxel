@@ -1,7 +1,7 @@
 from typing import Any
 
 from voxel.core.utils.geometry.vec import Vec2D
-from ..utils.logging import get_component_logger
+from ..utils.log_config import get_component_logger
 
 from .device.camera import VoxelCamera
 from .device.filter import VoxelFilter

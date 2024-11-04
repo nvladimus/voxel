@@ -1,16 +1,17 @@
+import logging
+import time
 from abc import abstractmethod
 from dataclasses import dataclass
 from multiprocessing import Event
 from pathlib import Path
-from time import sleep
+
 import numpy as np
-from typing import Literal
+from ome_types.model import OME, Channel, Image, Pixels, Pixels_DimensionOrder, PixelType, UnitsLength
+import test
 
 from voxel.core.instrument.io.data_structures.shared_double_buffer import SharedDoubleBuffer
 from voxel.core.utils.geometry.vec import Vec2D, Vec3D
-from voxel.core.utils.logging import LoggingSubprocess
-
-type WriterDType = Literal["uint8", "uint16"]
+from voxel.core.utils.log_config import LoggingSubprocess
 
 
 @dataclass
@@ -23,13 +24,9 @@ class WriterMetadata:
     position: Vec3D
     file_name: str
 
-    # OME Metadata properties
-    voxel_size: Vec3D = Vec3D(1.0, 1.0, 1.0)  # Physical size of a voxel in micrometers
-    voxel_size_unit: str = "µm"  # Unit of measurement
-    channel_names: list = None  # List of channel names
-    pixel_type: str = None  # Data type for the pixels (e.g., 'uint16')
-    dimension_order: str = "XYZCT"  # Dimension order
-    # Add other OME metadata properties as needed
+    channel_names: list = None
+
+    voxel_size: Vec3D = Vec3D(1.0, 1.0, 1.0)
 
 
 class VoxelWriter(LoggingSubprocess):
@@ -49,7 +46,8 @@ class VoxelWriter(LoggingSubprocess):
         if not self.dir.exists():
             self.dir.mkdir(parents=True, exist_ok=True)
 
-        self.axes_order = "ZYX"
+        self.dimension_order = Pixels_DimensionOrder.XYZCT
+        self.voxel_size_unit = UnitsLength.MICROMETER
 
         # Synchronization primitives
         self.running_flag = Event()
@@ -59,9 +57,30 @@ class VoxelWriter(LoggingSubprocess):
         self.dbl_buf = None
 
         self.metadata = None
+        self.ome: OME | None = None
+        self._ome_xml: str | None = None
+
         self._frame_shape: Vec2D | None = None
         self._frame_count = 0
         self._batch_count = 0
+        self._avg_rate = 0
+
+        self._total_data_written = 0
+        self._start_time = 0
+        self._end_time = 0
+
+    @property
+    def dtype(self) -> str:
+        """Data type for the written data."""
+        return self.pixel_type.numpy_dtype
+
+    @property
+    def size_c(self) -> int:
+        return len(self.metadata.channel_names) if self.metadata.channel_names else 1
+
+    @property
+    def axes(self) -> str:
+        return "".join([axis for axis in self.dimension_order.value if axis in "ZCYX"])[::-1]
 
     @property
     @abstractmethod
@@ -75,11 +94,11 @@ class VoxelWriter(LoggingSubprocess):
 
     @property
     @abstractmethod
-    def data_type(self) -> WriterDType:
-        """Data type for the written data.
+    def pixel_type(self) -> PixelType:
+        """Pixel type for the written data.
 
-        :return: Data type
-        :rtype: np.dtype
+        :return: Pixel type
+        :rtype: PixelType
         """
         pass
 
@@ -114,7 +133,7 @@ class VoxelWriter(LoggingSubprocess):
         self.metadata = props
         try:
             batch_shape = (self.batch_size_px, self.metadata.frame_shape.y, self.metadata.frame_shape.x)
-            self.dbl_buf = SharedDoubleBuffer(batch_shape, self.data_type)
+            self.dbl_buf = SharedDoubleBuffer(batch_shape, self.dtype)
             self.log.info(f"Configured writer with buffer shape: {batch_shape}")
         except Exception as e:
             if self.dbl_buf:
@@ -131,10 +150,13 @@ class VoxelWriter(LoggingSubprocess):
         if not self.metadata:
             raise RuntimeError("Writer properties not set. Call configure() before starting the writer.")
         try:
+            self.ome = self._generate_ome_metadata()
+            self._ome_xml = self.ome.to_xml()
             self.running_flag.set()
             self.needs_processing.clear()
             self._frame_count = 0
             self._batch_count = 0
+            self._total_data_written = 0
             super().start()
             self.log.debug("Writer started")
         except Exception as e:
@@ -146,14 +168,13 @@ class VoxelWriter(LoggingSubprocess):
         """Stop the writer and clean up resources"""
 
         self._switch_buffers()
-
-        # Wait for final processing to complete
         while self.needs_processing.is_set():
-            sleep(0.001)
+            time.sleep(0.001)
+
+        self.running_flag.clear()
 
         self.log.info(f"Processed {self._frame_count} frames in {self._batch_count} batches")
         self.log.info("Stopping writer")
-        self.running_flag.clear()
 
         self.join()
 
@@ -165,23 +186,24 @@ class VoxelWriter(LoggingSubprocess):
     def _run(self) -> None:
         """Main writer loop"""
         self._initialize()
-        try:
-            batch_count = 1
-            while self.running_flag.is_set() or self.needs_processing.is_set():
-                if self.needs_processing.is_set():
-                    try:
-                        mem_block = self.dbl_buf.mem_blocks[self.dbl_buf.read_mem_block_idx.value]
-                        batch_data = np.ndarray(self.dbl_buf.shape, dtype=self.data_type, buffer=mem_block.buf)
-                        self._process_batch(batch_data, batch_count)
-                    except Exception as e:
-                        self.log.error(f"Error processing batch: {e}")
-                    finally:
-                        self.needs_processing.clear()
-                        batch_count += 1
-                else:
-                    sleep(0.1)
-        finally:
-            self._finalize()
+        self._avg_rate = 0
+        self._batch_count = 1
+        while self.running_flag.is_set():
+            if self.needs_processing.is_set():
+                mem_block = self.dbl_buf.mem_blocks[self.dbl_buf.read_mem_block_idx.value]
+                shape = (self.dbl_buf.num_frames.value, *self.dbl_buf.shape[1:])
+                batch_data = np.ndarray(shape, dtype=self.dtype, buffer=mem_block.buf)
+
+                self._timed_batch_processing(batch_data)
+
+                self.needs_processing.clear()
+                self.dbl_buf.num_frames.value = 0
+                self._batch_count += 1
+                self._frame_count += batch_data.shape[0]
+            else:
+                time.sleep(0.1)
+
+        self._finalize()
 
     def add_frame(self, frame: np.ndarray) -> None:
         """Add a frame to the writer
@@ -201,7 +223,7 @@ class VoxelWriter(LoggingSubprocess):
         """Switch read and write buffers with proper synchronization"""
         # Wait for any ongoing processing to complete
         while self.needs_processing.is_set():
-            sleep(0.001)
+            time.sleep(0.001)
 
         # Toggle buffers
         self.dbl_buf.toggle_buffers()
@@ -211,17 +233,86 @@ class VoxelWriter(LoggingSubprocess):
 
         # Wait for processing to start before continuing
         while not self.needs_processing.is_set():
-            sleep(0.001)
+            time.sleep(0.001)
 
         self._batch_count += 1
+
+    def _timed_batch_processing(self, batch_data: np.ndarray) -> None:
+        """Process a batch of data with timing information
+
+        :param batch_data: The batch of frame data to process
+        :type batch_data: np.ndarray
+        :param batch_count: Current batch number (1-based)
+        :type batch_count: int
+        """
+
+        batch_start_time = time.time()
+        self._process_batch(batch_data, self._batch_count)
+        batch_end_time = time.time()
+
+        time_taken = batch_end_time - batch_start_time
+        data_size_mbs = batch_data.nbytes / (1024 * 1024)
+        rate_mbps = data_size_mbs / time_taken if time_taken > 0 else 0
+        self._avg_rate = (self._avg_rate * (self._batch_count - 1) + rate_mbps) / self._batch_count
+
+        self.log.info(
+            f"Batch {self._batch_count}, "
+            f"Time: {time_taken:.2f} s, "
+            f"Size: {data_size_mbs:.2f} MB, "
+            f"Rate: {rate_mbps:.2f} MB/s | "
+            f"Avg Rate: {self._avg_rate:.2f} MB/s"
+        )
+
+    def _generate_ome_metadata(self) -> OME:
+        """Generate OME metadata for the image stack using ome-types."""
+        # Create Channel object
+        channels = [
+            Channel(
+                id=f"Channel:0:{i}",
+                name=channel_name,
+                samples_per_pixel=1,
+            )
+            for i, channel_name in enumerate(self.metadata.channel_names)
+        ]
+
+        # Create Pixels object
+        pixels = Pixels(
+            id="Pixels:0",
+            dimension_order=self.dimension_order,
+            type=self.pixel_type,
+            size_x=self.metadata.frame_shape.x,
+            size_y=self.metadata.frame_shape.y,
+            size_z=self.metadata.frame_count,
+            size_c=1,
+            size_t=1,
+            physical_size_x=self.metadata.voxel_size.x,
+            physical_size_y=self.metadata.voxel_size.y,
+            physical_size_z=self.metadata.voxel_size.z,
+            physical_size_x_unit=self.voxel_size_unit,
+            physical_size_y_unit=self.voxel_size_unit,
+            physical_size_z_unit=self.voxel_size_unit,
+            channels=channels,
+        )
+
+        # Create Image object
+        image = Image(
+            id="Image:0",
+            name=self.metadata.file_name,
+            pixels=pixels,
+        )
+
+        # Create OME object
+        ome = OME(images=[image])
+
+        return ome
 
 
 class SimpleWriter(VoxelWriter):
     """Simple writer class for testing purposes"""
 
     @property
-    def data_type(self) -> WriterDType:
-        return "uint16"
+    def pixel_type(self) -> PixelType:
+        return PixelType.UINT16
 
     @property
     def batch_size_px(self) -> int:
@@ -274,70 +365,79 @@ class SimpleWriter(VoxelWriter):
         self.log.info("Finalized...")
 
 
-def generate_frames(frame_count, frame_shape, batch_size_px, data_type):
-    """Generate test frames with sequential values"""
+def generate_frames(frame_count, frame_shape, batch_size_px, dtype, logger: logging.Logger):
+    """Generate test frames with sequential values."""
     batch_idx = 0
     for frame_z in range(frame_count):
+        start_time = time.time()
         # Fill frame with the current frame index
-        frame = np.full((frame_shape.y, frame_shape.x), frame_z, dtype=data_type)
-
+        frame = np.full((frame_shape.y, frame_shape.x), frame_z, dtype=dtype)
+        end_time = time.time()
+        time_taken = end_time - start_time
+        logger.debug(f"Frame {frame_z} generated in {time_taken:.6f} seconds")
         # Log frame generation for debugging
         if frame_z % batch_size_px == 0:
             batch_idx += 1
-
         yield frame
 
 
-def generate_checkered_frames(frame_count, frame_shape, data_type):
+def generate_checkered_frames(frame_count, frame_shape, dtype, logger: logging.Logger):
     """Generate test frames with checkerboard patterns."""
     min_tile_size = 4
     max_tile_size = min(frame_shape.x, frame_shape.y) // 4
 
     tile_sizes = np.linspace(min_tile_size, max_tile_size, num=frame_count, dtype=int)
 
+    # Precompute meshgrid indices
+    y_indices = np.arange(frame_shape.y)
+    x_indices = np.arange(frame_shape.x)
+    xv, yv = np.meshgrid(x_indices, y_indices)
+
     for frame_z in range(frame_count):
+        start_time = time.time()
         tile_size = tile_sizes[frame_z]
 
-        # Calculate number of tiles using ceiling division to ensure full coverage
-        num_tiles_x = -(-frame_shape.x // tile_size)
-        num_tiles_y = -(-frame_shape.y // tile_size)
-
-        # Create a checkerboard pattern
-        checkerboard = np.indices((num_tiles_y, num_tiles_x)).sum(axis=0) % 2
-        checkerboard = np.kron(checkerboard, np.ones((tile_size, tile_size)))
-
-        # Crop to the desired frame shape
-        frame = checkerboard[: frame_shape.y, : frame_shape.x]
+        # Compute the checkerboard pattern directly
+        checkerboard = ((xv // tile_size + yv // tile_size) % 2).astype(dtype)
 
         # Scale to full intensity range
-        frame = (frame * 255).astype(data_type)
+        frame = checkerboard * 255
+
+        end_time = time.time()
+        time_taken = end_time - start_time
+        logger.debug(f"Frame {frame_z} generated in {time_taken:.6f} seconds")
 
         yield frame
 
 
-def generate_spiral_frames(frame_count, frame_shape, data_type):
+def generate_spiral_frames(frame_count, frame_shape, dtype, logger: logging.Logger):
     """Generate frames with spiral patterns."""
     min_tile_size = 4
     max_tile_size = min(frame_shape.x, frame_shape.y) // 2
 
     tile_sizes = np.linspace(min_tile_size, max_tile_size, num=frame_count, dtype=int)
 
+    # Create indices centered on the frame (precomputed)
+    y_indices = np.arange(frame_shape.y) - frame_shape.y // 2
+    x_indices = np.arange(frame_shape.x) - frame_shape.x // 2
+    xv, yv = np.meshgrid(x_indices, y_indices)
+
+    # Precompute distance from the center
+    distance = np.sqrt(xv**2 + yv**2)
+
     for frame_z in range(frame_count):
+        start_time = time.time()
         tile_size = tile_sizes[frame_z]
 
-        # Create indices centered on the frame
-        x = np.arange(frame_shape.x) - frame_shape.x // 2
-        y = np.arange(frame_shape.y) - frame_shape.y // 2
-        xv, yv = np.meshgrid(x, y)
-
-        # Calculate distance from center
-        distance = np.sqrt(xv**2 + yv**2)
-
         # Create expanding pattern
-        pattern = ((distance // tile_size) % 2).astype(int)
+        pattern = ((distance // tile_size) % 2).astype(dtype)
 
         # Scale to full intensity range
-        frame = (pattern * 255).astype(data_type)
+        frame = pattern * 255
+
+        end_time = time.time()
+        time_taken = end_time - start_time
+        logger.debug(f"Frame {frame_z} generated in {time_taken:.6f} seconds")
 
         yield frame
 
@@ -347,9 +447,9 @@ def test_writer():
 
     writer = SimpleWriter("test", "test_writer")
 
-    NUM_BATCHES = 10
+    NUM_BATCHES = 2
     frame_shape = Vec2D(4096, 4096)
-    frame_count = writer.batch_size_px * NUM_BATCHES
+    frame_count = (writer.batch_size_px * NUM_BATCHES) - 40
     props = WriterMetadata(
         frame_count=frame_count,
         frame_shape=frame_shape,
@@ -362,7 +462,7 @@ def test_writer():
     writer.start()
 
     try:
-        for frame in generate_frames(frame_count, frame_shape, writer.batch_size_px, writer.data_type):
+        for frame in generate_frames(frame_count, frame_shape, writer.batch_size_px, writer.dtype, writer.log):
             writer.add_frame(frame)
 
     except Exception as e:
@@ -372,6 +472,7 @@ def test_writer():
 
 
 if __name__ == "__main__":
-    from voxel.core.utils.logging import run_with_logging
+    from voxel.core.utils.log_config import VoxelLogging
 
-    run_with_logging(test_writer, level="DEBUG", subprocess=True)
+    with VoxelLogging():
+        test_writer()

@@ -1,7 +1,7 @@
 from typing import Any, Callable, Optional, Union
 
 from voxel.core.utils.descriptors.proxy import DescriptorProxy
-from voxel.core.utils.logging import get_logger
+from voxel.core.utils.log_config import get_logger
 
 Number = Union[int, float]
 StaticOrCallableNumber = Union[Number, Callable[[Any], Number]]

@@ -7,7 +7,7 @@ from voxel.core.instrument import VoxelInstrument
 from voxel.core.instrument.channel import VoxelChannel
 from voxel.core.utils.descriptors.enumerated_property import enumerated_property
 from voxel.core.utils.geometry.vec import Vec2D, Vec3D
-from voxel.core.utils.logging import get_logger
+from voxel.core.utils.log_config import get_logger
 
 from .metadata import VoxelMetadata
 from .model import (

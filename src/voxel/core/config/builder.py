@@ -12,7 +12,7 @@ from voxel.core.instrument.device.base import VoxelDevice
 from voxel.core.instrument.io.transfer import VoxelFileTransfer
 from voxel.core.instrument.io.writer import VoxelWriter
 from voxel.core.instrument.main import VoxelInstrument
-from voxel.core.utils.logging import get_logger
+from voxel.core.utils.log_config import get_logger
 
 from .models import InstanceSpec, InstrumentConfig, VoxelConfig
 

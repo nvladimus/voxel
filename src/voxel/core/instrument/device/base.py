@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import Any
 
 
-from voxel.core.utils.logging import get_component_logger
+from voxel.core.utils.log_config import get_component_logger
 
 
 class VoxelDeviceType(StrEnum):

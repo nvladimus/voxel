@@ -21,6 +21,9 @@ class SharedDoubleBuffer:
         if not shape or any(dim <= 0 for dim in shape):
             raise ValueError("Buffer shape must be positive")
 
+        self.dtype = dtype
+        self.shape = shape
+
         # overflow errors without casting for large datasets
         self.nbytes = int(np.prod(shape, dtype=np.int64) * np.dtype(dtype).itemsize)
 
@@ -39,21 +42,12 @@ class SharedDoubleBuffer:
         self.write_mem_block_idx = Value("i", 0)
         self.read_mem_block_idx = Value("i", 1)
 
+        self.buffer_index = Value("i", -1)
+        self.num_frames = Value("i", 0)
+
         # attach numpy array references to shared memory
         self.write_buf = np.ndarray(shape, dtype=dtype, buffer=self.mem_blocks[0].buf)
         self.read_buf = np.ndarray(shape, dtype=dtype, buffer=self.mem_blocks[1].buf)
-
-        # attach references to the names of the memory locations
-        self.write_buf_mem_name = self.mem_blocks[0].name
-        self.read_buf_mem_name = self.mem_blocks[1].name
-
-        # save values for querying later
-        self.dtype = dtype
-        self.shape = shape
-        self.buffer_index = -1
-        self.frames_in_read_buffer = 0
-
-        # Set initial state
 
     def toggle_buffers(self):
         """
@@ -64,15 +58,11 @@ class SharedDoubleBuffer:
         """
         with self.write_lock:
 
-            # Transfer write buffer info to read buffer
-            self.frames_in_read_buffer = self.buffer_index + 1
-
-            # reset buffer index
-            self.buffer_index = -1
+            self.num_frames.value += self.buffer_index.value + 1
+            self.buffer_index.value = -1
 
             # toggle buffers
             self.read_buf, self.write_buf = self.write_buf, self.read_buf
-            self.read_buf_mem_name, self.write_buf_mem_name = self.write_buf_mem_name, self.read_buf_mem_name
             self.read_mem_block_idx.value, self.write_mem_block_idx.value = (
                 self.write_mem_block_idx.value,
                 self.read_mem_block_idx.value,
@@ -91,11 +81,11 @@ class SharedDoubleBuffer:
             raise ValueError(f"Image shape {frame.shape} doesn't match buffer shape {self.shape[1:]}")
 
         with self.write_lock:
-            if self.buffer_index >= self.shape[0] - 1:
+            if self.buffer_index.value >= self.shape[0] - 1:
                 raise IndexError("Buffer is full")
 
-            self.write_buf[self.buffer_index + 1] = frame
-            self.buffer_index += 1
+            self.write_buf[self.buffer_index.value + 1] = frame
+            self.buffer_index.value += 1
 
     def close_and_unlink(self) -> None:
         """

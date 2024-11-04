@@ -17,7 +17,7 @@ from pytools import F
 from voxel.core.utils.descriptors.new import deliminated_property
 from voxel.core.instrument.daq.new.waveform import TaskTiming, Waveform
 from voxel.core.instrument.device.base import VoxelDeviceConnectionError
-from voxel.core.utils.logging import get_component_logger
+from voxel.core.utils.log_config import get_component_logger
 
 
 @dataclass(frozen=True)

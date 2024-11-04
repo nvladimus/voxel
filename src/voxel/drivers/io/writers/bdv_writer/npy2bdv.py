@@ -11,8 +11,8 @@ import numpy as np
 import skimage.transform
 from tqdm import trange
 
-from voxel.processing.downsample.gpu.gputools.downsample_3d import GPUToolsDownSample3D
-from voxel.core.utils.logging import get_logger
+from voxel.core.processing.downsample.gpu.gputools.downsample_3d import GPUToolsDownSample3D
+from voxel.core.utils.log_config import get_logger
 
 
 class BdvBase:

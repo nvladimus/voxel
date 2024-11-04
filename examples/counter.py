@@ -3,7 +3,7 @@ import time
 from enum import IntEnum
 from multiprocessing import Event, Value
 
-from voxel.core.utils.logging import LoggingSubprocess
+from voxel.core.utils.log_config import LoggingSubprocess
 
 
 class State(IntEnum):
@@ -118,6 +118,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    from voxel.core.utils.logging import run_with_logging
+    from voxel.core.utils.log_config import VoxelLogging
 
-    run_with_logging(main, subprocess=True, log_level="DEBUG")
+    with VoxelLogging():
+        main()

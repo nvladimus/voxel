@@ -1,7 +1,8 @@
 import numpy as np
 from pathlib import Path
+
 from voxel.core.utils.geometry.vec import Vec3D
-from voxel.core.instrument.io.writers.base import VoxelWriter, WriterProps
+from voxel.core.instrument.io.new.base import VoxelWriter, WriterProps
 import time
 
 
@@ -147,6 +148,7 @@ def test_simulated_writer():
 
 
 if __name__ == "__main__":
-    from voxel.core.utils.logging import run_with_logging
+    from voxel.core.utils.log_config import VoxelLogging
 
-    run_with_logging(test_simulated_writer, subprocess=True, log_level="DEBUG")
+    with VoxelLogging():
+        test_simulated_writer()

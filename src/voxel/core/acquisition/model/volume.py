@@ -2,7 +2,7 @@ import math
 from typing import Callable
 
 from voxel.core.utils.geometry.vec import Plane, Vec3D
-from voxel.core.utils.logging import get_logger
+from voxel.core.utils.log_config import get_logger
 
 
 class VolumeBoundaryError(Exception):

@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 from ruamel.yaml import YAML
 
 from voxel.core.acquisition.model import AcquisitionSpecs
-from voxel.core.utils.logging import get_logger
+from voxel.core.utils.log_config import get_logger
 
 
 class MetadataSpecs(BaseModel):

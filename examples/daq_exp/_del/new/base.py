@@ -6,7 +6,7 @@ import numpy as np
 from scipy import signal
 
 from voxel.core.utils.descriptors.new import deliminated_property
-from voxel.core.utils.logging import get_component_logger
+from voxel.core.utils.log_config import get_component_logger
 
 type Waveform = np.ndarray[float]
 

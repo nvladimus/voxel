@@ -9,7 +9,7 @@ from voxel.core.instrument.device.linear_axis import LinearAxisDimension, VoxelL
 from voxel.core.instrument.io.transfer import VoxelFileTransfer
 from voxel.core.instrument.io.writer import VoxelWriter
 from voxel.core.instrument.stage import VoxelStage
-from voxel.core.utils.logging import get_component_logger
+from voxel.core.utils.log_config import get_component_logger
 
 
 class VoxelInstrument:

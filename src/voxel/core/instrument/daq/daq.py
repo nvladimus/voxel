@@ -7,7 +7,7 @@ from nidaqmx.system import System
 from nidaqmx.system.device import Device as NiDevice
 
 from voxel.core.instrument.device.base import VoxelDeviceConnectionError
-from voxel.core.utils.logging import get_component_logger
+from voxel.core.utils.log_config import get_component_logger
 
 if TYPE_CHECKING:
     from .task import VoxelDaqTask

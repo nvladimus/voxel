@@ -2,7 +2,7 @@ from abc import abstractmethod
 
 import numpy
 
-from voxel.core.utils.logging import get_logger
+from voxel.core.utils.log_config import get_logger
 
 
 class BaseDownSample:
