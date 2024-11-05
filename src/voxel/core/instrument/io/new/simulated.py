@@ -148,7 +148,7 @@ def test_simulated_writer():
 
 
 if __name__ == "__main__":
-    from voxel.core.utils.log_config import VoxelLogging
+    from voxel.core.utils.log_config import setup_logging
 
-    with VoxelLogging():
-        test_simulated_writer()
+    setup_logging()
+    test_simulated_writer()

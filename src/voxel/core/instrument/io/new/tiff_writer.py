@@ -1,4 +1,5 @@
 from typing import Self
+import test
 import tifffile as tf
 import numpy as np
 from voxel.core.instrument.io.new.base import VoxelWriter, WriterMetadata, PixelType
@@ -126,7 +127,7 @@ def test_tiffwriter():
 
 
 if __name__ == "__main__":
-    from voxel.core.utils.log_config import VoxelLogging
+    from voxel.core.utils.log_config import setup_logging
 
-    with VoxelLogging(detailed=False):
-        test_tiffwriter()
+    setup_logging(detailed=False)
+    test_tiffwriter()

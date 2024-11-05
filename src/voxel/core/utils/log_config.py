@@ -1,10 +1,14 @@
 from abc import ABC, abstractmethod
+import atexit
 from enum import Enum
 import logging
 from logging.handlers import QueueHandler, QueueListener
 from multiprocessing import Process, Queue
 from pathlib import Path
-from typing import Self
+
+LOGGING_SUBPROC_SUFFIX = "_sub"
+LOGGING_PROJECT_NAME = "voxel"
+LOG_QUEUE = Queue(-1)
 
 
 class LogColor(Enum):
@@ -78,9 +82,10 @@ class CustomFormatter(logging.Formatter):
         return ""
 
 
-LOGGING_SUBPROC_SUFFIX = "_subprocess"
-LOGGING_PROJECT_NAME = "voxel"
-LOG_QUEUE = Queue(-1)
+# class FileFormatter():
+#     """Formatter for file logs"""
+
+#     def __init__(self, detailed: bool = True, jsonify: bool = True) -> None:
 
 
 def get_logger(name) -> logging.Logger:
@@ -106,98 +111,54 @@ def get_component_logger(obj: object) -> logging.Logger:
     return get_logger(obj.__class__.__name__)
 
 
-class VoxelLogging:
-    """Context manager for setting up logging"""
+def _create_handlers(log_file: str | None, detailed: bool = True, fancy: bool = True) -> list[logging.Handler]:
+    """Create and configure log handlers"""
+    handlers = []
 
-    def __init__(
-        self,
-        level: str = "INFO",
-        log_file: str | None = None,
-        fancy: bool = True,
-        detailed: bool = True,
-    ) -> None:
-        """Initialize logging configuration
-        :param level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        :param log_file: Optional path to log file
-        :param fancy: Whether to use emoji and color formatting
-        """
-        self.level = getattr(logging, level.upper(), logging.INFO)
-        self.log_file = log_file
-        self.fancy = fancy
-        self.detailed = detailed
-        self.listener = None
-        self.handlers = []
-        self.queue_handler = None
+    # Create formatters
+    console_formatter = CustomFormatter(detailed=detailed, fancy=fancy, colored=True)
 
-        # Get root and library loggers
-        self.root_logger = logging.getLogger()
-        self.lib_logger = logging.getLogger(LOGGING_PROJECT_NAME)
+    # Console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(console_formatter)
+    handlers.append(console_handler)
 
-    def _create_handlers(self) -> list:
-        """Create and configure log handlers"""
-        handlers = []
+    # File handler if log file specified
+    if log_file:
+        file_formatter = CustomFormatter(detailed=detailed, fancy=False, colored=False)
+        log_path = Path(log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(file_formatter)
+        handlers.append(file_handler)
 
-        # Create formatters
-        console_formatter = CustomFormatter(detailed=self.detailed, fancy=self.fancy, colored=True)
-        file_formatter = CustomFormatter(detailed=self.detailed, fancy=False, colored=False)
-
-        # Console handler
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(console_formatter)
-        handlers.append(console_handler)
-
-        # File handler if log file specified
-        if self.log_file:
-            log_path = Path(self.log_file)
-            log_path.parent.mkdir(parents=True, exist_ok=True)
-            file_handler = logging.FileHandler(self.log_file)
-            file_handler.setFormatter(file_formatter)
-            handlers.append(file_handler)
-
-        return handlers
-
-    def __enter__(self) -> Self:
-        """Set up logging when entering context"""
-        # Clear existing handlers
-        self.root_logger.handlers.clear()
-        self.lib_logger.handlers.clear()
-
-        # Set levels
-        self.root_logger.setLevel(self.level)
-        self.lib_logger.setLevel(self.level)
-
-        # Create handlers
-        self.handlers = self._create_handlers()
-
-        # Create a QueueHandler and add it to the root logger
-        self.queue_handler = QueueHandler(LOG_QUEUE)
-        self.root_logger.addHandler(self.queue_handler)
-
-        # Always set up queue listener for subprocess logging
-        self.listener = QueueListener(LOG_QUEUE, *self.handlers, respect_handler_level=True)
-        self.listener.start()
-
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Clean up logging when exiting context"""
-        if self.listener:
-            self.listener.stop()
-        if self.queue_handler:
-            self.root_logger.removeHandler(self.queue_handler)
+    return handlers
 
 
-def with_logging(level: str = "INFO", log_file: str | None = None, fancy: bool = True):
-    """decorator to run a function with logging"""
+def setup_logging(level: str | int = "INFO", log_file: str | None = None, fancy: bool = True, detailed: bool = True):
+    """
+    Set up logging for the application.
 
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            with VoxelLogging(level=level, log_file=log_file, fancy=fancy):
-                return func(*args, **kwargs)
+    :param level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    :param log_file: Optional path to log file
+    :param fancy: Whether to use emoji and color formatting
+    :param detailed: Whether to include detailed information in log messages
+    """
+    lib_logger = logging.getLogger(LOGGING_PROJECT_NAME)
 
-        return wrapper
+    level = getattr(logging, level.upper(), logging.INFO)
+    lib_logger.setLevel(level)
 
-    return decorator
+    handlers = _create_handlers(log_file, detailed=detailed, fancy=fancy)
+
+    queue_handler = QueueHandler(LOG_QUEUE)
+    lib_logger.handlers.clear()
+    lib_logger.addHandler(queue_handler)
+
+    listener = QueueListener(LOG_QUEUE, *handlers, respect_handler_level=True)
+    listener.start()
+
+    atexit.register(listener.stop)
 
 
 class LoggingSubprocess(Process, ABC):
@@ -209,26 +170,25 @@ class LoggingSubprocess(Process, ABC):
         super().__init__()
         self.name = name
         self._log_queue = queue
-        self._log_level = logging.getLogger().getEffectiveLevel()
         self.log = get_component_logger(self)
+        self._log_level = self.log.getEffectiveLevel()
         self._initialized = False
 
     def _setup_logging(self):
         """Set up logging for the subprocess"""
         if not self._initialized:
+
+            for logger in [logging.getLogger(), logging.getLogger(LOGGING_PROJECT_NAME)]:
+                logger.handlers.clear()
+                logger.setLevel(self._log_level)
+
             self.log = get_component_logger(self)
-            self.name += LOGGING_SUBPROC_SUFFIX
-
-            root_logger = logging.getLogger()
-            lib_logger = logging.getLogger(LOGGING_PROJECT_NAME)
-            loggers = [root_logger, lib_logger]
-
-            [logger.handlers.clear() for logger in loggers]
 
             queue_handler = QueueHandler(self._log_queue)
-            root_logger.addHandler(queue_handler)
+            self.log.addHandler(queue_handler)
+            self.log.setLevel(self._log_level)
 
-            [logger.setLevel(self._log_level) for logger in loggers]
+            self.name += LOGGING_SUBPROC_SUFFIX
 
             self._initialized = True
 
@@ -264,11 +224,14 @@ class Counter(LoggingSubprocess):
         self.log.info(f"Counter process started with count={self.count}")  # Added startup message
         for i in range(self.count):
             self.log.info(f"Count: {i}")
+            self.log.debug(f"Debug message: {i}")
+            self.log.warning(f"Warning message: {i}")
+            self.log.error(f"Error message: {i}")
             time.sleep(0.5)  # Reduced sleep time for faster testing
         self.log.info("Counter process completed")  # Added completion message
 
 
-@with_logging()
+# @with_logging(level="ERROR")
 def main() -> None:
     proc = Counter("counter", 5)
     proc.log.critical("Main process started ....................................")
@@ -280,4 +243,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    setup_logging(level="DEBUG")
     main()
