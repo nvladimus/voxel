@@ -7,7 +7,6 @@ from pathlib import Path
 
 import numpy as np
 from ome_types.model import OME, Channel, Image, Pixels, Pixels_DimensionOrder, PixelType, UnitsLength
-import test
 
 from voxel.core.instrument.io.data_structures.shared_double_buffer import SharedDoubleBuffer
 from voxel.core.utils.geometry.vec import Vec2D, Vec3D
@@ -365,7 +364,7 @@ class SimpleWriter(VoxelWriter):
         self.log.info("Finalized...")
 
 
-def generate_frames(frame_count, frame_shape, batch_size_px, dtype, logger: logging.Logger):
+def generate_frames(frame_count, frame_shape, batch_size_px, dtype, logger: logging.Logger = None):
     """Generate test frames with sequential values."""
     batch_idx = 0
     for frame_z in range(frame_count):
@@ -374,14 +373,15 @@ def generate_frames(frame_count, frame_shape, batch_size_px, dtype, logger: logg
         frame = np.full((frame_shape.y, frame_shape.x), frame_z, dtype=dtype)
         end_time = time.time()
         time_taken = end_time - start_time
-        logger.debug(f"Frame {frame_z} generated in {time_taken:.6f} seconds")
+        if logger:
+            logger.debug(f"Frame {frame_z} generated in {time_taken:.6f} seconds")
         # Log frame generation for debugging
         if frame_z % batch_size_px == 0:
             batch_idx += 1
         yield frame
 
 
-def generate_checkered_frames(frame_count, frame_shape, dtype, logger: logging.Logger):
+def generate_checkered_frames(frame_count, frame_shape, dtype, logger: logging.Logger = None):
     """Generate test frames with checkerboard patterns."""
     min_tile_size = 4
     max_tile_size = min(frame_shape.x, frame_shape.y) // 4
@@ -405,15 +405,16 @@ def generate_checkered_frames(frame_count, frame_shape, dtype, logger: logging.L
 
         end_time = time.time()
         time_taken = end_time - start_time
-        logger.debug(f"Frame {frame_z} generated in {time_taken:.6f} seconds")
+        if logger:
+            logger.debug(f"Frame {frame_z} generated in {time_taken:.6f} seconds")
 
         yield frame
 
 
-def generate_spiral_frames(frame_count, frame_shape, dtype, logger: logging.Logger):
+def generate_spiral_frames(frame_count, frame_shape, dtype, logger: logging.Logger = None):
     """Generate frames with spiral patterns."""
-    min_tile_size = 4
-    max_tile_size = min(frame_shape.x, frame_shape.y) // 2
+    min_tile_size = 2
+    max_tile_size = min(frame_shape.x, frame_shape.y) // 12
 
     tile_sizes = np.linspace(min_tile_size, max_tile_size, num=frame_count, dtype=int)
 
@@ -437,7 +438,8 @@ def generate_spiral_frames(frame_count, frame_shape, dtype, logger: logging.Logg
 
         end_time = time.time()
         time_taken = end_time - start_time
-        logger.debug(f"Frame {frame_z} generated in {time_taken:.6f} seconds")
+        if logger:
+            logger.debug(f"Frame {frame_z} generated in {time_taken:.6f} seconds")
 
         yield frame
 

@@ -1,5 +1,4 @@
 from typing import Self
-import test
 import tifffile as tf
 import numpy as np
 from voxel.core.instrument.io.new.base import VoxelWriter, WriterMetadata, PixelType
