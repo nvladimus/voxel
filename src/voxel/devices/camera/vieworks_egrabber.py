@@ -154,9 +154,9 @@ class Camera(BaseCamera):
     def width_px(self, value: int):
         # reset offset to (0,0)
         self.grabber.remote.set("OffsetX", 0)
+        self.grabber.remote.set("Width", value)
         centered_offset_px = round((self.max_width_px / 2 - value / 2) / self.step_width_px) * self.step_width_px
         self.grabber.remote.set("OffsetX", centered_offset_px)
-        self.grabber.remote.set("Width", value)
         self.log.info(f"width set to: {value} px")
         # refresh parameter values
         self._get_min_max_step_values()
@@ -173,6 +173,7 @@ class Camera(BaseCamera):
     def height_px(self, value: int):
         # reset offset to (0,0)
         self.grabber.remote.set("OffsetY", 0)
+        self.grabber.remote.set("Height", value)
         centered_offset_px = round((self.max_height_px / 2 - value / 2) / self.step_height_px) * self.step_height_px
         self.grabber.remote.set("OffsetY", centered_offset_px)
         self.grabber.remote.set("Height", value)
