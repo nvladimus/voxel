@@ -1,6 +1,6 @@
 from coherent_lasers.genesis_mx.driver import GenesisMX
 from coherent_lasers.genesis_mx.commands import OperationModes
-from voxel.devices.laser import BaseLaser
+from voxel.devices.laser.base import BaseLaser
 from voxel.descriptors.deliminated_property import DeliminatedProperty
 
 INIT_POWER_MW = 10.0
