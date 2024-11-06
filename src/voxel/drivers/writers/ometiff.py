@@ -102,7 +102,7 @@ def test_tiffwriter():
         position=Vec3D(0, 0, 0),
         file_name="voxel_data_compressed",
         voxel_size=Vec3D(0.1, 0.1, 1.0),
-        channel_names=["Channel0"],
+        channel_name="Channel0",
     )
 
     writer.configure(metadata)

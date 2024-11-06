@@ -180,8 +180,7 @@ class ImarisWriter(VoxelWriter):
             )
 
             parameters = pw.Parameters()
-            for i, channel_name in enumerate(self.metadata.channel_names):
-                parameters.set_channel_name(i, channel_name)
+            parameters.set_channel_name(i, self.metadata.channel_name)
 
             color_infos = [pw.ColorInfo()]
             color_infos[0].set_base_color(pw.Color(1.0, 1.0, 1.0, 1.0))
@@ -220,7 +219,7 @@ def test_imaris_writer():
         position=Vec3D(0, 0, 0),
         file_name="voxel_data",
         voxel_size=Vec3D(0.1, 0.1, 1.0),
-        channel_names=["Channel0"],
+        channel_name="Channel0",
     )
 
     writer.configure(metadata)

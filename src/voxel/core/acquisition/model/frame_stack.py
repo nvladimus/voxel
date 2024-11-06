@@ -19,7 +19,7 @@ class FrameStack:
     settings: Optional[dict[str, dict[str, Any]]] = None
 
     @property
-    def num_frames(self):
+    def frame_count(self):
         return math.ceil(self.size.z / self.z_step_size)
 
     def to_dict(self):
@@ -52,7 +52,7 @@ def get_frame_stack_size_mb(frame_stack: FrameStack, instrument: VoxelInstrument
             * np.dtype(channel.writer.data_type).itemsize
             / 1024**2
         )
-        return frame_size_mb * frame_stack.num_frames
+        return frame_size_mb * frame_stack.frame_count
 
     total_size_mb = 0
     for channel_name in frame_stack.channels:

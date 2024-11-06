@@ -22,11 +22,13 @@ class WriterMetadata:
     frame_shape: Vec2D
 
     position: Vec3D
-    file_name: str
 
-    channel_names: list = None
+    channel_name: str
+    channel_idx: int = 0
 
     voxel_size: Vec3D = Vec3D(1.0, 1.0, 1.0)
+
+    file_name: str
 
 
 class VoxelWriter(VoxelDevice, LoggingSubprocess):
