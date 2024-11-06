@@ -1,7 +1,7 @@
 from typing import Self
 import tifffile as tf
 import numpy as np
-from voxel.core.instrument.io.new.base import VoxelWriter, WriterMetadata, PixelType
+from voxel.core.instrument.device.writer import VoxelWriter, WriterMetadata, PixelType
 
 COMPRESSION_METHODS = [None, "deflate", "lzw", "zstd", "lzma"]
 
@@ -89,7 +89,7 @@ class OMETiffWriter(VoxelWriter):
 def test_tiffwriter():
     """Test the OME-TIFF voxel writer with realistic image data."""
     from voxel.core.utils.geometry.vec import Vec2D, Vec3D
-    from voxel.core.instrument.io.new.base import generate_spiral_frames  # , generate_checkered_frames
+    from voxel.core.utils.frame_gen import generate_spiral_frames  # , generate_checkered_frames
 
     writer = OMETiffWriter(directory="test_output", name="tiff_writer", compression="zstd", batch_size_px=128)
 

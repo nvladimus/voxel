@@ -1,4 +1,4 @@
-from .main import (
+from .instrument import (
     LinearAxisDimension,
     VoxelCamera,
     VoxelChannel,
@@ -17,6 +17,7 @@ from .main import (
 __all__ = [
     "VoxelInstrument",
     "VoxelChannel",
+    "VoxelStage",
     "VoxelDevice",
     "VoxelDeviceType",
     "VoxelCamera",
@@ -25,7 +26,6 @@ __all__ = [
     "VoxelFilterWheel",
     "VoxelLinearAxis",
     "LinearAxisDimension",
-    "VoxelStage",
     "VoxelWriter",
     "VoxelFileTransfer",
 ]

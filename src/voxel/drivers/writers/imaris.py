@@ -1,4 +1,3 @@
-import copy
 from enum import Enum
 from math import ceil
 import numpy as np
@@ -6,7 +5,7 @@ import multiprocessing as mp
 from datetime import datetime
 from voxel.core.utils.geometry.vec import Vec3D
 from PyImarisWriter import PyImarisWriter as pw
-from voxel.core.instrument.io.new.base import VoxelWriter, WriterMetadata, PixelType, Pixels_DimensionOrder
+from voxel.core.instrument.device.writer import VoxelWriter, WriterMetadata, PixelType, Pixels_DimensionOrder
 
 
 class ImarisCompression(Enum):
@@ -23,7 +22,10 @@ class ImarisProgressChecker(pw.CallbackClass):
     def RecordProgress(self, progress: float, total_bytes_written: int):
         """Called by ImarisWriter SDK to report progress."""
         self.writer.progress = progress
-        # self.writer.log.info(f"Progress: {progress * 100:.2f}% | Bytes Written: {total_bytes_written}")
+
+        # log progress every 10%
+        if progress * 100 % 10 == 0:
+            self.writer.log.info(f"Progress: {progress * 100:.2f}% | Bytes Written: {total_bytes_written}")
 
 
 class ImarisWriter(VoxelWriter):
@@ -203,7 +205,7 @@ class ImarisWriter(VoxelWriter):
 
 def test_imaris_writer():
     """Test the Imaris IMS voxel writer with realistic image data."""
-    from voxel.core.instrument.io.new.base import generate_spiral_frames
+    from voxel.core.utils.frame_gen import generate_spiral_frames
     from voxel.core.utils.geometry.vec import Vec2D, Vec3D
 
     writer = ImarisWriter(directory="test_output", name="imaris_writer", batch_size_px=64)

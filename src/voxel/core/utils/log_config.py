@@ -8,6 +8,8 @@ from pathlib import Path
 
 LOGGING_SUBPROC_SUFFIX = "_sub"
 LOGGING_PROJECT_NAME = "voxel"
+NAME_MIN_WIDTH = 28
+MSG_MIN_WIDTH = 42
 LOG_QUEUE = Queue(-1)
 
 
@@ -52,7 +54,7 @@ class CustomFormatter(logging.Formatter):
         date_fmt = "%Y-%m-%d %H:%M:%S"
         level_str = "%(emoji)s" if self.fancy else "%(levelname)8s"
 
-        default_fmt = f"%(asctime)s - {level_str} - %(name)-25s - %(message)-42s"
+        default_fmt = f"%(asctime)s - {level_str} - %(name)-{NAME_MIN_WIDTH}s - %(message)-{MSG_MIN_WIDTH}s"
         default_fmt = f"%(color_code)s{default_fmt}{LogColor.RESET.value}" if self.colored else default_fmt
 
         file_name = "%(filename)s:%(lineno)d"

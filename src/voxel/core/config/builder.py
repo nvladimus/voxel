@@ -9,9 +9,9 @@ from voxel.core.instrument.daq.ni import VoxelNIDAQ
 from voxel.core.instrument.daq.simulated import SimulatedNIDAQ
 from voxel.core.instrument.daq.task import DAQTaskType, VoxelDAQTask
 from voxel.core.instrument.device.base import VoxelDevice
-from voxel.core.instrument.io.transfer import VoxelFileTransfer
-from voxel.core.instrument.io.writer import VoxelWriter
-from voxel.core.instrument.main import VoxelInstrument
+from voxel.core.instrument.device.transfer import VoxelFileTransfer
+from voxel.core.instrument.device.writer import VoxelWriter
+from voxel.core.instrument.instrument import VoxelInstrument
 from voxel.core.utils.log_config import get_logger
 
 from .models import InstanceSpec, InstrumentConfig, VoxelConfig

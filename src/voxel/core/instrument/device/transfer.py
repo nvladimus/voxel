@@ -4,10 +4,11 @@ from pathlib import Path
 
 from imohash import hashfile
 
+from .base import VoxelDevice, VoxelDeviceType
 from voxel.core.utils.log_config import get_logger
 
 
-class VoxelFileTransfer:
+class VoxelFileTransfer(VoxelDevice):
     """
     Base class for all voxel file transfer processes.
 
@@ -25,8 +26,7 @@ class VoxelFileTransfer:
     """
 
     def __init__(self, external_path: str, local_path: str, name: str = "voxel_file_transfer") -> None:
-        self.log = get_logger(f"{__name__}.{self.__class__.__name__}")
-        self.name = name
+        super().__init__(name=name, device_type=VoxelDeviceType.FILE_TRANSFER)
         self._external_path = Path(external_path)
         self._local_path = Path(local_path)
         if self._external_path == self._local_path:

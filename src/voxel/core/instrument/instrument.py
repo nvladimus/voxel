@@ -6,8 +6,8 @@ from voxel.core.instrument.device.filter import VoxelFilter, VoxelFilterWheel
 from voxel.core.instrument.device.laser import VoxelLaser
 from voxel.core.instrument.device.lens import VoxelLens
 from voxel.core.instrument.device.linear_axis import LinearAxisDimension, VoxelLinearAxis
-from voxel.core.instrument.io.transfer import VoxelFileTransfer
-from voxel.core.instrument.io.writer import VoxelWriter
+from voxel.core.instrument.device.transfer import VoxelFileTransfer
+from voxel.core.instrument.device.writer import VoxelWriter
 from voxel.core.instrument.stage import VoxelStage
 from voxel.core.utils.log_config import get_component_logger
 

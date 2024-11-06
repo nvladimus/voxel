@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from enum import StrEnum
 from typing import Any
 
+from pytools import F
+
 
 from voxel.core.utils.log_config import get_component_logger
 
@@ -21,6 +23,8 @@ class VoxelDeviceType(StrEnum):
     POWER_METER = "power_meter"
     AOTF = "aotf"
     CHILLER = "chiller"
+    WRITER = "writer"
+    FILE_TRANSFER = "transfer"
 
 
 class VoxelDeviceError(Exception):

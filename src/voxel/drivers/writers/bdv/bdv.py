@@ -10,8 +10,8 @@ from time import perf_counter, sleep
 
 import numpy as np
 
-from voxel.core.instrument.io.writer import VoxelWriter
-from voxel.core.instrument.writers.bdv_writer import npy2bdv
+from voxel.core.instrument.device.writer import VoxelWriter
+from .sdk import npy2bdv
 
 CHUNK_COUNT_PX = 64
 DIVISIBLE_FRAME_COUNT_PX = 64

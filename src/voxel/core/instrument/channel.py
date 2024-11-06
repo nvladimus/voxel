@@ -7,8 +7,8 @@ from .device.camera import VoxelCamera
 from .device.filter import VoxelFilter
 from .device.laser import VoxelLaser
 from .device.lens import VoxelLens
-from .io.transfer import VoxelFileTransfer
-from .io.writer import VoxelWriter
+from .device.transfer import VoxelFileTransfer
+from .device.writer import VoxelWriter
 
 
 class VoxelChannel:

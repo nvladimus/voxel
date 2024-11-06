@@ -5,8 +5,7 @@ from nidaqmx.constants import FrequencyUnits, Level
 
 from voxel.core.utils.descriptors.new import deliminated_property
 
-from ..daq import PinInfo, VoxelDaq
-from ..task import VoxelDaqTask
+from ..daq import PinInfo, VoxelDaq, VoxelDaqTask
 
 
 class ClkGenTask(VoxelDaqTask):

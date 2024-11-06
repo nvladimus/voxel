@@ -3,8 +3,7 @@ from nidaqmx.constants import AcquisitionType as NiAcqType
 from nidaqmx.task.channels import AOChannel as NiAOChannel
 from nidaqmx.task.channels import DOChannel as NiDOChannel
 
-from ...daq import PinInfo, VoxelDaq
-from ...task import VoxelDaqTask
+from ...daq import PinInfo, VoxelDaq, VoxelDaqTask
 from ..clockgen import ClkGenTask
 from .waves import TrapezoidalWave, WaveGenTiming
 
