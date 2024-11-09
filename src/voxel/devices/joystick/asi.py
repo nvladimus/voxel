@@ -5,40 +5,24 @@ from tigerasi.tiger_controller import TigerController
 
 from voxel.devices.joystick.base import BaseJoystick
 
-JOYSTICK_AXES = {
-    "joystick_x": JoystickInput.JOYSTICK_X,
-    "joystick_y": JoystickInput.JOYSTICK_Y,
-    "wheel_z": JoystickInput.Z_WHEEL,
-    "wheel_f": JoystickInput.F_WHEEL,
-    "None": JoystickInput.NONE,
-}
+LEFT_WHEELS = list()
+RIGHT_WHEELS = list()
+Y_JOYSTICKS = list()
+X_JOYSTICKS = list()
 
-POLARITIES = {
-    "inverted": JoystickPolarity.INVERTED,
-    "default": JoystickPolarity.DEFAULT,
-}
-
-INSTRUMENT_AXES = list()
 
 class Joystick(BaseJoystick):
 
-    def __init__(self, tigerbox: TigerController, axis_mapping: dict, joystick_mapping: dict = None):
+    def __init__(self, tigerbox: TigerController, axis_mapping: dict):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
         self.tigerbox = tigerbox
-        self._joystick_mapping = (
-            joystick_mapping
-            if joystick_mapping is not None
-            else {
-                "joystick_x": {"instrument_axis": "x", "polarity": "default"},
-                "joystick_y": {"instrument_axis": "y", "polarity": "default"},
-                "wheel_z": {"instrument_axis": "z", "polarity": "default"},
-                "wheel_f": {"instrument_axis": "w", "polarity": "default"},
-            }
-        )
         self.axis_mapping = axis_mapping
         for key, value in self.axis_mapping.items():
-            INSTRUMENT_AXES.append(key)
+            LEFT_WHEELS.append(key)
+            RIGHT_WHEELS.append(key)
+            Y_JOYSTICKS.append(key)
+            X_JOYSTICKS.append(key)
         self._stage_axes = {
             v: k for k, v in self.axis_mapping.items() if k.upper() in self.tigerbox.axes and v.upper() in self.tigerbox.axes
         }
@@ -46,48 +30,94 @@ class Joystick(BaseJoystick):
             if axis.lower() not in self._stage_axes.keys():
                 self._stage_axes[axis.lower()] = axis.lower()
                 self.axis_mapping[axis.lower()] = axis.lower()
-        # grab the instrument to hardware axis mapping for the joystick device
-        for joystick_id, joystick_dict in self.joystick_mapping.items():
-            # check that the joystick ids are valid
-            if joystick_id not in JOYSTICK_AXES.keys():
-                raise ValueError(f"{joystick_id} must be in {JOYSTICK_AXES.keys()}")
-            # check that ther polarities are valid
-            joystick_polarity = joystick_dict["polarity"]
-            if joystick_polarity not in POLARITIES.keys():
-                raise ValueError(f"{joystick_polarity} must be in {POLARITIES.keys()}")
-            instrument_axis = joystick_dict["instrument_axis"]
-            hardware_axis = self.axis_mapping[instrument_axis]
-            # check that the axes are valid
-            if hardware_axis not in self._stage_axes.keys():
-                raise ValueError(
-                    f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis."
-                )
 
-    # @property
-    # def stage_axes(self):
-    #     return self._stage_axes
+        # get initial joystick values
+        self._left_wheel = self.tigerbox.get_joystick_axis_mapping(JoystickInput.F_WHEEL)
+        self._right_wheel = self.tigerbox.get_joystick_axis_mapping(JoystickInput.Z_WHEEL)
+        self._y_joystick = self.tigerbox.get_joystick_axis_mapping(JoystickInput.JOYSTICK_Y)
+        self._x_joystick = self.tigerbox.get_joystick_axis_mapping(JoystickInput.JOYSTICK_X)
 
     @property
-    def joystick_mapping(self):
-        return self._joystick_mapping
+    def left_wheel(self):
+        return self._left_wheel
 
-    @joystick_mapping.setter
-    def joystick_mapping(self, joystick_mapping):
+    @left_wheel.setter
+    def left_wheel(self, axis):
+        if axis not in LEFT_WHEELS:
+            raise ValueError(f"axis {axis} is not a valid axis for this instrument")
+        self.tigerbox.bind_axis_to_joystick_input(self._stage_axes[axis], JoystickInput.F_WHEEL)
 
-        for joystick_id, joystick_dict in joystick_mapping.items():
-            # check that the joystick ids are valid
-            if joystick_id not in JOYSTICK_AXES.keys():
-                raise ValueError(f"{joystick_id} must be in {JOYSTICK_AXES.keys()}")
-            # check that ther polarities are valid
-            joystick_polarity = joystick_dict["polarity"]
-            if joystick_polarity not in POLARITIES.keys():
-                raise ValueError(f"{joystick_polarity} must be in {POLARITIES.keys()}")
+    # @property
+    # def left_wheel_polarity(self):
+    #     return self._left_wheel_polarity
 
-            instrument_axis = joystick_dict["instrument_axis"]
-            hardware_axis = self.axis_mapping[instrument_axis]
-            # check that the axes are valid
-            if hardware_axis not in self._stage_axes:
-                raise ValueError(
-                    f"instrument axis = {instrument_axis}, hardware_axis = {hardware_axis} is not a valid axis."
-                )
-        self._joystick_mapping = joystick_mapping
+    # @left_wheel_polarity.setter
+    # def left_wheel_polarity(self, polarity):
+    #     if polarity not in POLARITIES:
+    #         raise ValueError(f"polarity {polarity} is not a valid polarity for this axis")
+    #     axis = self.tigerbox.get_joystick_axis_mapping(JoystickInput.F_WHEEL)
+    #     self.tigerbox.set_joystick_axis_polarity(axis, POLARITIES[polarity])
+
+    @property
+    def right_wheel(self):
+        return self._right_wheel
+
+    @right_wheel.setter
+    def right_wheel(self, axis):
+        if axis not in RIGHT_WHEELS:
+            raise ValueError(f"axis {axis} is not a valid axis for this instrument")
+        self.tigerbox.bind_axis_to_joystick_input(self._stage_axes[axis], JoystickInput.Z_WHEEL)
+
+    # @property
+    # def right_wheel_polarity(self):
+    #     return self._right_wheel_polarity
+
+    # @right_wheel_polarity.setter
+    # def right_wheel_polarity(self, polarity):
+    #     if polarity not in POLARITIES:
+    #         raise ValueError(f"polarity {polarity} is not a valid polarity for this axis")
+    #     axis = self.tigerbox.get_joystick_axis_mapping(JoystickInput.Z_WHEEL)
+    #     self.tigerbox.set_joystick_axis_polarity(axis, POLARITIES[polarity])
+
+    @property
+    def y_joystick(self):
+        return self._y_joystick
+
+    @y_joystick.setter
+    def y_joystick(self, axis):
+        if axis not in Y_JOYSTICKS:
+            raise ValueError(f"axis {axis} is not a valid axis for this instrument")
+        self.tigerbox.bind_axis_to_joystick_input(self._stage_axes[axis], JoystickInput.JOYSTICK_Y)
+
+    # @property
+    # def y_joystick_polarity(self):
+    #     return self._y_joystick_polarity
+
+    # @y_joystick_polarity.setter
+    # def y_joystick_polarity(self, polarity):
+    #     if polarity not in POLARITIES:
+    #         raise ValueError(f"polarity {polarity} is not a valid polarity for this axis")
+    #     axis = self.tigerbox.get_joystick_axis_mapping(JoystickInput.JOYSTICK_Y)
+    #     self.tigerbox.set_joystick_axis_polarity(axis, POLARITIES[polarity])
+
+    @property
+    def x_joystick(self):
+        return self._x_joystick
+
+    @x_joystick.setter
+    def x_joystick(self, axis):
+        if axis not in X_JOYSTICKS:
+            raise ValueError(f"axis {axis} is not a valid axis for this instrument")
+        self.tigerbox.bind_axis_to_joystick_input(self._stage_axes[axis], JoystickInput.JOYSTICK_X)
+
+    # @property
+    # def x_joystick_polarity(self):
+    #     return self._x_joystick_polarity
+
+    # @x_joystick_polarity.setter
+    # def x_joystick_polarity(self, polarity):
+    #     if polarity not in POLARITIES:
+    #         raise ValueError(f"polarity {polarity} is not a valid polarity for this axis")
+    #     axis = self.tigerbox.get_joystick_axis_mapping(JoystickInput.JOYSTICK_X)
+    #     self.tigerbox.set_joystick_axis_polarity(axis, POLARITIES[polarity])
+
