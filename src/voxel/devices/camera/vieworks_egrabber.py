@@ -329,7 +329,7 @@ class Camera(BaseCamera):
         self.stop()
 
     def close(self):
-        del self.grabber
+        pass
 
     def reset(self):
         del self.grabber
