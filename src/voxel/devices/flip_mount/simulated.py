@@ -4,7 +4,9 @@ from typing import Literal
 from ...descriptors.deliminated_property import DeliminatedProperty
 from . import BaseFlipMount
 
+VALID_POSITIONS = [0, 1]
 FLIP_TIME_RANGE_MS: tuple[float, float] = (500.0, 2800.0, 100.0)  # min, max, step
+POSITIONS = dict()
 
 
 class SimulatedFlipMount(BaseFlipMount):
@@ -13,6 +15,13 @@ class SimulatedFlipMount(BaseFlipMount):
         self._conn = conn
         self._positions = positions
         self._inst: Literal[0, 1] = None
+        for key, value in positions.items():
+            if value not in VALID_POSITIONS:
+                raise ValueError(
+                    f"Invalid position {key} for Thorlabs flip mount.\
+                    Valid positions are {VALID_POSITIONS}"
+                )
+            POSITIONS[key] = value
         self._connect()
 
     def _connect(self):
