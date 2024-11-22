@@ -5,7 +5,7 @@ import nidaqmx
 import numpy
 from matplotlib.ticker import AutoMinorLocator
 from nidaqmx.constants import AcquisitionType as AcqType
-from nidaqmx.constants import Edge, FrequencyUnits, Level, Slope, TaskMode
+from nidaqmx.constants import Edge, FrequencyUnits, Level, Slope, TaskMode, AOIdleOutputBehavior
 from scipy import signal
 
 from voxel.devices.daq.base import BaseDAQ
@@ -109,7 +109,16 @@ class DAQ(BaseDAQ):
                 if f"{self.id}/{channel_port}" not in channel_options[task_type]:
                     raise ValueError(f"{task_type} number must be one of {channel_options[task_type]}")
                 physical_name = f"/{self.id}/{channel_port}"
-                add_task_options[task_type](physical_name)
+                channel = add_task_options[task_type](physical_name)
+                # maintain last voltage value
+                if task_type == "ao":
+                    try:
+                        channel.ao_idle_output_behavior = AOIdleOutputBehavior.ZERO_VOLTS
+                    except Exception as e:
+                        self.log.debug(
+                            "could not set AOIdleOutputBehavior to MAINTAIN_EXISTING_VALUE "
+                            f"on channel {physical_name} for {channel}."
+                        )
 
             total_time_ms = timing["period_time_ms"] + timing["rest_time_ms"]
             daq_samples = int(((total_time_ms) / 1000) * timing["sampling_frequency_hz"])
@@ -165,6 +174,7 @@ class DAQ(BaseDAQ):
 
             # store the total task time
             self.task_time_s[task["name"]] = 1 / timing["frequency_hz"]
+            setattr(self, f"{task_type}_frequency_hz", timing["frequency_hz"])
 
         setattr(self, f"{task_type}_task", daq_task)  # set task attribute
 
@@ -280,9 +290,11 @@ class DAQ(BaseDAQ):
 
             waveform_attribute[f"{port}: {name}"] = voltages
 
-        # store these values as properties for plotting purposes
+        # store these values
         setattr(self, f"{task_type}_sampling_frequency_hz", timing["sampling_frequency_hz"])
         setattr(self, f"{task_type}_total_time_ms", timing["period_time_ms"] + timing["rest_time_ms"])
+        setattr(self, f"{task_type}_active_edge", TRIGGER_POLARITY[timing["trigger_polarity"]])
+        setattr(self, f"{task_type}_sample_mode", SAMPLE_MODE[timing["sample_mode"]])
 
     def write_ao_waveforms(self, rereserve_buffer=True):
 
@@ -291,6 +303,13 @@ class DAQ(BaseDAQ):
         if rereserve_buffer:  # don't need to rereseve when rewriting already running tasks
             # unreserve buffer
             self.ao_task.control(TaskMode.TASK_UNRESERVE)
+            # reconfigure timing
+            self.ao_task.timing.cfg_samp_clk_timing(
+                rate=self.ao_sampling_frequency_hz,
+                active_edge=self.ao_active_edge,
+                sample_mode=self.ao_sample_mode,
+                samps_per_chan=len(ao_voltages[0]),
+            )
             # sets buffer to length of voltages
             self.ao_task.out_stream.output_buf_size = len(ao_voltages[0])
             self.ao_task.control(TaskMode.TASK_COMMIT)
@@ -453,6 +472,13 @@ class DAQ(BaseDAQ):
     def _rereserve_buffer(self, buf_len):
         """If tasks are already configured, the buffer needs to be cleared and rereserved to work"""
         self.ao_task.control(TaskMode.TASK_UNRESERVE)  # Unreserve buffer
+        # reconfigure timing
+        self.ao_task.timing.cfg_samp_clk_timing(
+            rate=self.ao_sampling_frequency_hz,
+            active_edge=self.ao_active_edge,
+            sample_mode=self.ao_sample_mode,
+            samps_per_chan=buf_len,
+        )
         self.ao_task.out_stream.output_buf_size = buf_len  # Sets buffer to length of voltages
         self.ao_task.control(TaskMode.TASK_COMMIT)
 
@@ -479,15 +505,16 @@ class DAQ(BaseDAQ):
         self.stop()
         self.start()
 
-    def wait_until_done_all(self, timeout=1.0):
+    def wait_until_done_all(self, timeout=10.0):
 
-        for task in [self.ao_task, self.do_task, self.co_task]:
+        for task in [self.ao_task, self.do_task]:
             if task is not None:
+                print(task)
                 task.wait_until_done(timeout)
 
     def is_finished_all(self):
 
-        for task in [self.ao_task, self.do_task, self.co_task]:
+        for task in [self.ao_task, self.do_task]:
             if task is not None:
                 if not task.is_task_done():
                     return False

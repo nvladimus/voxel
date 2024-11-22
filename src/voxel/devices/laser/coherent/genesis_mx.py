@@ -34,7 +34,7 @@ class GenesisMXLaser(BaseLaser):
 
     def disable(self) -> None:
         pass
-        # self._inst.disable()
+        self._inst.disable()
 
     def close(self) -> None:
         self.disable()
