@@ -1,3 +1,4 @@
+import logging
 from coherent_lasers.genesis_mx.driver import GenesisMX
 from coherent_lasers.genesis_mx.commands import OperationModes
 from voxel.devices.laser.base import BaseLaser
@@ -8,6 +9,7 @@ INIT_POWER_MW = 10.0
 
 class GenesisMXLaser(BaseLaser):
     def __init__(self, id: str, wavelength: int, maximum_power_mw: int) -> None:
+        self.log = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         super().__init__(id)
         self._conn = id
         try:
@@ -31,6 +33,7 @@ class GenesisMXLaser(BaseLaser):
         self._inst.enable()
 
     def disable(self) -> None:
+        pass
         self._inst.disable()
 
     def close(self) -> None:
@@ -46,6 +49,7 @@ class GenesisMXLaser(BaseLaser):
 
     @power_setpoint_mw.setter
     def power_setpoint_mw(self, value: float) -> None:
+        self.log.info(f"setting power to {value} mW")
         self._inst.power_mw = value
 
     @property

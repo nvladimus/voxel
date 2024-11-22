@@ -238,7 +238,7 @@ class Stage(BaseStage):
     def setup_step_shoot_scan(self, step_size_um: float):
         """Queue a single-axis relative move of the specified amount."""
         step_size_steps = step_size_um * STEPS_PER_UM
-        self.tigerbox.reset_ring_buffer()
+        self.tigerbox.reset_ring_buffer(axis=self.hardware_axis.upper())
         self.tigerbox.setup_ring_buffer(self.hardware_axis, mode=RingBufferMode.TTL)
         self.tigerbox.queue_buffered_move(**{self.hardware_axis: step_size_steps})
         # TTL mode dictates whether ring buffer move is relative or absolute.

@@ -329,7 +329,7 @@ class Camera(BaseCamera):
         self.stop()
 
     def close(self):
-        del self.grabber
+        pass
 
     def reset(self):
         del self.grabber
@@ -366,7 +366,6 @@ class Camera(BaseCamera):
     @property
     def latest_frame(self):
         return self._latest_frame
-        # return np.random.rand(self.height_px,self.width_px)
 
     def signal_acquisition_state(self):
         """return a dict with the state of the acquisition buffers"""
