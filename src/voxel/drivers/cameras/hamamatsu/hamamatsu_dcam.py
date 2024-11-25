@@ -1,8 +1,8 @@
 import time
 from typing import Callable, Literal, Optional, Union
 
-from voxel.core.instrument.device import VoxelDeviceConnectionError
-from voxel.core.instrument.device.camera import (
+from voxel.instrument.devices import VoxelDeviceConnectionError
+from voxel.instrument.devices.camera import (
     BYTES_PER_MB,
     AcquisitionState,
     VoxelCamera,
@@ -10,10 +10,10 @@ from voxel.core.instrument.device.camera import (
     Binning,
     PixelType,
 )
-from voxel.core.utils.descriptors.deliminated_property import deliminated_property
-from voxel.core.utils.descriptors.enumerated_property import enumerated_property
-from voxel.core.utils.geometry.vec import Vec2D
-from voxel.core.utils.singleton import Singleton
+from voxel.utils.descriptors.deliminated import deliminated_property
+from voxel.utils.descriptors.enumerated import enumerated_property
+from voxel.utils.vec import Vec2D
+from voxel.utils.singleton import Singleton
 
 from .definitions import (
     DELIMINATED_PROPERTIES,

@@ -1,9 +1,9 @@
 from obis_laser import ObisLS
 from serial import Serial
 
-from voxel.core.utils.descriptors.deliminated_property import deliminated_property
+from voxel.utils.descriptors.deliminated import deliminated_property
 from .obis_lx import obis_modulation_getter, obis_modulation_setter
-from voxel.core.instrument.device.laser import VoxelLaser
+from voxel.instrument.devices.laser import VoxelLaser
 
 MODULATION_MODES = {"off": "CWP", "analog": "ANALOG", "digital": "DIGITAL", "mixed": "MIXED"}
 

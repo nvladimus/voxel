@@ -4,8 +4,8 @@ from enum import Enum
 from pycobolt import CoboltLaser
 from sympy import symbols, solve, Expr
 
-from voxel.core.utils.descriptors.deliminated_property import deliminated_property
-from voxel.core.instrument.device.laser import VoxelLaser
+from voxel.utils.descriptors.deliminated import deliminated_property
+from voxel.instrument.devices.laser import VoxelLaser
 
 # Define StrEnums if they don't yet exist.
 if sys.version_info < (3, 11):
@@ -63,7 +63,6 @@ MODULATION_MODES = {
 
 
 class SkyraLaser(VoxelLaser):
-
     def __init__(
         self,
         name: str,

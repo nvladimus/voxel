@@ -1,8 +1,8 @@
 from tigerasi.device_codes import *
 from tigerasi.tiger_controller import TigerController
 
-from voxel.core.instrument.hubs.tigerbox import ASITigerBox
-from voxel.core.instrument.drivers.tunable_lenses.base import VoxelTunableLens, TunableLensControlMode
+from voxel.instrument.hubs.tigerbox import ASITigerBox
+from voxel.instrument.drivers.tunable_lenses.base import VoxelTunableLens, TunableLensControlMode
 
 
 class ASITunableLens(VoxelTunableLens):

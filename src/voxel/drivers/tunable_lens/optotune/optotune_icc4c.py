@@ -2,7 +2,7 @@ import optoICC
 from optoKummenberg.tools.definitions import UnitType
 
 
-from voxel.core.instrument.device.tunable_lens import VoxelTunableLens, TunableLensControlMode
+from voxel.instrument.devices.tunable_lens import VoxelTunableLens, TunableLensControlMode
 
 # constants for Optotune ICC-4C controller
 # CURRENT   = 0
@@ -16,7 +16,6 @@ MODES = {TunableLensControlMode.INTERNAL: UnitType.FP, TunableLensControlMode.EX
 
 
 class OptotuneICC4CTunableLens(VoxelTunableLens):
-
     def __init__(self, name: str, port: str, channel: int):
         """Connect to OptotuneI ICC-4C Tunable Lens.
         :param name: unique voxel name for this device.

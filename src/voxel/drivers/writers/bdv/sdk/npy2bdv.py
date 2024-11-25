@@ -11,8 +11,10 @@ import numpy as np
 import skimage.transform
 from tqdm import trange
 
-from voxel.core.processing.downsample.gpu.gputools.downsample_3d import GPUToolsDownSample3D
-from voxel.core.utils.log_config import get_logger
+from voxel.utils.processing.downsample.gpu.gputools.downsample_3d import (
+    GPUToolsDownSample3D,
+)
+from voxel.utils.log_config import get_logger
 
 
 class BdvBase:
@@ -51,7 +53,9 @@ class BdvBase:
                 self.filename_xml = filename
         self._root = None
         self.nlevels = None
-        self.ntimes = self.nilluminations = self.nchannels = self.ntiles = self.nangles = self.nsetups = 0
+        self.ntimes = self.nilluminations = self.nchannels = self.ntiles = (
+            self.nangles
+        ) = self.nsetups = 0
         self.compression = None
         self.compressions_supported = (None, "gzip", "lzf", "b3d")
         # initialize the downsampling in 3d
@@ -72,7 +76,9 @@ class BdvBase:
         """
         if self.nsetups is not None:
             setup_id_matrix = np.arange(self.nsetups)
-            setup_id_matrix = setup_id_matrix.reshape((self.nilluminations, self.nchannels, self.ntiles, self.nangles))
+            setup_id_matrix = setup_id_matrix.reshape(
+                (self.nilluminations, self.nchannels, self.ntiles, self.nangles)
+            )
             setup_id = setup_id_matrix[illumination, channel, tile, angle]
         else:
             setup_id = None
@@ -80,7 +86,9 @@ class BdvBase:
 
     def _get_xml_root(self):
         """Load the meta-information information from XML header file"""
-        assert os.path.exists(self.filename_xml), f"Error: {self.filename_xml} file not found"
+        assert os.path.exists(
+            self.filename_xml
+        ), f"Error: {self.filename_xml} file not found"
         if self._root is None:
             with open(self.filename_xml, "r") as file:
                 self._root = ET.parse(file).getroot()
@@ -110,11 +118,18 @@ class BdvBase:
         isetup = self._determine_setup_id(illumination, channel, tile, angle)
         found = False
         for node in self._root.findall("./ViewRegistrations/ViewRegistration"):
-            if int(node.attrib["setup"]) == isetup and int(node.attrib["timepoint"]) == time:
+            if (
+                int(node.attrib["setup"]) == isetup
+                and int(node.attrib["timepoint"]) == time
+            ):
                 found = True
                 break
-        assert found, f'Node not found: <ViewRegistration setup="{isetup}" timepoint="{time}">'
-        assert index < len(node), f"Index {index} out of range, only {len(node)} transforms found."
+        assert (
+            found
+        ), f'Node not found: <ViewRegistration setup="{isetup}" timepoint="{time}">'
+        assert index < len(
+            node
+        ), f"Index {index} out of range, only {len(node)} transforms found."
         affine_str = node[index].find("affine").text
         affine_mx = np.fromstring(affine_str, sep="\n").reshape(3, 4)
         return affine_mx
@@ -155,19 +170,28 @@ class BdvBase:
         assert m_affine.shape == (3, 4), "m_affine must be a numpy array of shape (3,4)"
         found = False
         for node in self._root.findall("./ViewRegistrations/ViewRegistration"):
-            if int(node.attrib["setup"]) == isetup and int(node.attrib["timepoint"]) == time:
+            if (
+                int(node.attrib["setup"]) == isetup
+                and int(node.attrib["timepoint"]) == time
+            ):
                 found = True
                 break
-        assert found, f'Node not found: <ViewRegistration setup="{isetup}" timepoint="{time}">'
+        assert (
+            found
+        ), f'Node not found: <ViewRegistration setup="{isetup}" timepoint="{time}">'
         vt = ET.Element("ViewTransform")
         node.insert(0, vt)
         vt.set("type", "affine")
         ET.SubElement(vt, "Name").text = name_affine
-        mx_string = np.array2string(m_affine.flatten(), formatter={"float": lambda x: "%.6f" % x})
+        mx_string = np.array2string(
+            m_affine.flatten(), formatter={"float": lambda x: "%.6f" % x}
+        )
         ET.SubElement(vt, "affine").text = mx_string[1:-1].strip()
         self._xml_indent(self._root)
         tree = ET.ElementTree(self._root)
-        tree.write(self.filename_xml, xml_declaration=True, encoding="utf-8", method="xml")
+        tree.write(
+            self.filename_xml, xml_declaration=True, encoding="utf-8", method="xml"
+        )
 
     def _xml_indent(self, elem, level=0):
         """Pretty printing function"""
@@ -201,7 +225,9 @@ class BdvBase:
         if all(subsamp_level[:] == 1):
             stack_sub = stack
         else:
-            stack_sub = skimage.transform.downscale_local_mean(stack, tuple(subsamp_level)).astype(np.uint16)
+            stack_sub = skimage.transform.downscale_local_mean(
+                stack, tuple(subsamp_level)
+            ).astype(np.uint16)
         return stack_sub
 
     def _write_pyramids_header(self):
@@ -221,7 +247,9 @@ class BdvBase:
             else:
                 raise ValueError(f"Group name {group_name} not found in the H5 file.")
 
-    def create_pyramids(self, subsamp=((4, 8, 8),), blockdim=((8, 128, 128),), compression=None) -> None:
+    def create_pyramids(
+        self, subsamp=((4, 8, 8),), blockdim=((8, 128, 128),), compression=None
+    ) -> None:
         """Compute and write downsampled versions (pyramids) of the existing image dataset.
 
         Parameters:
@@ -235,15 +263,24 @@ class BdvBase:
                 (None, 'gzip', 'lzf', 'b3d'), HDF5 compression method. Default is None for high-speed writing.
         :return: None
         """
-        assert len(self.subsamp) == 1, f"Image pyramids already exist, len(self.subsamp) = {len(self.subsamp)}"
-        assert len(self.chunks) == 1, f"Image pyramids already exist, len(self.chunks) = {len(self.chunks)}"
+        assert (
+            len(self.subsamp) == 1
+        ), f"Image pyramids already exist, len(self.subsamp) = {len(self.subsamp)}"
+        assert (
+            len(self.chunks) == 1
+        ), f"Image pyramids already exist, len(self.chunks) = {len(self.chunks)}"
         assert self.nsetups > 0, f"Dataset has no views! self.nsetups = {self.nsetups}"
-        assert self._file_object_h5 is not None, "H5 file object (self._file_object_h5) is None!"
+        assert (
+            self._file_object_h5 is not None
+        ), "H5 file object (self._file_object_h5) is None!"
         assert len(self.subsamp) == len(self.chunks), (
-            f"Length of subsampling tuple {len(subsamp)} must " f"be == length of block dimensions {len(blockdim)}."
+            f"Length of subsampling tuple {len(subsamp)} must "
+            f"be == length of block dimensions {len(blockdim)}."
         )
         for isub in range(len(subsamp)):
-            assert sum(subsamp[isub]) > 3, f"At least one subsampling factor from {subsamp[isub]} must be > 1."
+            assert (
+                sum(subsamp[isub]) > 3
+            ), f"At least one subsampling factor from {subsamp[isub]} must be > 1."
         assert compression in self.compressions_supported, (
             f"Unknown compression, must be one of" f" {self.compressions_supported}"
         )
@@ -258,7 +295,9 @@ class BdvBase:
                 for ilevel in range(1, self.nlevels):
                     full_res_group_name = self._fmt.format(time, isetup, 0)
                     if full_res_group_name in self._file_object_h5:
-                        raw_data = self._file_object_h5[full_res_group_name]["cells"][()].astype("uint16")
+                        raw_data = self._file_object_h5[full_res_group_name]["cells"][
+                            ()
+                        ].astype("uint16")
                         pyramid_group_name = self._fmt.format(time, isetup, ilevel)
                         grp = self._file_object_h5.create_group(pyramid_group_name)
                         if ilevel > 0:
@@ -275,7 +314,6 @@ class BdvBase:
 
 
 class BdvWriter(BdvBase):
-
     def __init__(
         self,
         filename,
@@ -387,9 +425,12 @@ class BdvWriter(BdvBase):
                 tuple of labels, e.g. for illumination, ('left', 'right'); for channel, ('488', '561').
         """
 
-        assert attribute in self.attribute_counts.keys(), f"Attribute must be one of {self.attribute_counts.keys()}"
+        assert (
+            attribute in self.attribute_counts.keys()
+        ), f"Attribute must be one of {self.attribute_counts.keys()}"
         assert len(labels) == self.attribute_counts[attribute], (
-            f"Length of labels {len(labels)} must " f"match the number of attributes {self.attribute_counts[attribute]}"
+            f"Length of labels {len(labels)} must "
+            f"match the number of attributes {self.attribute_counts[attribute]}"
         )
         self.attribute_labels[attribute] = labels
 
@@ -416,10 +457,16 @@ class BdvWriter(BdvBase):
             grp = self._file_object_h5.create_group(group_name)
             data_subsamp = np.flip(self.subsamp, 1)
             data_chunks = np.flip(self.chunks, 1)
-            grp.create_dataset("resolutions", data=data_subsamp, dtype="<f8", maxshape=(None, 3))
-            grp.create_dataset("subdivisions", data=data_chunks, dtype="<i4", maxshape=(None, 3))
+            grp.create_dataset(
+                "resolutions", data=data_subsamp, dtype="<f8", maxshape=(None, 3)
+            )
+            grp.create_dataset(
+                "subdivisions", data=data_chunks, dtype="<i4", maxshape=(None, 3)
+            )
 
-    def append_plane(self, plane, z, time=0, illumination=0, channel=0, tile=0, angle=0):
+    def append_plane(
+        self, plane, z, time=0, illumination=0, channel=0, tile=0, angle=0
+    ):
         """Append a plane to a virtual stack. Requires stack initialization by calling e.g.
         `append_view(stack=None, virtual_stack_dim=(1000,2048,2048))` beforehand.
 
@@ -439,7 +486,8 @@ class BdvWriter(BdvBase):
         """
 
         assert self.virtual_stacks, (
-            "Appending planes requires initialization with virtual stack, " "see append_view(stack=None,...)"
+            "Appending planes requires initialization with virtual stack, "
+            "see append_view(stack=None,...)"
         )
         isetup = self._determine_setup_id(illumination, channel, tile, angle)
         self._update_setup_id_present(isetup, time)
@@ -448,15 +496,27 @@ class BdvWriter(BdvBase):
             f" of virtual stack {self.stack_shapes[isetup][1:]}."
         )
         assert z < self.stack_shapes[isetup][0], (
-            f"Plane index {z} must be less than " f"virtual stack z-dimension {self.stack_shapes[isetup][0]}."
+            f"Plane index {z} must be less than "
+            f"virtual stack z-dimension {self.stack_shapes[isetup][0]}."
         )
         for ilevel in range(self.nlevels):
             group_name = self._fmt.format(time, isetup, ilevel)
             dataset = self._file_object_h5[group_name]["cells"]
-            dataset[z, :, :] = self._subsample_plane(plane, self.subsamp[ilevel]).astype("int16")
+            dataset[z, :, :] = self._subsample_plane(
+                plane, self.subsamp[ilevel]
+            ).astype("int16")
 
     def append_substack(
-        self, substack, z_start, y_start=0, x_start=0, time=0, illumination=0, channel=0, tile=0, angle=0
+        self,
+        substack,
+        z_start,
+        y_start=0,
+        x_start=0,
+        time=0,
+        illumination=0,
+        channel=0,
+        tile=0,
+        angle=0,
     ):
         """Append a substack to a virtual stack. Requires stack initialization by calling e.g.
         `append_view(stack=None, virtual_stack_dim=(1000,2048,2048))` beforehand.
@@ -479,7 +539,8 @@ class BdvWriter(BdvBase):
         """
 
         assert self.virtual_stacks, (
-            "Appending substack requires initialization with virtual stack, " "see append_view(stack=None,...)"
+            "Appending substack requires initialization with virtual stack, "
+            "see append_view(stack=None,...)"
         )
         isetup = self._determine_setup_id(illumination, channel, tile, angle)
         self._update_setup_id_present(isetup, time)
@@ -557,17 +618,25 @@ class BdvWriter(BdvBase):
                 Time units for this view, default "s".
         """
 
-        assert len(calibration) == 3, "Calibration must be a tuple of 3 elements (x, y, z)."
-        assert len(voxel_size_xyz) == 3, "Voxel size must be a tuple of 3 elements (x, y, z)."
+        assert (
+            len(calibration) == 3
+        ), "Calibration must be a tuple of 3 elements (x, y, z)."
+        assert (
+            len(voxel_size_xyz) == 3
+        ), "Voxel size must be a tuple of 3 elements (x, y, z)."
         if time > self.ntimes - 1:
             self.ntimes = time + 1
         isetup = self._determine_setup_id(illumination, channel, tile, angle)
         self._update_setup_id_present(isetup, time)
         if stack is not None:
-            assert len(stack.shape) == 3, "Stack should be a 3-dimensional numpy array (z,y,x)"
+            assert (
+                len(stack.shape) == 3
+            ), "Stack should be a 3-dimensional numpy array (z,y,x)"
             self.stack_shapes[isetup] = stack.shape
         else:
-            assert len(virtual_stack_dim) == 3, "Stack is virtual, so parameter virtual_stack_dim must be defined."
+            assert (
+                len(virtual_stack_dim) == 3
+            ), "Stack is virtual, so parameter virtual_stack_dim must be defined."
             self.stack_shapes[isetup] = virtual_stack_dim
             self.virtual_stacks = True
 
@@ -622,10 +691,18 @@ class BdvWriter(BdvBase):
         if all(subsamp_level[:] == 1):
             plane_sub = plane
         else:
-            plane_sub = skimage.transform.downscale_local_mean(plane, tuple(subsamp_level[1:])).astype(np.uint16)
+            plane_sub = skimage.transform.downscale_local_mean(
+                plane, tuple(subsamp_level[1:])
+            ).astype(np.uint16)
         return plane_sub
 
-    def write_xml(self, camera_name="default", microscope_name="default", microscope_version="0.0", user_name="user"):
+    def write_xml(
+        self,
+        camera_name="default",
+        microscope_name="default",
+        microscope_version="0.0",
+        user_name="user",
+    ):
         """
         Write XML header file for the HDF5 file.
 
@@ -666,22 +743,37 @@ class BdvWriter(BdvBase):
             for ichannel in range(self.nchannels):
                 for itile in range(self.ntiles):
                     for iangle in range(self.nangles):
-                        isetup = self._determine_setup_id(iillumination, ichannel, itile, iangle)
-                        if any([self.setup_id_present[t][isetup] for t in range(len(self.setup_id_present))]):
+                        isetup = self._determine_setup_id(
+                            iillumination, ichannel, itile, iangle
+                        )
+                        if any(
+                            [
+                                self.setup_id_present[t][isetup]
+                                for t in range(len(self.setup_id_present))
+                            ]
+                        ):
                             vs = ET.SubElement(viewsets, "ViewSetup")
                             ET.SubElement(vs, "id").text = str(isetup)
                             ET.SubElement(vs, "name").text = "setup " + str(isetup)
                             nz, ny, nx = tuple(self.stack_shapes[isetup])
-                            ET.SubElement(vs, "size").text = "{} {} {}".format(nx, ny, nz)
+                            ET.SubElement(vs, "size").text = "{} {} {}".format(
+                                nx, ny, nz
+                            )
                             vox = ET.SubElement(vs, "voxelSize")
                             ET.SubElement(vox, "unit").text = self.voxel_units[isetup]
                             dx, dy, dz = self.voxel_size_xyz[isetup]
-                            ET.SubElement(vox, "size").text = "{} {} {}".format(dx, dy, dz)
+                            ET.SubElement(vox, "size").text = "{} {} {}".format(
+                                dx, dy, dz
+                            )
                             # new XML data, added by @nvladimus
                             cam = ET.SubElement(vs, "camera")
                             ET.SubElement(cam, "name").text = camera_name
-                            ET.SubElement(cam, "exposureTime").text = "{}".format(self.exposure_time[isetup])
-                            ET.SubElement(cam, "exposureUnits").text = self.exposure_units[isetup]
+                            ET.SubElement(cam, "exposureTime").text = "{}".format(
+                                self.exposure_time[isetup]
+                            )
+                            ET.SubElement(
+                                cam, "exposureUnits"
+                            ).text = self.exposure_units[isetup]
                             # end of new XML data
                             a = ET.SubElement(vs, "attributes")
                             ET.SubElement(a, "illumination").text = str(iillumination)
@@ -696,7 +788,9 @@ class BdvWriter(BdvBase):
             for i_attr in range(self.attribute_counts[attribute]):
                 att = ET.SubElement(attrs, attribute.capitalize())
                 ET.SubElement(att, "id").text = str(i_attr)
-                if attribute in self.attribute_labels.keys() and i_attr < len(self.attribute_labels[attribute]):
+                if attribute in self.attribute_labels.keys() and i_attr < len(
+                    self.attribute_labels[attribute]
+                ):
                     name = str(self.attribute_labels[attribute][i_attr])
                 else:
                     name = str(i_attr)
@@ -732,7 +826,8 @@ class BdvWriter(BdvBase):
                         vt.set("type", "affine")
                         ET.SubElement(vt, "Name").text = self.affine_names[isetup]
                         mx_string = np.array2string(
-                            self.affine_matrices[isetup].flatten(), formatter={"float": lambda x: "%.6f" % x}
+                            self.affine_matrices[isetup].flatten(),
+                            formatter={"float": lambda x: "%.6f" % x},
                         )
                         ET.SubElement(vt, "affine").text = mx_string[1:-1].strip()
 
@@ -741,13 +836,17 @@ class BdvWriter(BdvBase):
                     vt.set("type", "affine")
                     ET.SubElement(vt, "Name").text = "calibration"
                     calx, caly, calz = self.calibrations[isetup]
-                    ET.SubElement(vt, "affine").text = "{} 0.0 0.0 0.0 0.0 {} 0.0 0.0 0.0 0.0 {} 0.0".format(
+                    ET.SubElement(
+                        vt, "affine"
+                    ).text = "{} 0.0 0.0 0.0 0.0 {} 0.0 0.0 0.0 0.0 {} 0.0".format(
                         calx, caly, calz
                     )
 
         self._xml_indent(root)
         tree = ET.ElementTree(root)
-        tree.write(self.filename_xml, xml_declaration=True, encoding="utf-8", method="xml")
+        tree.write(
+            self.filename_xml, xml_declaration=True, encoding="utf-8", method="xml"
+        )
 
     def _update_setup_id_present(self, isetup, itime):
         """Update the lookup table (list of lists) for missing setups"""
@@ -762,7 +861,6 @@ class BdvWriter(BdvBase):
 
 
 class BdvEditor(BdvBase):
-
     def __init__(self, filename):
         """
         Class for reading and editing existing H5/XML file pairs.
@@ -776,11 +874,17 @@ class BdvEditor(BdvBase):
                 in the same folder.
         """
         super().__init__(filename)
-        assert os.path.exists(self.filename_h5), f"Error: {self.filename_h5} file not found"
-        assert os.path.exists(self.filename_xml), f"Error: {self.filename_xml} file not found"
+        assert os.path.exists(
+            self.filename_h5
+        ), f"Error: {self.filename_h5} file not found"
+        assert os.path.exists(
+            self.filename_xml
+        ), f"Error: {self.filename_xml} file not found"
         self._file_object_h5 = h5py.File(self.filename_h5, "r+")
         self._root = None
-        self.ntimes, self.nilluminations, self.nchannels, self.ntiles, self.nangles = self.get_attribute_count()
+        self.ntimes, self.nilluminations, self.nchannels, self.ntiles, self.nangles = (
+            self.get_attribute_count()
+        )
         self.nsetups = self.nilluminations * self.nchannels * self.ntiles * self.nangles
 
     def get_attribute_count(self):
@@ -792,11 +896,31 @@ class BdvEditor(BdvBase):
         with open(self.filename_xml, "r") as file:
             root = ET.parse(file).getroot()
             element = root.find("./SequenceDescription/Timepoints[@type='range']")
-            nt = int(element.find("last").text) - int(element.find("first").text) + 1 if element else 0
-            ni = len(root.findall("./SequenceDescription/ViewSetups/Attributes[@name='illumination']/Illumination"))
-            nch = len(root.findall("./SequenceDescription/ViewSetups/Attributes[@name='channel']/Channel"))
-            ntiles = len(root.findall("./SequenceDescription/ViewSetups/Attributes[@name='tile']/FrameStack"))
-            nang = len(root.findall("./SequenceDescription/ViewSetups/Attributes[@name='angle']/Angle"))
+            nt = (
+                int(element.find("last").text) - int(element.find("first").text) + 1
+                if element
+                else 0
+            )
+            ni = len(
+                root.findall(
+                    "./SequenceDescription/ViewSetups/Attributes[@name='illumination']/Illumination"
+                )
+            )
+            nch = len(
+                root.findall(
+                    "./SequenceDescription/ViewSetups/Attributes[@name='channel']/Channel"
+                )
+            )
+            ntiles = len(
+                root.findall(
+                    "./SequenceDescription/ViewSetups/Attributes[@name='tile']/FrameStack"
+                )
+            )
+            nang = len(
+                root.findall(
+                    "./SequenceDescription/ViewSetups/Attributes[@name='angle']/Angle"
+                )
+            )
         return nt, ni, nch, ntiles, nang
 
     def read_view(self, time=0, illumination=0, channel=0, tile=0, angle=0, ilevel=0):
@@ -826,7 +950,15 @@ class BdvEditor(BdvBase):
         else:
             raise ValueError("File object is None")
 
-    def crop_view(self, bbox_xyz=((1, -1), (1, -1), None), illumination=0, channel=0, tile=0, angle=0, ilevel=0):
+    def crop_view(
+        self,
+        bbox_xyz=((1, -1), (1, -1), None),
+        illumination=0,
+        channel=0,
+        tile=0,
+        angle=0,
+        ilevel=0,
+    ):
         """Crop a view in-place, both in H5 and XML files, for all time points.
 
         Parameters:
@@ -854,21 +986,27 @@ class BdvEditor(BdvBase):
                 if bbox_xyz[2]:
                     view_arr = view_arr[slice(*bbox_xyz[2]), :, :]
                 view_dataset.resize(view_arr.shape)
-                view_dataset[:] = view_arr  # Always use braces here! A common mistake to omit them.
+                view_dataset[:] = (
+                    view_arr  # Always use braces here! A common mistake to omit them.
+                )
                 self._file_object_h5.flush()
         else:
             raise FileNotFoundError(self.filename_h5)
         # Edit the XML file as well.
         with open(self.filename_xml, "r+") as file:
             self._get_xml_root()
-            for elem in self._root.findall("./SequenceDescription/ViewSetups/ViewSetup"):
+            for elem in self._root.findall(
+                "./SequenceDescription/ViewSetups/ViewSetup"
+            ):
                 elem_id = elem.find("id")
                 if int(elem_id.text) == isetup:
                     nz, ny, nx = tuple(view_arr.shape)
                     elem_size = elem.find("size")
                     elem_size.text = "{} {} {}".format(nx, ny, nz)
 
-    def get_view_property(self, key, illumination=0, channel=0, tile=0, angle=0) -> tuple:
+    def get_view_property(
+        self, key, illumination=0, channel=0, tile=0, angle=0
+    ) -> tuple:
         """ "Get property of a vew setup from XML file. No time information required, since the setups are fixed.
         Tuples are returned in (x, y, z) order, as in the XML file.
         Parameters:
@@ -885,7 +1023,9 @@ class BdvEditor(BdvBase):
             Value of the property, a tuple.
         """
         accepted_keys = ["voxel_size", "view_shape"]
-        assert key in accepted_keys, f"Key {key} not recognized, must be one of: {accepted_keys}."
+        assert (
+            key in accepted_keys
+        ), f"Key {key} not recognized, must be one of: {accepted_keys}."
         isetup = self._determine_setup_id(illumination, channel, tile, angle)
         self._get_xml_root()
         if key == "voxel_size":
@@ -896,7 +1036,9 @@ class BdvEditor(BdvBase):
             type_caster = int
         props_list = self._root.findall(path)
         # Todo: possible bug here, if the views are not in setupID order.
-        assert 0 <= isetup < len(props_list), f"Setup index {isetup} out of range 0..{len(props_list) - 1}"
+        assert (
+            0 <= isetup < len(props_list)
+        ), f"Setup index {isetup} out of range 0..{len(props_list) - 1}"
         value = tuple([type_caster(val) for val in props_list[isetup].text.split()])
         return value
 
@@ -907,5 +1049,9 @@ class BdvEditor(BdvBase):
         if self._root is not None:
             self._xml_indent(self._root)
             tree = ET.ElementTree(self._root)
-            shutil.copy(self.filename_xml, self.filename_xml + "~1")  # backup the previous XML file.
-            tree.write(self.filename_xml, xml_declaration=True, encoding="utf-8", method="xml")
+            shutil.copy(
+                self.filename_xml, self.filename_xml + "~1"
+            )  # backup the previous XML file.
+            tree.write(
+                self.filename_xml, xml_declaration=True, encoding="utf-8", method="xml"
+            )

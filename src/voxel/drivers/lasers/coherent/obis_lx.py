@@ -1,8 +1,8 @@
 from obis_laser import ObisLX, OperationalQuery, OperationalCmd
 from serial import Serial
 
-from voxel.core.utils.descriptors.deliminated_property import deliminated_property
-from voxel.core.instrument.device.laser import VoxelLaser
+from voxel.utils.descriptors.deliminated import deliminated_property
+from voxel.instrument.devices.laser import VoxelLaser
 
 MODULATION_MODES: dict[str, str] = {"off": "CWP", "analog": "ANALOG", "digital": "DIGITAL", "mixed": "MIXED"}
 
@@ -29,7 +29,6 @@ def obis_modulation_setter(instance, value: str, modes=None):
 
 
 class ObisLXLaser(VoxelLaser):
-
     def __init__(self, name: str, wavelength: int, port: Serial | str, prefix: str = None):
         """
         Communicate with specific LBX laser in L6CC Combiner box.

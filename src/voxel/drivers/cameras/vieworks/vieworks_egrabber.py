@@ -2,8 +2,8 @@ from typing import Optional
 
 import numpy as np
 
-from voxel.core.instrument.device import VoxelDeviceConnectionError
-from voxel.core.instrument.device.camera import (
+from voxel.instrument.devices import VoxelDeviceConnectionError
+from voxel.instrument.devices.camera import (
     BYTES_PER_MB,
     AcquisitionState,
     Binning,
@@ -11,10 +11,10 @@ from voxel.core.instrument.device.camera import (
     VoxelCamera,
     VoxelFrame,
 )
-from voxel.core.utils.descriptors.deliminated_property import deliminated_property
-from voxel.core.utils.descriptors.enumerated_property import enumerated_property
-from voxel.core.utils.geometry.vec import Vec2D
-from voxel.core.utils.singleton import thread_safe_singleton
+from voxel.utils.descriptors.deliminated import deliminated_property
+from voxel.utils.descriptors.enumerated import enumerated_property
+from voxel.utils.vec import Vec2D
+from voxel.utils.singleton import thread_safe_singleton
 
 from .definitions import BitPackingMode, TriggerMode, TriggerPolarity, TriggerSettings, TriggerSource
 from .sdk.egrabber import (
@@ -740,7 +740,6 @@ class VieworksCamera(VoxelCamera):
                         and comp.get(query.readable(feature))
                         and not comp.get(query.command(feature))
                     ):
-
                         if comp_name == "remote" and feature in ["BalanceRatioSelector", "BalanceWhiteAuto"]:
                             continue
 

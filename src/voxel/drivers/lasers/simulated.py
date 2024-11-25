@@ -3,8 +3,8 @@ from typing import Optional
 
 from serial import Serial
 
-from voxel.core.utils.descriptors.deliminated_property import deliminated_property
-from voxel.core.instrument.device.laser import VoxelLaser
+from voxel.utils.descriptors.deliminated import deliminated_property
+from voxel.instrument.devices.laser import VoxelLaser
 
 MODULATION_MODES = {
     "off": {"external_control_mode": "OFF", "digital_modulation": "OFF"},
@@ -16,7 +16,6 @@ MAX_POWER_MW = 100
 
 
 class SimulatedLaser(VoxelLaser):
-
     def __init__(self, wavelength: int, name: Optional[str] = None, prefix: str = ""):
         """
         Communicate with specific Simulated laser in Simulated Combiner box.

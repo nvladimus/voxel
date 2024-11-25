@@ -3,9 +3,14 @@ from math import ceil
 import numpy as np
 import multiprocessing as mp
 from datetime import datetime
-from voxel.core.utils.geometry.vec import Vec3D
+from voxel.utils.vec import Vec3D
 from PyImarisWriter import PyImarisWriter as pw
-from voxel.core.instrument.device.writer import VoxelWriter, WriterMetadata, PixelType, Pixels_DimensionOrder
+from voxel.instrument.io.writer import (
+    VoxelWriter,
+    WriterMetadata,
+    PixelType,
+    Pixels_DimensionOrder,
+)
 
 
 class ImarisCompression(Enum):
@@ -32,14 +37,20 @@ class ImarisWriter(VoxelWriter):
     """Writer class for voxel data that outputs to a single Imaris .ims file."""
 
     def __init__(
-        self, *, directory: str, compression=ImarisCompression.NONE, batch_size_px: int = 64, name: str = "ImarisWriter"
+        self,
+        *,
+        path: str,
+        compression=ImarisCompression.NONE,
+        batch_size_px: int = 64,
+        name: str = "ImarisWriter",
     ) -> None:
-        super().__init__(directory, name)
+        super().__init__(path=path, name=name)
         self._compression = compression  # ImarisWriter handles compression internally
         self._batch_size_px = batch_size_px
         self._block_size = Vec3D(x=64, y=64, z=64)
         self._output_file = None
         self.dimension_order = Pixels_DimensionOrder.XYZCT
+        self.progress = 0.0
 
         self._frames_written = 0
         self._z_blocks_written = 0
@@ -77,7 +88,7 @@ class ImarisWriter(VoxelWriter):
         )
 
     def _initialize(self) -> None:
-        if self._output_file.exists():
+        if self._output_file and self._output_file.exists():
             self._output_file.unlink()
 
         # options
@@ -139,6 +150,9 @@ class ImarisWriter(VoxelWriter):
         :param batch_data: Array of shape (batch_size, y, x)
         :param batch_count: The current batch number
         """
+        if not self._image_converter:
+            raise RuntimeError("ImageConverter not initialized")
+
         self.log.debug(f"Batch {batch_count} has {self._blocks_per_batch} blocks of {self.block_size} frames each")
 
         block_index = pw.ImageSize(x=0, y=0, z=0, c=0, t=0)
@@ -170,6 +184,8 @@ class ImarisWriter(VoxelWriter):
 
     def _finalize(self) -> None:
         try:
+            if not self._image_converter:
+                return
             image_extents = pw.ImageExtents(
                 minX=self.metadata.position.x,
                 minY=self.metadata.position.y,
@@ -180,7 +196,7 @@ class ImarisWriter(VoxelWriter):
             )
 
             parameters = pw.Parameters()
-            parameters.set_channel_name(i, self.metadata.channel_name)
+            parameters.set_channel_name(self.metadata.channel_idx, self.metadata.channel_name)
 
             color_infos = [pw.ColorInfo()]
             color_infos[0].set_base_color(pw.Color(1.0, 1.0, 1.0, 1.0))
@@ -204,8 +220,8 @@ class ImarisWriter(VoxelWriter):
 
 def test_imaris_writer():
     """Test the Imaris IMS voxel writer with realistic image data."""
-    from voxel.core.utils.frame_gen import generate_spiral_frames
-    from voxel.core.utils.geometry.vec import Vec2D, Vec3D
+    from voxel.utils.frame_gen import generate_spiral_frames
+    from voxel.utils.vec import Vec2D, Vec3D
 
     writer = ImarisWriter(directory="test_output", name="imaris_writer", batch_size_px=64)
 
@@ -240,7 +256,7 @@ def test_imaris_writer():
 
 
 if __name__ == "__main__":
-    from voxel.core.utils.log_config import setup_logging
+    from voxel.utils.log_config import setup_logging
 
     setup_logging(detailed=False, level="DEBUG")
     test_imaris_writer()

@@ -16,14 +16,8 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-keywords = [
-    "microscopy",
-    "light-sheet",
-    "lightsheet",
-    "microscope",
-    "imaging",
-]
-dynamic = ["version"]
+keywords = ["microscopy", "light-sheet", "lightsheet", "microscope", "imaging"]
+version = "0.1.0"
 dependencies = [
     # core
     "numpy>=2.1.2",
@@ -44,6 +38,12 @@ dependencies = [
     "fast-histogram >= 0.14",
     # utils
     "sympy >= 1.12.1",
+    "ome-types>=0.5.3",
+    "jax>=0.4.35",
+    "tensorstore>=0.1.68",
+    "cupy>=13.3.0",
+    "torch>=2.4.1",
+    "pyimariswriter>=0.7.0",
 ]
 
 [project.optional-dependencies]
@@ -52,80 +52,71 @@ imaris = ["pyimariswriter>=0.7.0"]
 aaopto = ["aaopto-aotf>=0.0.11"]
 thorlabs = ["pylablib>=1.4.2"]
 cobolt = ["pycobolt @ git+https://github.com/cobolt-lasers/pycobolt.git"]
-coherent = ["coherent_lasers @ git+https://github.com/AllenNeuralDynamics/coherent_lasers.git"]
-vortran = ["vortran_laser @ git+https://github.com/AllenNeuralDynamics/vortran_laser.git"]
-oxxius = ["oxxius_laser @ git+https://github.com/AllenNeuralDynamics/oxxius_laser.git"]
+coherent = [
+    "coherent_lasers @ git+https://github.com/AllenNeuralDynamics/coherent_lasers.git",
+]
+vortran = [
+    "vortran_laser @ git+https://github.com/AllenNeuralDynamics/vortran_laser.git",
+]
+oxxius = [
+    "oxxius_laser @ git+https://github.com/AllenNeuralDynamics/oxxius_laser.git",
+]
 # obis = ["obis_laser @ git+https://github.com/AllenNeuralDynamics/obis-laser.git"]
 
-lasers = [
-    "pycobolt @ git+https://github.com/cobolt-lasers/pycobolt.git",
-    "coherent-lasers @ git+https://github.com/AllenNeuralDynamics/coherent_lasers.git",
-    "vortran-laser @ git+https://github.com/AllenNeuralDynamics/vortran_laser.git",
-    "oxxius-laser @ git+https://github.com/AllenNeuralDynamics/oxxius_laser.git",
-    # "obis-laser @ git+https://github.com/AllenNeuralDynamics/obis-laser.git"
-]
-
-dev = [
-    "pytest<9",
-    "black",
-    "coverage",
-    "flake8",
-    "interrogate",
-    "isort",
-    "Sphinx",
-    "furo",
-]
+[dependency-groups]
+dev = ["pytest>=8.3.3", "ruff>=0.8.0"]
 
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
-package-dir = { "" = "src" }
-packages = ["voxel"]
+[tool.hatch.metadata]
+allow-direct-references = true
 
-[tool.setuptools.dynamic]
-version = { attr = "voxel.__version__" }
+# [build-system]
+# requires = ["setuptools", "setuptools-scm"]
+# build-backend = "setuptools.build_meta"
 
-[tool.black]
-src = "voxel"
+# [tool.setuptools]
+# package-dir = { "" = "src" }
+# packages = ["voxel"]
+
+[tool.ruff]
 line-length = 120
-target-version = ["py311"]
-exclude = '''
+show-fixes = true
 
-(
-  /(
-      \.eggs         # exclude a few common directories in the
-    | \.git          # root of the project
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | build
-    | dist
-  )/
-  | .gitignore
-)
-'''
+target-version = "py311"
 
-[tool.coverage.run]
-omit = ["*__init__*"]
-source = ["voxel", "tests"]
-
-[tool.coverage.report]
-exclude_lines = [
-    "if __name__ == .__main__.:",
-    "from",
-    "import",
-    "pragma: no cover",
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".gitignore",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
 ]
-fail_under = 100
 
-[tool.isort]
-line_length = 120
-profile = "black"
-
-[tool.interrogate]
-exclude = ["setup.py", "docs", "build"]
-fail-under = 100
+[tool.ruff.lint]
+extend-select = ["C4", "SIM", "TCH"]
+fixable = ["ALL"]

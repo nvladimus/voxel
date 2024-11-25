@@ -2,8 +2,8 @@ from oxxius_laser import BoolVal, LBX
 from serial import Serial
 from sympy import symbols, solve, Expr
 
-from voxel.core.utils.descriptors.deliminated_property import deliminated_property
-from voxel.core.instrument.device.laser import VoxelLaser
+from voxel.utils.descriptors.deliminated import deliminated_property
+from voxel.instrument.devices.laser import VoxelLaser
 
 MODULATION_MODES = {
     "off": {"external_control_mode": BoolVal.OFF, "digital_modulation": BoolVal.OFF},
@@ -13,7 +13,6 @@ MODULATION_MODES = {
 
 
 class OxxiusLBXLaser(VoxelLaser):
-
     def __init__(self, name: str, port: Serial | str, wavelength: int, prefix: str, coefficients: dict):
         """
         Communicate with specific LBX laser in L6CC Combiner box.

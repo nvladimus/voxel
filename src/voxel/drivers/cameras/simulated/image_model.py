@@ -1,7 +1,19 @@
+from dataclasses import dataclass
+
 import numpy as np
 import tifffile
 
-from voxel.core.instrument.drivers.camera import ROI
+from voxel.utils.vec import Vec2D
+
+
+@dataclass
+class ROI:
+    origin: Vec2D
+    size: Vec2D[int]
+    bounds: Vec2D
+
+    def __repr__(self):
+        return f"\n" f"  Origin    = {self.origin}, \n" f"  Size      = {self.size}, \n" f"  Bounds    = {self.bounds}"
 
 
 class ImageModel:

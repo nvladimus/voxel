@@ -1,6 +1,6 @@
 import numpy as np
 
-from voxel.core.instrument.device.writer import PixelType, VoxelWriter, WriterMetadata
+from voxel.instrument.io.writer import PixelType, VoxelWriter, WriterMetadata
 
 
 class SimpleWriter(VoxelWriter):
@@ -63,8 +63,8 @@ class SimpleWriter(VoxelWriter):
 
 def test_writer():
     """Test the writer with power of 2 dimensions"""
-    from voxel.core.utils.frame_gen import generate_frames
-    from voxel.core.utils.geometry.vec import Vec2D, Vec3D
+    from voxel.utils.frame_gen import generate_frames
+    from voxel.utils.vec import Vec2D, Vec3D
 
     writer = SimpleWriter("test", "test_writer")
 
@@ -93,6 +93,6 @@ def test_writer():
 
 
 if __name__ == "__main__":
-    from voxel.core.utils.log_config import setup_logging
+    from voxel.utils.log_config import setup_logging
 
     setup_logging()

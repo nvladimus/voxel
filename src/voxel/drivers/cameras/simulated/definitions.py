@@ -1,13 +1,7 @@
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Optional
 
-from voxel.core.instrument.drivers.camera import Binning, PixelType
-
-
-class TriggerMode(StrEnum):
-    ON = "On"
-    OFF = "Off"
+from voxel.instrument.devices.camera import Binning, PixelType, TriggerMode
 
 
 class TriggerSource(StrEnum):
@@ -24,11 +18,11 @@ class TriggerPolarity(StrEnum):
 class TriggerSettings:
     """Trigger settings for a camera."""
 
-    mode: Optional[TriggerMode]
-    source: Optional[TriggerSource]
-    polarity: Optional[TriggerPolarity]
+    mode: TriggerMode | None
+    source: TriggerSource | None
+    polarity: TriggerPolarity | None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.mode}, {self.source}, {self.polarity}"
 
     def dict(self):

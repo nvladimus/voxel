@@ -1,21 +1,19 @@
-import threading
-import queue
-import time
+from dataclasses import dataclass, asdict
 import os
-from typing import Optional, tuple, TypedDict
+import queue
+import threading
+import time
 
 import numpy as np
-from numpy.typing import NDArray
 
-from voxel.core.utils.geometry.vec import Vec2D
-from voxel.core.instrument.drivers.camera import ROI
-from voxel.core.instrument.drivers.camera.simulated.definitions import (
-    TriggerMode,
-    TriggerSource,
-    TriggerPolarity,
+
+from .definitions import (
     PixelType,
+    TriggerMode,
+    TriggerPolarity,
+    TriggerSource,
 )
-from voxel.core.instrument.drivers.camera.simulated.image_model import ImageModel
+from .image_model import ImageModel
 
 # Constants
 BUFFER_SIZE_FRAMES = 8
@@ -30,39 +28,34 @@ INIT_EXPOSURE_TIME_MS = 500
 LINE_INTERVAL_US_LUT = {PixelType.MONO8: 10.00, PixelType.MONO16: 20.00}
 
 
-class ImageModelParams(TypedDict):
+@dataclass(frozen=True)
+class ImageModelParams:
     qe: float
     gain: float
     dark_noise: float
     bitdepth: int
     baseline: int
-    reference_image_path: Optional[str]
+    reference_image_path: str | None = None
 
 
-DEFAULT_IMAGE_MODEL: ImageModelParams = {
-    "qe": 0.85,
-    "gain": 0.08,
-    "dark_noise": 6.89,
-    "bitdepth": 12,
-    "baseline": 0,
-}
+def _default_reference_image_path():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(current_dir, "reference_image.tif")
+
+
+DEFAULT_IMAGE_MODEL = ImageModelParams(
+    qe=0.85,
+    gain=0.08,
+    dark_noise=6.89,
+    bitdepth=12,
+    baseline=0,
+    reference_image_path=_default_reference_image_path(),
+)
 
 
 class SimulatedCameraHardware:
-
-    def __init__(self, image_model_params: Optional[dict] = None, reference_image_path: Optional[str] = None):
-        if image_model_params is None:
-            image_model_params = DEFAULT_IMAGE_MODEL
-
-        if reference_image_path is None:
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            reference_image_path = os.path.join(current_dir, "reference_image.tif")
-            print(reference_image_path)
-
-        self.image_model_params = image_model_params
-        self.reference_image_path = reference_image_path
-
-        self.image_model = ImageModel(**self.image_model_params, reference_image_path=self.reference_image_path)
+    def __init__(self, image_model_params: ImageModelParams = DEFAULT_IMAGE_MODEL):
+        self.image_model = ImageModel(**asdict(image_model_params))
 
         self.sensor_width_px: int = self.image_model.sensor_size_px[1]
         self.sensor_height_px: int = self.image_model.sensor_size_px[0]
@@ -102,10 +95,10 @@ class SimulatedCameraHardware:
         self._initialize_buffer()
 
         # Variables for buffer indices and dropped frames
-        self.dropped_frames = 0
-        self.frame_index = 0
-        self.frame_rate = 0.0
-        self.start_time = None
+        self.dropped_frames: int = 0
+        self.frame_index: int = 0
+        self.frame_rate: float = 0.0
+        self.start_time: float | None = None
 
         # Lock for statistics
         self.stats_lock = threading.Lock()
@@ -162,14 +155,6 @@ class SimulatedCameraHardware:
             if was_running:
                 self.start_acquisition()
 
-    @property
-    def roi(self) -> ROI:
-        return ROI(
-            origin=Vec2D(self.roi_width_offset_px, self.roi_height_offset_px),
-            size=Vec2D(self.roi_width_px, self.roi_height_px),
-            bounds=Vec2D(self.sensor_width_px, self.sensor_height_px),
-        )
-
     def _calculate_frame_time_s(self) -> float:
         readout_time = (self.line_interval_us_lut[self.pixel_type] * self.roi_height_px) / 1000
         frame_time_ms = max(self.exposure_time_ms, readout_time)
@@ -200,7 +185,9 @@ class SimulatedCameraHardware:
 
             # Generate frame using ImageModel
             frame = self.image_model.generate_frame(
-                exposure_time=self.exposure_time_ms / 1000, roi=self.roi, pixel_type=self.frame_dtype
+                exposure_time=self.exposure_time_ms / 1000,
+                roi=self.roi,
+                pixel_type=self.frame_dtype,
             )
 
             try:
@@ -226,7 +213,7 @@ class SimulatedCameraHardware:
             with self.stats_lock:
                 self.frame_rate = frames_generated / elapsed_since_start if elapsed_since_start > 0 else 0.0
 
-    def grab_frame(self) -> NDArray[np.int_]:
+    def grab_frame(self) -> np.ndarray:
         """Grab a frame from the buffer."""
         try:
             frame = self.frame_queue.get(timeout=1)
@@ -248,7 +235,7 @@ class SimulatedCameraHardware:
         self.stop_acquisition()
 
     @property
-    def acquisition_state(self):
+    def acquisition_state(self) -> dict[str, int | float]:
         with self.stats_lock:
             buffer_fill = self.frame_queue.qsize()
             return {

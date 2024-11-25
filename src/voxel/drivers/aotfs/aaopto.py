@@ -1,8 +1,8 @@
 from aaopto_aotf import MPDS
 from aaopto_aotf.device_codes import BlankingMode, InputMode
 
-from voxel.core.instrument.device.aotf import VoxelAOTF
-from voxel.core.utils.singleton import Singleton
+from voxel.instrument.devices.aotf import VoxelAOTF
+from voxel.utils.singleton import Singleton
 
 BLANKING_MODES = {
     "external": BlankingMode.EXTERNAL,
@@ -22,7 +22,6 @@ class MPDSSingleton(MPDS, metaclass=Singleton):
 
 
 class AOTF(VoxelAOTF):
-
     def __init__(self, port: str, name: str = ""):
         super().__init__(name)
         self.aotf = MPDSSingleton(com_port=port)

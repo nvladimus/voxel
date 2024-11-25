@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Optional
 
-from voxel.core.acquisition.metadata import VoxelMetadata, MetadataNameFormat
+from voxel.acquisition.plan.metadata import VoxelMetadata, MetadataNameFormat
 
 
 class DateTimeFormat(StrEnum):

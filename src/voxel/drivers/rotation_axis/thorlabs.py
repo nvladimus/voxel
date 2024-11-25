@@ -1,10 +1,9 @@
 import time
-from typing import Optional
 
 from pylablib.devices import Thorlabs
 
-from voxel.core.instrument.device import VoxelDeviceConnectionError
-from voxel.core.instrument.device.rotation_axis import VoxelRotationAxis
+from voxel.instrument.devices import VoxelDeviceConnectionError
+from voxel.instrument.devices.rotation_axis import VoxelRotationAxis
 
 MIN_POSITION_DEG = 0
 MAX_POSITION_DEG = 360
@@ -94,7 +93,7 @@ class ThorlabsRotationAxis(VoxelRotationAxis):
         status = self._instance.get_status()
         return status.is_moving
 
-    def wait_until_stopped(self, timeout: Optional[float] = None, check_interval: float = 0.1):
+    def wait_until_stopped(self, timeout: float | None = None, check_interval: float = 0.1):
         """Wait until the rotation axis has stopped moving.
         :param timeout: Maximum time to wait for the rotation axis to stop moving
         :param check_interval: Time interval between checks

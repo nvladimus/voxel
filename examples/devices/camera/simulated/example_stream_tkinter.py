@@ -5,11 +5,11 @@ from typing import Optional
 import numpy as np
 from PIL import Image, ImageTk
 
-from voxel.instrument.drivers.cameras.simulated import SimulatedCamera, ImageModelParams
+from voxel.drivers.cameras.simulated import SimulatedCamera, ImageModelParams
 
 
 class FrameStreamApp(tk.Tk):
-    def __init__(self, camera: SimulatedCamera, duration: Optional[float] = None) -> None:
+    def __init__(self, camera: SimulatedCamera, duration: float | None = None) -> None:
         super().__init__()
 
         self.camera = camera
@@ -17,11 +17,14 @@ class FrameStreamApp(tk.Tk):
         self.start_time = time.time()
         self.last_frame_time = self.start_time
         self.frames_processed = 0
+        self._img: tk.PhotoImage
 
         self.title("Frame Stream")
         self.geometry(f"{camera.sensor_size_px.x}x{camera.sensor_size_px.y+200}")
 
-        self.canvas = tk.Canvas(self, width=camera.sensor_size_px.x, height=camera.sensor_size_px.y)
+        self.canvas = tk.Canvas(
+            self, width=camera.sensor_size_px.x, height=camera.sensor_size_px.y
+        )
         self.canvas.pack()
 
         self.info_label = tk.Label(self, text="", justify=tk.LEFT)
@@ -53,20 +56,24 @@ class FrameStreamApp(tk.Tk):
             # Only display the last frame if we processed multiple
             if _ == frames_to_process - 1:
                 # Normalize the frame to 0-255 range for display
-                frame_normalized = ((frame - frame.min()) * (255.0 / (frame.max() - frame.min() + 1e-12))).astype(
-                    np.uint8
-                )
+                frame_normalized = (
+                    (frame - frame.min())
+                    * (255.0 / (frame.max() - frame.min() + 1e-12))
+                ).astype(np.uint8)
 
                 image = Image.fromarray(frame_normalized)
                 photo = ImageTk.PhotoImage(image=image)
 
                 # Update canvas
                 if self.image_on_canvas is None:
-                    self.image_on_canvas = self.canvas.create_image(0, 0, anchor=tk.NW, image=photo)
+                    self.image_on_canvas = self.canvas.create_image(
+                        0, 0, anchor=tk.NW, image=photo
+                    )
                 else:
                     self.canvas.itemconfig(self.image_on_canvas, image=photo)
 
-                self.canvas.image = photo  # Keep a reference to prevent garbage collection
+                # Keep a reference to prevent garbage collection
+                self._image = photo
 
         actual_fps = self.frames_processed / elapsed_time if elapsed_time > 0 else 0
         info_text = (
@@ -106,15 +113,17 @@ def stream_frames_tkinter(camera: SimulatedCamera, duration: Optional[float] = N
 
 # Example usage
 if __name__ == "__main__":
-    image_model_params: ImageModelParams = {
-        "qe": 0.5,
-        "gain": 1.0,
-        "dark_noise": 1.0,
-        "bitdepth": 16,
-        "baseline": 0,
-    }
+    image_model_params = ImageModelParams(
+        qe=0.5,
+        gain=1.0,
+        dark_noise=1.0,
+        bitdepth=16,
+        baseline=0,
+    )
     simulated_camera = SimulatedCamera(
-        name="main-camera", serial_number="sim-cam-001", pixel_size_um=1.0, image_model_params=image_model_params
+        name="sim-cam-001",
+        pixel_size_um=(1.0, 1.0),
+        image_model_params=image_model_params,
     )
     simulated_camera.exposure_time_ms = 30
 

@@ -2,7 +2,7 @@ import struct
 
 import serial
 
-from voxel.core.instrument.device.tunable_lens import VoxelTunableLens, TunableLensControlMode
+from voxel.instrument.devices.tunable_lens import VoxelTunableLens, TunableLensControlMode
 
 # constants for Optotune EL-E-4i controller
 
@@ -23,7 +23,6 @@ def crc_16(s):
 
 
 class OptotuneELE4ITunableLens(VoxelTunableLens):
-
     def __init__(self, name: str, port: str):
         super().__init__(name)
 

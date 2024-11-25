@@ -1,28 +1,24 @@
-from voxel.core.utils.descriptors.deliminated_property import deliminated_property
-from voxel.core.utils.descriptors.enumerated_property import enumerated_property
-from voxel.core.utils.geometry.vec import Vec2D
-from voxel.core.instrument.device.camera import VoxelCamera, VoxelFrame, AcquisitionState
-from voxel.processing.downsample.gpu.gputools.downsample_2d import GPUToolsDownSample2D
+from voxel.instrument.devices.camera import AcquisitionState, VoxelCamera, VoxelFrame, TriggerMode
+from voxel.utils.descriptors.deliminated import deliminated_property
+from voxel.utils.descriptors.enumerated import enumerated_property
+from voxel.utils.vec import Vec2D
 
 from .definitions import (
     Binning,
     PixelType,
-    TriggerSettings,
-    TriggerMode,
-    TriggerSource,
     TriggerPolarity,
+    TriggerSource,
 )
-
 from .simulated_hardware import (
+    MAX_EXPOSURE_TIME_MS,
+    MIN_EXPOSURE_TIME_MS,
+    MIN_HEIGHT_PX,
+    MIN_WIDTH_PX,
+    STEP_EXPOSURE_TIME_MS,
+    STEP_HEIGHT_PX,
+    STEP_WIDTH_PX,
     ImageModelParams,
     SimulatedCameraHardware,
-    MIN_WIDTH_PX,
-    STEP_WIDTH_PX,
-    MIN_HEIGHT_PX,
-    STEP_HEIGHT_PX,
-    MIN_EXPOSURE_TIME_MS,
-    MAX_EXPOSURE_TIME_MS,
-    STEP_EXPOSURE_TIME_MS,
 )
 
 PixelTypeLUT = dict[PixelType, str]
@@ -33,19 +29,19 @@ TriggerPolarityLUT = dict[TriggerPolarity, str]
 
 
 class SimulatedCamera(VoxelCamera):
-
     def __init__(
         self,
-        serial_number: str,
-        name: str = "",
+        name: str = "simulated_camera",
         pixel_size_um: tuple[float, float] = (1.0, 1.0),
         image_model_params: ImageModelParams | None = None,
-        reference_image_path: str | None = None,
-    ):
-        super().__init__(name, pixel_size_um)
-        self.log.info(f"Initializing simulated camera with id: {name}, serial number: {serial_number}")
-        self.serial_number = serial_number
-        self.instance = SimulatedCameraHardware(image_model_params, reference_image_path)
+    ) -> None:
+        super().__init__(name=name, pixel_size_um=pixel_size_um)
+        self.log.info(f"Initializing simulated camera. ID: {name}")
+
+        if image_model_params:
+            self.instance = SimulatedCameraHardware(image_model_params)
+        else:
+            self.instance = SimulatedCameraHardware()
 
         # Property LUTs
         self._pixel_type_lut: PixelTypeLUT = {
@@ -56,9 +52,6 @@ class SimulatedCamera(VoxelCamera):
         }
         self._binning_lut: BinningLUT = {
             Binning.X1: "1x1",
-            Binning.X2: "2x2",
-            Binning.X4: "4x4",
-            Binning.X8: "8x8",
         }
         self._trigger_mode_lut: TriggerModeLUT = {mode: mode.value for mode in TriggerMode}
         self._trigger_source_lut: TriggerSourceLUT = {source: source.value for source in TriggerSource}
@@ -66,30 +59,19 @@ class SimulatedCamera(VoxelCamera):
 
         # private properties
         self._binning: Binning = Binning.X1
-        self._trigger_settings: TriggerSettings | None = None
+        self._trigger_mode: TriggerMode = TriggerMode.OFF
 
-        self.gpu_binning = GPUToolsDownSample2D(binning=self._binning)
-
-        self.log.info(f"Simulated camera initialized with id: {name}, serial number: {serial_number}")
-
-    # Sensor size properties
+        self.log.info(f"Simulated camera initialized with id: {name}")
 
     @property
     def sensor_size_px(self) -> Vec2D:
         return Vec2D(self.instance.sensor_width_px, self.instance.sensor_height_px)
 
-    @property
-    def sensor_width_px(self) -> int:
-        return self.sensor_size_px.x
-
-    @property
-    def sensor_height_px(self) -> int:
-        return self.sensor_size_px.y
-
-    # ROI properties
-
     @deliminated_property(
-        minimum=MIN_WIDTH_PX, maximum=lambda self: self.sensor_width_px, step=STEP_WIDTH_PX, unit="px"
+        minimum=MIN_WIDTH_PX,
+        maximum=lambda self: self.sensor_size_px.x,
+        step=STEP_WIDTH_PX,
+        unit="px",
     )
     def roi_width_px(self) -> int:
         return self.instance.roi_width_px
@@ -100,13 +82,18 @@ class SimulatedCamera(VoxelCamera):
         self.instance.roi_width_px = value
         # Update offset if necessary
         centered_offset_px = (
-            round((self.instance.sensor_width_px / 2 - value / 2) / self.instance.roi_step_width_px)
+            round((self.sensor_size_px.x / 2 - value / 2) / self.instance.roi_step_width_px)
             * self.instance.roi_step_width_px
         )
         self.instance.roi_width_offset_px = centered_offset_px
         self.log.info(f"ROI width set to: {value} px")
 
-    @deliminated_property(minimum=0, maximum=lambda self: self.sensor_width_px, step=STEP_WIDTH_PX, unit="px")
+    @deliminated_property(
+        minimum=0,
+        maximum=lambda self: self.sensor_size_px.x,
+        step=STEP_WIDTH_PX,
+        unit="px",
+    )
     def roi_width_offset_px(self) -> int:
         return self.instance.roi_width_offset_px
 
@@ -116,7 +103,10 @@ class SimulatedCamera(VoxelCamera):
         self.log.info(f"ROI width offset set to: {value} px")
 
     @deliminated_property(
-        minimum=MIN_HEIGHT_PX, maximum=lambda self: self.sensor_height_px, step=STEP_HEIGHT_PX, unit="px"
+        minimum=MIN_HEIGHT_PX,
+        maximum=lambda self: self.sensor_sensor_size_px.y,
+        step=STEP_HEIGHT_PX,
+        unit="px",
     )
     def roi_height_px(self) -> int:
         return self.instance.roi_height_px
@@ -127,13 +117,18 @@ class SimulatedCamera(VoxelCamera):
         self.instance.roi_height_px = value
         # Update offset if necessary
         centered_offset_px = (
-            round((self.instance.sensor_height_px / 2 - value / 2) / self.instance.roi_step_height_px)
+            round((self.sensor_size_px.y / 2 - value / 2) / self.instance.roi_step_height_px)
             * self.instance.roi_step_height_px
         )
         self.instance.roi_height_offset_px = centered_offset_px
         self.log.info(f"ROI height set to: {value} px")
 
-    @deliminated_property(minimum=0, maximum=lambda self: self.sensor_height_px, step=STEP_HEIGHT_PX, unit="px")
+    @deliminated_property(
+        minimum=0,
+        maximum=lambda self: self.sensor_sensor_size_px.y,
+        step=STEP_HEIGHT_PX,
+        unit="px",
+    )
     def roi_height_offset_px(self) -> int:
         return self.instance.roi_height_offset_px
 
@@ -142,9 +137,10 @@ class SimulatedCamera(VoxelCamera):
         self.instance.roi_height_offset_px = value
         self.log.info(f"ROI height offset set to: {value} px")
 
-    # Image Format properties
+    def _get_binning_options(self) -> set[str]:
+        return set(self._binning_lut.values())
 
-    @enumerated_property(Binning, lambda self: list(self._binning_lut))
+    @enumerated_property(options=_get_binning_options)
     def binning(self) -> Binning:
         return self._binning
 
@@ -152,12 +148,14 @@ class SimulatedCamera(VoxelCamera):
     def binning(self, binning: Binning) -> None:
         if binning in self._binning_lut:
             self._binning = binning
-            self.gpu_binning = GPUToolsDownSample2D(binning=self._binning)
             self.log.info(f"Binning set to: {binning.name}")
         else:
             self.log.error(f"Invalid binning: {binning}")
 
-    @enumerated_property(PixelType, lambda self: list(self._pixel_type_lut))
+    def _get_pixel_type_options(self) -> set[str]:
+        return set(self._pixel_type_lut.values())
+
+    @enumerated_property(options=_get_pixel_type_options)
     def pixel_type(self) -> PixelType:
         return self.instance.pixel_type
 
@@ -170,8 +168,10 @@ class SimulatedCamera(VoxelCamera):
             self.log.error(f"Invalid pixel type: {pixel_type}")
 
     @property
-    def frame_size_px(self) -> Vec2D:
-        return Vec2D(self.roi_width_px, self.roi_height_px) // self.binning.value
+    def frame_size_px(self) -> Vec2D[int]:
+        width = self.roi_width_px // self.binning
+        height = self.roi_height_px // self.binning
+        return Vec2D(width, height)
 
     @property
     def frame_width_px(self) -> int:
@@ -186,7 +186,10 @@ class SimulatedCamera(VoxelCamera):
         return (self.frame_size_px.x * self.frame_size_px.y * self.pixel_type.bytes_per_pixel) / 1e6
 
     @deliminated_property(
-        minimum=MIN_EXPOSURE_TIME_MS, maximum=MAX_EXPOSURE_TIME_MS, step=STEP_EXPOSURE_TIME_MS, unit="ms"
+        minimum=MIN_EXPOSURE_TIME_MS,
+        maximum=MAX_EXPOSURE_TIME_MS,
+        step=STEP_EXPOSURE_TIME_MS,
+        unit="ms",
     )
     def exposure_time_ms(self) -> float:
         return self.instance.exposure_time_ms
@@ -205,31 +208,13 @@ class SimulatedCamera(VoxelCamera):
         return (self.line_interval_us * self.roi_height_px) / 1000 + self.exposure_time_ms
 
     @property
-    def trigger_settings(self) -> TriggerSettings:
-        if not self._trigger_settings:
-            self._trigger_settings = TriggerSettings(
-                mode=self.instance.trigger_mode,
-                source=self.instance.trigger_source,
-                polarity=self.instance.trigger_activation,
-            )
-        return self._trigger_settings
+    def trigger_mode(self) -> TriggerMode:
+        return self._trigger_mode
 
-    @trigger_settings.setter
-    def trigger_settings(self, trigger: TriggerSettings) -> None:
-        if (
-            trigger.mode in self._trigger_mode_lut
-            and trigger.source in self._trigger_source_lut
-            and trigger.polarity in self._trigger_polarity_lut
-        ):
-            self.instance.trigger_mode = trigger.mode
-            self.instance.trigger_source = trigger.source
-            self.instance.trigger_activation = trigger.polarity
-            self._trigger_settings = trigger
-            self.log.info(
-                f"Trigger set to: mode={trigger.mode}, " f"source={trigger.source}, polarity={trigger.polarity}"
-            )
-        else:
-            self.log.error(f"Invalid trigger settings: {trigger}")
+    @trigger_mode.setter
+    def trigger_mode(self, mode: TriggerMode) -> None:
+        self._trigger_mode = TriggerMode(mode)
+        self.log.info(f"Trigger mode set to: {mode}")
 
     @property
     def sensor_temperature_c(self) -> float:
@@ -248,26 +233,18 @@ class SimulatedCamera(VoxelCamera):
     def stop(self) -> None:
         self.instance.stop_acquisition()
 
-    def reset(self) -> None:
-        self.stop()
-        self._binning = Binning.X1
-        self.trigger_settings = TriggerSettings(TriggerMode.OFF, TriggerSource.INTERNAL, TriggerPolarity.RISINGEDGE)
-
     def grab_frame(self) -> VoxelFrame:
         frame = self.instance.grab_frame()
-        if self.binning == Binning.X1:
-            return frame
-        else:
-            return self.gpu_binning.run(frame)
+        return frame
 
     @property
     def acquisition_state(self) -> AcquisitionState:
         state = self.instance.acquisition_state
         return AcquisitionState(
-            frame_index=state["frame_index"],
-            input_buffer_size=state["input_buffer_size"],
-            output_buffer_size=state["output_buffer_size"],
-            dropped_frames=state["dropped_frames"],
+            frame_index=int(state["frame_index"]),
+            input_buffer_size=int(state["input_buffer_size"]),
+            output_buffer_size=int(state["output_buffer_size"]),
+            dropped_frames=int(state["dropped_frames"]),
             data_rate_mbs=state["frame_rate"]
             * self.instance.roi_width_px
             * self.instance.roi_height_px
@@ -282,3 +259,7 @@ class SimulatedCamera(VoxelCamera):
 
     def close(self):
         self.instance.close()
+
+    def reset(self):
+        self.roi_width_px = self.sensor_size_px.x
+        self.roi_height_px = self.sensor_size_px.y

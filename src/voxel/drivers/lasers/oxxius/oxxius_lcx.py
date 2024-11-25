@@ -1,12 +1,11 @@
 from oxxius_laser import LCX
 from serial import Serial
 
-from voxel.core.utils.descriptors.deliminated_property import deliminated_property
-from voxel.core.instrument.device.laser import VoxelLaser
+from voxel.utils.descriptors.deliminated import deliminated_property
+from voxel.instrument.devices.laser import VoxelLaser
 
 
 class OxxiusLCXLaser(VoxelLaser):
-
     def __init__(self, name: str, port: Serial | str, prefix: str, wavelength: int):
         """
         Communicate with specific LBX laser in L6CC Combiner box.
