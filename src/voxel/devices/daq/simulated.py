@@ -272,8 +272,8 @@ class DAQ(BaseDAQ):
                                              )
 
             # sanity check voltages for ni card range
-            max = getattr(self, 'ao_max_volts', 5)
-            min = getattr(self, 'ao_min_volts', 0)
+            max = getattr(self, 'ao_max_volts', 10)
+            min = getattr(self, 'ao_min_volts', -10)
             if numpy.max(voltages[:]) > max or numpy.min(voltages[:]) < min:
                 raise ValueError(f"voltages are out of ni card range [{max}, {min}] volts")
 
